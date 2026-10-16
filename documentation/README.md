@@ -42,7 +42,7 @@ Ou avec la stack Docker de développement : `docker compose up docs` puis http:/
 
 ```markdown
 <figure markdown="span">
-![Texte alternatif](../assets/figures/fig12.png){ loading=lazy }
+![Texte alternatif](../assets/figures/fig12.webp){ loading=lazy }
 <figcaption>Figure 12 : Page Mes demandes</figcaption>
 </figure>
 ```
@@ -64,6 +64,9 @@ Sur une instance, le schéma vivant est servi à `/api/schema/` et Swagger UI à
 
 ## Figures de la notice
 
-Les 64 figures ont été extraites du PDF à 180 dpi (`fig01.png` … `fig64.png`, numérotation de la
-notice ; `fig44a.png` est la première moitié de la planche 44, `structure-plan.png` le schéma
-d'arborescence du § 3.7). Pour remplacer une capture, garder le même nom de fichier.
+Les 64 figures ont été extraites du PDF de la notice à **300 dpi** (résolution native des captures
+qu'il embarque), puis encodées en WebP qualité 90 (`fig01.webp` … `fig64.webp`, numérotation de la
+notice ; `fig44a.webp` est la première moitié de la planche 44, `structure-plan.webp` le schéma
+d'arborescence du § 3.7). Les planches annotées (flèches rouges) sont rendues depuis la page du PDF,
+pas depuis l'image brute, pour conserver les annotations. Pour remplacer une capture, garder le même
+nom de fichier.

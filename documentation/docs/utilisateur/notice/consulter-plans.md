@@ -9,13 +9,13 @@ Le module « **Mes plans de gestion** » permet d'accéder aux plans de gestion 
 Vous pouvez rechercher, trier et filtrer (plans actifs / inactifs). En cliquant sur un plan, vous ouvrez sa **fiche détaillée** : informations générales, enjeux, sites associés.
 
 <figure markdown="span">
-![Page d'accueil - module plan de gestion - tableau des plans](../../assets/figures/fig20.png){ loading=lazy }
+![Page d'accueil - module plan de gestion - tableau des plans](../../assets/figures/fig20.webp){ loading=lazy }
 <figcaption>Figure 20 : Page d'accueil - module plan de gestion - tableau des plans</figcaption>
 </figure>
 
 Pour demander l'accès à un plan de gestion existant, cliquez sur « **Demander l'accès** »
 
 <figure markdown="span">
-![Demande d'accès à un plan de gestion existant](../../assets/figures/fig21.png){ loading=lazy }
+![Demande d'accès à un plan de gestion existant](../../assets/figures/fig21.webp){ loading=lazy }
 <figcaption>Figure 21 : Demande d'accès à un plan de gestion existant</figcaption>
 </figure>

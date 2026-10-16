@@ -11,7 +11,7 @@ La rubrique « Exports » permet de télécharger le contenu du plan. Elle est r
 Les tableaux, graphiques de suivi (tableau de bord, suivi des actions, bilan) et la fiche d'une action ont aussi leur propre bouton d'export ([§ 4.9.1](suivi.md#491-le-tableau-de-bord-et-le-suivi-des-indicateurs-état-et-pression), [§ 4.9.3](suivi.md#493-le-bilan-de-la-gestion), [§ 4.9.2](suivi.md#492-le-suivi-des-actions-de-gestion) et [§ 4.8.2](actions.md#482-la-fiche-action)).
 
 <figure markdown="span">
-![Page Exports](../assets/figures/fig55.png){ loading=lazy }
+![Page Exports](../assets/figures/fig55.webp){ loading=lazy }
 <figcaption>Figure 55 : Page Exports</figcaption>
 </figure>
 

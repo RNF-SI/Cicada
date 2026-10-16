@@ -7,7 +7,7 @@ En haut de chaque page, vous trouvez :
 - **Le menu utilisateur** (votre nom, en haut à droite) : il donne accès à « Mon profil », « Mes demandes » et à la « Déconnexion ».
 
 <figure markdown="span">
-![En-tête](../../assets/figures/fig06.png){ loading=lazy }
+![En-tête](../../assets/figures/fig06.webp){ loading=lazy }
 <figcaption>Figure 6 : En-tête</figcaption>
 </figure>
 
@@ -20,7 +20,7 @@ La page « **Mon profil** » (Figure 7) regroupe :
 - **La gestion de votre compte** : vous pouvez demander la suppression de votre compte (conformément au RGPD).
 
 <figure markdown="span" class="figure--medium">
-![Page « Mon profil »](../../assets/figures/fig07.png){ loading=lazy }
+![Page « Mon profil »](../../assets/figures/fig07.webp){ loading=lazy }
 <figcaption>Figure 7 : Page « Mon profil »</figcaption>
 </figure>
 
@@ -29,7 +29,7 @@ La page « **Mon profil** » (Figure 7) regroupe :
 CICADA vous informe des événements qui vous concernent (validation d'une demande, association à un site, etc.). Vos notifications se consultent depuis la cloche de l'en-tête ; l'historique complet est disponible sur la page Activité. Vous pouvez marquer un message comme lu, ou tout marquer comme lu d'un seul clic.
 
 <figure markdown="span" class="figure--medium">
-![Onglet notifications](../../assets/figures/fig08.png){ loading=lazy }
+![Onglet notifications](../../assets/figures/fig08.webp){ loading=lazy }
 <figcaption>Figure 8 : Onglet notifications</figcaption>
 </figure>
 
@@ -47,11 +47,11 @@ Les administrateurs disposent d'onglets supplémentaires (Validations, et pour l
 
 <div class="figure-row" markdown>
 <figure markdown="span">
-![Onglet notifications - activités](../../assets/figures/fig09.png){ loading=lazy }
+![Onglet notifications - activités](../../assets/figures/fig09.webp){ loading=lazy }
 <figcaption>Figure 9 : Onglet notifications - activités</figcaption>
 </figure>
 <figure markdown="span">
-![Page activités](../../assets/figures/fig10.png){ loading=lazy }
+![Page activités](../../assets/figures/fig10.webp){ loading=lazy }
 <figcaption>Figure 10 : Page activités</figcaption>
 </figure>
 </div>
@@ -66,11 +66,11 @@ Cette page liste aussi les **modules** auxquels vous n'avez pas encore accès : 
 
 <div class="figure-row" markdown>
 <figure markdown="span" class="figure--small">
-![Onglet utilisateur - demandes](../../assets/figures/fig11.png){ loading=lazy }
+![Onglet utilisateur - demandes](../../assets/figures/fig11.webp){ loading=lazy }
 <figcaption>Figure 11 : Onglet utilisateur - demandes</figcaption>
 </figure>
 <figure markdown="span">
-![Page Mes demandes](../../assets/figures/fig12.png){ loading=lazy }
+![Page Mes demandes](../../assets/figures/fig12.webp){ loading=lazy }
 <figcaption>Figure 12 : Page Mes demandes</figcaption>
 </figure>
 </div>

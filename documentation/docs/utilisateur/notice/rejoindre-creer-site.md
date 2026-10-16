@@ -6,11 +6,11 @@ Dans un premier temps il est nécessaire de vérifier si le site que vous souhai
 
 <div class="figure-row" markdown>
 <figure markdown="span">
-![Fenêtre rechercher ou créer un nouveau site](../../assets/figures/fig15.png){ loading=lazy }
+![Fenêtre rechercher ou créer un nouveau site](../../assets/figures/fig15.webp){ loading=lazy }
 <figcaption>Figure 15 : Fenêtre rechercher ou créer un nouveau site</figcaption>
 </figure>
 <figure markdown="span">
-![Rechercher un site existant](../../assets/figures/fig16.png){ loading=lazy }
+![Rechercher un site existant](../../assets/figures/fig16.webp){ loading=lazy }
 <figcaption>Figure 16 : Rechercher un site existant</figcaption>
 </figure>
 </div>
@@ -21,11 +21,11 @@ Dans un premier temps il est nécessaire de vérifier si le site que vous souhai
 
 <div class="figure-row" markdown>
 <figure markdown="span">
-![Demande d'accès à un site](../../assets/figures/fig17.png){ loading=lazy }
+![Demande d'accès à un site](../../assets/figures/fig17.webp){ loading=lazy }
 <figcaption>Figure 17 : Demande d'accès à un site</figcaption>
 </figure>
 <figure markdown="span">
-![Fenêtre de création d'un nouveau site](../../assets/figures/fig18.png){ loading=lazy }
+![Fenêtre de création d'un nouveau site](../../assets/figures/fig18.webp){ loading=lazy }
 <figcaption>Figure 18 : Fenêtre de création d'un nouveau site</figcaption>
 </figure>
 </div>
@@ -40,6 +40,6 @@ Il existe deux possibilités pour intégrer la donnée géospatiale d'un site lo
 Cliquez sur éditer une forme géométrique puis cliquez pour ajouter vos points pour délimiter votre zone. Enfin, pour finaliser le contour de votre site, double cliquez sur le dernier point.
 
 <figure markdown="span">
-![Visuels d'édition cartographique de la création d'un site](../../assets/figures/fig19.png){ loading=lazy }
+![Visuels d'édition cartographique de la création d'un site](../../assets/figures/fig19.webp){ loading=lazy }
 <figcaption>Figure 19 : Visuels d'édition cartographique de la création d'un site</figcaption>
 </figure>

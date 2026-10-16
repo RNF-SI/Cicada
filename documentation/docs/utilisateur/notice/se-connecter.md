@@ -5,7 +5,7 @@
 Rendez-vous sur la page d'accueil de CICADA et cliquez sur « Se connecter ». Saisissez votre identifiant (ou votre adresse e-mail) et votre mot de passe, puis cliquer sur « Se connecter » (Figure 2).
 
 <figure markdown="span" class="figure--small">
-![Page de connexion](../../assets/figures/fig02.png){ loading=lazy }
+![Page de connexion](../../assets/figures/fig02.webp){ loading=lazy }
 <figcaption>Figure 2 : Page de connexion</figcaption>
 </figure>
 
@@ -16,7 +16,7 @@ Si vous n'avez pas encore de compte, cliquez sur « Créer un compte » depuis l
 Votre demande n'est pas effective immédiatement : elle doit être validée par un administrateur (organisme ou instance). Une fois le formulaire envoyé, une page vous confirme que votre inscription est en attente. Vous recevrez un e-mail dès que votre compte sera activé.
 
 <figure markdown="span" class="figure--small">
-![Page d'inscription](../../assets/figures/fig03.png){ loading=lazy }
+![Page d'inscription](../../assets/figures/fig03.webp){ loading=lazy }
 <figcaption>Figure 3 : Page d'inscription</figcaption>
 </figure>
 
@@ -29,6 +29,6 @@ Votre demande n'est pas effective immédiatement : elle doit être validée par 
 Cliquez sur votre nom en haut à droite de l'en-tête ([§ 3.3](en-tete.md)), puis sur « Déconnexion ».
 
 <figure markdown="span" class="figure--small">
-![Menu utilisateur](../../assets/figures/fig04.png){ loading=lazy }
+![Menu utilisateur](../../assets/figures/fig04.webp){ loading=lazy }
 <figcaption>Figure 4 : Menu utilisateur</figcaption>
 </figure>

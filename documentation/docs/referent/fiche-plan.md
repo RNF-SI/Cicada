@@ -15,19 +15,19 @@ La vue d'ensemble affiche les informations clés (période, organisme, statut, s
 
 <div class="figure-row" markdown>
 <figure markdown="span">
-![Vue d'ensemble](../assets/figures/fig29.png){ loading=lazy }
+![Vue d'ensemble](../assets/figures/fig29.webp){ loading=lazy }
 <figcaption>Figure 29 : Vue d'ensemble</figcaption>
 </figure>
 <figure markdown="span">
-![Liste enjeux et FCR](../assets/figures/fig30.png){ loading=lazy }
+![Liste enjeux et FCR](../assets/figures/fig30.webp){ loading=lazy }
 <figcaption>Figure 30 : Liste enjeux et FCR</figcaption>
 </figure>
 <figure markdown="span">
-![ENJEUX et FCR](../assets/figures/fig31.png){ loading=lazy }
+![ENJEUX et FCR](../assets/figures/fig31.webp){ loading=lazy }
 <figcaption>Figure 31 : ENJEUX et FCR</figcaption>
 </figure>
 <figure markdown="span">
-![Tableau d'arborescence](../assets/figures/fig32.png){ loading=lazy }
+![Tableau d'arborescence](../assets/figures/fig32.webp){ loading=lazy }
 <figcaption>Figure 32 : Tableau d'arborescence</figcaption>
 </figure>
 </div>

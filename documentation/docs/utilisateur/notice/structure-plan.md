@@ -3,7 +3,7 @@
 Un plan de gestion s'organise en **arborescence**, qui suit la méthode d'élaboration des plans de gestion **CT88**. Comprendre cette hiérarchie est indispensable pour saisir dans le bon ordre.
 
 <figure markdown="span" class="figure--medium">
-![Structure d'un plan de gestion : détails et saisie, suivis, onglet détail enjeu, vision à long terme, stratégie opérationnelle](../../assets/figures/structure-plan.png){ loading=lazy }
+![Structure d'un plan de gestion : détails et saisie, suivis, onglet détail enjeu, vision à long terme, stratégie opérationnelle](../../assets/figures/structure-plan.webp){ loading=lazy }
 <figcaption>Structure d'un plan de gestion</figcaption>
 </figure>
 

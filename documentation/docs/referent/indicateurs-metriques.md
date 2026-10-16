@@ -18,12 +18,12 @@ Vous pouvez désactiver les niveaux inutiles (« Non utilisé »).
 **Métriques à plusieurs blocs.** Avec une grille « Intervalle numérique », le bouton « Ajouter un bloc » permet de combiner plusieurs mesures (ex. hauteur ET densité). Chaque bloc a son intitulé, son unité et sa grille ; les blocs sont reliés par ET (on retient le moins bon score) ou OU (on retient le meilleur), avec des parenthèses si besoin.
 
 <figure markdown="span">
-![Saisie de la vision à long terme](../assets/figures/fig43.png){ loading=lazy }
+![Saisie de la vision à long terme](../assets/figures/fig43.webp){ loading=lazy }
 <figcaption>Figure 43 : Saisie de la vision à long terme</figcaption>
 </figure>
 
 <figure markdown="span">
-![Planche explicative de la saisie de la grille de métrique : exemple d'une métrique de type « intervalle numérique » décroissant et exemple d'une métrique de type textuel](../assets/figures/fig44a.png){ loading=lazy }
-![Planche explicative de la saisie de la grille de métrique : exemple d'une métrique de type multi-blocs croissants](../assets/figures/fig44.png){ loading=lazy }
+![Planche explicative de la saisie de la grille de métrique : exemple d'une métrique de type « intervalle numérique » décroissant et exemple d'une métrique de type textuel](../assets/figures/fig44a.webp){ loading=lazy }
+![Planche explicative de la saisie de la grille de métrique : exemple d'une métrique de type multi-blocs croissants](../assets/figures/fig44.webp){ loading=lazy }
 <figcaption>Figure 44 : Planche explicative de la saisie de la grille de métrique des indicateurs</figcaption>
 </figure>

@@ -33,7 +33,7 @@ Les validations administratives (avis du CSRPN, validation par le comité consul
 Une chronologie des versions (encadré « Cycle de vie ») retrace l'historique du plan et de ses révisions, regroupées par rang ; un clic sur une version l'ouvre.
 
 <figure markdown="span">
-![Boutons action du cycle de vie](../assets/figures/fig37.png){ loading=lazy }
+![Boutons action du cycle de vie](../assets/figures/fig37.webp){ loading=lazy }
 <figcaption>Figure 37 : Boutons action du cycle de vie</figcaption>
 </figure>
 
@@ -42,6 +42,6 @@ Une chronologie des versions (encadré « Cycle de vie ») retrace l'historique 
     Les référents du plan, les administrateurs d'organisme, le rédacteur général et le super administrateur. Les autres utilisateurs consultent sans pouvoir changer le statut.
 
 <figure markdown="span">
-![Section du cycle de vie d'un plan de gestion](../assets/figures/fig38.png){ loading=lazy }
+![Section du cycle de vie d'un plan de gestion](../assets/figures/fig38.webp){ loading=lazy }
 <figcaption>Figure 38 : Section du cycle de vie d'un plan de gestion</figcaption>
 </figure>

@@ -7,6 +7,6 @@ Le bouton « Ajouter un inventaire/suivi » ouvre un formulaire : intitulé, typ
 **Un suivi saisi ici peut ensuite être rattaché à une action de suivi** d'un plan : à la question « Inventaire ou suivi déjà saisi dans le module Mes inventaires et suivis ? », répondez « Oui » et choisissez-le dans la liste.
 
 <figure markdown="span">
-![Module Inventaires et suivis scientifiques](../assets/figures/fig56.png){ loading=lazy }
+![Module Inventaires et suivis scientifiques](../assets/figures/fig56.webp){ loading=lazy }
 <figcaption>Figure 56 : Module Inventaires et suivis scientifiques</figcaption>
 </figure>

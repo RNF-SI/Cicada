@@ -22,6 +22,6 @@ Consulter la version installée et la dernière version disponible, et déclench
 Lorsque la case est décochée, l'exploration porte uniquement sur les plans de l'instance. Décocher la case retire immédiatement vos plans de l'exploration nationale (une confirmation est demandée). Vos utilisateurs n'explorent alors plus que les plans de l'instance. Recocher republie les plans.
 
 <figure markdown="span">
-![Paramètres de l'instance](../assets/figures/fig64.png){ loading=lazy }
+![Paramètres de l'instance](../assets/figures/fig64.webp){ loading=lazy }
 <figcaption>Figure 64 : Paramètres de l'instance</figcaption>
 </figure>

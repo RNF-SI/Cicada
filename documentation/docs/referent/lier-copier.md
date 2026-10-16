@@ -10,6 +10,6 @@ Sont concernés : les facteurs d'influence, les objectifs opérationnels, les r�
 Depuis un indicateur, « Ajouter une action » propose de créer une nouvelle action, de lier une action existante ou d'en copier une.
 
 <figure markdown="span">
-![Icônes copier ou lier](../assets/figures/fig41.png){ loading=lazy }
+![Icônes copier ou lier](../assets/figures/fig41.webp){ loading=lazy }
 <figcaption>Figure 41 : Icônes copier ou lier</figcaption>
 </figure>

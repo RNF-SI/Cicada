@@ -47,11 +47,11 @@ Un clic sur un résultat ouvre les écrans habituels de CICADA (la fiche action,
 Le fil d'Ariane (« Exploration des données › structure d'origine › plan ») et les boutons « Retour à l'exploration » ramènent à votre recherche en cours (mot-clé, filtres, page), même plusieurs écrans plus loin.
 
 <figure markdown="span">
-![Exploration des données : page de recherche](../../assets/figures/fig23.png){ loading=lazy }
+![Exploration des données : page de recherche](../../assets/figures/fig23.webp){ loading=lazy }
 <figcaption>Figure 23 : Exploration des données : page de recherche</figcaption>
 </figure>
 
 <figure markdown="span">
-![Exploration des données : page de résultats](../../assets/figures/fig24.png){ loading=lazy }
+![Exploration des données : page de résultats](../../assets/figures/fig24.webp){ loading=lazy }
 <figcaption>Figure 24 : Exploration des données : page de résultats</figcaption>
 </figure>

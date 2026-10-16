@@ -515,7 +515,7 @@ Ces tuiles ne s'affichent qu'en portée **Global / Mi-parcours** (masquées en A
 
 ## Documentation utilisateur, administrateur et API (`documentation/`)
 
-Site statique **MkDocs Material** dans [`documentation/`](documentation/README.md), habillé à la charte (`docs/stylesheets/cicada.css`, valeurs de `_variables.scss`). Trois onglets : **Guide utilisateur** (la notice d'utilisation, reprise à l'identique de la notice PDF — texte, tableaux, encadrés, 64 figures dans `docs/assets/figures/`), **Administration technique** (squelette, à alimenter depuis `docs/*.md`), **API** (pages rédigées + référence générée).
+Site statique **MkDocs Material** dans [`documentation/`](documentation/README.md), habillé à la charte (`docs/stylesheets/cicada.css`, valeurs de `_variables.scss`). Trois onglets : **Guide utilisateur** (la notice d'utilisation, reprise à l'identique de la notice PDF — texte, tableaux, encadrés, 64 figures en WebP 300 dpi dans `docs/assets/figures/`), **Administration technique** (squelette, à alimenter depuis `docs/*.md`), **API** (pages rédigées + référence générée).
 
 - **Servie par chaque instance sous `/aide/`** : construite dans le stage `docs` de `frontend/Dockerfile` et copiée dans `htdocs/aide/` de l'Apache du conteneur frontend. Aucun réglage de vhost : le `ProxyPass /` existant suffit. Le routage Angular exclut `/aide/` (`httpd.conf` + `.htaccess`). Lien « Aide » dans l'en-tête (`header.help`).
 - ⚠ **Le contexte de build de l'image frontend est la racine du dépôt** (`context: .`, `file: frontend/Dockerfile`), pour embarquer `documentation/`. Les exclusions sont dans `frontend/Dockerfile.dockerignore` (BuildKit), pas dans le `.dockerignore` racine.

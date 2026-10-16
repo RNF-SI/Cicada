@@ -11,7 +11,7 @@ hide:
 CICADA est un outil numérique **open source** destiné à accompagner, entre autres, les gestionnaires d'aires protégées dans la **saisie et le suivi de leurs plans de gestion** selon la méthodologie **CT88**.
 
 <figure markdown="span" class="figure--medium">
-![Page d'accueil de CICADA - instance de RNF](assets/figures/fig01.png){ loading=lazy }
+![Page d'accueil de CICADA - instance de RNF](assets/figures/fig01.webp){ loading=lazy }
 <figcaption>Figure 1 : Page d'accueil de CICADA - instance de RNF</figcaption>
 </figure>
 

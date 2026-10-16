@@ -5,11 +5,11 @@ La page « Validations » rassemble les demandes à traiter sur votre périmètr
 Pour une inscription, la fenêtre indique si l'organisme a déjà un administrateur : « Nouvel organisme », « Cet organisme n'a aucun administrateur » (pensez alors à promouvoir le compte après l'avoir accepté) ou « Cet organisme a déjà N administrateur(s) ». Des avertissements rappellent aussi l'ordre de traitement (par exemple, valider le lien organisme–site avant l'accès au site).
 
 <figure markdown="span" class="figure--small">
-![Fenêtre de détail d'une validation](../assets/figures/fig60.png){ loading=lazy }
+![Fenêtre de détail d'une validation](../assets/figures/fig60.webp){ loading=lazy }
 <figcaption>Figure 60 : Fenêtre de détail d'une validation</figcaption>
 </figure>
 
 <figure markdown="span">
-![Page Validations](../assets/figures/fig61.png){ loading=lazy }
+![Page Validations](../assets/figures/fig61.webp){ loading=lazy }
 <figcaption>Figure 61 : Page Validations</figcaption>
 </figure>

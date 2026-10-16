@@ -33,7 +33,7 @@ Pour ajouter un élément à votre arborescence, il vous suffit de cliquer sur l
 **Réorganiser par glisser-déposer :** La grande majorité des éléments peuvent être réorganisés, ce qui impact leur numérotation automatique. Par exemples, une pression peut être déplacée vers un autre facteur, et une action vers un autre indicateur ou l'ordre de tous les enjeux/FCR peut être revu.
 
 <figure markdown="span">
-![Détails d'un enjeu](../assets/figures/fig39.png){ loading=lazy }
+![Détails d'un enjeu](../assets/figures/fig39.webp){ loading=lazy }
 <figcaption>Figure 39 : Détails d'un enjeu</figcaption>
 </figure>
 
@@ -42,6 +42,6 @@ Pour ajouter un élément à votre arborescence, il vous suffit de cliquer sur l
     L'option « Je ne trouve pas mon habitat dans la liste » vous permet de saisir librement un habitat hors référentiel.
 
 <figure markdown="span">
-![Planche de gestion des boutons de l'arborescence](../assets/figures/fig40.png){ loading=lazy }
+![Planche de gestion des boutons de l'arborescence](../assets/figures/fig40.webp){ loading=lazy }
 <figcaption>Figure 40 : Planche de gestion des boutons de l'arborescence</figcaption>
 </figure>

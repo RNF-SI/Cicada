@@ -8,7 +8,7 @@ Deux options de création sont proposées (Figure 25) :
 - « Sur la base d'un PG existant » (dupliquer un plan comme modèle) : vous choisissez ce qui est repris (sites associés, référents, fichiers joints, enjeux et FCR, sous-éléments).
 
 <figure markdown="span">
-![Volet de création d'un nouveau plan de gestion sur la page d'accueil du module « Mes plan de gestion »](../assets/figures/fig25.png){ loading=lazy }
+![Volet de création d'un nouveau plan de gestion sur la page d'accueil du module « Mes plan de gestion »](../assets/figures/fig25.webp){ loading=lazy }
 <figcaption>Figure 25 : Volet de création d'un nouveau plan de gestion sur la page d'accueil du module « Mes plan de gestion »</figcaption>
 </figure>
 
@@ -27,17 +27,17 @@ Deux options de création sont proposées (Figure 25) :
 À l'enregistrement, le plan est créé en brouillon : il est alors entièrement modifiable. Vous en devenez automatiquement référent. Tant que le plan est en brouillon, le bouton « Modifier le plan de gestion » permet de revenir sur ces informations générales (y compris le lien avec le plan du rang précédent) ; la fenêtre rappelle la place du plan dans sa chaîne de versions (rang, version, plan parent).
 
 <figure markdown="span">
-![Formulaire de création d'un plan de gestion – saisie des informations générales](../assets/figures/fig26.png){ loading=lazy }
+![Formulaire de création d'un plan de gestion – saisie des informations générales](../assets/figures/fig26.webp){ loading=lazy }
 <figcaption>Figure 26 : Formulaire de création d'un plan de gestion – saisie des informations générales</figcaption>
 </figure>
 
 <div class="figure-row" markdown>
 <figure markdown="span">
-![Création d'un plan de gestion – rang déjà existant](../assets/figures/fig27.png){ loading=lazy }
+![Création d'un plan de gestion – rang déjà existant](../assets/figures/fig27.webp){ loading=lazy }
 <figcaption>Figure 27 : Création d'un plan de gestion – rang déjà existant</figcaption>
 </figure>
 <figure markdown="span">
-![Création d'un plan de gestion – chaîne de version](../assets/figures/fig28.png){ loading=lazy }
+![Création d'un plan de gestion – chaîne de version](../assets/figures/fig28.webp){ loading=lazy }
 <figcaption>Figure 28 : Création d'un plan de gestion – chaîne de version</figcaption>
 </figure>
 </div>

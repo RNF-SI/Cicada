@@ -49,7 +49,7 @@ Le formulaire propose deux boutons :
     Sélectionner un niveau supérieur auquel celle-ci peut se rattacher, à défaut d'être précisé à un niveau fin. Si aucune catégorie (même le niveau le plus large) ne permet d'intégrer votre action, choisissez « autre action de gestion ».
 
 <figure markdown="span">
-![Formulaire de saisie d'une action de gestion](../assets/figures/fig46.png){ loading=lazy }
+![Formulaire de saisie d'une action de gestion](../assets/figures/fig46.webp){ loading=lazy }
 <figcaption>Figure 46 : Formulaire de saisie d'une action de gestion</figcaption>
 </figure>
 
@@ -65,6 +65,6 @@ Depuis la fiche, vous pouvez :
 - « **Modifier l'action** » (plan en brouillon).
 
 <figure markdown="span">
-![Fiche action](../assets/figures/fig47.png){ loading=lazy }
+![Fiche action](../assets/figures/fig47.webp){ loading=lazy }
 <figcaption>Figure 47 : Fiche action</figcaption>
 </figure>

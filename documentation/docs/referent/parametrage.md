@@ -16,7 +16,7 @@ Cliquez sur « Ajouter un type de poste » puis :
 **Ces postes alimentent ensuite le temps de travail des actions et le calcul automatique du coût salarial (jours × coût jour).**
 
 <figure markdown="span">
-![Page et fenêtre d'ajout de postes/RH](../assets/figures/fig33.png){ loading=lazy }
+![Page et fenêtre d'ajout de postes/RH](../assets/figures/fig33.webp){ loading=lazy }
 <figcaption>Figure 33 : Page et fenêtre d'ajout de postes/RH</figcaption>
 </figure>
 
@@ -36,12 +36,12 @@ Si le plan contient déjà une arborescence, vous choisissez d'ajouter le conten
 5. **Import des actions** : même principe, avec le classeur des actions (actions, lignes de budget et de ressources humaines).
 
 <figure markdown="span">
-![Import de l'arborescence - statut valide](../assets/figures/fig34.png){ loading=lazy }
+![Import de l'arborescence - statut valide](../assets/figures/fig34.webp){ loading=lazy }
 <figcaption>Figure 34 : Import de l'arborescence - statut valide</figcaption>
 </figure>
 
 <figure markdown="span">
-![Import de l'arborescence - correction dans un tableau](../assets/figures/fig35.png){ loading=lazy }
+![Import de l'arborescence - correction dans un tableau](../assets/figures/fig35.webp){ loading=lazy }
 <figcaption>Figure 35 : Import de l'arborescence - correction dans un tableau</figcaption>
 </figure>
 

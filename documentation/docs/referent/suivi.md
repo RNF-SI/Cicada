@@ -15,7 +15,7 @@ Une grille objectifs × années affiche, par année, le score de chaque indicate
 **On accède à la zone de saisie du suivi d'un indicateur en cliquant sur la case de l'année sur laquelle le suivi est souhaité dans le tableau de bord.**
 
 <figure markdown="span">
-![Tableau de bord des indicateurs état et pression](../assets/figures/fig48.png){ loading=lazy }
+![Tableau de bord des indicateurs état et pression](../assets/figures/fig48.webp){ loading=lazy }
 <figcaption>Figure 48 : Tableau de bord des indicateurs état et pression</figcaption>
 </figure>
 
@@ -26,14 +26,14 @@ Le gestionnaire peut faire le choix de changer le résultat de l'indicateur. Dan
 Une fois enregistré, le résultat apparaît dans le tableau de bord.
 
 <figure markdown="span">
-![Suivi des indicateurs](../assets/figures/fig49.png){ loading=lazy }
+![Suivi des indicateurs](../assets/figures/fig49.webp){ loading=lazy }
 <figcaption>Figure 49 : Suivi des indicateurs</figcaption>
 </figure>
 
 En cliquant sur la case de l'indicateur de la colonne « Global », vous accédez à la page d'évaluation globale de l'indicateur. Vous pouvez aussi y accéder via le bouton « Voir l'évaluation globale » sur la page de suivi d'un indicateur (Figure 49). Là encore, le résultat est auto-calculé mais vous pouvez le changer manuellement. Un graphique permettant d'avoir un visuel de la tendance sur toute la période du plan de gestion est aussi disponible.
 
 <figure markdown="span">
-![Page de visualisation et suivi global d'un indicateur](../assets/figures/fig50.png){ loading=lazy }
+![Page de visualisation et suivi global d'un indicateur](../assets/figures/fig50.webp){ loading=lazy }
 <figcaption>Figure 50 : Page de visualisation et suivi global d'un indicateur</figcaption>
 </figure>
 
@@ -65,12 +65,12 @@ Les onglets d'années couvrent toute la durée du plan : saisir une année non p
 La page globale d'une action récapitule sa réalisation, son budget et son temps de travail année par année. Le bouton « Ajuster manuellement la réalisation » permet de forcer la réalisation globale et d'ajouter un commentaire global.
 
 <figure markdown="span">
-![Suivi des actions](../assets/figures/fig51.png){ loading=lazy }
+![Suivi des actions](../assets/figures/fig51.webp){ loading=lazy }
 <figcaption>Figure 51 : Suivi des actions</figcaption>
 </figure>
 
 <figure markdown="span">
-![Saisie de la réalisation d'une action](../assets/figures/fig52.png){ loading=lazy }
+![Saisie de la réalisation d'une action](../assets/figures/fig52.webp){ loading=lazy }
 <figcaption>Figure 52 : Saisie de la réalisation d'une action</figcaption>
 </figure>
 
@@ -83,6 +83,6 @@ Le « **Bilan de la gestion** » **synthétise les résultats du suivi du plan d
 - « **Exporter les résultats** » : les résultats chiffrés (fichier CSV, lisible dans Excel) ou les graphiques (image JPG), selon les filtres en cours.
 
 <figure markdown="span">
-![Bilan de la gestion](../assets/figures/fig53.png){ loading=lazy }
+![Bilan de la gestion](../assets/figures/fig53.webp){ loading=lazy }
 <figcaption>Figure 53 : Bilan de la gestion</figcaption>
 </figure>
