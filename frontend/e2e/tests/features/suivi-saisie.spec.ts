@@ -224,10 +224,10 @@ test.describe('Suivi - Saisie page', () => {
 
     // Même chose organisme par organisme (ordre des organismes indifférent).
     const ogPrev = (await activeCell(referentPage, referentPage, 'Budget total OG prévu (€)').allTextContents())
-      .map(t => t.replace(/\s/g, ''));
+      .map((t: string) => t.replace(/\s/g, ''));
     expect(ogPrev.sort()).toEqual(['2800€', '4800€']);
     const ogReal = (await activeCell(referentPage, referentPage, 'Budget total OG réalisé (€)').allTextContents())
-      .map(t => t.replace(/\s/g, ''));
+      .map((t: string) => t.replace(/\s/g, ''));
     expect(ogReal.sort()).toEqual(['1540€', '2640€']);
   });
 
