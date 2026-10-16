@@ -367,7 +367,14 @@
                   <tr>
                     <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarial' | translate }}</td>
                     @for (y of years(); track y) {
-                      <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalCoutSalarial(y, 'fonctionnement'), ' €') }}</td>
+                      <td [class.active]="y === selectedYear()">
+                        <!-- #722 — coût salarial saisi : le réalisé se saisit aussi. -->
+                        @if (y === selectedYear() && !salaireCalcule()) {
+                          <input type="number" min="0" step="0.01" formControlName="cout_salarial_realise" placeholder="€" />
+                        } @else {
+                          {{ formatNumber(realGlobalCoutSalarial(y, 'fonctionnement'), ' €') }}
+                        }
+                      </td>
                     }
                   </tr>
                   <tr class="prev-row">
@@ -462,7 +469,14 @@
                   <tr>
                     <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarial' | translate }}</td>
                     @for (y of years(); track y) {
-                      <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalCoutSalarial(y, 'investissement'), ' €') }}</td>
+                      <td [class.active]="y === selectedYear()">
+                        <!-- #722 — coût salarial saisi : le réalisé se saisit aussi. -->
+                        @if (y === selectedYear() && !salaireCalcule()) {
+                          <input type="number" min="0" step="0.01" formControlName="cout_salarial_invest_realise" placeholder="€" />
+                        } @else {
+                          {{ formatNumber(realGlobalCoutSalarial(y, 'investissement'), ' €') }}
+                        }
+                      </td>
                     }
                   </tr>
                   <tr class="prev-row">
@@ -658,7 +672,14 @@
                       <tr>
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarial' | translate }}</td>
                         @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(realCoutSalarial(y, org.id_organisme, 'fonctionnement'), ' €') }}</td>
+                          <td [class.active]="y === selectedYear()">
+                            <!-- #722 — coût salarial saisi : le réalisé se saisit aussi. -->
+                            @if (y === selectedYear() && !salaireCalcule()) {
+                              <input type="number" min="0" step="0.01" formControlName="cout_salarial_realise" placeholder="€" />
+                            } @else {
+                              {{ formatNumber(realCoutSalarial(y, org.id_organisme, 'fonctionnement'), ' €') }}
+                            }
+                          </td>
                         }
                       </tr>
                       <!-- Coût stage prévu / réalisé (#600 Q2b, #614) -->
@@ -753,7 +774,14 @@
                       <tr>
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarial' | translate }}</td>
                         @for (y of years(); track y) {
-                          <td [class.active]="y === selectedYear()">{{ formatNumber(realCoutSalarial(y, org.id_organisme, 'investissement'), ' €') }}</td>
+                          <td [class.active]="y === selectedYear()">
+                            <!-- #722 — coût salarial saisi : le réalisé se saisit aussi. -->
+                            @if (y === selectedYear() && !salaireCalcule()) {
+                              <input type="number" min="0" step="0.01" formControlName="cout_salarial_invest_realise" placeholder="€" />
+                            } @else {
+                              {{ formatNumber(realCoutSalarial(y, org.id_organisme, 'investissement'), ' €') }}
+                            }
+                          </td>
                         }
                       </tr>
                       <tr class="prev-row">

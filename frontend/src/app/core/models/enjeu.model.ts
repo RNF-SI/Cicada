@@ -623,6 +623,9 @@ export interface RealisationOperationAnneeOrganisme {
   etp_realise: number | null;
   // #600 Q2b — coût stage réalisé (fonctionnement).
   cout_stage_realise?: number | null;
+  // #722 — coût salarial réalisé SAISI (coût salarial non calculé).
+  cout_salarial_realise?: number | null;
+  cout_salarial_invest_realise?: number | null;
   // #608 — détail des coûts réalisés (ventilation maximale).
   cout_prestataire_realise?: number | null;
   autre_cout_realise?: number | null;
@@ -654,6 +657,9 @@ export interface RealisationOperationAnnee {
   // #624 — détail des coûts RÉALISÉS au niveau année (mode « par type de
   // budget + type de poste »), miroir du prévisionnel.
   cout_stage_realise?: number | null;
+  // #722 — coût salarial réalisé SAISI (coût salarial non calculé).
+  cout_salarial_realise?: number | null;
+  cout_salarial_invest_realise?: number | null;
   cout_prestataire_realise?: number | null;
   autre_cout_realise?: number | null;
   autre_cout_commentaire_realise?: string;
@@ -745,6 +751,9 @@ export interface RealisationUpsertPayload {
   etp_realise?: number | null;
   // #624 — détail des coûts réalisés au niveau année (sans organisme).
   cout_stage_realise?: number | null;
+  // #722 — coût salarial réalisé SAISI (coût salarial non calculé).
+  cout_salarial_realise?: number | null;
+  cout_salarial_invest_realise?: number | null;
   cout_prestataire_realise?: number | null;
   autre_cout_realise?: number | null;
   autre_cout_commentaire_realise?: string;
@@ -770,6 +779,9 @@ export interface RealisationOrganismeUpsertPayload {
   etp_realise?: number | null;
   // #600 Q2b — coût stage réalisé (fonctionnement).
   cout_stage_realise?: number | null;
+  // #722 — coût salarial réalisé SAISI (coût salarial non calculé).
+  cout_salarial_realise?: number | null;
+  cout_salarial_invest_realise?: number | null;
   // #608 — détail des coûts réalisés (ventilation maximale).
   cout_prestataire_realise?: number | null;
   autre_cout_realise?: number | null;

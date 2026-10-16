@@ -1273,7 +1273,20 @@ class RealisationOperationAnnee(models.Model):
     )
     # #624 — détail des coûts RÉALISÉS au niveau de l'année, miroir du
     # prévisionnel porté par `OperationAnnee` (mode « par type de budget +
-    # type de poste »). Le coût salarial réalisé se calcule (jours × coût jour).
+    # type de poste »). Le coût salarial réalisé se calcule (jours × coût jour)
+    # sauf en saisie manuelle (#722, champs ci-dessous).
+    # #722 — coût salarial RÉALISÉ saisi, quand l'action est en « saisie
+    # manuelle du coût salarial » (`Operation.cout_salarial_auto=False`, ou
+    # mode par type de budget sans poste). En saisie automatique il reste
+    # calculé (jours réalisés × coût jour) et n'est pas stocké.
+    cout_salarial_realise = models.DecimalField(
+        _("Coût salarial réalisé saisi — fonctionnement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    cout_salarial_invest_realise = models.DecimalField(
+        _("Coût salarial réalisé saisi — investissement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
     cout_stage_realise = models.DecimalField(
         _("Coût stage réalisé (€)"),
         max_digits=12, decimal_places=2, null=True, blank=True
@@ -1378,6 +1391,18 @@ class RealisationOperationAnneeOrganisme(models.Model):
     # #608 — détail des coûts RÉALISÉS quand la ventilation est maximale
     # (« par organisme + type de budget + type de poste »). Le coût salarial
     # réalisé n'est pas stocké : il se calcule (jours réalisés × coût jour).
+    # #722 — coût salarial RÉALISÉ saisi, quand l'action est en « saisie
+    # manuelle du coût salarial » (`Operation.cout_salarial_auto=False`, ou
+    # mode par type de budget sans poste). En saisie automatique il reste
+    # calculé (jours réalisés × coût jour) et n'est pas stocké.
+    cout_salarial_realise = models.DecimalField(
+        _("Coût salarial réalisé saisi — fonctionnement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    cout_salarial_invest_realise = models.DecimalField(
+        _("Coût salarial réalisé saisi — investissement (€)"),
+        max_digits=12, decimal_places=2, null=True, blank=True
+    )
     # #600 (Q2b) — coût stage réalisé (fonctionnement), miroir du prévisionnel.
     cout_stage_realise = models.DecimalField(
         _("Coût stage réalisé (€)"),

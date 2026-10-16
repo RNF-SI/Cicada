@@ -718,6 +718,8 @@ describe('SuiviSaisieComponent — coût salarial réalisé (#608)', () => {
       { id_poste: 2, id_organisme: 100, cout_jour: 80 },
       { id_poste: 3, id_organisme: 200, cout_jour: 300 },
     ]);
+    // #722 — coût salarial calculé (case cochée) : seul cas où il dérive des jours.
+    c.operation = signal({ ventilation_mode: 'by_org_type_poste', cout_salarial_auto: true });
     // 3 lignes RH réalisées : poste 1 (fonct, 10j), poste 2 (invest, 5j), poste 3 (fonct, 4j)
     c.form = fb.group({
       rhLignes: fb.array([
@@ -847,6 +849,57 @@ describe('SuiviSaisieComponent — détail des coûts sans organisme (#624)', ()
     ]) {
       expect(template).toContain(control);
     }
+  });
+});
+
+// ===========================================================================
+// #722 — coût salarial SAISI : le réalisé l'est aussi (même case qu'au prévu).
+// ===========================================================================
+describe('SuiviSaisieComponent — coût salarial réalisé saisi (#722)', () => {
+  function instance(mode: 'by_org_type_poste' | 'by_type_poste'): any {
+    const c: any = comp();
+    const fb = new FormBuilder();
+    c.selectedYear = signal(2025);
+    c.postes = signal([{ id_poste: 1, id_organisme: 100, cout_jour: 300 }]);
+    c.operation = signal({
+      ventilation_mode: mode, declinaison_par_type_cout: true, cout_salarial_auto: false,
+      operation_annees: [{
+        annee: 2024,
+        organismes: [{ id_organisme: 100, realisation: { cout_salarial_realise: '900.00' } }],
+        realisation: { cout_salarial_realise: '700.00', cout_salarial_invest_realise: '50.00' },
+      }],
+    });
+    c.form = fb.group({
+      cout_salarial_realise: [1200],
+      cout_salarial_invest_realise: [100],
+      rhLignes: fb.array([
+        fb.group({ id_poste: [1], categorie_depense: ['fonctionnement'], jours: [10] }),
+      ]),
+      organismes: fb.array([
+        fb.group({ id_organisme: [100], cout_salarial_realise: [1500], cout_salarial_invest_realise: [200] }),
+      ]),
+    });
+    return c;
+  }
+
+  it('ventilation maximale : montant saisi par organisme, pas jours × coût jour', () => {
+    const c = instance('by_org_type_poste');
+    expect(c.realCoutSalarial(2025, 100, 'fonctionnement')).toBe(1500);   // et non 3000
+    expect(c.realCoutSalarial(2025, 100, 'investissement')).toBe(200);
+    expect(c.realCoutSalarial(2024, 100, 'fonctionnement')).toBe(900);    // année enregistrée
+  });
+
+  it('sans organisme : montant saisi sur l’année', () => {
+    const c = instance('by_type_poste');
+    expect(c.realGlobalCoutSalarial(2025, 'fonctionnement')).toBe(1200);
+    expect(c.realGlobalCoutSalarial(2025, 'investissement')).toBe(100);
+    expect(c.realGlobalCoutSalarial(2024, 'investissement')).toBe(50);
+  });
+
+  it('le template propose la saisie du coût salarial réalisé', () => {
+    const template = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    expect(template).toContain('formControlName="cout_salarial_realise"');
+    expect(template).toContain('formControlName="cout_salarial_invest_realise"');
   });
 });
 

@@ -291,6 +291,51 @@ class TestExportFinance:
         assert c.tot_fonct == Decimal('2400')       # 1800 + 500 presta + 100 autres
         assert c.tot_invest == Decimal('700')       # 450 + 200 presta + 50 autres
 
+    def test_cout_salarial_realise_saisi_manuellement(self, plan_finance):
+        """#722 — coût salarial saisi : le RÉALISÉ est lui aussi saisi
+        (`cout_salarial_realise`), il n'est plus calculé depuis les jours."""
+        from collections import defaultdict
+        from decimal import Decimal
+        from apps.plans.models_operations import RealisationOperationAnneeOrganisme
+        from apps.plans.services_export_finance import (
+            build_action_finance, poste_entry_factory,
+        )
+        op = plan_finance['op']
+        op.cout_salarial_auto = False
+        op.save(update_fields=['cout_salarial_auto'])
+        oao = OperationAnneeOrganisme.objects.get(
+            id_operation_annee__id_operation=op, id_operation_annee__annee=2024)
+        RealisationOperationAnneeOrganisme.objects.create(
+            id_operation_annee_organisme=oao,
+            cout_salarial_realise=1500, cout_salarial_invest_realise=300)
+
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        c = af.cell(plan_finance['org'].id_organisme, 2024)
+        assert c.rsal_fonct == Decimal('1500')      # et non 8 j × 300 €
+        assert c.rsal_invest == Decimal('300')
+        assert c.rj_fonct == 8                      # les jours restent comptés
+
+    def test_cout_salarial_realise_saisi_sur_lannee(self, plan_finance):
+        """#722 — idem sans ventilation par organisme : saisie sur l'année."""
+        from collections import defaultdict
+        from decimal import Decimal
+        from apps.plans.models_operations import RealisationOperationAnnee
+        from apps.plans.services_export_finance import (
+            build_action_finance, poste_entry_factory,
+        )
+        op = plan_finance['op']
+        op.ventilation_mode = 'by_type_poste'
+        op.cout_salarial_auto = False
+        op.save(update_fields=['ventilation_mode', 'cout_salarial_auto'])
+        OperationAnneeOrganisme.objects.filter(
+            id_operation_annee__id_operation=op).delete()
+        RealisationOperationAnnee.objects.filter(
+            id_operation_annee__id_operation=op, id_operation_annee__annee=2024,
+        ).update(cout_salarial_realise=1200)
+
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        assert af.year_total(2024).rsal_fonct == Decimal('1200')
+
     def test_code_action_pg_est_le_code_affichage(self, plan_finance):
         """#618 — la colonne « Code action PG » porte le code calculé (CS1…)."""
         from apps.plans.services_export_finance import build_plan_finance

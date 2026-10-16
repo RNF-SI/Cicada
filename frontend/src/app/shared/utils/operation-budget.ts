@@ -35,6 +35,7 @@
  *   fonctionnement / investissement saisies (aucun coût salarial ajouté) ;
  * - `cout_salarial_auto` : décochée, le coût salarial est SAISI (et stocké
  *   dans `cout_salarial` / `cout_salarial_invest`) au lieu d'être calculé.
+ *   #722 — idem au réalisé : `cout_salarial_realise` / `_invest_realise`.
  */
 
 import { Operation, OperationAnnee, OperationAnneeOrganisme } from '../../core/models/enjeu.model';
@@ -175,6 +176,19 @@ function manualSalary(op: OpMode, oa: OperationAnnee, invest: boolean): number {
 }
 
 /**
+ * #722 — coût salarial RÉALISÉ saisi à la main : même règle qu'au prévisionnel
+ * (la case « calculé automatiquement » vaut pour les deux).
+ */
+function manualSalaryReal(op: OpMode, oa: OperationAnnee, invest: boolean): number {
+  if (!hasCostDetail(op) || op.cout_salarial_auto !== false) return 0;
+  const r = oa.realisation;
+  const ro = orgs(oa).map(o => o.realisation);
+  return invest
+    ? add(r?.cout_salarial_invest_realise, ...ro.map(x => x?.cout_salarial_invest_realise))
+    : add(r?.cout_salarial_realise, ...ro.map(x => x?.cout_salarial_realise));
+}
+
+/**
  * Vrai si l'année porte un montant saisi quelque part (année ou organisme).
  * Sert à distinguer le mode « totaux directs » (seul `budget` est rempli) des
  * modes ventilés, sans se fier uniquement au mode déclaré — celui-ci peut
@@ -276,7 +290,9 @@ export function fonctDetailReal(op: OpMode, oa: OperationAnnee): CostDetail {
   const r = oa.realisation;
   const ro = orgs(oa).map(o => o.realisation);
   const detail = {
-    salarial: derivesSalary(op) ? salarialCost(r?.rh_lignes, 'fonctionnement') : 0,
+    salarial: derivesSalary(op)
+      ? salarialCost(r?.rh_lignes, 'fonctionnement')
+      : manualSalaryReal(op, oa, false),
     stage: add(r?.cout_stage_realise, ...ro.map(x => x?.cout_stage_realise)),
     prestataire: add(r?.cout_prestataire_realise, ...ro.map(x => x?.cout_prestataire_realise)),
     autres: add(
@@ -294,7 +310,9 @@ export function investDetailReal(op: OpMode, oa: OperationAnnee): CostDetail {
   const r = oa.realisation;
   const ro = orgs(oa).map(o => o.realisation);
   const detail = {
-    salarial: derivesSalary(op) ? salarialCost(r?.rh_lignes, 'investissement') : 0,
+    salarial: derivesSalary(op)
+      ? salarialCost(r?.rh_lignes, 'investissement')
+      : manualSalaryReal(op, oa, true),
     stage: 0,
     prestataire: add(
       r?.cout_prestataire_invest_realise, ...ro.map(x => x?.cout_prestataire_invest_realise),
@@ -315,10 +333,12 @@ function hasRealMonetaryDetail(oa: OperationAnnee): boolean {
   const ro = orgs(oa).map(o => o.realisation);
   return anySet(
     r?.budget_fonctionnement_realise, r?.budget_investissement_realise,
+    r?.cout_salarial_realise, r?.cout_salarial_invest_realise,
     r?.cout_stage_realise, r?.cout_prestataire_realise, r?.autre_cout_realise,
     r?.cout_prestataire_invest_realise, r?.autre_cout_invest_realise,
     ...ro.flatMap(x => [
       x?.budget_fonctionnement_realise, x?.budget_investissement_realise,
+      x?.cout_salarial_realise, x?.cout_salarial_invest_realise,
       x?.cout_stage_realise, x?.cout_prestataire_realise, x?.autre_cout_realise,
       x?.cout_prestataire_invest_realise, x?.autre_cout_invest_realise,
     ]),

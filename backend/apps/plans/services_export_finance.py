@@ -316,13 +316,17 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             c.rj_benevole += jours
             pj["real"] += jours
             continue
+        # #722 — même règle qu'au prévisionnel : le coût salarial réalisé n'est
+        # calculé qu'en saisie automatique ; sinon il est saisi (plus bas).
         if cat == "investissement":
             c.rj_invest += jours
-            c.rsal_invest += jours * cout_jour
+            if auto_salary:
+                c.rsal_invest += jours * cout_jour
             pj["sali_real"] += jours * cout_jour
         else:
             c.rj_fonct += jours
-            c.rsal_fonct += jours * cout_jour
+            if auto_salary:
+                c.rsal_fonct += jours * cout_jour
             pj["salf_real"] += jours * cout_jour
         pj["real"] += jours
 
@@ -347,6 +351,9 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         c.autre_invest += _d(line.autre_cout_invest) + _d(line.budget_investissement)
         real = getattr(line, "realisation", None)
         if real:
+            if manual_salary:
+                c.rsal_fonct += _d(real.cout_salarial_realise)
+                c.rsal_invest += _d(real.cout_salarial_invest_realise)
             c.rprest_fonct += _d(real.cout_prestataire_realise)
             c.rprest_invest += _d(real.cout_prestataire_invest_realise)
             c.rautre_fonct += _d(real.autre_cout_realise) + _d(real.cout_stage_realise) + _d(real.budget_fonctionnement_realise)
@@ -375,6 +382,9 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             real = getattr(oa, "realisation", None)
             if real:
                 rf = _d(real.budget_fonctionnement_realise) or (_d(real.budget_realise) if op.ventilation_mode == "none" else _ZERO)
+                if manual_salary:
+                    c.rsal_fonct += _d(real.cout_salarial_realise)
+                    c.rsal_invest += _d(real.cout_salarial_invest_realise)
                 c.rprest_fonct += _d(real.cout_prestataire_realise)
                 c.rprest_invest += _d(real.cout_prestataire_invest_realise)
                 c.rautre_fonct += rf + _d(real.autre_cout_realise) + _d(real.cout_stage_realise)

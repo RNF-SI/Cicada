@@ -329,6 +329,8 @@ class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
             'etp_realise',
             # #600 (Q2b) — coût stage réalisé (miroir du prévisionnel).
             'cout_stage_realise',
+            # #722 — coût salarial réalisé saisi (coût salarial non calculé).
+            'cout_salarial_realise', 'cout_salarial_invest_realise',
             # #608 — détail des coûts réalisés (ventilation maximale).
             'cout_prestataire_realise', 'autre_cout_realise', 'autre_cout_commentaire_realise',
             'cout_prestataire_invest_realise', 'autre_cout_invest_realise',
@@ -644,6 +646,8 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             # #624 — détail des coûts réalisés au niveau année (mode
             # « par type de budget + type de poste », sans organismes).
             'cout_stage_realise',
+            # #722 — coût salarial réalisé saisi (coût salarial non calculé).
+            'cout_salarial_realise', 'cout_salarial_invest_realise',
             'cout_prestataire_realise', 'autre_cout_realise', 'autre_cout_commentaire_realise',
             'cout_prestataire_invest_realise', 'autre_cout_invest_realise',
             'autre_cout_invest_commentaire_realise',

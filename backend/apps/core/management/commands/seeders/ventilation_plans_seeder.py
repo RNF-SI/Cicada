@@ -58,7 +58,7 @@ saisir, année en cours entamée sur la seule action CS (cf. ``_VARIANTES``).
 """
 from datetime import date
 from decimal import Decimal
-from typing import Dict, List
+from typing import Any, Dict, List
 
 from django.db.models import Q
 
@@ -1003,6 +1003,8 @@ class VentilationPlansSeeder(BaseSeeder):
             'budget_fonctionnement_realise': None,
             'budget_investissement_realise': None,
             'etp_realise': None,
+            'cout_salarial_realise': None,
+            'cout_salarial_invest_realise': None,
             'cout_stage_realise': None,
             'cout_prestataire_realise': None,
             'autre_cout_realise': None,
@@ -1037,6 +1039,8 @@ class VentilationPlansSeeder(BaseSeeder):
                 'budget_fonctionnement_realise': None,
                 'budget_investissement_realise': None,
                 'etp_realise': None,
+                'cout_salarial_realise': None,
+                'cout_salarial_invest_realise': None,
                 'cout_stage_realise': None,
                 'cout_prestataire_realise': None,
                 'autre_cout_realise': None,
@@ -1080,6 +1084,45 @@ class VentilationPlansSeeder(BaseSeeder):
                 categorie_depense=ligne.categorie_depense,
                 finance=ligne.finance,
             )
+
+        # #722 — coût salarial saisi : le réalisé est saisi lui aussi. On stocke
+        # ce que le calcul aurait donné (jours réalisés × coût jour), pour que
+        # les totaux restent identiques d'un plan de ventilation à l'autre.
+        if not op.cout_salarial_auto:
+            self._store_salarial_realise(realisation, oa)
+
+    @staticmethod
+    def _store_salarial_realise(realisation, oa) -> None:
+        cumul: Dict[Any, Dict[str, Decimal]] = {}
+        for ligne in RealisationOperationAnneeRH.objects.filter(
+            id_realisation_operation_annee=realisation,
+        ).select_related('id_poste'):
+            if ligne.categorie_depense == _BENEVOLAT or ligne.id_poste is None:
+                continue
+            org_id = ligne.id_poste.id_organisme_id
+            cout = _dec(ligne.jours) * _dec(ligne.id_poste.cout_jour)
+            cumul.setdefault(org_id, {_FONCT: Decimal('0'), _INVEST: Decimal('0')})
+            cumul[org_id][ligne.categorie_depense] += cout
+
+        def champs(par_cat):
+            return {
+                'cout_salarial_realise': _q(par_cat[_FONCT]) if par_cat[_FONCT] else None,
+                'cout_salarial_invest_realise': _q(par_cat[_INVEST]) if par_cat[_INVEST] else None,
+            }
+
+        oaos = list(OperationAnneeOrganisme.objects.filter(id_operation_annee=oa))
+        if oaos:
+            for oao in oaos:
+                vide = {_FONCT: Decimal('0'), _INVEST: Decimal('0')}
+                RealisationOperationAnneeOrganisme.objects.filter(
+                    id_operation_annee_organisme=oao,
+                ).update(**champs(cumul.get(oao.id_organisme_id, vide)))
+        else:
+            total = {_FONCT: Decimal('0'), _INVEST: Decimal('0')}
+            for par_cat in cumul.values():
+                total[_FONCT] += par_cat[_FONCT]
+                total[_INVEST] += par_cat[_INVEST]
+            RealisationOperationAnnee.objects.filter(pk=realisation.pk).update(**champs(total))
 
     # ------------------------------------------------------------------ reset
 

@@ -182,6 +182,9 @@ export class SuiviSaisieComponent implements OnInit {
     // #624 — détail des coûts réalisés au niveau année (mode « par type de
     // budget + type de poste » : même décomposition que la ventilation
     // maximale, sans organisme).
+    // #722 — coût salarial réalisé SAISI (case « calculé automatiquement » décochée).
+    cout_salarial_realise: [null],
+    cout_salarial_invest_realise: [null],
     cout_stage_realise: [null],
     cout_prestataire_realise: [null],
     autre_cout_realise: [null],
@@ -301,6 +304,15 @@ export class SuiviSaisieComponent implements OnInit {
    * réalisées enregistrées côté serveur.
    */
   realCoutSalarial(year: number, orgId: number, categorie: 'fonctionnement' | 'investissement'): number {
+    // #722 — coût salarial saisi : c'est le montant réalisé saisi qui fait foi.
+    if (!this.salaireCalcule()) {
+      const champ = categorie === 'investissement' ? 'cout_salarial_invest_realise' : 'cout_salarial_realise';
+      if (year === this.selectedYear()) {
+        const grp = this.organismesFA.controls.find(c => c.get('id_organisme')?.value === orgId);
+        return Number(grp?.get(champ)?.value) || 0;
+      }
+      return Number((this.getOaoForYearOrg(year, orgId)?.realisation as any)?.[champ]) || 0;
+    }
     const posteById = (id: number | null | undefined) =>
       id == null ? undefined : this.postes().find(p => p.id_poste === id);
 
@@ -392,7 +404,7 @@ export class SuiviSaisieComponent implements OnInit {
    * fiche action (`shared/utils/operation-budget`), pour que le suivi affiche
    * exactement les mêmes montants.
    */
-  private salaireCalcule(): boolean {
+  salaireCalcule(): boolean {
     const op = this.operation();
     return salaryIsComputed(
       op?.ventilation_mode, op?.declinaison_par_type_cout !== false,
@@ -469,6 +481,12 @@ export class SuiviSaisieComponent implements OnInit {
    * Pendant « sans organisme » de `realCoutSalarial` / `prevCoutSalarial`.
    */
   realGlobalCoutSalarial(year: number, categorie: 'fonctionnement' | 'investissement'): number {
+    // #722 — coût salarial saisi : montant réalisé porté par l'année.
+    if (!this.salaireCalcule()) {
+      const champ = categorie === 'investissement' ? 'cout_salarial_invest_realise' : 'cout_salarial_realise';
+      if (year === this.selectedYear()) return Number(this.form.get(champ)?.value) || 0;
+      return Number((this.getOaForYear(year)?.realisation as any)?.[champ]) || 0;
+    }
     const coutJourOf = (id: number | null | undefined) =>
       Number(this.postes().find(p => p.id_poste === id)?.cout_jour ?? 0) || 0;
 
@@ -1113,6 +1131,8 @@ export class SuiviSaisieComponent implements OnInit {
       budget_investissement_realise: r?.budget_investissement_realise ?? null,
       etp_realise: r?.etp_realise ?? null,
       // #624 — détail des coûts réalisés au niveau année.
+      cout_salarial_realise: r?.cout_salarial_realise ?? null,
+      cout_salarial_invest_realise: r?.cout_salarial_invest_realise ?? null,
       cout_stage_realise: r?.cout_stage_realise ?? null,
       cout_prestataire_realise: r?.cout_prestataire_realise ?? null,
       autre_cout_realise: r?.autre_cout_realise ?? null,
@@ -1342,6 +1362,9 @@ export class SuiviSaisieComponent implements OnInit {
         budget_fonctionnement_realise: [r?.budget_fonctionnement_realise ?? null],
         budget_investissement_realise: [r?.budget_investissement_realise ?? null],
         etp_realise: [r?.etp_realise ?? null],
+        // #722 — coût salarial réalisé saisi.
+        cout_salarial_realise: [r?.cout_salarial_realise ?? null],
+        cout_salarial_invest_realise: [r?.cout_salarial_invest_realise ?? null],
         // #600 Q2b — coût stage réalisé (fonctionnement).
         cout_stage_realise: [r?.cout_stage_realise ?? null],
         // #608 — détail des coûts réalisés (mode ventilation maximale).
@@ -1515,6 +1538,10 @@ export class SuiviSaisieComponent implements OnInit {
         // #624 — détail des coûts au niveau année. Les enveloppes fonct/invest
         // ne sont PAS envoyées : elles se recalculent depuis les composants,
         // sinon l'export les recompterait par-dessus le détail.
+        // #722 — le coût salarial réalisé n'est stocké que s'il est saisi.
+        const saisi = !this.salaireCalcule();
+        annualPayload.cout_salarial_realise = saisi ? v.cout_salarial_realise ?? null : null;
+        annualPayload.cout_salarial_invest_realise = saisi ? v.cout_salarial_invest_realise ?? null : null;
         annualPayload.cout_stage_realise = v.cout_stage_realise ?? null;
         annualPayload.cout_prestataire_realise = v.cout_prestataire_realise ?? null;
         annualPayload.autre_cout_realise = v.autre_cout_realise ?? null;
@@ -1580,6 +1607,10 @@ export class SuiviSaisieComponent implements OnInit {
               p.budget_fonctionnement_realise = null;
               p.budget_investissement_realise = null;
               // #600 Q2b — coût stage réalisé (fonctionnement).
+              // #722 — coût salarial réalisé stocké seulement s'il est saisi.
+              const saisi = !this.salaireCalcule();
+              p.cout_salarial_realise = saisi ? val.cout_salarial_realise ?? null : null;
+              p.cout_salarial_invest_realise = saisi ? val.cout_salarial_invest_realise ?? null : null;
               p.cout_stage_realise = val.cout_stage_realise ?? null;
               p.cout_prestataire_realise = val.cout_prestataire_realise ?? null;
               p.autre_cout_realise = val.autre_cout_realise ?? null;

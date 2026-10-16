@@ -6,7 +6,7 @@
  * reproduisent tels quels.
  */
 import {
-  fonctDetailPrev, investDetailPrev, fonctDetailReal,
+  fonctDetailPrev, investDetailPrev, fonctDetailReal, investDetailReal,
   salarialCost, sumJours, yearBudgetPrev, yearBudgetReal,
   yearJoursPrev, yearJoursReal,
   salaryOptionAvailable, salaryIsComputed,
@@ -173,6 +173,36 @@ describe('yearBudgetReal (#616)', () => {
     expect(split.investissement).toBe(100);
     expect(split.total).toBe(3500);
     expect(split.hasValue).toBe(true);
+  });
+
+  it('#722 — coût salarial saisi : le salarial RÉALISÉ est le montant saisi', () => {
+    const op = { ventilation_mode: 'by_org_type_poste', cout_salarial_auto: false } as any;
+    const oa: any = {
+      annee: 2027,
+      organismes: [{
+        id_organisme: 100,
+        realisation: {
+          cout_salarial_realise: '1500.00', cout_salarial_invest_realise: '300.00',
+          cout_prestataire_realise: '800.00',
+        },
+      }],
+      realisation: {
+        rh_lignes: [
+          { id_poste: 1, jours: '8.00', finance: true, categorie_depense: 'fonctionnement', poste_cout_jour: '300.00' },
+        ],
+      },
+    };
+    expect(fonctDetailReal(op, oa).salarial).toBe(1500);   // et non 8 j × 300 €
+    expect(investDetailReal(op, oa).salarial).toBe(300);
+    expect(yearBudgetReal(op, oa).total).toBe(2600);       // 1500 + 800 + 300
+  });
+
+  it('#722 — coût salarial saisi sur l’année (sans organisme) : compté seul', () => {
+    const op = { ventilation_mode: 'by_type_poste', cout_salarial_auto: false } as any;
+    const oa: any = { annee: 2027, organismes: [], realisation: { cout_salarial_realise: '1200.00' } };
+    const split = yearBudgetReal(op, oa);
+    expect(split.hasValue).toBe(true);
+    expect(split.total).toBe(1200);
   });
 
   it('distingue « aucun suivi » de « suivi à 0 € »', () => {
