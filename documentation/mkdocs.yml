@@ -60,6 +60,12 @@ plugins:
       docExpansion: list
       filter: true
       tryItOutEnabled: false
+      # « Try it out » exécute de vraies requêtes depuis le navigateur. Servie sous
+      # /aide/ sur la même origine que l'API de l'instance, la doc permettrait donc
+      # d'écrire sur les données réelles : seules les lectures restent essayables.
+      # Les essais complets se font sur /api/docs/ de l'instance (authentifié).
+      supportedSubmitMethods:
+        - get
 
 markdown_extensions:
   - abbr
