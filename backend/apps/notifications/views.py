@@ -10,6 +10,13 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view, inline_serializer, OpenApiParameter, OpenApiResponse,
+)
+from drf_spectacular.types import OpenApiTypes
+from rest_framework import serializers as drf_serializers
+
+from config.spectacular import ERREUR_SERIALIZER
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +57,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     - GET /api/notifications/poll/ - Endpoint de polling
     """
 
+    # Pour le schéma OpenAPI (type du paramètre {id}) ; le vrai périmètre est get_queryset().
+    queryset = Notification.objects.none()
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'delete', 'post']
 
@@ -164,6 +173,8 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
     - POST /api/validations/{id}/cancel/ - Annuler
     """
 
+    # Pour le schéma OpenAPI (type du paramètre {id}) ; le vrai périmètre est get_queryset().
+    queryset = ValidationRequest.objects.none()
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'post']
 
@@ -1282,6 +1293,29 @@ from apps.authentication.throttles import AuthRateThrottle
 from apps.authentication.providers import ConnexionLocaleActive
 
 
+@extend_schema(
+    tags=['auth'],
+    summary='Inscription publique',
+    description=(
+        "Crée une demande d'inscription (`PendingUser`) soumise à validation par un administrateur. "
+        "Sans authentification ; refusée (403) si l'instance n'utilise pas les comptes CICADA locaux "
+        "(connexion GeoNature, #689). Limitée en fréquence."
+    ),
+    auth=[],
+    request=PublicRegistrationSerializer,
+    responses={
+        201: inline_serializer(
+            name='InscriptionSoumise',
+            fields={
+                'message': drf_serializers.CharField(),
+                'validation_request_id': drf_serializers.IntegerField(),
+            },
+        ),
+        400: OpenApiResponse(description='Données invalides (email déjà utilisé, mot de passe faible…)'),
+        403: OpenApiResponse(description='Inscription locale désactivée sur cette instance'),
+        429: OpenApiResponse(description='Trop de tentatives'),
+    },
+)
 @api_view(['POST'])
 @permission_classes([ConnexionLocaleActive])
 @throttle_classes([AuthRateThrottle])
@@ -1304,6 +1338,26 @@ def public_registration_view(request):
     }, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(
+    tags=['auth'],
+    summary="Statut d'une demande d'inscription",
+    description="Sans authentification. `pending` : demande en attente ; `registered` : le compte existe "
+                "déjà ; `not_found` : aucune demande pour cet email.",
+    auth=[],
+    parameters=[OpenApiParameter('email', OpenApiTypes.STR, OpenApiParameter.QUERY, required=True)],
+    responses={
+        200: inline_serializer(
+            name='StatutInscription',
+            fields={
+                'status': drf_serializers.ChoiceField(choices=['pending', 'registered', 'not_found']),
+                'message': drf_serializers.CharField(),
+                'created_at': drf_serializers.DateTimeField(required=False,
+                                                            help_text='Date de la demande (statut pending)'),
+            },
+        ),
+        400: OpenApiResponse(response=ERREUR_SERIALIZER, description='Email manquant'),
+    },
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def check_registration_status_view(request):

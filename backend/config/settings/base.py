@@ -311,11 +311,29 @@ SPECTACULAR_SETTINGS = {
     ),
     'VERSION': None,  # version lue dans version.txt par config.version, pas dupliquée ici
     'SERVE_INCLUDE_SCHEMA': False,
+    # Le hook enums est celui par défaut ; le second donne un résumé aux opérations
+    # qui n'en ont pas (première phrase de la docstring), voir config/spectacular.py.
+    'POSTPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.postprocess_schema_enums',
+        'config.spectacular.resume_depuis_description',
+    ],
     'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAuthenticated'],
     'COMPONENT_SPLIT_REQUEST': True,
     'SCHEMA_PATH_PREFIX': r'/api/',
     'SCHEMA_PATH_PREFIX_TRIM': False,
     'SWAGGER_UI_SETTINGS': {'docExpansion': 'list', 'filter': True},
+    # Plusieurs modèles ont un champ `statut` avec des choix différents : sans
+    # nom explicite, drf-spectacular génère `Statut9e9Enum` / `Statut35dEnum`.
+    'ENUM_NAME_OVERRIDES': {
+        'PlanStatutEnum': 'apps.plans.models.PlanGestion.STATUT_CHOICES',
+        'PlanValidationStepEnum': 'apps.plans.models.PlanGestion.VALIDATION_STEP_CHOICES',
+        'OperationStatutEnum': 'apps.plans.models_operations.Operation.STATUT_CHOICES',
+        'ValidationRequestStatusEnum': 'apps.notifications.models.ValidationRequest.STATUS_CHOICES',
+        # Enveloppes GeoJSON documentaires (config/spectacular.py) : champ `type` constant.
+        'GeoJSONFeatureTypeEnum': 'config.spectacular.GEOJSON_FEATURE_TYPE_CHOICES',
+        'GeoJSONFeatureCollectionTypeEnum': 'config.spectacular.GEOJSON_FEATURE_COLLECTION_TYPE_CHOICES',
+        'GeoJSONCrsTypeEnum': 'config.spectacular.GEOJSON_CRS_TYPE_CHOICES',
+    },
     'TAGS': [
         {'name': 'auth', 'description': 'Authentification JWT, inscription, profil courant'},
         {'name': 'users', 'description': 'Utilisateurs, organismes, sites'},
@@ -323,6 +341,13 @@ SPECTACULAR_SETTINGS = {
         {'name': 'inventaires', 'description': 'Inventaires et suivis scientifiques'},
         {'name': 'exploration', 'description': 'Exploration des données des plans'},
         {'name': 'public', 'description': 'API publique des métadonnées des plans (#645)'},
+        {'name': 'notifications', 'description': "Notifications in-app de l'utilisateur connecté"},
+        {'name': 'validations', 'description': 'Demandes de validation (inscriptions, accès, liens site-plan)'},
+        {'name': 'activity', 'description': "Historique d'activité"},
+        {'name': 'modules', 'description': 'Modules applicatifs'},
+        {'name': 'nomenclatures', 'description': 'Nomenclatures (listes de référence)'},
+        {'name': 'settings', 'description': "Paramètres de l'instance (configuration du site)"},
+        {'name': 'admin', 'description': 'Administration : orphelins, logs applicatifs, journal des erreurs'},
     ],
 }
 

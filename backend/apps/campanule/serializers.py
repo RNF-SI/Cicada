@@ -1,5 +1,6 @@
 """Serializers pour l'API CAMPanule."""
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import (
@@ -84,12 +85,14 @@ class CampanuleProtocoleDetailSerializer(serializers.ModelSerializer):
             'echantillonnages', 'methodes', 'techniques',
         ]
 
+    @extend_schema_field(CampanuleEchantillonnageSerializer(many=True))
     def get_echantillonnages(self, obj):
         echs = CampanuleProtEchantillonnage.objects.filter(
             cd_protocole=obj.cd_protocole
         )
         return CampanuleEchantillonnageSerializer(echs, many=True).data
 
+    @extend_schema_field(CampanuleMethodeSerializer(many=True))
     def get_methodes(self, obj):
         rels = CampanuleProtMethRel.objects.filter(
             cd_protocole=obj.cd_protocole
@@ -97,6 +100,7 @@ class CampanuleProtocoleDetailSerializer(serializers.ModelSerializer):
         methodes = CampanuleMethode.objects.filter(cd_methode__in=rels)
         return CampanuleMethodeSerializer(methodes, many=True).data
 
+    @extend_schema_field(CampanuleTechniqueSerializer(many=True))
     def get_techniques(self, obj):
         rels = CampanuleProtTechRel.objects.filter(
             cd_protocole=obj.cd_protocole

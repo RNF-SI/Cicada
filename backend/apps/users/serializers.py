@@ -1,6 +1,7 @@
 """
 Serializers pour l'API REST des utilisateurs.
 """
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
@@ -134,6 +135,14 @@ class RoleListSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_role', 'date_insert', 'last_login']
 
 
+class PermissionsInfoSchema(serializers.Serializer):
+    """Forme du champ calculé `permissions_info` (documentation OpenAPI uniquement)."""
+    is_super_admin = serializers.BooleanField()
+    is_admin_organisme = serializers.BooleanField()
+    is_referent = serializers.BooleanField()
+    groups = serializers.ListField(child=serializers.CharField(), help_text="Noms des groupes Django")
+
+
 class RoleDetailSerializer(serializers.ModelSerializer):
     """
     Serializer détaillé pour un utilisateur.
@@ -178,6 +187,7 @@ class RoleDetailSerializer(serializers.ModelSerializer):
             'deletion_requested_at', 'is_anonymized', 'anonymized_at'
         ]
     
+    @extend_schema_field(PermissionsInfoSchema)
     def get_permissions_info(self, obj):
         """Retourne les informations de permissions de l'utilisateur."""
         return {
@@ -440,11 +450,11 @@ class RgpdRequestSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
-    def get_full_name(self, obj):
+    def get_full_name(self, obj) -> str:
         """Retourne le nom complet de l'utilisateur."""
         return obj.get_full_name()
 
-    def get_days_since_request(self, obj):
+    def get_days_since_request(self, obj) -> int | None:
         """Retourne le nombre de jours depuis la demande."""
         if obj.deletion_requested_at:
             from django.utils import timezone

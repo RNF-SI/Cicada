@@ -1,5 +1,6 @@
 """Sérialiseurs du référentiel géographique administratif."""
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import LArea
@@ -27,6 +28,7 @@ class RegionSerializer(serializers.ModelSerializer):
         model = LArea
         fields = ['id_area', 'code', 'nom', 'departements']
 
+    @extend_schema_field(DepartementSerializer(many=True))
     def get_departements(self, obj):
         # `children` est préchargé par la vue : pas de requête par région.
         enfants = sorted(obj.children.all(), key=lambda a: a.area_code)

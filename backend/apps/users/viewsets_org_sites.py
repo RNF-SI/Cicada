@@ -1,7 +1,15 @@
 """
 ViewSets pour les API Organismes et Sites avec permissions et filtrage.
 """
-from rest_framework import viewsets, permissions, status
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
+from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
@@ -19,6 +27,32 @@ from .pagination import StandardPagination
 from .filters_org_sites import OrganismeFilter, SiteFilter
 
 
+# Enveloppe GeoJSON renvoyée par SiteGeoJSONSerializer.to_representation (documentation OpenAPI)
+GEOJSON_FEATURE_SCHEMA = inline_serializer(
+    name='SiteFeature',
+    fields={
+        'type': serializers.CharField(help_text="Toujours `Feature`"),
+        'id': serializers.IntegerField(help_text="id_site"),
+        'geometry': serializers.JSONField(allow_null=True, help_text="Géométrie GeoJSON (WGS84), null si le site n'en a pas"),
+        'properties': SiteGeoJSONSerializer(),
+    },
+)
+
+
+# Le routeur expose la clé primaire sous le nom `id`, mais le modèle la nomme
+# `id_organisme` : drf-spectacular ne peut pas en déduire le type sans cette annotation.
+# `unassign_site` est volontairement absent : il est aussi routé à la main sans `{id}`
+# (organismes/<organisme_pk>/sites/<site_pk>/), où ce paramètre n'existe pas.
+PARAM_ID_ORGANISME = OpenApiParameter(
+    'id', OpenApiTypes.INT, OpenApiParameter.PATH,
+    description="Identifiant de l'organisme (id_organisme)",
+)
+_ORGANISME_DETAIL_ACTIONS = [
+    'retrieve', 'update', 'partial_update', 'destroy', 'assign_site', 'bulk_assign_sites', 'sites',
+]
+
+
+@extend_schema_view(**{a: extend_schema(parameters=[PARAM_ID_ORGANISME]) for a in _ORGANISME_DETAIL_ACTIONS})
 class OrganismeViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion des organismes.
@@ -68,6 +102,10 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         - for_invite: Si 'true', permet aux référents de voir tous les organismes
                       pour la fonctionnalité d'invitation d'organisme à un site.
         """
+        # Génération du schéma OpenAPI : pas d'utilisateur réel
+        if getattr(self, 'swagger_fake_view', False):
+            return BibOrganismes.objects.none()
+
         user = self.request.user
         for_invite = self.request.query_params.get('for_invite', '').lower() == 'true'
 
@@ -459,6 +497,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         - gestion via organisme (CorOgSite)
         - appartenance à un plan lié au site (CorRolePlan → CorSitePg)
         """
+        # Génération du schéma OpenAPI : pas d'utilisateur réel
+        if getattr(self, 'swagger_fake_view', False):
+            return Site.objects.none()
+
         user = self.request.user
 
         ids = user.accessible_site_ids()
@@ -668,6 +710,11 @@ class SiteViewSet(viewsets.ModelViewSet):
             ),
         })
 
+    @extend_schema(
+        summary="Site au format GeoJSON",
+        description="Une `Feature` GeoJSON : `geometry` = périmètre du site (WGS84), `properties` = attributs du site.",
+        responses={200: GEOJSON_FEATURE_SCHEMA, 404: OpenApiResponse(description="Site introuvable ou hors périmètre.")},
+    )
     @action(detail=True, methods=['get'])
     def geojson(self, request, slug=None):
         """Retourne le site au format GeoJSON complet."""
@@ -675,6 +722,23 @@ class SiteViewSet(viewsets.ModelViewSet):
         serializer = SiteGeoJSONSerializer(site)
         return Response(serializer.data)
     
+    @extend_schema(
+        summary="Sites visibles au format GeoJSON",
+        description="Une `FeatureCollection` de tous les sites visibles par l'utilisateur, filtres de liste appliqués.",
+        responses={
+            200: inline_serializer(
+                name='SiteFeatureCollection',
+                fields={
+                    'type': serializers.CharField(help_text="Toujours `FeatureCollection`"),
+                    'features': serializers.ListField(child=GEOJSON_FEATURE_SCHEMA),
+                    'properties': inline_serializer(
+                        name='SiteFeatureCollectionProprietes',
+                        fields={'count': serializers.IntegerField()},
+                    ),
+                },
+            ),
+        },
+    )
     @action(detail=False, methods=['get'])
     def geojson_list(self, request):
         """Retourne tous les sites visibles au format GeoJSON."""

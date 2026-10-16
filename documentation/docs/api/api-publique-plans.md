@@ -4,7 +4,7 @@ L'API publique expose, **sans authentification et en lecture seule**, les métad
 
 ## Activation
 
-Elle est **fermée par défaut**. Un super administrateur l'ouvre depuis les paramètres de l'instance (case « Ouvrir l'API publique des métadonnées des plans » — voir [Paramètres de l'instance](../admin-instance/parametres.md)). Tant qu'elle est fermée, les endpoints répondent `404`.
+Elle est **fermée par défaut**. Un super administrateur l'ouvre depuis les paramètres de l'instance (case « Ouvrir l'API publique des métadonnées des plans », champ `api_publique_plans` de `PATCH /api/settings/` — voir [Paramètres de l'instance](../admin-instance/parametres.md)). Tant qu'elle est fermée, les endpoints répondent `404`.
 
 ## Ce qui est exposé — et ce qui ne l'est jamais
 
@@ -20,7 +20,7 @@ Elle est **fermée par défaut**. Un super administrateur l'ouvre depuis les par
 | Endpoint | Rôle |
 |----------|------|
 | `GET /api/public/plans/` | Liste paginée des plans (hors brouillons) |
-| `GET /api/public/plans/{uuid_plan}/` | Détail des métadonnées d'un plan |
+| `GET /api/public/plans/{uuid}/` | Détail des métadonnées d'un plan |
 
 ## Identifier un plan de façon stable
 
@@ -33,3 +33,7 @@ curl https://<instance>/api/public/plans/
 !!! note "Servie par l'instance, pas par le hub"
 
     Cette API est servie par **chaque instance** et non par le hub d'exploration fédérée, qui ne stocke ni les rédacteurs ni les dates de validation.
+
+## Référence interactive
+
+<swagger-ui src="openapi/public.json"/>

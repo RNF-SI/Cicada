@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework_simplejwt.settings import api_settings as jwt_api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -156,6 +157,49 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         return value
 
 
+# ---------------------------------------------------------------------------
+# Schémas de réponse (documentation OpenAPI uniquement — jamais instanciés pour
+# sérialiser : les vues construisent ces dictionnaires à la main, cf.
+# reponse_connexion() et les vues d'impersonation).
+# ---------------------------------------------------------------------------
+
+class OrganismeConnexionSchema(serializers.Serializer):
+    """Organisme de rattachement, tel que renvoyé à la connexion."""
+    id_organisme = serializers.IntegerField()
+    nom_organisme = serializers.CharField()
+
+
+class OrganismeProfilSchema(OrganismeConnexionSchema):
+    """Organisme de rattachement sur le profil courant (/api/auth/me/)."""
+    ville_organisme = serializers.CharField(allow_null=True)
+
+
+class ProfilConnexionSchema(serializers.Serializer):
+    """Profil de l'utilisateur renvoyé avec les jetons."""
+    id = serializers.IntegerField()
+    email = serializers.EmailField()
+    nom_role = serializers.CharField(allow_null=True)
+    prenom_role = serializers.CharField(allow_null=True)
+    identifiant = serializers.CharField(allow_null=True)
+    niveau_role = serializers.CharField(help_text="super_admin, redacteur_principal, admin_og, redacteur, utilisateur")
+    is_staff = serializers.BooleanField()
+    is_active = serializers.BooleanField()
+    is_referent = serializers.BooleanField()
+    organisme = OrganismeConnexionSchema(allow_null=True)
+
+
+class JetonsConnexionSchema(serializers.Serializer):
+    """Réponse d'une connexion réussie : jetons JWT + profil."""
+    refresh = serializers.CharField(help_text="Jeton de rafraîchissement (7 jours)")
+    access = serializers.CharField(help_text="Jeton d'accès (60 min), à passer en `Authorization: Bearer …`")
+    user = ProfilConnexionSchema()
+
+
+class DetailSchema(serializers.Serializer):
+    """Réponse ne portant qu'un message."""
+    detail = serializers.CharField()
+
+
 class UserInfoSerializer(serializers.ModelSerializer):
     """
     Serializer pour les informations utilisateur.
@@ -176,10 +220,11 @@ class UserInfoSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'date_insert', 'last_login']
 
-    def get_is_referent(self, obj):
+    def get_is_referent(self, obj) -> bool:
         """Retourne True si l'utilisateur est referent d'au moins un site ou plan."""
         return obj.is_referent()
 
+    @extend_schema_field(OrganismeProfilSchema(allow_null=True))
     def get_organisme(self, obj):
         """Retourne les informations de l'organisme."""
         if obj.id_organisme:

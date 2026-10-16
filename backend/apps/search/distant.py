@@ -24,11 +24,14 @@ import re
 
 import requests
 from django.core.cache import cache
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from . import schema
 from .raccordement import hub_url, jeton_lecture, raccordement
 from .relay import DELAI, relais_actif
 
@@ -118,6 +121,39 @@ class EcransDistantsView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        operation_id='exploration_distant_retrieve',
+        summary="Écrans réels d'un plan distant",
+        description=(
+            "Resservi sous les chemins de l'API des plans (`plans/by-slug/{slug}/`, "
+            "`plans/{id}/`, `enjeux/by-plan/{id}/`, `operations/by-plan/{id}/`, "
+            "`operations/{id}/`), à partir de l'instantané publié par l'instance "
+            "émettrice et stocké par le hub — déjà élagué des données sensibles. "
+            "La réponse a la forme de l'endpoint correspondant de `/api/plans/`, "
+            "augmentée de la provenance (`reference`, `instance_id`, "
+            "`instance_libelle`, `url_instance`, `date_publication`) ; le `slug` "
+            "renvoyé est la référence complète. 404 pour tout autre chemin, si "
+            "aucune exploration centralisée n'est configurée, ou si le hub ne "
+            "connaît pas ce plan."
+        ),
+        parameters=[
+            OpenApiParameter('reference', OpenApiTypes.STR, OpenApiParameter.PATH,
+                             description="Référence du plan : `instance:slug`."),
+            OpenApiParameter('chemin', OpenApiTypes.STR, OpenApiParameter.PATH,
+                             description="Chemin relatif de l'API des plans."),
+        ],
+        responses={
+            200: OpenApiResponse(
+                response=OpenApiTypes.OBJECT,
+                description="Réponse de l'endpoint `/api/plans/<chemin>` équivalent, "
+                            "plus les champs de provenance.",
+            ),
+            401: schema.REPONSE_401,
+            404: OpenApiResponse(description="Chemin non servi, relais inactif, ou plan "
+                                             "inconnu du hub."),
+        },
+        tags=[schema.TAG_EXPLORATION],
+    )
     def get(self, request, reference=None, chemin=''):
         if not relais_actif():
             return Response(

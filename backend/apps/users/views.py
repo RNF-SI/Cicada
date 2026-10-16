@@ -1,7 +1,8 @@
 """
 Vues d'exemple pour démontrer le système de permissions.
 """
-from rest_framework import status
+from drf_spectacular.utils import OpenApiResponse, extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
@@ -16,6 +17,8 @@ from .decorators import (
 from .models import Role, BibOrganismes, Site
 
 
+# Vue de démonstration des permissions (non utilisée par le frontend) : hors schéma OpenAPI.
+@extend_schema(exclude=True)
 @api_view(['GET'])
 @permission_classes([IsSuperAdmin])
 def super_admin_only_view(request):
@@ -32,6 +35,8 @@ def super_admin_only_view(request):
     })
 
 
+# Vue de démonstration des permissions (non utilisée par le frontend) : hors schéma OpenAPI.
+@extend_schema(exclude=True)
 @api_view(['GET'])
 @permission_classes([IsAdminOrganisme])
 def admin_organisme_view(request):
@@ -53,6 +58,8 @@ def admin_organisme_view(request):
     })
 
 
+# Vue de démonstration des permissions (non utilisée par le frontend) : hors schéma OpenAPI.
+@extend_schema(exclude=True)
 @api_view(['GET'])
 @permission_classes([IsReferent])
 def referent_view(request):
@@ -66,6 +73,8 @@ def referent_view(request):
     })
 
 
+# Vue de démonstration des permissions (non utilisée par le frontend) : hors schéma OpenAPI.
+@extend_schema(exclude=True)
 @api_view(['GET'])
 @require_super_admin
 def decorator_super_admin_view(request):
@@ -79,6 +88,8 @@ def decorator_super_admin_view(request):
     })
 
 
+# Vue de démonstration des permissions (non utilisée par le frontend) : hors schéma OpenAPI.
+@extend_schema(exclude=True)
 @api_view(['GET'])
 @require_admin_organisme
 def decorator_admin_organisme_view(request):
@@ -91,6 +102,8 @@ def decorator_admin_organisme_view(request):
     })
 
 
+# Vue de démonstration des permissions (non utilisée par le frontend) : hors schéma OpenAPI.
+@extend_schema(exclude=True)
 @api_view(['GET'])
 @require_referent
 def decorator_referent_view(request):
@@ -103,6 +116,8 @@ def decorator_referent_view(request):
     })
 
 
+# Vue de démonstration des permissions d'objet (non utilisée par le frontend) : hors schéma OpenAPI.
+@extend_schema(exclude=True)
 @api_view(['GET'])
 @require_organisme_access('organisme_id')
 def organisme_detail_view(request, organisme_id):
@@ -129,6 +144,8 @@ def organisme_detail_view(request, organisme_id):
         )
 
 
+# Vue de démonstration des permissions d'objet (non utilisée par le frontend) : hors schéma OpenAPI.
+@extend_schema(exclude=True)
 @api_view(['GET'])
 @require_site_access('site_id')
 def site_detail_view(request, site_id):
@@ -155,6 +172,49 @@ def site_detail_view(request, site_id):
         )
 
 
+@extend_schema(
+    tags=['users'],
+    summary="Permissions de l'utilisateur connecté",
+    description=(
+        "Vue de diagnostic : rôle, drapeaux de permission, groupes Django et sites "
+        "dont l'utilisateur est référent validé. Utile pour comprendre ce qu'un compte "
+        "peut faire sans parcourir les autres endpoints."
+    ),
+    responses={
+        200: inline_serializer(
+            name='PermissionsUtilisateur',
+            fields={
+                'user': inline_serializer(
+                    name='PermissionsUtilisateurProfil',
+                    fields={
+                        'id': serializers.IntegerField(),
+                        'email': serializers.EmailField(),
+                        'nom_complet': serializers.CharField(),
+                        'role_level': serializers.CharField(),
+                        'organisme': serializers.CharField(allow_null=True, help_text="Nom de l'organisme de rattachement"),
+                    },
+                ),
+                'permissions': inline_serializer(
+                    name='PermissionsUtilisateurDrapeaux',
+                    fields={
+                        'is_super_admin': serializers.BooleanField(),
+                        'is_admin_organisme': serializers.BooleanField(),
+                        'is_referent': serializers.BooleanField(),
+                        'is_staff': serializers.BooleanField(),
+                        'is_superuser': serializers.BooleanField(),
+                        'is_active': serializers.BooleanField(),
+                    },
+                ),
+                'groups': serializers.ListField(child=serializers.CharField(), help_text="Noms des groupes Django"),
+                'managed_sites': serializers.ListField(child=inline_serializer(
+                    name='SiteGere',
+                    fields={'id': serializers.IntegerField(), 'nom': serializers.CharField()},
+                ), help_text="Sites dont l'utilisateur est référent validé"),
+            },
+        ),
+        401: OpenApiResponse(description="Utilisateur non authentifié."),
+    },
+)
 @api_view(['GET'])
 def permissions_info_view(request):
     """

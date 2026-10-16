@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 from .models_enjeux import (
     Enjeu, FacteurInfluence, Pression, Responsabilite,
@@ -458,6 +460,11 @@ class EnjeuViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
+    @extend_schema(
+        summary="Retirer un habitat de l'enjeu",
+        parameters=[OpenApiParameter('cd_hab', OpenApiTypes.INT, OpenApiParameter.PATH,
+                                     description='Code HabRef de l\'habitat (`cd_hab`)')],
+    )
     @action(detail=True, methods=['delete'], url_path=r'remove_habitat/(?P<cd_hab>[^/.]+)')
     def remove_habitat(self, request, pk=None, cd_hab=None):
         """

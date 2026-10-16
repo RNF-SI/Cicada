@@ -13,6 +13,13 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from drf_spectacular.utils import (
+    extend_schema, extend_schema_view, inline_serializer, OpenApiParameter, OpenApiResponse,
+)
+from drf_spectacular.types import OpenApiTypes
+from rest_framework import serializers as drf_serializers
+
+from config.spectacular import ERREUR_SERIALIZER, REPONSE_403, REPONSE_404
 
 from apps.users.permissions import IsSuperAdmin, IsAdminOrganisme
 from apps.notifications.models import ValidationRequest, Notification
@@ -47,6 +54,24 @@ NOMENCLATURE_TYPE_MAPPING = {
 # Nomenclature ViewSet
 # =============================================================================
 
+@extend_schema_view(
+    list=extend_schema(
+        summary='Lister les nomenclatures actives',
+        parameters=[
+            OpenApiParameter('type', OpenApiTypes.STR, OpenApiParameter.QUERY, required=False,
+                             description='Type de nomenclature : alias frontend (TYPE_SITE, TYPE_EVALUATION, '
+                                         'TYPE_REDACTEUR, TYPE_DOCUMENT_PLAN) ou mnémonique du type. '
+                                         'TYPE_ACTION et TYPE_PRESSION ajoutent `group_label` à chaque élément.'),
+            OpenApiParameter('prefix', OpenApiTypes.STR, OpenApiParameter.QUERY, required=False,
+                             description='Ne garde que les codes `cd_nomenclature` commençant par ce préfixe'),
+        ],
+    ),
+    retrieve=extend_schema(
+        summary='Détail d\'une nomenclature',
+        parameters=[OpenApiParameter('id', OpenApiTypes.INT, OpenApiParameter.PATH,
+                                     description='Identifiant `id_nomenclature`')],
+    ),
+)
 class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API en lecture seule pour les nomenclatures.
@@ -92,6 +117,32 @@ class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
 # SiteConfiguration View
 # =============================================================================
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=['settings'],
+        summary="Configuration de l'instance",
+        description="Paramètres publics de l'instance (image d'accueil, logo, couleurs, options). "
+                    "Sans authentification.",
+        auth=[],
+        responses={200: SiteConfigurationSerializer},
+    ),
+    patch=extend_schema(
+        tags=['settings'],
+        summary="Mettre à jour la configuration de l'instance",
+        description=(
+            "Super admin uniquement. Mise à jour partielle ; accepte `multipart/form-data` pour "
+            "téléverser `homepage_image` / `structure_logo`. Envoyer `homepage_image=''` ou "
+            "`reset_image=true` supprime l'image d'accueil ; `structure_logo=''` ou `reset_logo=true` "
+            "supprime le logo. Modifier `federation_partage` retire les plans du hub ou les republie (#636)."
+        ),
+        request={
+            'multipart/form-data': SiteConfigurationUpdateSerializer,
+            'application/json': SiteConfigurationUpdateSerializer,
+        },
+        responses={200: SiteConfigurationSerializer, 400: OpenApiResponse(description='Données invalides'),
+                   403: REPONSE_403},
+    ),
+)
 class SiteConfigurationView(APIView):
     """
     Vue pour la configuration globale du site.
@@ -173,6 +224,19 @@ class SiteConfigurationView(APIView):
         return Response(SiteConfigurationSerializer(config, context={'request': request}).data)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=['settings'],
+        summary="Image de personnalisation de l'instance",
+        description="Sert le logo de la structure (`/settings/structure-logo/`) ou l'image d'accueil "
+                    "(`/settings/homepage-image/`). Public, mis en cache 24 h (`?v=` dans l'URL pour invalider).",
+        auth=[],
+        responses={
+            200: OpenApiResponse(response=OpenApiTypes.BINARY, description='Fichier image (content-type du fichier)'),
+            404: OpenApiResponse(description='Aucune image configurée'),
+        },
+    ),
+)
 class SiteConfigurationImageView(APIView):
     """
     #660 — Sert le logo de la structure ou l'image d'accueil.
@@ -989,6 +1053,43 @@ def _orphaned_plans_queryset(user):
     )
 
 
+ORPHANS_RESPONSE = inline_serializer(
+    name='AdminOrphans',
+    fields={
+        'sites': drf_serializers.ListField(child=inline_serializer(
+            name='AdminOrphanSite',
+            fields={
+                'id_site': drf_serializers.IntegerField(),
+                'nom_site': drf_serializers.CharField(),
+                'slug': drf_serializers.CharField(),
+                'organismes': drf_serializers.ListField(child=drf_serializers.CharField(),
+                                                        help_text='Noms des organismes gestionnaires'),
+            },
+        )),
+        'plans': drf_serializers.ListField(child=inline_serializer(
+            name='AdminOrphanPlan',
+            fields={
+                'id_pg': drf_serializers.IntegerField(),
+                'nom': drf_serializers.CharField(),
+                'slug': drf_serializers.CharField(),
+            },
+        )),
+        'sites_count': drf_serializers.IntegerField(),
+        'plans_count': drf_serializers.IntegerField(),
+    },
+)
+
+
+@extend_schema_view(
+    get=extend_schema(
+        tags=['admin'],
+        summary='Sites sans utilisateur et plans sans site',
+        description="Admin organisme et plus. Super admin / rédacteur principal : tous les sites et plans "
+                    "orphelins ; admin organisme : les sites orphelins de son organisme uniquement "
+                    "(`plans` vide).",
+        responses={200: ORPHANS_RESPONSE, 403: REPONSE_403},
+    ),
+)
 class AdminOrphansView(APIView):
     """
     Sites et plans orphelins (etat persistant, consultable a la demande).
@@ -1055,6 +1156,24 @@ class AdminOrphansView(APIView):
         })
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=['admin'],
+        summary='Compteurs des orphelins',
+        description='Version légère pour le badge de navigation (admin organisme et plus).',
+        responses={
+            200: inline_serializer(
+                name='AdminOrphansCounts',
+                fields={
+                    'sites_count': drf_serializers.IntegerField(),
+                    'plans_count': drf_serializers.IntegerField(),
+                    'total': drf_serializers.IntegerField(),
+                },
+            ),
+            403: REPONSE_403,
+        },
+    ),
+)
 class AdminOrphansCountsView(APIView):
     """
     Compteurs legers des orphelins (pour le badge de navigation admin).
@@ -1105,6 +1224,60 @@ def _resolve_log_file(filename):
     return path
 
 
+@extend_schema_view(
+    get=extend_schema(
+        tags=['admin'],
+        summary='Consulter les logs applicatifs',
+        description=(
+            "Super admin uniquement. Sans `file` : liste des fichiers disponibles (django.log, error.log, "
+            "audit.log et leurs rotations `.N`). Avec `file` : les N dernières lignes, filtrables par niveau. "
+            "Avec `file` et `download=1` : le fichier brut en pièce jointe."
+        ),
+        parameters=[
+            OpenApiParameter('file', OpenApiTypes.STR, OpenApiParameter.QUERY, required=False,
+                             description='Nom du fichier (ex. `error.log`, `django.log.1`)'),
+            OpenApiParameter('lines', OpenApiTypes.INT, OpenApiParameter.QUERY, required=False,
+                             description='Nombre de lignes renvoyées (défaut 300, max 1000)'),
+            OpenApiParameter('level', OpenApiTypes.STR, OpenApiParameter.QUERY, required=False,
+                             description='Ne garde que les lignes contenant ce niveau (ERROR, WARNING…)'),
+            OpenApiParameter('download', OpenApiTypes.BOOL, OpenApiParameter.QUERY, required=False,
+                             description='1 = télécharger le fichier brut'),
+        ],
+        responses={
+            200: OpenApiResponse(
+                response={
+                    'oneOf': [
+                        {
+                            'type': 'object', 'title': 'Liste des fichiers',
+                            'properties': {
+                                'log_dir': {'type': 'string'},
+                                'files': {'type': 'array', 'items': {
+                                    'type': 'object',
+                                    'properties': {'name': {'type': 'string'}, 'size': {'type': 'integer'}},
+                                }},
+                            },
+                        },
+                        {
+                            'type': 'object', 'title': 'Dernières lignes',
+                            'properties': {
+                                'file': {'type': 'string'},
+                                'lines': {'type': 'array', 'items': {'type': 'string'}},
+                                'returned': {'type': 'integer'},
+                                'total': {'type': 'integer', 'description': 'Lignes après filtre de niveau'},
+                                'truncated': {'type': 'boolean'},
+                            },
+                        },
+                        {'type': 'string', 'format': 'binary', 'title': 'Fichier brut (download=1)'},
+                    ],
+                },
+                description='Liste des fichiers, dernières lignes, ou fichier brut selon les paramètres',
+            ),
+            403: REPONSE_403,
+            404: OpenApiResponse(response=ERREUR_SERIALIZER, description='Fichier introuvable ou non autorisé'),
+            500: OpenApiResponse(response=ERREUR_SERIALIZER, description='Fichier illisible'),
+        },
+    ),
+)
 class AdminLogsView(APIView):
     """
     Consultation des fichiers de logs applicatifs (super_admin uniquement).

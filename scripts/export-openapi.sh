@@ -26,11 +26,4 @@ else
   rm -f "$ROOT/backend/_openapi.json"
 fi
 
-python3 - "$OUT" <<'PY'
-import json, sys
-p = sys.argv[1]
-d = json.load(open(p))
-# Compact (1,2 Mo au lieu de 4) : le fichier est servi tel quel par la page de référence.
-json.dump(d, open(p, "w"), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-print(f"{p}: {len(d.get('paths', {}))} chemins, OpenAPI {d.get('openapi')}")
-PY
+python3 "$ROOT/documentation/tools/split_openapi.py" "$OUT"

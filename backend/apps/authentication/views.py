@@ -9,7 +9,14 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
-from rest_framework import status
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    OpenApiResponse,
+    extend_schema,
+    inline_serializer,
+)
+from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -27,12 +34,25 @@ from .providers import ConnexionLocaleActive, GEONATURE, mode_connexion, usershu
 from .serializers import (
     reponse_connexion,
     CustomTokenObtainPairSerializer,
+    DetailSchema,
+    JetonsConnexionSchema,
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
+    ProfilConnexionSchema,
     UserInfoSerializer,
 )
 
 logger = logging.getLogger(__name__)
+
+# Réponses d'erreur communes (documentation OpenAPI)
+REPONSE_401 = OpenApiResponse(response=DetailSchema, description="Jeton absent, invalide ou expiré.")
+REPONSE_403 = OpenApiResponse(response=DetailSchema, description="Droits insuffisants.")
+REPONSE_403_CONNEXION_EXTERNE = OpenApiResponse(
+    response=DetailSchema,
+    description="Instance en mode de connexion GeoNature : la connexion locale, "
+                "l'inscription et le mot de passe oublié sont fermés (#689).",
+)
+REPONSE_429 = OpenApiResponse(description="Trop de tentatives : limitation de débit sur l'authentification.")
 
 
 class CustomTokenObtainPairView(APIView):
@@ -46,6 +66,33 @@ class CustomTokenObtainPairView(APIView):
     permission_classes = [ConnexionLocaleActive]
     throttle_classes = [AuthRateThrottle]
 
+    @extend_schema(
+        tags=['auth'],
+        summary="Connexion avec un compte CICADA",
+        description=(
+            "Obtient une paire de jetons JWT à partir d'un email **ou** d'un identifiant "
+            "et du mot de passe. Public. Disponible uniquement quand l'instance est en "
+            "connexion locale (voir `GET /api/auth/mode/`). Un compte en attente de "
+            "validation ou désactivé est refusé en 401 avec un message explicite."
+        ),
+        request=CustomTokenObtainPairSerializer,
+        responses={
+            200: JetonsConnexionSchema,
+            400: OpenApiResponse(
+                response=inline_serializer(
+                    name='ErreursConnexion',
+                    fields={
+                        'detail': serializers.CharField(),
+                        'errors': serializers.DictField(child=serializers.ListField(child=serializers.CharField())),
+                    },
+                ),
+                description="Champs manquants ou invalides (erreurs par champ).",
+            ),
+            401: OpenApiResponse(response=DetailSchema, description="Identifiants incorrects, compte désactivé ou en attente de validation."),
+            403: REPONSE_403_CONNEXION_EXTERNE,
+            429: REPONSE_429,
+        },
+    )
     def post(self, request):
         serializer = CustomTokenObtainPairSerializer(data=request.data)
 
@@ -75,6 +122,25 @@ class ModeConnexionView(APIView):
     """
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=['auth'],
+        summary="Mode de connexion de l'instance",
+        description=(
+            "Indique si l'instance accepte les comptes CICADA (`local`) ou les comptes "
+            "GeoNature / UsersHub (`geonature`, avec le libellé à afficher). Public : "
+            "la page de connexion l'appelle avant toute authentification (#689)."
+        ),
+        auth=[],
+        responses={
+            200: inline_serializer(
+                name='ModeConnexion',
+                fields={
+                    'mode': serializers.ChoiceField(choices=['local', 'geonature']),
+                    'libelle': serializers.CharField(required=False, help_text="Nom de l'annuaire GeoNature (mode geonature seulement)"),
+                },
+            ),
+        },
+    )
     def get(self, request):
         if mode_connexion() == GEONATURE:
             return Response({'mode': GEONATURE, 'libelle': settings.GEONATURE_AUTH_LIBELLE})
@@ -93,6 +159,31 @@ class ConnexionGeoNatureView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [AuthRateThrottle]
 
+    @extend_schema(
+        tags=['auth'],
+        summary="Connexion avec un compte GeoNature / UsersHub",
+        description=(
+            "Authentifie l'utilisateur auprès de l'annuaire UsersHub de l'instance, crée ou "
+            "met à jour son compte CICADA, et renvoie les mêmes jetons que "
+            "`POST /api/auth/login/`. Public. Répond 404 si l'instance n'est pas en mode "
+            "`geonature` (#689, #691)."
+        ),
+        request=inline_serializer(
+            name='ConnexionGeoNature',
+            fields={
+                'login': serializers.CharField(help_text="Identifiant UsersHub"),
+                'password': serializers.CharField(style={'input_type': 'password'}),
+            },
+        ),
+        responses={
+            200: JetonsConnexionSchema,
+            400: OpenApiResponse(response=DetailSchema, description="Identifiant ou mot de passe manquant."),
+            401: OpenApiResponse(response=DetailSchema, description="Identifiants refusés par UsersHub."),
+            404: OpenApiResponse(response=DetailSchema, description="Connexion GeoNature non activée sur cette instance."),
+            429: REPONSE_429,
+            503: OpenApiResponse(response=DetailSchema, description="Annuaire GeoNature non configuré ou injoignable."),
+        },
+    )
     def post(self, request):
         if mode_connexion() != GEONATURE:
             return Response({'detail': "Connexion GeoNature non activée sur cette instance."},
@@ -127,6 +218,18 @@ class CustomTokenRefreshView(TokenRefreshView):
     Body: {"refresh": "refresh_token"}
     """
 
+    @extend_schema(
+        tags=['auth'],
+        summary="Rafraîchir le jeton d'accès",
+        description=(
+            "Échange un jeton de rafraîchissement valide contre un nouveau jeton d'accès. "
+            "Refusé (401) si le compte a été désactivé ou supprimé entre-temps."
+        ),
+        responses={
+            200: OpenApiResponse(description="Nouveau jeton d'accès (`access`) et, selon la rotation configurée, nouveau `refresh`."),
+            401: OpenApiResponse(response=DetailSchema, description="Jeton de rafraîchissement invalide, expiré ou compte désactivé."),
+        },
+    )
     def post(self, request, *args, **kwargs):
         # Appeler d'abord la methode parent pour valider le token
         response = super().post(request, *args, **kwargs)
@@ -165,6 +268,22 @@ class PasswordResetRequestView(APIView):
     permission_classes = [ConnexionLocaleActive]
     throttle_classes = [AuthRateThrottle]
 
+    @extend_schema(
+        tags=['auth'],
+        summary="Demander la réinitialisation du mot de passe",
+        description=(
+            "Envoie par email un lien de réinitialisation si un compte actif correspond "
+            "à l'adresse. Public. La réponse est identique que le compte existe ou non "
+            "(pas d'énumération des adresses, #329)."
+        ),
+        request=PasswordResetRequestSerializer,
+        responses={
+            200: OpenApiResponse(response=DetailSchema, description="Demande prise en compte (toujours, même sans compte associé)."),
+            400: OpenApiResponse(description="Adresse email manquante ou invalide."),
+            403: REPONSE_403_CONNEXION_EXTERNE,
+            429: REPONSE_429,
+        },
+    )
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -206,6 +325,21 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [ConnexionLocaleActive]
     throttle_classes = [AuthRateThrottle]
 
+    @extend_schema(
+        tags=['auth'],
+        summary="Appliquer un nouveau mot de passe",
+        description=(
+            "Valide le couple `uid` / `token` reçu dans le lien envoyé par email "
+            "(jeton à usage unique) et enregistre le nouveau mot de passe. Public (#329)."
+        ),
+        request=PasswordResetConfirmSerializer,
+        responses={
+            200: OpenApiResponse(response=DetailSchema, description="Mot de passe réinitialisé."),
+            400: OpenApiResponse(description="Lien invalide ou expiré, compte désactivé, ou mot de passe refusé par les validateurs."),
+            403: REPONSE_403_CONNEXION_EXTERNE,
+            429: REPONSE_429,
+        },
+    )
     def post(self, request):
         serializer = PasswordResetConfirmSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -244,6 +378,26 @@ class PasswordResetConfirmView(APIView):
         )
 
 
+@extend_schema(
+    tags=['auth'],
+    summary="Déconnexion",
+    description=(
+        "Révoque le jeton de rafraîchissement transmis (liste noire). Le jeton d'accès "
+        "courant reste utilisable jusqu'à son expiration : le client doit l'oublier."
+    ),
+    request=inline_serializer(
+        name='Deconnexion',
+        fields={'refresh': serializers.CharField(required=False, help_text="Jeton de rafraîchissement à révoquer")},
+    ),
+    responses={
+        200: inline_serializer(name='DeconnexionOk', fields={'message': serializers.CharField()}),
+        400: OpenApiResponse(
+            response=inline_serializer(name='DeconnexionErreur', fields={'error': serializers.CharField()}),
+            description="Jeton de rafraîchissement invalide.",
+        ),
+        401: REPONSE_401,
+    },
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
@@ -272,6 +426,12 @@ def logout_view(request):
         )
 
 
+@extend_schema(
+    tags=['auth'],
+    summary="Profil de l'utilisateur connecté",
+    description="Renvoie le compte associé au jeton d'accès (rôle, organisme, statut référent).",
+    responses={200: UserInfoSerializer, 401: REPONSE_401},
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_info_view(request):
@@ -282,6 +442,18 @@ def user_info_view(request):
     return Response(serializer.data)
 
 
+@extend_schema(
+    tags=['auth'],
+    summary="État de l'API d'authentification",
+    description="Sonde publique, sans authentification : répond `ok` si l'application est démarrée.",
+    auth=[],
+    responses={
+        200: inline_serializer(
+            name='SanteAuth',
+            fields={'status': serializers.CharField(), 'message': serializers.CharField()},
+        ),
+    },
+)
 @api_view(['GET'])
 @permission_classes([])  # Endpoint public
 def health_check_view(request):
@@ -302,6 +474,52 @@ def get_client_ip(request):
     return request.META.get('REMOTE_ADDR')
 
 
+@extend_schema(
+    tags=['auth'],
+    summary="Démarrer une impersonation (super admin)",
+    description=(
+        "Délivre des jetons JWT au nom de l'utilisateur cible, porteurs des claims "
+        "`is_impersonating`, `impersonator_id`, `impersonator_email` et "
+        "`impersonation_log_id`. Réservé aux super administrateurs ; impossible sur "
+        "soi-même ou sur un autre super administrateur. Chaque session est journalisée."
+    ),
+    parameters=[OpenApiParameter('user_id', OpenApiTypes.INT, OpenApiParameter.PATH, description="Identifiant (id_role) de l'utilisateur à impersonner")],
+    request=inline_serializer(
+        name='DemarrerImpersonation',
+        fields={'reason': serializers.CharField(required=False, allow_blank=True, help_text="Motif, consigné dans le journal")},
+    ),
+    responses={
+        200: inline_serializer(
+            name='ImpersonationDemarree',
+            fields={
+                'refresh': serializers.CharField(),
+                'access': serializers.CharField(),
+                'user': ProfilConnexionSchema(help_text="Utilisateur impersonné"),
+                'impersonation': inline_serializer(
+                    name='ContexteImpersonation',
+                    fields={
+                        'isImpersonating': serializers.BooleanField(),
+                        'impersonator': inline_serializer(
+                            name='Impersonateur',
+                            fields={
+                                'id': serializers.IntegerField(),
+                                'email': serializers.EmailField(),
+                                'nom_role': serializers.CharField(allow_null=True),
+                                'prenom_role': serializers.CharField(allow_null=True),
+                            },
+                        ),
+                        'logId': serializers.IntegerField(),
+                        'startedAt': serializers.DateTimeField(),
+                    },
+                ),
+            },
+        ),
+        400: OpenApiResponse(response=DetailSchema, description="Tentative d'auto-impersonation."),
+        401: REPONSE_401,
+        403: OpenApiResponse(response=DetailSchema, description="Appelant non super admin, ou cible super admin."),
+        404: OpenApiResponse(description="Utilisateur cible introuvable."),
+    },
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def start_impersonation_view(request, user_id):
@@ -396,6 +614,30 @@ def start_impersonation_view(request, user_id):
     }, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    tags=['auth'],
+    summary="Terminer une impersonation",
+    description=(
+        "À appeler avec le jeton d'accès **de la session d'impersonation** : les claims "
+        "du jeton identifient l'administrateur d'origine, dont de nouveaux jetons sont "
+        "renvoyés, et le journal est clôturé. Aucun corps de requête n'est lu."
+    ),
+    request=None,
+    responses={
+        200: inline_serializer(
+            name='ImpersonationTerminee',
+            fields={
+                'refresh': serializers.CharField(),
+                'access': serializers.CharField(),
+                'user': ProfilConnexionSchema(help_text="Administrateur d'origine"),
+                'message': serializers.CharField(),
+            },
+        ),
+        400: OpenApiResponse(response=DetailSchema, description="Le jeton n'est pas celui d'une session d'impersonation."),
+        401: OpenApiResponse(response=DetailSchema, description="Jeton absent, invalide ou expiré."),
+        404: OpenApiResponse(response=DetailSchema, description="Administrateur d'origine introuvable."),
+    },
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def stop_impersonation_view(request):
@@ -492,6 +734,53 @@ def stop_impersonation_view(request):
     }, status=status.HTTP_200_OK)
 
 
+
+# Composant partagé par `impersonator` et `impersonated_user` : un même nom
+# d'inline_serializer doit désigner une seule identité, sinon drf-spectacular
+# signale deux composants homonymes.
+PERSONNE_IMPERSONATION_SCHEMA = inline_serializer(
+    name='PersonneImpersonation',
+    fields={
+        'id': serializers.IntegerField(),
+        'email': serializers.EmailField(),
+        'nom_complet': serializers.CharField(),
+    },
+)
+
+@extend_schema(
+    tags=['auth'],
+    summary="Journal des impersonations (super admin)",
+    description="Les 100 dernières sessions d'impersonation, de la plus récente à la plus ancienne, avec filtres optionnels.",
+    parameters=[
+        OpenApiParameter('impersonator_id', OpenApiTypes.INT, OpenApiParameter.QUERY, description="Ne garder que les sessions ouvertes par cet administrateur"),
+        OpenApiParameter('impersonated_user_id', OpenApiTypes.INT, OpenApiParameter.QUERY, description="Ne garder que les sessions visant cet utilisateur"),
+        OpenApiParameter('active_only', OpenApiTypes.BOOL, OpenApiParameter.QUERY, description="`true` : sessions encore ouvertes seulement"),
+    ],
+    responses={
+        200: inline_serializer(
+            name='JournalImpersonations',
+            fields={
+                'count': serializers.IntegerField(),
+                'results': serializers.ListField(child=inline_serializer(
+                    name='SessionImpersonation',
+                    fields={
+                        'id': serializers.IntegerField(),
+                        'impersonator': PERSONNE_IMPERSONATION_SCHEMA,
+                        'impersonated_user': PERSONNE_IMPERSONATION_SCHEMA,
+                        'started_at': serializers.DateTimeField(),
+                        'ended_at': serializers.DateTimeField(allow_null=True),
+                        'is_active': serializers.BooleanField(),
+                        'duration_seconds': serializers.FloatField(allow_null=True, help_text="Durée en secondes (null si session encore ouverte)"),
+                        'ip_address': serializers.CharField(allow_null=True),
+                        'reason': serializers.CharField(allow_blank=True),
+                    },
+                )),
+            },
+        ),
+        401: REPONSE_401,
+        403: REPONSE_403,
+    },
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def impersonation_logs_view(request):
@@ -557,6 +846,22 @@ def impersonation_logs_view(request):
     })
 
 
+@extend_schema(
+    tags=['auth'],
+    summary="Statistiques publiques de l'instance",
+    description="Compteurs affichés sur la page d'accueil, sans authentification : sites actifs, plans validés, organismes.",
+    auth=[],
+    responses={
+        200: inline_serializer(
+            name='StatistiquesPubliques',
+            fields={
+                'sites_count': serializers.IntegerField(),
+                'plans_count': serializers.IntegerField(),
+                'organismes_count': serializers.IntegerField(),
+            },
+        ),
+    },
+)
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def public_stats_view(request):

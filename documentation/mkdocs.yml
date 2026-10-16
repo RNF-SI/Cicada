@@ -138,6 +138,18 @@ nav:
       - administration/index.md
   - API:
       - api/index.md
+      - Prise en main: api/prise-en-main.md
       - Authentification et permissions: api/authentification.md
-      - API publique des métadonnées des plans: api/api-publique-plans.md
-      - Référence des endpoints: api/reference.md
+      - Domaines:
+          - Authentification: api/auth.md
+          - Utilisateurs: api/users.md
+          - Organismes et sites: api/organismes-sites.md
+          - Plans de gestion: api/plans.md
+          - Arborescence: api/arborescence.md
+          - Actions et suivi: api/actions-suivi.md
+          - Référentiels: api/referentiels.md
+          - Notifications, validations et activité: api/notifications.md
+          - Exploration et fédération: api/exploration.md
+          - Administration de l'instance: api/administration.md
+          - API publique des métadonnées: api/api-publique-plans.md
+      - Référence complète: api/reference.md

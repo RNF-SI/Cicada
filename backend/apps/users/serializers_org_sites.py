@@ -1,6 +1,8 @@
 """
 Serializers pour les API Organismes et Sites avec support GeoJSON.
 """
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 try:
@@ -17,6 +19,97 @@ from django.db import transaction
 from .models import BibOrganismes, Site, CorRoleSite, CorOgSite, Role
 from apps.core.models import Nomenclature
 from apps.plans.models import CorSitePg
+
+
+# ---------------------------------------------------------------------------
+# Schémas des champs calculés (documentation OpenAPI uniquement) : les
+# SerializerMethodField ci-dessous construisent des dictionnaires à la main,
+# ces classes en décrivent la forme pour drf-spectacular.
+# ---------------------------------------------------------------------------
+
+class SiteGereSchema(serializers.Serializer):
+    id_site = serializers.IntegerField()
+    nom_site = serializers.CharField()
+    surf_off = serializers.FloatField(allow_null=True)
+    active = serializers.BooleanField()
+
+
+class SiteGereEnvelopeSchema(serializers.Serializer):
+    site = SiteGereSchema()
+
+
+class UtilisateurOrganismeSchema(serializers.Serializer):
+    id_role = serializers.IntegerField()
+    nom_complet = serializers.CharField()
+    email = serializers.EmailField()
+    role_level = serializers.CharField()
+
+
+class StatistiquesOrganismeSchema(serializers.Serializer):
+    total_users = serializers.IntegerField()
+    active_users = serializers.IntegerField()
+    total_sites = serializers.IntegerField()
+
+
+class OrganismeSiteListeSchema(serializers.Serializer):
+    id_organisme = serializers.IntegerField()
+    nom_organisme = serializers.CharField()
+    principal = serializers.BooleanField()
+    type_organisme_code = serializers.CharField(allow_null=True)
+
+
+class OrganismeSiteGeoSchema(serializers.Serializer):
+    id_organisme = serializers.IntegerField()
+    nom_organisme = serializers.CharField()
+    principal = serializers.BooleanField()
+
+
+class OrganismeSiteDetailSchema(OrganismeSiteGeoSchema):
+    ville_organisme = serializers.CharField(allow_null=True)
+
+
+class UtilisateurSiteListeSchema(serializers.Serializer):
+    id_role = serializers.IntegerField()
+    email = serializers.EmailField()
+    nom_role = serializers.CharField(allow_null=True)
+    prenom_role = serializers.CharField(allow_null=True)
+    referent = serializers.BooleanField()
+
+
+class UtilisateurSiteGeoSchema(serializers.Serializer):
+    id_role = serializers.IntegerField()
+    nom_complet = serializers.CharField()
+    email = serializers.EmailField()
+    referent = serializers.BooleanField()
+
+
+class UtilisateurSiteDetailSchema(serializers.Serializer):
+    user = serializers.DictField(help_text="id_role, nom_complet, email, role_level, organisme (nom)")
+    referent = serializers.BooleanField()
+    referent_valid = serializers.BooleanField()
+    conservateur = serializers.BooleanField()
+
+
+class AccesSiteListeSchema(serializers.Serializer):
+    has_access = serializers.BooleanField()
+    access_type = serializers.ChoiceField(choices=[
+        'referent', 'conservateur', 'membre', 'super_admin', 'redacteur_principal',
+        'admin_og', 'organisme', 'plan',
+    ])
+    role_label = serializers.CharField()
+
+
+class AccesSiteDetailSchema(serializers.Serializer):
+    has_access = serializers.BooleanField()
+    is_referent = serializers.BooleanField()
+    is_conservateur = serializers.BooleanField()
+    role_label = serializers.CharField()
+
+
+class TypeSiteSchema(serializers.Serializer):
+    id_nomenclature = serializers.IntegerField()
+    label = serializers.CharField()
+    cd_nomenclature = serializers.CharField()
 
 
 class OrganismeListSerializer(serializers.ModelSerializer):
@@ -36,11 +129,11 @@ class OrganismeListSerializer(serializers.ModelSerializer):
             'sites_count', 'users_count'
         ]
     
-    def get_sites_count(self, obj):
+    def get_sites_count(self, obj) -> int:
         """Nombre de sites gérés par l'organisme."""
         return CorOgSite.objects.filter(uuid_og=obj).count()
     
-    def get_users_count(self, obj):
+    def get_users_count(self, obj) -> int:
         """Nombre d'utilisateurs dans l'organisme."""
         return Role.objects.filter(id_organisme=obj, active=True).count()
 
@@ -65,6 +158,7 @@ class OrganismeDetailSerializer(serializers.ModelSerializer):
             'statistiques'
         ]
     
+    @extend_schema_field(SiteGereEnvelopeSchema(many=True))
     def get_sites_geres(self, obj):
         """Sites gérés par l'organisme."""
         cor_sites = CorOgSite.objects.filter(uuid_og=obj).select_related('id_site')
@@ -77,6 +171,7 @@ class OrganismeDetailSerializer(serializers.ModelSerializer):
             }
         } for cor in cor_sites]
     
+    @extend_schema_field(UtilisateurOrganismeSchema(many=True))
     def get_users(self, obj):
         """Utilisateurs de l'organisme."""
         users = Role.objects.filter(id_organisme=obj, active=True)
@@ -87,6 +182,7 @@ class OrganismeDetailSerializer(serializers.ModelSerializer):
             'role_level': user.role_level
         } for user in users]
     
+    @extend_schema_field(StatistiquesOrganismeSchema)
     def get_statistiques(self, obj):
         """Statistiques de l'organisme."""
         total_users = Role.objects.filter(id_organisme=obj).count()
@@ -193,6 +289,7 @@ class SiteListSerializer(serializers.ModelSerializer):
             'current_user_access'
         ]
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_geom_pt_geojson(self, obj):
         """Point de référence en GeoJSON."""
         if obj.geom_pt:
@@ -202,18 +299,19 @@ class SiteListSerializer(serializers.ModelSerializer):
             }
         return None
 
-    def get_organismes_count(self, obj):
+    def get_organismes_count(self, obj) -> int:
         """Nombre d'organismes gestionnaires."""
         return CorOgSite.objects.filter(id_site=obj).count()
 
-    def get_users_count(self, obj):
+    def get_users_count(self, obj) -> int:
         """Nombre d'utilisateurs assignés."""
         return CorRoleSite.objects.filter(id_site=obj).count()
 
-    def get_plans_count(self, obj):
+    def get_plans_count(self, obj) -> int:
         """Nombre de plans de gestion associés au site."""
         return CorSitePg.objects.filter(site=obj).count()
 
+    @extend_schema_field(OrganismeSiteListeSchema(many=True))
     def get_organismes(self, obj):
         """Organismes gestionnaires du site."""
         cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og', 'uuid_og__id_type_organisme')
@@ -224,6 +322,7 @@ class SiteListSerializer(serializers.ModelSerializer):
             'type_organisme_code': cor.uuid_og.id_type_organisme.cd_nomenclature if cor.uuid_og.id_type_organisme else None,
         } for cor in cor_orgs]
 
+    @extend_schema_field(UtilisateurSiteListeSchema(many=True))
     def get_users(self, obj):
         """Utilisateurs assignés au site."""
         cor_users = CorRoleSite.objects.filter(id_site=obj).select_related('id_role')
@@ -235,6 +334,7 @@ class SiteListSerializer(serializers.ModelSerializer):
             'referent': cor.referent
         } for cor in cor_users]
 
+    @extend_schema_field(AccesSiteListeSchema(allow_null=True))
     def get_current_user_access(self, obj):
         """Retourne le type d'accès de l'utilisateur courant au site."""
         request = self.context.get('request')
@@ -364,14 +464,15 @@ class SiteGeoJSONSerializer(serializers.ModelSerializer):
             'users_assignes', 'modif_adm', 'modif_geo'
         ]
 
-    def get_type_site(self, obj):
+    def get_type_site(self, obj) -> int | None:
         """Type de site ID."""
         return obj.id_type_site.id_nomenclature if obj.id_type_site else None
 
-    def get_type_site_label(self, obj):
+    def get_type_site_label(self, obj) -> str | None:
         """Type de site label."""
         return obj.id_type_site.label if obj.id_type_site else None
 
+    @extend_schema_field(OrganismeSiteGeoSchema(many=True))
     def get_organismes(self, obj):
         """Organismes gestionnaires du site."""
         cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og')
@@ -381,6 +482,7 @@ class SiteGeoJSONSerializer(serializers.ModelSerializer):
             'principal': cor.principal
         } for cor in cor_orgs]
 
+    @extend_schema_field(UtilisateurSiteGeoSchema(many=True))
     def get_users_assignes(self, obj):
         """Utilisateurs assignés au site."""
         cor_users = CorRoleSite.objects.filter(id_site=obj).select_related('id_role')
@@ -440,6 +542,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
             'users_assignes', 'current_user_is_referent', 'current_user_access'
         ]
     
+    @extend_schema_field(TypeSiteSchema(allow_null=True))
     def get_type_site(self, obj):
         """Type de site avec détails."""
         if obj.id_type_site:
@@ -450,10 +553,11 @@ class SiteDetailSerializer(serializers.ModelSerializer):
             }
         return None
 
-    def get_type_site_label(self, obj):
+    def get_type_site_label(self, obj) -> str | None:
         """Label du type de site."""
         return obj.id_type_site.label if obj.id_type_site else None
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_geom_geojson(self, obj):
         """Géométrie principale en GeoJSON."""
         import json
@@ -461,6 +565,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
             return json.loads(obj.geom.geojson)
         return None
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_geom_pt_geojson(self, obj):
         """Point de référence en GeoJSON."""
         import json
@@ -468,6 +573,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
             return json.loads(obj.geom_pt.geojson)
         return None
     
+    @extend_schema_field(OrganismeSiteDetailSchema(many=True))
     def get_organismes(self, obj):
         """Organismes gestionnaires du site (structure plate pour le frontend)."""
         cor_orgs = CorOgSite.objects.filter(id_site=obj).select_related('uuid_og')
@@ -478,6 +584,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
             'principal': cor.principal
         } for cor in cor_orgs]
     
+    @extend_schema_field(UtilisateurSiteDetailSchema(many=True))
     def get_users_assignes(self, obj):
         """Utilisateurs assignés au site avec détails."""
         cor_users = CorRoleSite.objects.filter(id_site=obj).select_related('id_role')
@@ -494,7 +601,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
             'conservateur': cor.conservateur
         } for cor in cor_users]
 
-    def get_current_user_is_referent(self, obj):
+    def get_current_user_is_referent(self, obj) -> bool:
         """Indique si l'utilisateur courant est référent du site."""
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
@@ -522,6 +629,7 @@ class SiteDetailSerializer(serializers.ModelSerializer):
 
         return False
 
+    @extend_schema_field(AccesSiteDetailSchema(allow_null=True))
     def get_current_user_access(self, obj):
         """Retourne les informations d'acces de l'utilisateur courant au site."""
         request = self.context.get('request')

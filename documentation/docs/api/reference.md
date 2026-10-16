@@ -3,10 +3,10 @@ hide:
   - toc
 ---
 
-# Référence des endpoints
+# Référence complète
 
-Cette référence est **générée automatiquement depuis le code** (schéma OpenAPI produit par `drf-spectacular`). Elle décrit l'ensemble des endpoints de l'API d'une instance CICADA, leurs paramètres et le format de leurs réponses.
+L'ensemble des endpoints de l'API d'une instance CICADA, dans une seule interface Swagger : utilisez le champ de filtre pour retrouver un chemin ou un mot. Les pages par [domaine](index.md#les-domaines-de-lapi) présentent les mêmes endpoints avec leur contexte d'usage.
 
-Sur une instance en fonctionnement, le schéma à jour est également disponible, pour un utilisateur authentifié, à l'adresse `/api/schema/` et l'interface interactive à `/api/docs/`.
+Cette référence est **générée automatiquement depuis le code** (schéma OpenAPI 3 produit par `drf-spectacular`). Sur une instance en fonctionnement, le schéma à jour est servi, pour un utilisateur authentifié, à `/api/schema/`, et l'interface interactive à `/api/docs/`.
 
 <swagger-ui src="openapi.json"/>

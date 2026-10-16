@@ -53,7 +53,11 @@ vert pâle sont des tableaux Markdown ordinaires (style global).
 ### Mettre à jour la référence de l'API
 
 Le schéma OpenAPI est généré depuis le code par `drf-spectacular` et **committé** dans
-`docs/api/openapi.json` (le site se construit sans Django). Après tout changement d'endpoint :
+`docs/api/openapi.json` (le site se construit sans Django), puis découpé par domaine dans
+`docs/api/openapi/<domaine>.json` par `tools/split_openapi.py` (découpage par préfixe d'URL :
+ajouter un motif dans `DOMAINES` pour un nouveau préfixe, sinon il tombe dans `autres.json` et le
+script le signale). Chaque page de `docs/api/` embarque le Swagger de son domaine. Après tout
+changement d'endpoint :
 
 ```bash
 scripts/export-openapi.sh

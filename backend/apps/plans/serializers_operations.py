@@ -3,6 +3,10 @@ Serializers pour l'API REST Opérations (Actions).
 """
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
+
+from config.spectacular import geojson_geometry_schema
 
 from .models_operations import (
     Protocole, SuiviInventaire,
@@ -423,6 +427,7 @@ class PosteSerializer(serializers.ModelSerializer):
             'date_ajout', 'date_maj',
         ]
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_finance_par_defaut(self, obj):
         return obj.is_finance_par_defaut()
 
@@ -528,9 +533,11 @@ class OperationAnneeRHSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_operation_annee_rh']
 
+    @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True))
     def get_poste_cout_jour(self, obj):
         return obj.id_poste.cout_jour if obj.id_poste_id else None
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_poste_id_organisme(self, obj):
         return obj.id_poste.id_organisme_id if obj.id_poste_id else None
 
@@ -581,9 +588,11 @@ class RealisationOperationAnneeRHSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_realisation_operation_annee_rh', 'categorie_depense_display']
 
+    @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True))
     def get_poste_cout_jour(self, obj):
         return obj.id_poste.cout_jour if obj.id_poste_id else None
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_poste_id_organisme(self, obj):
         return obj.id_poste.id_organisme_id if obj.id_poste_id else None
 
@@ -861,6 +870,7 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_suivi_inventaire', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(ProtocoleSerializer(allow_null=True))
     def get_protocole(self, obj):
         """Premier protocole, pour les clients antérieurs à #252."""
         premier = obj.protocoles.first()
@@ -876,21 +886,27 @@ class SuiviInventaireSerializer(serializers.ModelSerializer):
         ).first()
         return nom.label if nom else mnemonique
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_bancarisation_label(self, obj):
         return self._resolve_nomenclature_label(obj.outil_bancarisation, 'BANCARISATION_STOCKAGE')
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_outil_saisie_label(self, obj):
         return self._resolve_nomenclature_label(obj.outil_saisie, 'OUTIL_SAISIE')
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_objectif_principal_label(self, obj):
         return self._resolve_nomenclature_label(obj.objectif_principal, 'OBJECTIF_SUIVI')
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_objectif_secondaire_label(self, obj):
         return self._resolve_nomenclature_label(obj.objectif_secondaire, 'OBJECTIF_SUIVI')
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_cibles_principales_label(self, obj):
         return self._resolve_nomenclature_label(obj.cibles_principales, 'CIBLE_SUIVI')
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_cible_secondaire_label(self, obj):
         return self._resolve_nomenclature_label(obj.cible_secondaire, 'CIBLE_SUIVI')
 
@@ -960,6 +976,32 @@ def _operation_enjeu_slug(obj):
     return None
 
 
+class MetriqueLieeSerializer(serializers.Serializer):
+    """
+    Schéma documentaire de `metriques` sur une opération : métrique rattachée,
+    son indicateur et sa grille de lecture (clés de `_response_metrique_grid`).
+    """
+    id_metrique = serializers.IntegerField()
+    nom_metrique = serializers.CharField()
+    indicateur_id = serializers.IntegerField(allow_null=True)
+    indicateur_nom = serializers.CharField(allow_null=True)
+    indicateur_type = serializers.CharField(allow_null=True, help_text="Mnémonique du type d'indicateur")
+    etat_reference = serializers.CharField(required=False)
+    type_metrique_id = serializers.IntegerField(required=False, allow_null=True)
+    type_metrique_label = serializers.CharField(required=False, allow_null=True)
+    format_metrique_id = serializers.IntegerField(allow_null=True)
+    format_metrique_mnemonique = serializers.CharField(allow_null=True)
+    type_metrique_mnemonique = serializers.CharField(allow_null=True)
+    unite = serializers.CharField()
+    ponderation = serializers.FloatField(allow_null=True)
+    sens_variation = serializers.CharField(allow_null=True)
+    has_borne_score1 = serializers.BooleanField()
+    has_borne_score5 = serializers.BooleanField()
+    inactive_levels = serializers.ListField(child=serializers.IntegerField())
+    bloc_intitule = serializers.CharField()
+    group_open = serializers.BooleanField(allow_null=True)
+
+
 class OperationSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour une Opération."""
     priorite_label = serializers.CharField(source='id_priorite.label', read_only=True)
@@ -986,15 +1028,19 @@ class OperationSerializer(serializers.ModelSerializer):
     niveau_realisation_global_manuel = serializers.SerializerMethodField()
     niveau_realisation_global_commentaire = serializers.SerializerMethodField()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_niveau_realisation_global_mnemonique(self, obj):
         return obj.get_niveau_realisation_global()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_niveau_realisation_global_label(self, obj):
         return obj.get_niveau_realisation_global_label()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_niveau_realisation_global_manuel(self, obj):
         return obj.is_niveau_realisation_global_manuel()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_niveau_realisation_global_commentaire(self, obj):
         return obj.get_niveau_realisation_global_commentaire()
 
@@ -1034,9 +1080,11 @@ class OperationSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_enjeu_slug(self, obj):
         return _operation_enjeu_slug(obj)
 
+    @extend_schema_field(geojson_geometry_schema(nullable=True))
     def get_geom_geojson(self, obj):
         """Emprise spatiale au format GeoJSON (consommable par Leaflet)."""
         if not obj.geom:
@@ -1047,27 +1095,32 @@ class OperationSerializer(serializers.ModelSerializer):
         except (AttributeError, ValueError, TypeError):
             return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_type_action_label(self, obj):
         if obj.id_type_action:
             return obj.id_type_action.label
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_categorie_action_reserve_label(self, obj):
         if obj.id_categorie_action_reserve_id:
             return obj.id_categorie_action_reserve.label
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_categorie_action_reserve_code(self, obj):
         if obj.id_categorie_action_reserve_id:
             return obj.id_categorie_action_reserve.cd_nomenclature
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_code_affichage(self, obj):
         cache = self.context.get('operation_codes') if self.context else None
         if cache is not None:
             return cache.get(obj.id_operation)
         return _compute_operation_code_affichage(obj)
 
+    @extend_schema_field(MetriqueLieeSerializer(many=True))
     def get_metriques(self, obj):
         # Use prefetched data if available — avoids extra query
         result = []
@@ -1093,6 +1146,7 @@ class OperationSerializer(serializers.ModelSerializer):
             result.append(data)
         return result
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_metrique_ids(self, obj):
         # #398 — n'expose QUE les métriques État/Pression « associées » à l'action.
         # Les métriques d'indicateurs de réponse appartiennent à leur indicateur de
@@ -1103,9 +1157,11 @@ class OperationSerializer(serializers.ModelSerializer):
             if getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) != 'REPONSE'
         ]
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_site_ids(self, obj):
         return [s.id_site for s in obj.sites.all()]
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_sites(self, obj):
         return len(obj.sites.all()) if hasattr(obj, '_prefetched_objects_cache') and 'sites' in obj._prefetched_objects_cache else obj.sites.count()
 
@@ -1167,36 +1223,44 @@ class OperationListSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_niveau_realisation_global_mnemonique(self, obj):
         return obj.get_niveau_realisation_global()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_niveau_realisation_global_label(self, obj):
         return obj.get_niveau_realisation_global_label()
 
+    @extend_schema_field(OpenApiTypes.BOOL)
     def get_niveau_realisation_global_manuel(self, obj):
         return obj.is_niveau_realisation_global_manuel()
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_type_action_label(self, obj):
         if obj.id_type_action:
             return obj.id_type_action.label
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_categorie_action_reserve_label(self, obj):
         if obj.id_categorie_action_reserve_id:
             return obj.id_categorie_action_reserve.label
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_categorie_action_reserve_code(self, obj):
         if obj.id_categorie_action_reserve_id:
             return obj.id_categorie_action_reserve.cd_nomenclature
         return None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_code_affichage(self, obj):
         cache = self.context.get('operation_codes') if self.context else None
         if cache is not None:
             return cache.get(obj.id_operation)
         return _compute_operation_code_affichage(obj)
 
+    @extend_schema_field(MetriqueLieeSerializer(many=True))
     def get_metriques(self, obj):
         result = []
         for m in obj.metriques.all():
@@ -1216,6 +1280,7 @@ class OperationListSerializer(serializers.ModelSerializer):
             result.append(data)
         return result
 
+    @extend_schema_field(serializers.ListField(child=serializers.IntegerField()))
     def get_metrique_ids(self, obj):
         # #398 — n'expose QUE les métriques État/Pression « associées » à l'action.
         # Les métriques d'indicateurs de réponse appartiennent à leur indicateur de
@@ -1226,12 +1291,15 @@ class OperationListSerializer(serializers.ModelSerializer):
             if getattr(getattr(m.id_indicateur, 'type_indicateur', None), 'mnemonique', None) != 'REPONSE'
         ]
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_sites(self, obj):
         return len(obj.sites.all()) if hasattr(obj, '_prefetched_objects_cache') and 'sites' in obj._prefetched_objects_cache else obj.sites.count()
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_operation_annees(self, obj):
         return len(obj.operation_annees.all()) if hasattr(obj, '_prefetched_objects_cache') and 'operation_annees' in obj._prefetched_objects_cache else obj.operation_annees.count()
 
+    @extend_schema_field(OpenApiTypes.INT)
     def get_nb_finances(self, obj):
         return len(obj.finances.all()) if hasattr(obj, '_prefetched_objects_cache') and 'finances' in obj._prefetched_objects_cache else obj.finances.count()
 
@@ -1265,6 +1333,7 @@ class OperationListSerializer(serializers.ModelSerializer):
             pass
         return None, None
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
     def get_enjeu_slug(self, obj):
         """Retourne le slug du premier enjeu trouvé via les métriques."""
         for met in obj.metriques.all():
@@ -1279,6 +1348,7 @@ class OperationListSerializer(serializers.ModelSerializer):
                 return enjeu.slug
         return None
 
+    @extend_schema_field(serializers.IntegerField(allow_null=True))
     def get_oo_id(self, obj):
         """Retourne l'id du premier OO trouvé via les métriques."""
         for met in obj.metriques.all():
