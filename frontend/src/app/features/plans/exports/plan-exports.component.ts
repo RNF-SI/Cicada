@@ -128,6 +128,15 @@ export class PlanExportsComponent implements OnInit {
           request: id => this.adminService.downloadFichesActions(id),
           filename: slug => `fiches-actions-${slug}.xlsx`,
         },
+        {
+          key: 'fiches-docx',
+          testId: 'fiches-actions-docx-export',
+          icon: 'fi-rr-file-word',
+          labelKey: 'plans.exports.fichesActionsDocx',
+          hintKey: 'plans.exports.fichesActionsDocxHint',
+          request: id => this.adminService.downloadFichesActionsDocx(id),
+          filename: slug => `fiches-actions-${slug}.docx`,
+        },
       ],
     },
     {

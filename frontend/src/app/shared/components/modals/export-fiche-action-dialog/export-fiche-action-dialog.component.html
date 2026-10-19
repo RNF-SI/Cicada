@@ -31,6 +31,19 @@
         <span class="format-hint">{{ 'plans.suivis.actions.fiche.exportDialog.formats.xlsxHint' | translate }}</span>
       </span>
     </button>
+
+    <button
+      type="button"
+      class="format-card"
+      [class.selected]="isSelected('docx')"
+      [attr.aria-pressed]="isSelected('docx')"
+      (click)="selectFormat('docx')">
+      <i class="fi fi-rr-file-word"></i>
+      <span class="format-body">
+        <span class="format-title">{{ 'plans.suivis.actions.fiche.exportDialog.formats.docx' | translate }}</span>
+        <span class="format-hint">{{ 'plans.suivis.actions.fiche.exportDialog.formats.docxHint' | translate }}</span>
+      </span>
+    </button>
   </div>
 
   @if (isSelected('print')) {

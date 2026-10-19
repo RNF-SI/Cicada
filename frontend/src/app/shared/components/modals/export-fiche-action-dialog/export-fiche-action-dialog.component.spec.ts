@@ -45,10 +45,10 @@ function setup(over: Partial<ExportFicheActionDialogData> = {}): {
 }
 
 describe('ExportFicheActionDialogComponent (#642)', () => {
-  it('propose les deux formats, impression sélectionnée par défaut', () => {
+  it('propose les trois formats, impression sélectionnée par défaut', () => {
     const { fixture } = setup();
     const cards = fixture.nativeElement.querySelectorAll('.format-card');
-    expect(cards.length).toBe(2);
+    expect(cards.length).toBe(3);
     expect(cards[0].classList).toContain('selected');
     expect(cards[1].classList).not.toContain('selected');
   });
@@ -65,6 +65,18 @@ describe('ExportFicheActionDialogComponent (#642)', () => {
     expect(close).toHaveBeenCalledWith(
       expect.objectContaining({ format: 'xlsx' }),
     );
+  });
+
+  it('#662 — renvoie le format Word et masque alors le choix des sections', () => {
+    const { fixture, close } = setup();
+    const c = fixture.componentInstance;
+
+    c.selectFormat('docx');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.sections-block')).toBeNull();
+
+    c.confirm();
+    expect(close).toHaveBeenCalledWith(expect.objectContaining({ format: 'docx' }));
   });
 
   it('renvoie les sections retenues pour l\'impression', () => {

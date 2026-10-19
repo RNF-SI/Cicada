@@ -808,6 +808,17 @@ export class EnjeuService {
     });
   }
 
+  /**
+   * #662 — Télécharge LA fiche de cette action au format Word (même contenu
+   * que la fiche Excel). Réservé aux référents du plan / gestionnaires.
+   * GET /api/plans/operations/{id}/export-fiche-docx/
+   */
+  downloadOperationFicheDocx(operationId: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/operations/${operationId}/export-fiche-docx/`, {
+      responseType: 'blob',
+    });
+  }
+
   getOperationsByIndicateur(indicateurId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/operations/by-indicateur/${indicateurId}/`);
   }

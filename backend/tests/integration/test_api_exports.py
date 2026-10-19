@@ -639,6 +639,7 @@ class TestExportEndpoints:
     ENDPOINTS = [
         'export-arborescence-presentation-xlsx',
         'export-fiches-actions-xlsx',
+        'export-fiches-actions-docx',
         'export-plan-docx',
         'export-rh-previsionnel-xlsx',
         'export-rh-suivi-xlsx',
@@ -958,3 +959,118 @@ class TestExportFicheActionEndpoint:
         resp = api_client.get(self._url(plan_finance['op']))
         assert resp.status_code == 200
         assert resp.content[:2] == b'PK'
+
+
+# ---------------------------------------------------------------------------
+# #662 — Fiches action au format Word (même contenu que la fiche Excel)
+# ---------------------------------------------------------------------------
+
+def _docx_text(content):
+    """Tout le texte d'un .docx : paragraphes puis cellules des tableaux."""
+    from docx import Document
+    doc = Document(io.BytesIO(content))
+    parts = [p.text for p in doc.paragraphs]
+    for table in doc.tables:
+        for row in table.rows:
+            parts.extend(cell.text for cell in row.cells)
+    return doc, "\n".join(parts)
+
+
+@pytest.mark.django_db
+class TestExportFichesActionWord:
+    """GET /api/plans/plans/{id}/export-fiches-actions-docx/ et
+    GET /api/plans/operations/{id}/export-fiche-docx/"""
+
+    DOCX = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+    def _plan_url(self, plan):
+        return f'/api/plans/plans/{plan.id_pg}/export-fiches-actions-docx/'
+
+    def _op_url(self, op):
+        return f'/api/plans/operations/{op.id_operation}/export-fiche-docx/'
+
+    def test_document_du_plan_reprend_le_contenu_de_la_fiche_excel(self, api_client, plan_finance):
+        plan_finance['op'].libelle = 'Suivi des chiroptères'
+        plan_finance['op'].save()
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        resp = api_client.get(self._plan_url(plan_finance['plan']))
+
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == self.DOCX
+        assert 'fiches-actions-' in resp['Content-Disposition']
+        assert resp['Content-Disposition'].endswith('.docx')
+        _, texte = _docx_text(resp.content)
+        # En-tête et les quatre parties de la fiche Excel
+        assert 'Suivi des chiroptères' in texte
+        # Code local calculé dans le plan, comme la fiche Excel (#626)
+        assert 'Code action (local)' in texte and 'CS1' in texte
+        for section in ("1) Cadre de l'action", "2) Détails de l'opération",
+                        "3) Détail du volet administratif et financier de l'opération",
+                        "4) Indicateurs de réponse"):
+            assert section in texte, section
+        # Variante CS du cadre
+        assert "Indicateur d'état" in texte
+        assert "Niveau d'exigence" in texte
+        # Volet financier prévisionnel (fixture : 10 j × 300 €, prestataire 500 €)
+        assert 'Org Alpha' in texte
+        assert 'Programmation annuelle' in texte
+        assert '2024' in texte and '2026' in texte
+        assert '3 000 €' in texte.replace('\u202f', ' ').replace('\xa0', ' ')
+        assert 'Programmation mensuelle' in texte
+
+    def test_une_page_par_action(self, api_client, plan_finance):
+        """Deux actions → deux fiches, la seconde commence sur une nouvelle page."""
+        from docx.enum.text import WD_BREAK
+        autre = OperationFactory(
+            metriques=list(plan_finance['op'].metriques.all()),
+            libelle='Animation nature', code_operation='PA01')
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        resp = api_client.get(self._plan_url(plan_finance['plan']))
+
+        doc, texte = _docx_text(resp.content)
+        assert 'Animation nature' in texte and 'Opération' in texte
+        sauts = [r for p in doc.paragraphs for r in p.runs
+                 if any(br.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}type') == 'page'
+                        for br in r._r.findall('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}br'))]
+        assert len(sauts) == 1
+        assert autre.pk
+
+    def test_une_seule_fiche_depuis_la_page_de_l_action(self, api_client, plan_finance):
+        OperationFactory(metriques=list(plan_finance['op'].metriques.all()),
+                         libelle='Animation nature', code_operation='PA01')
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        resp = api_client.get(self._op_url(plan_finance['op']))
+
+        assert resp.status_code == 200
+        assert resp['Content-Type'] == self.DOCX
+        assert 'fiche-action-CS01.docx' in resp['Content-Disposition']
+        _, texte = _docx_text(resp.content)
+        assert 'Code action (local)' in texte
+        assert 'Animation nature' not in texte
+
+    def test_membre_non_referent_ne_peut_pas_exporter_la_fiche(self, api_client, plan_finance):
+        membre = RoleFactory()
+        CorRolePlan.objects.create(
+            id_role=membre, plan_de_gestion=plan_finance['plan'], referent=False)
+        api_client.force_authenticate(user=membre)
+
+        assert api_client.get(self._op_url(plan_finance['op'])).status_code == 403
+
+    def test_referent_du_plan_peut_exporter_la_fiche(self, api_client, plan_finance):
+        referent = RoleFactory()
+        plan_finance['plan'].referents.add(referent)
+        api_client.force_authenticate(user=referent)
+
+        resp = api_client.get(self._op_url(plan_finance['op']))
+        assert resp.status_code == 200
+        assert resp.content[:2] == b'PK'
+
+    def test_plan_sans_action(self, api_client):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        resp = api_client.get(self._plan_url(PlanGestionFactory()))
+        assert resp.status_code == 200
+        _, texte = _docx_text(resp.content)
+        assert "Ce plan ne contient pas encore d'action." in texte

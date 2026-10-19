@@ -63,6 +63,7 @@ function setup(
     getOperation: jest.fn().mockReturnValue(of(op)),
     // #642 — export Excel de la fiche action.
     downloadOperationFicheXlsx: jest.fn().mockReturnValue(of(new Blob(['x']))),
+    downloadOperationFicheDocx: jest.fn().mockReturnValue(of(new Blob(['x']))),
   };
   const queryParamMap = new Map<string, string>();
   if (opts.from) queryParamMap.set('from', opts.from);
@@ -591,6 +592,23 @@ describe('OperationFicheComponent — modale « Exporter ou imprimer » (#642)',
     expect(clickSpy).toHaveBeenCalled();
     expect(printSpy).not.toHaveBeenCalled();
     expect(fixture.componentInstance.isExporting()).toBe(false);
+    clickSpy.mockRestore();
+    printSpy.mockRestore();
+  });
+
+  it('#662 — format « Word » : télécharge le document de la fiche, sans imprimer', () => {
+    const fixture = setup(operationWith([]));
+    stubDialog({ format: 'docx', sections: {} });
+    const printSpy = jest.spyOn(window, 'print').mockImplementation(() => {});
+    const clickSpy = jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const service = TestBed.inject(EnjeuService) as any;
+
+    fixture.componentInstance.openExportDialog();
+
+    expect(service.downloadOperationFicheDocx).toHaveBeenCalledWith(42);
+    expect(service.downloadOperationFicheXlsx).not.toHaveBeenCalled();
+    expect(clickSpy).toHaveBeenCalled();
+    expect(printSpy).not.toHaveBeenCalled();
     clickSpy.mockRestore();
     printSpy.mockRestore();
   });

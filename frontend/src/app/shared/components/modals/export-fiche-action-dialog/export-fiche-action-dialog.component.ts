@@ -5,8 +5,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { TranslateModule } from '@ngx-translate/core';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
 
-/** Formats proposés pour une fiche action (#642). */
-export type FicheActionExportFormat = 'print' | 'xlsx';
+/** Formats proposés pour une fiche action (#642, Word : #662). */
+export type FicheActionExportFormat = 'print' | 'xlsx' | 'docx';
 
 /** Section facultative de la fiche (#532), incluable ou non à l'impression. */
 export interface FicheActionExportSection {
@@ -33,9 +33,10 @@ export interface ExportFicheActionDialogResult {
  * #642 — Modale « Exporter ou imprimer » de la fiche action.
  *
  * Regroupe en un seul bouton de la barre d'actions le choix du format
- * (impression / PDF via le navigateur, ou classeur Excel au modèle CICADA) et
- * le choix des sections à inclure (#532), qui ne concerne que l'impression :
- * le classeur Excel suit le modèle CICADA, dont la structure est fixe.
+ * (impression / PDF via le navigateur, classeur Excel au modèle CICADA, ou
+ * document Word au même contenu — #662) et le choix des sections à inclure
+ * (#532), qui ne concerne que l'impression : Excel et Word suivent le modèle
+ * CICADA, dont la structure est fixe.
  */
 @Component({
   selector: 'app-export-fiche-action-dialog',

@@ -56,6 +56,7 @@ describe('PlanExportsComponent (#617)', () => {
       downloadPlanDocx: jest.fn().mockImplementation(blob),
       downloadArborescencePresentation: jest.fn().mockImplementation(blob),
       downloadFichesActions: jest.fn().mockImplementation(blob),
+      downloadFichesActionsDocx: jest.fn().mockImplementation(blob),
       downloadBudgetPrevisionnel: jest.fn().mockImplementation(blob),
       downloadBudgetSuivi: jest.fn().mockImplementation(blob),
       downloadRhPrevisionnel: jest.fn().mockImplementation(blob),
@@ -118,7 +119,7 @@ describe('PlanExportsComponent (#617)', () => {
     expect(component.isLoading()).toBe(false);
   });
 
-  it('rend les 8 exports du plan pour un référent', () => {
+  it('rend les 9 exports du plan pour un référent', () => {
     const testIds: string[] = Array.from(
       fixture.nativeElement.querySelectorAll('[data-testid]')
     ).map((el: any) => el.getAttribute('data-testid'));
@@ -127,6 +128,7 @@ describe('PlanExportsComponent (#617)', () => {
         'plan-docx-export',
         'arbo-export-presentation',
         'fiches-actions-export',
+        'fiches-actions-docx-export',
         'budget-prev-export',
         'budget-suivi-export',
         'rh-prev-export',
@@ -142,6 +144,10 @@ describe('PlanExportsComponent (#617)', () => {
 
     byId('plan-docx-export').click();
     expect(mockAdminService.downloadPlanDocx).toHaveBeenCalledWith(10);
+
+    // #662 — fiches action au format Word
+    byId('fiches-actions-docx-export').click();
+    expect(mockAdminService.downloadFichesActionsDocx).toHaveBeenCalledWith(10);
 
     byId('rh-suivi-export').click();
     expect(mockAdminService.downloadRhSuivi).toHaveBeenCalledWith(10);

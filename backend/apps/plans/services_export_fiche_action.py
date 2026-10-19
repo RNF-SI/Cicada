@@ -133,7 +133,9 @@ def _jours(value) -> str:
     d = _n(value)
     if d == 0:
         return "/"
-    return f"{d:g}"
+    # « 5 » et « 2,5 » plutôt que « 5.00 » : un Decimal à deux décimales
+    # gardait ses zéros avec le format `g`.
+    return f"{d.normalize():f}".replace(".", ",")
 
 
 def _sanitize_title(title: str, used: set) -> str:
@@ -1077,21 +1079,14 @@ def _is_cs(op) -> bool:
     return bool(cat and (cat.mnemonique or "").upper() == "CS")
 
 
-def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
-    """Construit le classeur des fiches action (un onglet par opération).
+def actions_a_exporter(plan, operation_ids=None):
+    """Actions du plan à exporter, triées, avec leur code local (CS1, IP2…).
 
-    `operation_ids` restreint l'export à certaines actions du plan (#642 :
-    export d'UNE fiche depuis sa page de visualisation). Le rendu de chaque
-    onglet est strictement identique à l'export complet du plan.
+    Partagé par la fiche Excel et la fiche Word (#662) : les deux formats
+    partent exactement des mêmes actions, dans le même ordre.
+    Retourne ``(operations, codes)`` où ``codes`` mappe ``id_operation`` → code.
     """
     from .models_operations import Operation
-
-    _appliquer_couleur_instance()
-
-    # #672 — années de prolongation comprises.
-    years = plan.annees_plan()
-    if not years:
-        years = [""]
 
     # #671 — toutes les branches de l'arborescence (NE et pressions / RA).
     from .access import plan_operation_ids
@@ -1113,13 +1108,6 @@ def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
         all_ops = [o for o in all_ops if o.id_operation in wanted]
     all_ops.sort(key=lambda o: (_txt(o.code_operation), o.id_operation))
 
-    wb = Workbook()
-    wb.remove(wb.active)
-    used = set()
-    if not all_ops:
-        ws = wb.create_sheet(_sanitize_title("Actions", used))
-        ws["A1"] = "Ce plan ne contient pas encore d'action."
-        ws["A1"].font = Font(bold=True, size=12, color=_PRIMARY)
     # #626 — code local de l'action tel qu'affiché dans le plan (CS1, IP2…),
     # calculé une fois pour tout le plan (même source que l'export budget, #618).
     from .serializers_operations import compute_operation_codes_for_plan
@@ -1127,6 +1115,32 @@ def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
         codes = compute_operation_codes_for_plan(plan.pk)
     except Exception:
         codes = {}
+    return all_ops, codes
+
+
+def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
+    """Construit le classeur des fiches action (un onglet par opération).
+
+    `operation_ids` restreint l'export à certaines actions du plan (#642 :
+    export d'UNE fiche depuis sa page de visualisation). Le rendu de chaque
+    onglet est strictement identique à l'export complet du plan.
+    """
+    _appliquer_couleur_instance()
+
+    # #672 — années de prolongation comprises.
+    years = plan.annees_plan()
+    if not years:
+        years = [""]
+
+    all_ops, codes = actions_a_exporter(plan, operation_ids)
+
+    wb = Workbook()
+    wb.remove(wb.active)
+    used = set()
+    if not all_ops:
+        ws = wb.create_sheet(_sanitize_title("Actions", used))
+        ws["A1"] = "Ce plan ne contient pas encore d'action."
+        ws["A1"].font = Font(bold=True, size=12, color=_PRIMARY)
 
     for op in all_ops:
         is_cs = _is_cs(op)

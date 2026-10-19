@@ -826,6 +826,18 @@ export class AdminService {
   }
 
   /**
+   * #662 — Télécharge les fiches action du plan (Word, une fiche par page).
+   * GET /api/plans/plans/{id}/export-fiches-actions-docx/
+   */
+  downloadFichesActionsDocx(planId: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-fiches-actions-docx/`, {
+        responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Télécharge la fiche « plan de gestion » (Word : enjeux + FCR).
    * GET /api/plans/plans/{id}/export-plan-docx/
    */

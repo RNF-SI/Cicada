@@ -521,8 +521,8 @@ export class OperationFicheComponent implements OnInit {
     ref.afterClosed().subscribe((result?: ExportFicheActionDialogResult) => {
       if (!result) return;
       this.sectionVisibility.set({ ...result.sections });
-      if (result.format === 'xlsx') {
-        this.exportXlsx();
+      if (result.format === 'xlsx' || result.format === 'docx') {
+        this.exportFichier(result.format);
         return;
       }
       // Laisse Angular appliquer le choix des sections AVANT d'ouvrir la
@@ -531,16 +531,22 @@ export class OperationFicheComponent implements OnInit {
     });
   }
 
-  /** #642 — télécharge la fiche au format Excel (un onglet, modèle CICADA). */
-  private exportXlsx(): void {
+  /**
+   * #642 — télécharge la fiche au format Excel (un onglet, modèle CICADA) ;
+   * #662 — ou au format Word, même contenu.
+   */
+  private exportFichier(format: 'xlsx' | 'docx'): void {
     const op = this.operation();
     if (!op || this.isExporting()) return;
     this.isExporting.set(true);
-    this.enjeuService.downloadOperationFicheXlsx(op.id_operation).subscribe({
+    const request$ = format === 'docx'
+      ? this.enjeuService.downloadOperationFicheDocx(op.id_operation)
+      : this.enjeuService.downloadOperationFicheXlsx(op.id_operation);
+    request$.subscribe({
       next: (blob) => {
         this.isExporting.set(false);
         const code = op.code_affichage || op.code_prefix || `action-${op.id_operation}`;
-        this.triggerBlobDownload(blob, `fiche-action-${code}.xlsx`);
+        this.triggerBlobDownload(blob, `fiche-action-${code}.${format}`);
       },
       error: (err: { status?: number }) => {
         this.isExporting.set(false);

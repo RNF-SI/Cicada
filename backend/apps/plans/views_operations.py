@@ -323,10 +323,30 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         gestionnaires (admin organisme, rédacteur principal, super admin) : la
         lecture seule (#610) s'arrête à la consultation dans l'application.
         """
+        from .services_export_fiche_action import build_fiche_action_workbook
+        return self._export_fiche(
+            request, build_fiche_action_workbook, 'xlsx',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
+    @action(detail=True, methods=['get'], url_path='export-fiche-docx')
+    def export_fiche_docx(self, request, pk=None):
+        """
+        #662 — Exporter LA fiche de cette action au format Word.
+
+        GET /api/plans/operations/{id}/export-fiche-docx/
+
+        Même contenu que la fiche Excel ; mêmes droits que tous les exports.
+        """
+        from .services_export_fiche_action_word import build_fiche_action_docx
+        return self._export_fiche(
+            request, build_fiche_action_docx, 'docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+
+    def _export_fiche(self, request, build, extension, content_type):
+        """Fiche d'une seule action, au format que produit `build`."""
         from rest_framework.exceptions import PermissionDenied
         from urllib.parse import quote as _url_quote
         from django.http import HttpResponse
-        from .services_export_fiche_action import build_fiche_action_workbook
         from .serializers_operations import compute_operation_codes_for_plan
 
         operation = self.get_object()
@@ -342,22 +362,16 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 "Vous devez être référent de ce plan pour exporter cette fiche action."
             )
 
-        content = build_fiche_action_workbook(plan, operation_ids=[operation.pk])
+        content = build(plan, operation_ids=[operation.pk])
 
         try:
             code = compute_operation_codes_for_plan(plan.pk).get(operation.pk)
         except Exception:
             code = None
         suffix = (operation.code_operation or code or f'action-{operation.pk}').strip()
-        filename = f'fiche-action-{suffix}.xlsx'
-        response = HttpResponse(
-            content,
-            content_type=(
-                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            ),
-        )
+        response = HttpResponse(content, content_type=content_type)
         response['Content-Disposition'] = (
-            f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+            f"attachment; filename*=UTF-8''{_url_quote(f'fiche-action-{suffix}.{extension}')}"
         )
         return response
 

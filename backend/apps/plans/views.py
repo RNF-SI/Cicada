@@ -52,6 +52,7 @@ from .services_import import (
 from .services_export_arbo import build_presentation_workbook
 from .services_export_word import build_plan_docx
 from .services_export_fiche_action import build_fiche_action_workbook
+from .services_export_fiche_action_word import build_fiche_action_docx
 from .services_export_grille import build_grille_workbook
 from .services_export_budget_rh import (
     build_rh_previsionnel_workbook,
@@ -1580,6 +1581,28 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         response['Content-Disposition'] = (
             f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        )
+        return response
+
+    @extend_schema(summary='Exporter les fiches action (Word)', description="Document Word des fiches action, une par page : même contenu que l'export Excel (cadre, détails, volet financier prévisionnel, indicateurs de réponse). Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", responses={200: reponse_docx('Fiches action du plan'), 403: REPONSE_403, 404: REPONSE_404})
+    @action(detail=True, methods=['get'], url_path='export-fiches-actions-docx')
+    def export_fiches_actions_docx(self, request, pk=None):
+        """
+        #662 — Exporter les fiches action du plan au format Word.
+
+        GET /api/plans/plans/{id}/export-fiches-actions-docx/
+        """
+        plan = self._get_plan_for_export()
+        content = build_fiche_action_docx(plan)
+        suffix = plan.slug or f'plan-{plan.pk}'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            ),
+        )
+        response['Content-Disposition'] = (
+            f"attachment; filename*=UTF-8''{_url_quote(f'fiches-actions-{suffix}.docx')}"
         )
         return response
 
