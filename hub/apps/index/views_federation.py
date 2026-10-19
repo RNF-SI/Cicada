@@ -6,12 +6,14 @@ Voir ``federation.py`` pour le raisonnement derrière ce découpage.
 """
 
 import logging
+from datetime import timedelta
 
 from django.conf import settings
 
 from django.db import transaction
 from django.db.models import Count, Max
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -56,6 +58,28 @@ class LotPublicationViewSet(ViewSet):
         """Ouvre un lot pour l'instance porteuse du jeton."""
         serializer = OuvertureLotSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+
+        # #701 — régulation : au-delà de N dépôts en cours, « revenez plus
+        # tard ». Un lot ouvert depuis trop longtemps (dépôt interrompu) a
+        # expiré et ne compte plus, sans quoi il bloquerait sa place à jamais.
+        limite = timezone.now() - timedelta(minutes=settings.HUB_LOT_DUREE_MAX_MINUTES)
+        en_cours = LotPublication.objects.filter(
+            etat=LotPublication.ETAT_OUVERT, date_ouverture__gte=limite,
+        ).count()
+        if en_cours >= settings.HUB_LOTS_CONCURRENTS_MAX:
+            delai = settings.HUB_RETRY_AFTER_SECONDES
+            logger.info(
+                "Lot refusé à l'instance %s : %s dépôt(s) en cours (max %s).",
+                request.instance_id, en_cours, settings.HUB_LOTS_CONCURRENTS_MAX,
+            )
+            return Response(
+                {
+                    'detail': "Trop de dépôts en cours sur le hub : réessayez plus tard.",
+                    'retry_after': delai,
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+                headers={'Retry-After': str(delai)},
+            )
 
         lot = LotPublication.objects.create(
             instance_id=request.instance_id,
@@ -203,6 +227,9 @@ class RegistreDesInstances(APIView):
         # résolutions séparées finiraient par nommer différemment la même
         # structure selon l'écran.
         connues = identites(identifiants)
+        # #701 — une instance qui ne publie plus vieillit en silence : on la
+        # signale passé le délai (une nuit sautée ne perd rien, deux alertent).
+        seuil = timezone.now() - timedelta(hours=settings.HUB_RETARD_PUBLICATION_HEURES)
         instances = []
         for identifiant in identifiants:
             enrolee = enrolees.get(identifiant)
@@ -215,6 +242,7 @@ class RegistreDesInstances(APIView):
                 'active': enrolee.active if enrolee else True,
                 'date_enrolement': enrolee.date_enrolement if enrolee else None,
                 'derniere_publication': derniere,
+                'en_retard': derniere is None or derniere < seuil,
                 'plans_publies': plans.get(identifiant, 0),
                 'contenus_publies': contenus.get(identifiant, 0),
             })

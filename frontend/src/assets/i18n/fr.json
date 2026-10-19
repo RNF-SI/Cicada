@@ -850,7 +850,8 @@
             "partage_inactif": "Le partage est désactivé : rien n'est publié sur le hub. Cochez la case ci-dessus pour participer à l'exploration nationale.",
             "derniere_publication_echec": "La dernière publication a échoué : {{message}}",
             "aucune_publication": "Raccordement en place, mais aucun plan n'est actuellement publié sur le hub. Si vous venez d'activer le partage, la publication est en cours ; sinon, elle aura lieu cette nuit.",
-            "ok": "L'instance est raccordée au hub et sa dernière publication a réussi."
+            "ok": "L'instance est raccordée au hub et sa dernière publication a réussi.",
+            "publication_en_retard": "Aucune publication réussie sur le hub depuis le {{depuis}} : l'index de votre structure dans l'exploration nationale vieillit. Consultez l'historique des publications ci-dessous."
           },
           "configuration": {
             "titre": "Configuration",

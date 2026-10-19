@@ -164,6 +164,22 @@ HUB_READ_TOKENS = _jetons(os.environ.get('HUB_READ_TOKENS', ''))
 HUB_ADMIN_TOKEN = os.environ.get('HUB_ADMIN_TOKEN', '').strip()
 
 # --------------------------------------------------------------------------- #
+# Régulation des dépôts (#701)
+# --------------------------------------------------------------------------- #
+#: Toutes les instances publient la nuit. Au-delà de ce nombre de lots ouverts
+#: en même temps, l'ouverture d'un lot répond 429 avec ``Retry-After`` : chaque
+#: instance réessaie plus tard au lieu d'ajouter sa charge au pic.
+HUB_LOTS_CONCURRENTS_MAX = int(os.environ.get('HUB_LOTS_CONCURRENTS_MAX', '3'))
+#: Un lot ouvert depuis plus longtemps (dépôt interrompu, jamais basculé ni
+#: abandonné) est considéré comme expiré : il ne compte plus dans la limite.
+#: Un dépôt complet prend quelques minutes ; trois heures laissent de la marge.
+HUB_LOT_DUREE_MAX_MINUTES = int(os.environ.get('HUB_LOT_DUREE_MAX_MINUTES', '180'))
+#: Délai suggéré à l'instance refusée (en-tête ``Retry-After``).
+HUB_RETRY_AFTER_SECONDES = int(os.environ.get('HUB_RETRY_AFTER_SECONDES', '600'))
+#: Au-delà, le registre signale une instance comme « en retard » de publication.
+HUB_RETARD_PUBLICATION_HEURES = int(os.environ.get('HUB_RETARD_PUBLICATION_HEURES', '48'))
+
+# --------------------------------------------------------------------------- #
 # API
 # --------------------------------------------------------------------------- #
 REST_FRAMEWORK = {

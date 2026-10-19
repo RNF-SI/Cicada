@@ -30,6 +30,7 @@ const TRADUCTIONS = {
             adhesion_refusee: 'Refusée : {{motif}}',
             identite_manquante: 'Identité manquante',
             adhesion_code_envoye: 'Code à saisir avant le {{expire_le}}',
+            publication_en_retard: 'Aucune publication réussie depuis le {{depuis}}',
           },
           adhesion: {
             demander: 'Demander',
@@ -412,6 +413,20 @@ describe('FederationRaccordementComponent', () => {
     it('ne donne pas d’étape pour une adhésion refusée', async () => {
       await creer(etatFactice({ adhesion: { statut: 'refusee' } }));
       expect(component.aideProcessus()).toBe('Étapes de l’adhésion');
+    });
+  });
+
+  describe('#701 — publication en retard', () => {
+    it('signale le retard avec une date lisible', async () => {
+      await creer(etatFactice({
+        diagnostic: {
+          niveau: 'attention', cle: 'publication_en_retard',
+          parametres: { depuis: '2026-10-12T02:30:00Z' },
+        },
+      }));
+      const diagnostic = el().querySelector('[data-testid="raccordement-diagnostic"]')!.textContent!;
+      expect(diagnostic).toContain('Aucune publication réussie depuis le');
+      expect(diagnostic).not.toContain('2026-10-12T');
     });
   });
 

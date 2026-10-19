@@ -48,6 +48,7 @@ import json
 import logging
 import re
 import secrets
+from datetime import timedelta
 
 import requests
 from django.conf import settings
@@ -1020,7 +1021,24 @@ def _diagnostic(ligne, configuration, publications):
     if not significatives or significatives[0].resultat == PublicationHub.RESULTAT_RETRAIT:
         # Partage recoché, republication pas encore faite : rien sur le hub.
         return cas('info', 'aucune_publication')
+    # #701 — une instance qui ne publie plus vieillit en silence sur le hub :
+    # une nuit sautée ne perd rien, deux méritent qu'on regarde.
+    derniere = derniere_publication_reussie(publications)
+    if derniere and derniere < timezone.now() - timedelta(hours=RETARD_PUBLICATION_HEURES):
+        return cas('attention', 'publication_en_retard', depuis=_date(derniere))
     return cas('ok', 'ok')
+
+
+#: #701 — Au-delà, le diagnostic signale une publication en retard.
+RETARD_PUBLICATION_HEURES = 48
+
+
+def derniere_publication_reussie(publications):
+    """Date de la dernière publication réussie, ou ``None``."""
+    for publication in publications:
+        if publication.resultat == PublicationHub.RESULTAT_REUSSIE:
+            return publication.date
+    return None
 
 
 def etat(actualiser=True):
@@ -1077,5 +1095,6 @@ def etat(actualiser=True):
             }
             for p in publications[:PUBLICATIONS_AFFICHEES]
         ],
+        'derniere_publication_reussie': _date(derniere_publication_reussie(publications)),
         'diagnostic': _diagnostic(ligne, configuration, publications),
     }

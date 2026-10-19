@@ -314,14 +314,33 @@ Rien ne part tant qu'un **super administrateur n'a pas activé le partage** dans
 une montée de version : publier le contenu de ses plans est un engagement de la
 structure, pas un effet de bord d'une mise à jour.
 
-Une fois le partage activé, la publication est **automatique chaque nuit à
-2h30** (tâche Celery `apps.search.tasks.publier_vers_le_hub`). Elle ne fait rien
+Une fois le partage activé, la publication est **automatique chaque nuit**
+(tâche Celery `apps.search.tasks.publier_vers_le_hub`), à une heure **propre à
+chaque instance** entre 1h00 et 5h00, dérivée de `CICADA_INSTANCE_ID` (#701) :
+toutes les instances à la même heure satureraient le hub. Elle ne fait rien
 tant que les trois conditions ne sont pas réunies — hub et jeton configurés,
 `CICADA_HUB_PUSH_AUTO` vrai, partage consenti — ce qui permet de la laisser
 planifiée sur toutes les instances, fédérées ou non.
 
 Un dépôt porte l'**état complet** et non un différentiel : une nuit sautée ne
 perd rien, la suivante repart de l'état courant.
+
+### Régulation et relance (#701)
+
+- **Côté hub** : au-delà de `HUB_LOTS_CONCURRENTS_MAX` lots ouverts en même
+  temps (défaut 3), l'ouverture d'un lot répond **429** avec `Retry-After`
+  (`HUB_RETRY_AFTER_SECONDES`, défaut 600). Un lot ouvert depuis plus de
+  `HUB_LOT_DUREE_MAX_MINUTES` (défaut 180 — dépôt interrompu, jamais basculé)
+  est considéré comme expiré et ne compte plus. `GET /api/federation/instances/`
+  marque `en_retard` une instance sans publication réussie depuis
+  `HUB_RETARD_PUBLICATION_HEURES` (défaut 48).
+- **Côté instance** : sur un 429, une erreur 5xx ou un hub injoignable, la tâche
+  de nuit abandonne son lot éventuel puis **se relance** (jusqu'à 6 fois, après
+  le délai demandé par le hub, sinon 5 min, 10 min… plafonné à 1 h). Chaque
+  tentative est consignée dans l'historique des publications (origine
+  « relance »). Un refus définitif (jeton invalide, charge rejetée) n'est pas
+  relancé. Le diagnostic de `/administration/parametres` signale une
+  **publication en retard** au-delà de 48 h sans succès.
 
 À la main :
 

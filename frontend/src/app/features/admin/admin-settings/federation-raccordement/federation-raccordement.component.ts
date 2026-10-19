@@ -449,12 +449,15 @@ export class FederationRaccordementComponent implements OnInit {
    */
   parametresDiagnostic(parametres: Record<string, string | number>): Record<string, string | number> {
     const resultat = { ...parametres };
-    const expire = resultat['expire_le'];
-    if (typeof expire === 'string' && expire) {
-      try {
-        resultat['expire_le'] = formatDate(expire, 'dd/MM/yyyy HH:mm', this.locale);
-      } catch {
-        // Date illisible : on garde la valeur brute plutôt que de masquer le message.
+    // Dates ISO du diagnostic (`expire_le` ; `depuis`, #701) mises en forme.
+    for (const cle of ['expire_le', 'depuis']) {
+      const valeur = resultat[cle];
+      if (typeof valeur === 'string' && valeur) {
+        try {
+          resultat[cle] = formatDate(valeur, 'dd/MM/yyyy HH:mm', this.locale);
+        } catch {
+          // Date illisible : on garde la valeur brute plutôt que de masquer le message.
+        }
       }
     }
     return resultat;

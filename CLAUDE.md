@@ -1113,7 +1113,7 @@ Publier le contenu de ses plans est un **engagement de la structure**, pas un r�
 | `CICADA_PUBLIC_URL` | URL publique, transmise avec chaque plan |
 | `CICADA_HUB_URL` / `CICADA_HUB_PUSH_TOKEN` / `CICADA_HUB_READ_TOKEN` | adresse et jetons du hub |
 | `CICADA_EXPLORATION_SOURCE` | `local` (défaut) ou `hub`. Vide par défaut = comportement inchangé. **Le réglage de l'interface prime** (#695 — `RaccordementHub.exploration_source`, l'installeur écrivant toujours la variable) |
-| `CICADA_HUB_PUSH_AUTO` | publication automatique chaque nuit à 2h30 (défaut `true`). Réglage distinct de l'URL du hub : une instance peut vouloir *lire* l'exploration nationale sans publier autrement qu'à la main |
+| `CICADA_HUB_PUSH_AUTO` | publication automatique chaque nuit, à l'heure propre à l'instance (#701, défaut `true`). Réglage distinct de l'URL du hub : une instance peut vouloir *lire* l'exploration nationale sans publier autrement qu'à la main |
 
 #### Registre des instances (côté hub)
 
@@ -1162,7 +1162,9 @@ scripts/federation.sh test --e2e     # 7 cas Playwright sur l'instance relayée
 docker exec cicada_web python manage.py push_federation [--dry-run] [--sans-fiche] [--page-size N]
 ```
 
-**Publication planifiée** : `apps.search.tasks.publier_vers_le_hub`, entrée `push-federation` de `CELERY_BEAT_SCHEDULE` (chaque nuit à 2h30). Elle est planifiée sur **toutes** les instances et ne fait rien tant que trois conditions distinctes ne sont pas réunies — hub et jeton de dépôt configurés, `CICADA_HUB_PUSH_AUTO` vrai, et `SiteConfiguration.federation_partage` activé par la structure. Un dépôt étant l'**état complet** et non un différentiel, une nuit sautée ne perd rien.
+**Publication planifiée** : `apps.search.tasks.publier_vers_le_hub`, entrée `push-federation` de `CELERY_BEAT_SCHEDULE`, chaque nuit à une **heure propre à l'instance** entre 1h00 et 5h00 (`config/creneau.py` : `creneau_publication(CICADA_INSTANCE_ID)`, hachage SHA-256 stable — #701 ; toutes à 2h30, elles saturaient le hub ensemble). Elle est planifiée sur **toutes** les instances et ne fait rien tant que trois conditions distinctes ne sont pas réunies — hub et jeton de dépôt configurés, `CICADA_HUB_PUSH_AUTO` vrai, et `SiteConfiguration.federation_partage` activé par la structure. Un dépôt étant l'**état complet** et non un différentiel, une nuit sautée ne perd rien.
+
+**Régulation et relance (#701)** : le hub refuse d'ouvrir un lot au-delà de `HUB_LOTS_CONCURRENTS_MAX` dépôts en cours (**429** + `Retry-After`) ; un lot ouvert depuis plus de `HUB_LOT_DUREE_MAX_MINUTES` est tenu pour expiré. Côté instance, `push_federation` lève `HubIndisponible` (429, 5xx, réseau — pas un 4xx de refus) et la tâche se relance (`RELANCES_MAX` = 6, délai `Retry-After` sinon `delai_relance()` : 5 min → 1 h), chaque tentative consignée en `PublicationHub` origine `relance`. Supervision : diagnostic `publication_en_retard` (> 48 h sans succès, `raccordement._diagnostic`) et `en_retard` dans `GET /api/federation/instances/` du hub.
 
 **Mise en production du hub** : [docs/DEPLOIEMENT_HUB.md](docs/DEPLOIEMENT_HUB.md) — image `ghcr.io/rnf-si/cicada-hub`, `docker-compose.hub.prod.yml`, vhost Apache, enrôlement d'une instance.
 

@@ -45,6 +45,28 @@ TAILLE_PAGE = 10
 DELAI = 120
 
 
+
+class HubIndisponible(CommandError):
+    """
+    Le hub ne peut pas recevoir le dépôt maintenant (#701) : il demande de
+    revenir plus tard (429), il est en panne (5xx) ou injoignable.
+
+    Distincte d'un refus (jeton invalide, charge utile rejetée) : là, réessayer
+    plus tard a un sens. ``retry_after`` est le délai demandé par le hub
+    (en-tête ``Retry-After``, en secondes), ou ``None``.
+    """
+
+    def __init__(self, message, retry_after=None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+def _retry_after(reponse):
+    try:
+        return int(reponse.headers.get('Retry-After'))
+    except (TypeError, ValueError):
+        return None
+
 class Command(BaseCommand):
     help = "Dépose l'index de cette instance sur le hub d'exploration"
 
@@ -58,6 +80,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--origine', choices=[
                 PublicationHub.ORIGINE_MANUELLE, PublicationHub.ORIGINE_NUIT,
+                PublicationHub.ORIGINE_RELANCE,
             ], default=PublicationHub.ORIGINE_MANUELLE,
             help="Origine inscrite dans l'historique des publications (défaut : manuelle)",
         )
@@ -161,6 +184,11 @@ class Command(BaseCommand):
                     f"  Lot {lot} abandonné : la publication précédente reste en "
                     f"place, complète."
                 ))
+            if isinstance(erreur, HubIndisponible):
+                # #701 — la tâche de nuit réessaiera : le motif doit survivre.
+                raise HubIndisponible(
+                    f"Dépôt interrompu : {erreur}", retry_after=erreur.retry_after,
+                ) from erreur
             raise CommandError(f"Dépôt interrompu : {erreur}") from erreur
 
         if self.dry_run:
@@ -229,12 +257,20 @@ class Command(BaseCommand):
         }
 
     def _appel(self, methode, chemin, corps=None):
-        reponse = requests.request(
-            methode, f"{self.hub}{chemin}",
-            headers=self._entetes(),
-            data=json.dumps(corps) if corps is not None else None,
-            timeout=DELAI,
-        )
+        try:
+            reponse = requests.request(
+                methode, f"{self.hub}{chemin}",
+                headers=self._entetes(),
+                data=json.dumps(corps) if corps is not None else None,
+                timeout=DELAI,
+            )
+        except requests.RequestException as erreur:
+            raise HubIndisponible(f"{methode} {chemin} → hub injoignable : {erreur}") from erreur
+        if reponse.status_code == 429 or reponse.status_code >= 500:
+            raise HubIndisponible(
+                f"{methode} {chemin} → {reponse.status_code} : {reponse.text[:500]}",
+                retry_after=_retry_after(reponse),
+            )
         if reponse.status_code >= 400:
             raise RuntimeError(
                 f"{methode} {chemin} → {reponse.status_code} : {reponse.text[:500]}"

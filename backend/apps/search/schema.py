@@ -309,12 +309,16 @@ ETAT_RACCORDEMENT = inline_serializer('RaccordementEtat', fields={
         'depublies': serializers.IntegerField(allow_null=True),
         'message': serializers.CharField(allow_null=True),
     }),
+    'derniere_publication_reussie': serializers.DateTimeField(
+        allow_null=True,
+        help_text="#701 — dernière publication réussie ; au-delà de 48 h, le "
+                  "diagnostic signale `publication_en_retard`."),
     'diagnostic': inline_serializer('RaccordementDiagnostic', fields={
         'niveau': serializers.ChoiceField(choices=['ok', 'info', 'attention', 'erreur']),
         'cle': serializers.CharField(
             help_text="Cas qui s'applique, du plus bloquant au plus anodin "
                       "(`identite_manquante`, `adhesion_en_attente`, `non_raccorde`, "
-                      "`partage_inactif`, `derniere_publication_echec`, `ok`…)."),
+                      "`partage_inactif`, `derniere_publication_echec`, `publication_en_retard`, `ok`…)."),
         'parametres': serializers.DictField(),
     }),
 })

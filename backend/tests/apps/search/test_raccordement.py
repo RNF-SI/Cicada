@@ -221,7 +221,11 @@ def suivi_qui_accepte():
 class TestDemandeAdhesion:
     def test_etat_initial(self, admin_client):
         corps = admin_client.get(URL_RACCORDEMENT).json()
-        assert set(corps) == {'configuration', 'adhesion', 'publications', 'diagnostic'}
+        # #701 — `derniere_publication_reussie` : supervision du retard.
+        assert set(corps) == {
+            'configuration', 'adhesion', 'publications',
+            'derniere_publication_reussie', 'diagnostic',
+        }
         assert set(corps['configuration']) == {
             'instance_id', 'instance_libelle', 'identite_valide', 'hub_url',
             'source_jetons', 'jeton_depot_defini', 'jeton_lecture_defini',

@@ -25,6 +25,8 @@ export type CleDiagnostic =
   | 'partage_inactif'
   | 'derniere_publication_echec'
   | 'aucune_publication'
+  /** #701 — plus de 48 h sans publication réussie. */
+  | 'publication_en_retard'
   | 'ok';
 
 /** Clés d'erreur renvoyées par le backend (ou déduites côté client). */
@@ -106,6 +108,8 @@ export interface EtatRaccordement {
   configuration: ConfigurationRaccordement;
   adhesion: AdhesionHub;
   publications: PublicationHub[];
+  /** #701 — date de la dernière publication réussie (ISO), ou null. */
+  derniere_publication_reussie?: string | null;
   diagnostic: DiagnosticRaccordement;
 }
 

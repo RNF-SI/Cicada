@@ -59,14 +59,38 @@ def _ignoree(message):
     )
 
 
+#: #701 — Relances d'une publication de nuit refusée par un hub saturé (429),
+#: en panne (5xx) ou injoignable. Six tentatives de plus, de 5 min à 1 h
+#: d'écart : la dernière part environ trois heures après la première, encore
+#: dans la nuit. Au-delà, la nuit suivante reprend — un dépôt est l'état
+#: complet, rien n'est perdu.
+RELANCES_MAX = 6
+DELAI_RELANCE_MIN = 300
+DELAI_RELANCE_MAX = 3600
+
+
+def delai_relance(tentative):
+    """Délai avant la relance n° ``tentative`` (0 = première) : backoff
+    exponentiel plafonné, quand le hub n'a pas dit combien attendre."""
+    return min(DELAI_RELANCE_MIN * 2 ** min(tentative, 10), DELAI_RELANCE_MAX)
+
+
 # Deux heures, contre trente minutes pour les autres tâches : une publication
 # complète envoie une page par tranche de dix plans, chacune portant les fiches
 # rendues. Un worker tué en cours de dépôt laisse un lot ouvert et jamais
 # basculé — sans danger (la publication précédente reste en place), mais la nuit
 # est perdue.
-@shared_task(soft_time_limit=7200, time_limit=7500)
-def publier_vers_le_hub():
-    """Dépose l'état complet de l'index sur le hub."""
+@shared_task(bind=True, max_retries=RELANCES_MAX, soft_time_limit=7200, time_limit=7500)
+def publier_vers_le_hub(self):
+    """Dépose l'état complet de l'index sur le hub.
+
+    #701 — Sur un hub indisponible (« revenez plus tard », panne, réseau), la
+    tâche se relance d'elle-même au lieu d'attendre la nuit suivante : chaque
+    tentative est consignée dans l'historique (origine « relance »).
+    """
+    from apps.search.management.commands.push_federation import HubIndisponible
+    from apps.search.models import PublicationHub
+
     if not _publication_configuree():
         logger.debug(
             "Publication vers le hub non configurée sur cette instance — ignorée."
@@ -89,11 +113,22 @@ def publier_vers_le_hub():
         _ignoree("Partage avec l'exploration nationale désactivé.")
         return "partage désactivé"
 
+    tentative = self.request.retries or 0
+    origine = PublicationHub.ORIGINE_RELANCE if tentative else PublicationHub.ORIGINE_NUIT
     sortie = io.StringIO()
     try:
         # `origine` : c'est la commande qui écrit l'historique (#698), réussite
         # comme échec — la tâche n'a donc rien à enregistrer ici.
-        call_command('push_federation', origine='nuit', stdout=sortie, stderr=sortie)
+        call_command('push_federation', origine=origine, stdout=sortie, stderr=sortie)
+    except HubIndisponible as erreur:
+        # Le lot éventuel est déjà abandonné par la commande. Le hub a peut-être
+        # dit combien attendre ; sinon, on espace de plus en plus.
+        delai = erreur.retry_after or delai_relance(tentative)
+        logger.warning(
+            "Hub indisponible (tentative %s/%s), relance dans %s s : %s",
+            tentative + 1, RELANCES_MAX + 1, delai, erreur,
+        )
+        raise self.retry(exc=erreur, countdown=delai)
     except Exception:
         # La commande abandonne son lot avant de remonter : la publication
         # précédente est intacte. On journalise et on laisse la nuit suivante

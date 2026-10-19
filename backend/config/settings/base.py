@@ -368,6 +368,10 @@ CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes
 # Celery Beat - Taches periodiques
 from celery.schedules import crontab
 
+from config.creneau import creneau_publication
+
+_CRENEAU_PUBLICATION = creneau_publication(CICADA_INSTANCE_ID)
+
 CELERY_BEAT_SCHEDULE = {
     # Nettoyage des anciens logs d'erreur - tous les jours a 3h du matin
     'cleanup-old-error-logs': {
@@ -394,13 +398,17 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=5, minute=0),
     },
     # #636 - Publication de l'index vers le hub d'exploration federee, chaque
-    # nuit a 2h30. La tache ne fait rien si le hub n'est pas configure, si
+    # nuit. La tache ne fait rien si le hub n'est pas configure, si
     # CICADA_HUB_PUSH_AUTO est faux, ou si la structure n'a pas consenti au
     # partage : l'entree peut donc rester en place sur toutes les instances.
     # Un depot complet et non un differentiel - une nuit sautee ne perd rien.
+    # #701 - Heure propre a chaque instance (entre 1h00 et 5h00, derivee de
+    # CICADA_INSTANCE_ID) : toutes a 2h30, elles saturaient le hub ensemble.
     'push-federation': {
         'task': 'apps.search.tasks.publier_vers_le_hub',
-        'schedule': crontab(hour=2, minute=30),
+        'schedule': crontab(
+            hour=_CRENEAU_PUBLICATION[0], minute=_CRENEAU_PUBLICATION[1],
+        ),
     },
     # #696 - Relecture aupres de l'API de suivi d'une demande d'adhesion au hub
     # en attente (acceptee ou refusee par RNF dans l'admin du suivi). Ne fait
