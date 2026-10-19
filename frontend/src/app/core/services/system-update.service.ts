@@ -14,6 +14,10 @@ export interface SystemVersionInfo {
   update_available: boolean;
   latest_version: string | null;
   last_check: string | null;
+  /** Échec de la dernière interrogation de l'API de suivi, effacé par la suivante qui réussit */
+  last_check_error?: string | null;
+  /** Vérification demandée par le bouton, pas encore prise par le heartbeat de l'hôte */
+  check_pending?: boolean;
   /** Déclencheur déposé par le bouton, pas encore consommé par l'updater de l'hôte */
   update_pending?: boolean;
   /** Dernière mise à jour faite par l'updater (réussie ou non) */
@@ -86,6 +90,11 @@ export class SystemUpdateService {
       map(res => res.version),
       catchError(() => of(null))
     );
+  }
+
+  /** Demande à l'hôte d'interroger tout de suite l'API de suivi (heartbeat immédiat). */
+  checkForUpdate(): Observable<{ success: boolean }> {
+    return this.http.post<{ success: boolean }>(`${this.apiUrl}/check-update/`, {});
   }
 
   triggerUpdate(version: string): Observable<TriggerUpdateResponse> {

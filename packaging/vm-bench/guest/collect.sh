@@ -6,7 +6,7 @@ section() { echo; echo "===== $* ====="; }
 section "systemd"
 systemctl is-system-running
 systemctl --failed --no-pager
-for u in cicada-installer.service cicada-heartbeat.timer cicada-updater.path; do
+for u in cicada-installer.service cicada-heartbeat.timer cicada-updater.path cicada-heartbeat-check.path; do
     echo "$u : $(systemctl is-enabled "$u" 2>&1) / $(systemctl is-active "$u" 2>&1)"
 done
 

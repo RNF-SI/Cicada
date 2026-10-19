@@ -115,8 +115,12 @@ systemctl restart cicada-tracking-api
 grep ^LATEST_VERSION= $D/.env && systemctl is-active cicada-tracking-api
 ```
 
-Pour faire apparaître le bouton sans attendre la nuit, sur une instance : `sudo systemctl start cicada-heartbeat.service`,
-puis `sudo cat /var/lib/cicada/updates/update_available.json`.
+Pour faire apparaître le bouton sans attendre la nuit : bouton **« Vérifier les mises à jour »** de la page
+Administration > Mise à jour (paquet ≥ 0.1.57). Il dépose `/var/lib/cicada/updates/check_trigger.json`, que
+`cicada-heartbeat-check.path` transforme en passage immédiat de `cicada-heartbeat` ; un échec d'interrogation de l'API
+de suivi s'affiche sur la page (`last_check_error`). Sur une instance plus ancienne, en ligne de commande :
+`sudo systemctl start cicada-heartbeat.service`, puis `sudo cat /var/lib/cicada/updates/update_available.json`.
+⚠️ Le bouton ne corrige pas un `LATEST_VERSION` oublié : il ne fait que relire ce que l'API de suivi annonce.
 
 ### 4.2 Script d'installation en une commande
 

@@ -4,6 +4,7 @@ import sys
 import json
 import logging
 import requests
+from datetime import datetime
 from pathlib import Path
 
 TOKEN_FILE = "/etc/cicada/instance_token"
@@ -12,6 +13,9 @@ VERSION_FILE = "/usr/share/cicada/VERSION"
 # Dossier d'échange avec l'application, monté dans le conteneur web à
 # /var/lib/cicada (voir docker-compose.yml) : elle y lit ce fichier.
 UPDATE_FILE = "/var/lib/cicada/updates/update_available.json"
+# Déposé par le bouton « Vérifier les mises à jour » ; cicada-heartbeat-check.path
+# nous lance tant qu'il existe, d'où sa suppression dès le démarrage.
+CHECK_TRIGGER_FILE = "/var/lib/cicada/updates/check_trigger.json"
 LOG_FILE = "/var/log/cicada/heartbeat.log"
 
 def get_tracking_api_url():
@@ -108,8 +112,27 @@ def send_heartbeat():
 
     except requests.exceptions.RequestException as e:
         logger.error(f"Erreur heartbeat: {e}")
+        record_check_error(str(e))
         return False
 
+
+def record_check_error(message):
+    """Garde la dernière version annoncée et note l'échec : la page
+    d'administration l'affiche au lieu de laisser croire que tout est à jour."""
+    path = Path(UPDATE_FILE)
+    try:
+        data = json.loads(path.read_text()) if path.exists() else {}
+    except (OSError, ValueError):
+        data = {}
+    data['last_check_error'] = message
+    data['last_check_attempt'] = datetime.now().isoformat()
+    try:
+        path.write_text(json.dumps(data))
+    except OSError as e:
+        logger.error(f"Impossible d'écrire {UPDATE_FILE}: {e}")
+
+
 if __name__ == '__main__':
+    Path(CHECK_TRIGGER_FILE).unlink(missing_ok=True)
     success = send_heartbeat()
     sys.exit(0 if success else 1)

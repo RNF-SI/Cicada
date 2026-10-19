@@ -52,9 +52,6 @@
               <i class="fi fi-rr-bell"></i>
               {{ 'admin.update.updateAvailable' | translate }}: <strong>{{ versionInfo()?.latest_version }}</strong>
             </p>
-            @if (versionInfo()?.last_check) {
-              <p class="last-check">{{ 'admin.update.lastCheck' | translate }}: {{ formatDate(versionInfo()?.last_check ?? null) }}</p>
-            }
             <button
               mat-flat-button
               color="primary"
@@ -69,11 +66,33 @@
               {{ 'admin.update.actionUpdate' | translate }}
             </button>
           </div>
+        } @else if (versionInfo()?.last_check_error) {
+          <p class="check-error">
+            <i class="fi fi-rr-exclamation"></i>
+            {{ 'admin.update.check.failed' | translate }}
+          </p>
         } @else {
           <p class="up-to-date">
             <i class="fi fi-rr-check-circle"></i>
             {{ 'admin.update.upToDate' | translate }}
           </p>
+        }
+
+        @if (phase() === 'idle') {
+          <div class="check-row">
+            <button mat-stroked-button (click)="checkForUpdate()" [disabled]="checking()">
+              @if (checking()) {
+                <mat-spinner diameter="18" class="btn-spinner"></mat-spinner>
+                {{ 'admin.update.check.checking' | translate }}
+              } @else {
+                <i class="fi fi-rr-refresh"></i>
+                {{ 'admin.update.check.action' | translate }}
+              }
+            </button>
+            <span class="last-check">
+              {{ 'admin.update.lastCheck' | translate }} : {{ formatDate(versionInfo()?.last_check ?? null) }}
+            </span>
+          </div>
         }
       </div>
     }

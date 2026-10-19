@@ -17,6 +17,7 @@ case "$ACTION" in
             systemctl stop cicada-heartbeat.service || true
             systemctl stop cicada-updater.service || true
             systemctl stop cicada-updater.path || true
+            systemctl stop cicada-heartbeat-check.path || true
         fi
 
         # Arrêter les conteneurs Docker si en cours d'exécution

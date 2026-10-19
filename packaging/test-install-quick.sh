@@ -65,6 +65,7 @@ docker exec "$CONTAINER_NAME" bash -c "
     test -f /etc/systemd/system/cicada-heartbeat.timer && echo '  ✓ cicada-heartbeat.timer' || echo '  ✗ cicada-heartbeat.timer'
     test -f /etc/systemd/system/cicada-updater.service && echo '  ✓ cicada-updater.service' || echo '  ✗ cicada-updater.service'
     test -f /etc/systemd/system/cicada-updater.path && echo '  ✓ cicada-updater.path' || echo '  ✗ cicada-updater.path'
+    test -f /etc/systemd/system/cicada-heartbeat-check.path && echo '  ✓ cicada-heartbeat-check.path' || echo '  ✗ cicada-heartbeat-check.path'
     echo ''
     echo 'Fichiers de l'\''installer :'
     test -d /usr/share/cicada/install && echo '  ✓ /usr/share/cicada/install' || echo '  ✗ /usr/share/cicada/install'

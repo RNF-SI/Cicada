@@ -26,6 +26,9 @@ export type UpdatePhase = 'idle' | 'scheduled' | 'running' | 'restarting' | 'don
 const POLL_INTERVAL_MS = 4000;
 const GIVE_UP_AFTER_MS = 15 * 60 * 1000;
 const RELOAD_DELAY_MS = 3000;
+const CHECK_POLL_INTERVAL_MS = 2000;
+/** Le heartbeat répond en quelques secondes ; au-delà, l'hôte ne prend pas le déclencheur. */
+const CHECK_GIVE_UP_AFTER_MS = 60 * 1000;
 
 @Component({
   selector: 'app-admin-update',
@@ -49,6 +52,8 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
   readonly versionInfo = signal<SystemVersionInfo | null>(null);
   readonly loading = signal(true);
   readonly updating = signal(false);
+  /** Vérification demandée, en attente de la réponse de l'API de suivi */
+  readonly checking = signal(false);
 
   readonly phase = signal<UpdatePhase>('idle');
   /** Version visée par la mise à jour en cours */
@@ -60,6 +65,8 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
   private resultBefore: string | null = null;
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private startedAt = 0;
+  private checkTimer: ReturnType<typeof setTimeout> | null = null;
+  private checkStartedAt = 0;
 
   ngOnInit(): void {
     this.loadVersion();
@@ -67,6 +74,7 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopPolling();
+    this.stopCheckPolling();
   }
 
   loadVersion(): void {
@@ -113,6 +121,65 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
         this.snackBar.open(msg, this.translate.instant('common.actions.close'), { duration: 5000 });
       }
     });
+  }
+
+  /**
+   * « Vérifier les mises à jour » : l'hôte interroge l'API de suivi sans
+   * attendre le heartbeat de la nuit. On suit le déclencheur jusqu'à ce que
+   * le heartbeat l'ait consommé, puis on affiche ce qu'il a rapporté.
+   */
+  checkForUpdate(): void {
+    this.checking.set(true);
+    this.systemUpdateService.checkForUpdate().subscribe({
+      next: () => {
+        this.checkStartedAt = Date.now();
+        this.scheduleCheckPoll();
+      },
+      error: (err) => {
+        this.checking.set(false);
+        const msg = err?.error?.error || this.translate.instant('admin.update.check.error');
+        this.notify(msg);
+      }
+    });
+  }
+
+  private pollCheck(): void {
+    this.checkTimer = null;
+    this.systemUpdateService.getVersion().subscribe(info => {
+      if (info.check_pending) {
+        if (Date.now() - this.checkStartedAt > CHECK_GIVE_UP_AFTER_MS) {
+          this.checking.set(false);
+          this.notify(this.translate.instant('admin.update.check.noHost'));
+        } else {
+          this.scheduleCheckPoll();
+        }
+        return;
+      }
+      this.checking.set(false);
+      this.versionInfo.set(info);
+      if (info.last_check_error) {
+        this.notify(this.translate.instant('admin.update.check.failed'));
+      } else if (info.update_available && info.latest_version) {
+        this.notify(this.translate.instant('admin.update.check.found', { version: info.latest_version }));
+      } else {
+        this.notify(this.translate.instant('admin.update.check.upToDate'));
+      }
+    });
+  }
+
+  private scheduleCheckPoll(): void {
+    this.checkTimer = setTimeout(() => this.pollCheck(), CHECK_POLL_INTERVAL_MS);
+  }
+
+  private stopCheckPolling(): void {
+    if (this.checkTimer) {
+      clearTimeout(this.checkTimer);
+      this.checkTimer = null;
+    }
+  }
+
+  private notify(message: string): void {
+    this.snackBar.open(message, this.translate.instant('common.actions.close'), { duration: 6000 });
   }
 
   /** Icône et libellé à afficher pour la phase courante */

@@ -183,7 +183,7 @@ fi
 check "Installateur joignable depuis le réseau (0.0.0.0:4567)" \
     curl -sf "http://$(hostname -I | awk '{print $1}'):4567/api/health"
 
-for timer in cicada-heartbeat.timer cicada-updater.path; do
+for timer in cicada-heartbeat.timer cicada-updater.path cicada-heartbeat-check.path; do
     pkg_check "$timer actif" systemctl is-active --quiet "$timer"
 done
 

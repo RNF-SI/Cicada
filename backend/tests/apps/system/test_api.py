@@ -177,7 +177,19 @@ class TestSystemVersionEndpoint:
         with patch.object(Path, 'exists', return_value=False):
             data = api_client.get('/api/system/version/').json()
         assert data['update_pending'] is False
+        assert data['check_pending'] is False
+        assert data['last_check_error'] is None
         assert data['last_update'] is None
+
+    def test_check_error_from_heartbeat_file(self, api_client):
+        """L'échec de la dernière interrogation de l'API de suivi est rendu tel quel."""
+        api_client.force_authenticate(user=SuperAdminFactory())
+        announced = {'latest_version': None, 'last_check_error': 'HTTP 401'}
+        with patch.object(Path, 'exists', return_value=True), \
+             patch.object(Path, 'read_text', return_value=json.dumps(announced)):
+            data = api_client.get('/api/system/version/').json()
+        assert data['last_check_error'] == 'HTTP 401'
+        assert data['check_pending'] is True
 
     def test_corrupt_update_file_returns_defaults(self, api_client):
         """When update file is corrupt JSON, returns safe defaults."""
@@ -190,6 +202,48 @@ class TestSystemVersionEndpoint:
         data = response.json()
         assert data['current_version'] == __version__
         assert data['update_available'] is False
+
+
+# =============================================================================
+# POST /api/system/check-update/
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSystemCheckUpdateEndpoint:
+    """Bouton « Vérifier les mises à jour » : dépose le déclencheur du heartbeat."""
+
+    def test_unauthenticated_returns_401(self, api_client):
+        response = api_client.post('/api/system/check-update/')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_admin_og_returns_403(self, api_client):
+        api_client.force_authenticate(user=AdminOrganismeFactory())
+        response = api_client.post('/api/system/check-update/')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_super_admin_writes_check_trigger(self, api_client):
+        from apps.system.api_views import CHECK_TRIGGER_FILE
+
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+        written = {}
+
+        def mock_write(self, content):
+            written[str(self)] = json.loads(content)
+
+        with patch.object(Path, 'write_text', autospec=True, side_effect=mock_write):
+            response = api_client.post('/api/system/check-update/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == {'success': True}
+        assert written == {str(CHECK_TRIGGER_FILE): {'requested_by': admin.email}}
+
+    def test_write_error_returns_500(self, api_client):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        with patch.object(Path, 'write_text', side_effect=OSError('Permission denied')):
+            response = api_client.post('/api/system/check-update/')
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        assert 'error' in response.json()
 
 
 # =============================================================================

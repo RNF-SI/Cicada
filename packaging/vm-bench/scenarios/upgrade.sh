@@ -99,7 +99,7 @@ print('ok')" >/dev/null 2>&1
     # Les services systemd doivent tourner après la mise à jour, y compris
     # quand l'ancien paquet ne les avait pas démarrés (#222).
     local u
-    for u in cicada-heartbeat.timer cicada-updater.path; do
+    for u in cicada-heartbeat.timer cicada-updater.path cicada-heartbeat-check.path; do
         check "$u actif après mise à jour" systemctl is-active --quiet "$u"
     done
     check "Installateur toujours verrouillé" test "$(http_code http://127.0.0.1:4567/)" = 403

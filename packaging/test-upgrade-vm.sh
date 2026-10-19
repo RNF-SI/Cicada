@@ -242,6 +242,7 @@ multipass exec "$VM_NAME" -- bash -c "
     systemctl is-enabled cicada-installer.service 2>/dev/null && echo '  OK : cicada-installer enabled' || echo '  WARN : cicada-installer not enabled'
     systemctl is-enabled cicada-heartbeat.timer 2>/dev/null && echo '  OK : cicada-heartbeat.timer enabled' || echo '  WARN : cicada-heartbeat.timer not enabled'
     systemctl is-enabled cicada-updater.path 2>/dev/null && echo '  OK : cicada-updater.path enabled' || echo '  WARN : cicada-updater.path not enabled'
+    systemctl is-enabled cicada-heartbeat-check.path 2>/dev/null && echo '  OK : cicada-heartbeat-check.path enabled' || echo '  WARN : cicada-heartbeat-check.path not enabled'
 
     echo ''
     echo '>>> Version installée :'

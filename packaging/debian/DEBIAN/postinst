@@ -115,6 +115,7 @@ if [ -d /run/systemd/system ]; then
     systemctl enable --now cicada-installer.service || true
     systemctl enable --now cicada-heartbeat.timer || true
     systemctl enable --now cicada-updater.path || true
+    systemctl enable --now cicada-heartbeat-check.path || true
     if ! systemctl is-active --quiet cicada-installer.service && [ ! -f "$ENV_FILE" ]; then
         echo "  [WARN] L'installateur web n'a pas démarré : sudo systemctl status cicada-installer"
     fi

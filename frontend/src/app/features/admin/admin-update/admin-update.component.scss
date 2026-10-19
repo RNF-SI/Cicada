@@ -109,6 +109,37 @@
     align-items: center;
     gap: $spacing-xs;
   }
+
+  .check-error {
+    margin: $spacing-md 0 0 0;
+    padding: $spacing-md;
+    background: $tag-red;
+    border-radius: 8px;
+    color: $black;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
+
+  // Bouton « Vérifier les mises à jour » + date du dernier passage du heartbeat
+  .check-row {
+    margin-top: $spacing-md;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-md;
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: $spacing-xs;
+    }
+
+    .last-check {
+      font-size: 14px;
+      color: $gray-dark;
+    }
+  }
 }
 
 // Suivi de la mise à jour après le clic (#233) : une seule zone, dont la couleur

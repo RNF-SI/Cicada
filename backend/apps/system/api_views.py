@@ -24,6 +24,9 @@ from apps.users.permissions import IsSuperAdmin
 UPDATE_AVAILABLE_FILE = Path("/var/lib/cicada/update_available.json")
 UPDATE_TRIGGER_FILE = Path("/var/lib/cicada/update_trigger.json")
 UPDATE_RESULT_FILE = Path("/var/lib/cicada/update_result.json")
+# Déposé par le bouton « Vérifier les mises à jour » : cicada-heartbeat-check.path
+# lance alors le heartbeat sur l'hôte, qui le supprime en démarrant.
+CHECK_TRIGGER_FILE = Path("/var/lib/cicada/check_trigger.json")
 
 
 def _read_json(path: Path):
@@ -68,6 +71,11 @@ def get_update_info():
         'update_available': update_available,
         'latest_version': latest,
         'last_check': announced.get('last_check'),
+        # Échec de la dernière interrogation de l'API de suivi (réseau, jeton…),
+        # effacé par la suivante qui réussit
+        'last_check_error': announced.get('last_check_error'),
+        # Vérification demandée par le bouton, pas encore prise par le heartbeat
+        'check_pending': CHECK_TRIGGER_FILE.exists(),
         # Déclencheur déposé par le bouton et pas encore consommé par l'updater
         'update_pending': UPDATE_TRIGGER_FILE.exists(),
         # Dernière mise à jour faite par l'updater : success, version, timestamp, error
@@ -152,6 +160,49 @@ class SystemAppVersionView(APIView):
     )
     def get(self, request: Request) -> Response:
         return Response({'version': __version__})
+
+
+class SystemCheckUpdateView(APIView):
+    """
+    POST /api/system/check-update/
+    Demande à l'hôte d'interroger l'API de suivi tout de suite, sans attendre
+    le heartbeat de la nuit. L'application n'a pas le jeton d'instance (il
+    reste sur l'hôte, lisible par root seul) : elle dépose un déclencheur, que
+    cicada-heartbeat-check.path transforme en passage de cicada-heartbeat.
+    Super admin uniquement.
+    """
+    permission_classes = [IsSuperAdmin]
+
+    @extend_schema(
+        operation_id='system_check_update_create',
+        summary="Vérifier les mises à jour maintenant",
+        description=(
+            "Dépose le déclencheur lu par cicada-heartbeat-check.path sur l'hôte, "
+            "qui interroge l'API de suivi dans les secondes qui suivent. Le résultat "
+            "se lit ensuite sur GET /api/system/version/ (`check_pending` repasse à "
+            "faux). Réservé au super administrateur."
+        ),
+        request=None,
+        responses={
+            200: inline_serializer('SystemCheckUpdateReponse', fields={
+                'success': serializers.BooleanField(),
+            }),
+            401: REPONSE_401,
+            403: REPONSE_403,
+            500: OpenApiResponse(ERREUR_SYSTEME,
+                                 description="Impossible d'écrire le déclencheur."),
+        },
+        tags=[TAG],
+    )
+    def post(self, request: Request) -> Response:
+        try:
+            CHECK_TRIGGER_FILE.write_text(json.dumps({'requested_by': request.user.email}))
+        except OSError as e:
+            return Response(
+                {'error': f'Impossible d\'écrire le déclencheur: {e}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+        return Response({'success': True})
 
 
 class SystemTriggerUpdateView(APIView):

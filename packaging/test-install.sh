@@ -153,6 +153,7 @@ docker exec "$CONTAINER_NAME" bash -c "
     test -f /etc/systemd/system/cicada-heartbeat.timer && echo '✓ cicada-heartbeat.timer : fichier présent' || echo '✗ cicada-heartbeat.timer : fichier manquant'
     test -f /etc/systemd/system/cicada-updater.service && echo '✓ cicada-updater.service : fichier présent' || echo '✗ cicada-updater.service : fichier manquant'
     test -f /etc/systemd/system/cicada-updater.path && echo '✓ cicada-updater.path : fichier présent' || echo '✗ cicada-updater.path : fichier manquant'
+    test -f /etc/systemd/system/cicada-heartbeat-check.path && echo '✓ cicada-heartbeat-check.path : fichier présent' || echo '✗ cicada-heartbeat-check.path : fichier manquant'
 "
 
 # Tester le script heartbeat
