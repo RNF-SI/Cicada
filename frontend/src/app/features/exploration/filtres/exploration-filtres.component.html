@@ -63,14 +63,14 @@
     </app-filter-tree>
   </section>
 
-  <!-- Structure d'origine (#636) — masqué hors fédération : une seule
-       provenance possible n'est pas un choix, et l'afficher laisserait croire
-       qu'il en existe d'autres. -->
-  @if (federee()) {
-    <section class="exploration-filtres-groupe">
-      <h2 class="subtitle exploration-filtres-titre">
-        {{ 'exploration.filters.instances' | translate }}
-      </h2>
+  <!-- Structure d'origine (#636) — toujours affiché (#692) : il rend visible
+       la portée de la recherche. Avec une seule structure, aucun choix à
+       offrir : on la nomme en lecture seule. -->
+  <section class="exploration-filtres-groupe">
+    <h2 class="subtitle exploration-filtres-titre">
+      {{ 'exploration.filters.instances' | translate }}
+    </h2>
+    @if (federee()) {
       <app-filter-dropdown
         testId="exploration-instances"
         variant="field"
@@ -87,8 +87,13 @@
           </app-filter-option-list>
         </ng-template>
       </app-filter-dropdown>
-    </section>
-  }
+    } @else if (structureUnique()) {
+      <p class="exploration-filtres-seule" data-testid="exploration-instances-seule">
+        <i class="fi fi-rr-globe" aria-hidden="true"></i>
+        <span>{{ 'exploration.filters.instanceSeule' | translate: { structure: structureUnique() } }}</span>
+      </p>
+    }
+  </section>
 
   <!-- Organismes gestionnaires -->
   <section class="exploration-filtres-groupe">

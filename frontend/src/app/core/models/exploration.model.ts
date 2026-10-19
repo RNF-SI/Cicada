@@ -65,9 +65,10 @@ export interface ExplorationSite {
 /**
  * Bandeau « Plan de gestion / Gestionnaire / Période » d'une tuile.
  *
- * `reference` et `instance_id` ne sont renseignés que par l'exploration
- * fédérée (#636), où un plan peut venir d'une autre instance CICADA. Un index
- * local n'a qu'une seule provenance et ne les envoie pas.
+ * `reference` n'est renseignée que par l'exploration fédérée (#636), où un
+ * plan peut venir d'une autre instance CICADA. La provenance (`instance_id`,
+ * `instance_libelle`, `url_instance`) l'est toujours, en local comme relayée
+ * par le hub (#692).
  */
 export interface ExplorationPlanResume {
   id_pg: number;
@@ -80,16 +81,15 @@ export interface ExplorationPlanResume {
   sites: ExplorationSite[];
   gestionnaire_principal: string | null;
   reference?: string;
-  instance_id?: string;
+  instance_id: string;
   /**
-   * Nom de la structure d'origine — fédération uniquement (#636).
+   * Nom de la structure d'origine (#636), toujours renseigné (#692).
    *
    * L'identifiant technique (« rnf ») trace la donnée, il ne la présente pas :
-   * c'est ce libellé qui est affiché sur la tuile. Absent hors fédération, où
-   * tout vient de l'instance courante.
+   * c'est ce libellé qui est affiché sur la tuile.
    */
-  instance_libelle?: string;
-  url_instance?: string;
+  instance_libelle: string;
+  url_instance: string;
 }
 
 /**
@@ -149,10 +149,10 @@ export interface ExplorationContenu {
   sous_type: string | null;
   sous_type_libelle: string | null;
   plan: ExplorationPlanResume;
-  /** Instance d'origine du document — fédération uniquement (#636). */
-  instance_id?: string;
-  /** Nom de la structure d'origine — fédération uniquement (#636). */
-  instance_libelle?: string;
+  /** Instance d'origine du document (#636). */
+  instance_id: string;
+  /** Nom de la structure d'origine, toujours renseigné (#692). */
+  instance_libelle: string;
   /**
    * #650 — Champs ayant répondu à la recherche (`titre`, `rattachements`,
    * `description`, `contexte`, `enfants`). Vide sans mot-clé.
@@ -194,10 +194,10 @@ export interface ExplorationPlan {
   sites: ExplorationSite[];
   gestionnaire_principal: string | null;
   reference?: string;
-  instance_id?: string;
-  /** Nom de la structure d'origine — fédération uniquement (#636). */
-  instance_libelle?: string;
-  url_instance?: string;
+  instance_id: string;
+  /** Nom de la structure d'origine, toujours renseigné (#692). */
+  instance_libelle: string;
+  url_instance: string;
   /** #683 — Le plan existe dans cette base : sa page réelle s'ouvre. */
   acces_direct?: boolean;
   /**
@@ -279,6 +279,21 @@ export interface ExplorationInstance {
   plans: number;
   contenus: number;
   derniere_publication: string | null;
+}
+
+/**
+ * #692 — Noms des structures sur lesquelles porte une recherche : celles
+ * retenues par le filtre « Structure d'origine », toutes sinon. Vide tant que
+ * la liste n'est pas connue.
+ */
+export function nomsStructures(
+  instances: Pick<ExplorationInstance, 'instance_id' | 'libelle'>[],
+  selection?: string[],
+): string {
+  const retenues = selection?.length
+    ? instances.filter((i) => selection.includes(i.instance_id))
+    : instances;
+  return retenues.map((i) => i.libelle || i.instance_id).join(', ');
 }
 
 /** Département du filtre « zone géographique ». */

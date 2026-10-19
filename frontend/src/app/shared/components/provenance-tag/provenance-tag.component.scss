@@ -1,0 +1,30 @@
+@import 'variables';
+
+/*
+ * #692 — pastille de provenance, reprise de `.exploration-source` (#636).
+ *
+ * Aplat pastel de la palette « Tags » et texte noir : les fonds pleins du
+ * design system (primary, terra cotta) exigent du texte blanc et attireraient
+ * l'œil plus que le titre du résultat, qu'ils jouxtent.
+ */
+:host {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.provenance-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  padding: 2px $spacing-sm;
+  border-radius: $border-radius-pill;
+  background-color: $tag-cyan;
+  color: $black;
+  font-size: $font-size-small;
+  line-height: $line-height-small;
+  white-space: nowrap;
+
+  i {
+    font-size: $font-size-small;
+  }
+}

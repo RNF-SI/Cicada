@@ -1,4 +1,5 @@
-import { referencePlan, segmenterSurTerme } from './exploration.model';
+import {
+  nomsStructures, referencePlan, segmenterSurTerme } from './exploration.model';
 
 describe('referencePlan', () => {
   it('utilise la référence quand le plan vient de la fédération', () => {
@@ -73,5 +74,25 @@ describe('segmenterSurTerme', () => {
 
   it('rend une liste vide pour un texte vide', () => {
     expect(segmenterSurTerme('', 'flamant')).toEqual([]);
+  });
+});
+
+
+describe('nomsStructures (#692)', () => {
+  const instances = [
+    { instance_id: 'rnf', libelle: 'Réserves Naturelles de France' },
+    { instance_id: 'cen', libelle: 'CEN Auvergne-Rhône-Alpes' },
+  ] as any;
+
+  it('nomme toutes les structures quand aucune n\'est filtrée', () => {
+    expect(nomsStructures(instances)).toBe('Réserves Naturelles de France, CEN Auvergne-Rhône-Alpes');
+  });
+
+  it('se limite aux structures retenues par le filtre', () => {
+    expect(nomsStructures(instances, ['cen'])).toBe('CEN Auvergne-Rhône-Alpes');
+  });
+
+  it('vide tant que la liste n\'est pas connue', () => {
+    expect(nomsStructures([])).toBe('');
   });
 });

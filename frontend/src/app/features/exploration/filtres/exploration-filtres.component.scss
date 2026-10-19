@@ -82,6 +82,18 @@
   border-bottom: 1px solid rgba($white, 0.4);
 }
 
+/* #692 — une seule structure explorée : nommée en lecture seule, blanc sur
+   le fond primaire du panneau, comme le reste des libellés. */
+.exploration-filtres-seule {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin: 0;
+  color: $white;
+  font-size: $font-size-small;
+  line-height: $line-height-small;
+}
+
 /* Portée de la recherche (#681) : les interrupteurs vivent dans le groupe,
    sans bordure entre eux ; l'aide est lue sous chaque libellé. */
 .exploration-portee-base {

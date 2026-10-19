@@ -181,7 +181,14 @@
         {{ 'exploration.results.error' | translate }}
       </p>
     } @else if (!resultats().length) {
-      <p class="exploration-etat">{{ 'exploration.results.empty' | translate }}</p>
+      <p class="exploration-etat" data-testid="exploration-vide">
+        {{ 'exploration.results.empty' | translate }}
+        @if (structuresCherchees()) {
+          <span class="exploration-etat-structures">
+            {{ 'exploration.results.emptyStructures' | translate: { structures: structuresCherchees() } }}
+          </span>
+        }
+      </p>
     } @else {
       <!-- #651 / #650 — Dire que les résultats sont approchants.
            Sans ça, un résultat sans rapport visible avec la requête se lit
@@ -243,15 +250,12 @@
                     <span class="exploration-tuile-titre-texte" data-testid="exploration-titre">@for (segment of segments(contenu.titre, contenu); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</span>
                   </p>
                   <div class="exploration-tuile-tags">
-                    <!-- #636 — D'où vient ce résultat. Présent uniquement en
-                         exploration fédérée : en local, tout vient d'ici, et
-                         le répéter sur chaque tuile serait du bruit. -->
-                    @if (contenu.plan.instance_libelle) {
-                      <span class="exploration-source" data-testid="exploration-source">
-                        <i class="fi fi-rr-globe" aria-hidden="true"></i>
-                        {{ contenu.plan.instance_libelle }}
-                      </span>
-                    }
+                    <!-- #636 / #692 — D'où vient ce résultat, en local comme
+                         en fédéré : l'utilisateur ne sait pas toujours dans
+                         quel mode il cherche. -->
+                    <app-provenance-tag
+                      [libelle]="contenu.instance_libelle || contenu.plan.instance_libelle"
+                      [instanceId]="contenu.instance_id" />
                   </div>
                 </div>
 

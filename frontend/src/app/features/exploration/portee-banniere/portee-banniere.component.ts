@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { AuthService } from '../../../core/services/auth.service';
+import { nomsStructures } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import { SettingsService } from '../../../core/services/settings.service';
 
@@ -44,6 +45,8 @@ export class PorteeBanniereComponent {
 
   readonly partageActif = computed(() => this.settings.partageFederationActif());
   readonly nombreStructures = computed(() => this.instances().length);
+  /** #692 — les structures nommées, et pas seulement comptées. */
+  readonly noms = computed(() => nomsStructures(this.instances()));
   readonly peutActiver = computed(() => this.auth.isSuperAdmin());
 
   /**

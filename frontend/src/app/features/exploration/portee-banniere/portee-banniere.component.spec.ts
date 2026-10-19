@@ -18,7 +18,7 @@ describe('PorteeBanniereComponent (#636)', () => {
   }) {
     const instances = Array.from({ length: options.structures ?? 1 }, (_, i) => ({
       instance_id: `i${i}`,
-      instance_libelle: `Structure ${i}`,
+      libelle: `Structure ${i}`,
     }));
 
     await TestBed.resetTestingModule()
@@ -62,6 +62,12 @@ describe('PorteeBanniereComponent (#636)', () => {
       expect(trouver('exploration-perimetre-national')).toBeNull();
     });
 
+    it('#692 — nomme la structure explorée', async () => {
+      await setup({ partage: false, superAdmin: false });
+
+      expect(trouver('exploration-perimetre-structure')!.textContent).toContain('Structure 0');
+    });
+
     it('invite à contacter l\'administrateur, sans lien, pour un autre rôle', async () => {
       await setup({ partage: false, superAdmin: false });
 
@@ -82,6 +88,13 @@ describe('PorteeBanniereComponent (#636)', () => {
       expect(trouver('exploration-perimetre-national')!.textContent).toContain(
         'exploration.perimetreNational.nationaleDetail',
       );
+    });
+
+    it('#692 — nomme les structures sur lesquelles porte la recherche', async () => {
+      await setup({ partage: true, superAdmin: false, structures: 2 });
+
+      expect(trouver('exploration-perimetre-structures')!.textContent)
+        .toContain('Structure 0, Structure 1');
     });
 
     it('reste générique tant qu\'une seule structure est connue', async () => {

@@ -104,7 +104,14 @@
         {{ 'exploration.results.error' | translate }}
       </p>
     } @else if (!resultats().length) {
-      <p class="exploration-etat">{{ 'exploration.results.empty' | translate }}</p>
+      <p class="exploration-etat" data-testid="exploration-vide">
+        {{ 'exploration.results.empty' | translate }}
+        @if (structuresCherchees()) {
+          <span class="exploration-etat-structures">
+            {{ 'exploration.results.emptyStructures' | translate: { structures: structuresCherchees() } }}
+          </span>
+        }
+      </p>
     } @else {
       <ul class="exploration-tuiles" data-testid="exploration-plans-resultats">
         <!-- Suivi par référence et non par `id_pg` : cet identifiant est une
@@ -119,15 +126,13 @@
               <div class="exploration-tuile-corps">
                 <div class="exploration-tuile-entete">
                   <p class="exploration-tuile-titre" data-testid="exploration-titre">@for (segment of segments(plan.nom); track $index) {@if (segment.surligne) {<mark>{{ segment.texte }}</mark>} @else {{{ segment.texte }}}}</p>
-                  <!-- #636 — D'où vient ce plan. Deux structures produisent
-                       couramment des plans homonymes : sans la provenance, la
-                       liste ne permet pas de les distinguer. -->
-                  @if (plan.instance_libelle) {
-                    <span class="exploration-source" data-testid="exploration-source">
-                      <i class="fi fi-rr-globe" aria-hidden="true"></i>
-                      {{ plan.instance_libelle }}
-                    </span>
-                  }
+                  <!-- #636 / #692 — D'où vient ce plan, en local comme en
+                       fédéré. Deux structures produisent couramment des plans
+                       homonymes : sans la provenance, la liste ne permet pas
+                       de les distinguer. -->
+                  <app-provenance-tag
+                    [libelle]="plan.instance_libelle"
+                    [instanceId]="plan.instance_id" />
                 </div>
 
                 @if (plan.sites.length) {

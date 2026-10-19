@@ -1,5 +1,6 @@
 
 import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -10,6 +11,7 @@ import {
   ExplorationTri,
   SegmentTexte,
   referencePlan,
+  nomsStructures,
   segmenterSurTerme,
 } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
@@ -22,6 +24,7 @@ import { HeaderComponent } from '../../../shared/components/header/header.compon
 import { criteresDepuisUrl, criteresVersUrl } from '../exploration-url';
 import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.component';
 import { PorteeBanniereComponent } from '../portee-banniere/portee-banniere.component';
+import { ProvenanceTagComponent } from '../../../shared/components/provenance-tag/provenance-tag.component';
 
 /**
  * Résultats du mode « rechercher un plan de gestion ».
@@ -44,6 +47,7 @@ import { PorteeBanniereComponent } from '../portee-banniere/portee-banniere.comp
     FilterOptionListComponent,
     FilterPanelDirective,
     PorteeBanniereComponent,
+    ProvenanceTagComponent,
   ],
   templateUrl: './exploration-plans.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -75,6 +79,17 @@ export class ExplorationPlansComponent {
   }
 
   readonly criteres = signal<ExplorationCriteres>({});
+
+  /**
+   * #692 — Les structures sur lesquelles la recherche a porté, nommées dans
+   * l'état vide : « aucun résultat » ne dit pas où l'on a cherché.
+   */
+  private readonly instancesExplorees = toSignal(this.exploration.instances(), {
+    initialValue: [],
+  });
+  readonly structuresCherchees = computed(() =>
+    nomsStructures(this.instancesExplorees(), this.criteres().instances),
+  );
   readonly motCle = signal('');
   readonly resultats = signal<ExplorationPlan[]>([]);
   readonly total = signal(0);

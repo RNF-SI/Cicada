@@ -102,3 +102,15 @@
     color: $white;
   }
 }
+
+/* #692 — les structures nommées à la suite du compte / du titre. */
+.portee-structures,
+.portee-structure {
+  font-weight: $font-weight-bold;
+  color: $black;
+
+  &::before {
+    content: '— ';
+    font-weight: $font-weight-regular;
+  }
+}

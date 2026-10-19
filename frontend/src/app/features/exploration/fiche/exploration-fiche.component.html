@@ -20,6 +20,10 @@
           <a routerLink="/exploration" class="exploration-fil-lien">
             {{ 'exploration.title' | translate }}
           </a>
+          <!-- #692 — la structure d'origine dans le fil d'Ariane :
+               « Exploration › Structure › Plan ». -->
+          <span class="exploration-fil-separateur">&rsaquo;</span>
+          <span data-testid="fiche-fil-structure">{{ p.instance_libelle }}</span>
           <span class="exploration-fil-separateur">&rsaquo;</span>
           <span>{{ p.nom }}</span>
         </nav>
@@ -72,32 +76,38 @@
         </ul>
       </section>
 
-      <!-- #636 — Provenance de la fiche.
+      <!-- #636 / #692 — Provenance de la fiche, toujours affichée, en tête.
            Une fiche ouverte depuis une recherche transverse ne dit rien, par
            elle-même, de la structure qui l'a rédigée ni de la fraîcheur de ce
-           qu'elle montre : c'est un instantané déposé par l'instance d'origine,
-           pas une lecture en direct de sa base. -->
-      @if (p.instance_libelle) {
-        <p class="fiche-provenance" data-testid="fiche-provenance">
-          <i class="fi fi-rr-globe" aria-hidden="true"></i>
-          <span>
+           qu'elle montre. Servie par le hub, c'est un instantané déposé par
+           l'instance d'origine (daté, lien vers la source) ; servie par cette
+           instance, une lecture en direct de sa base (pas de date). -->
+      <p class="fiche-provenance" data-testid="fiche-provenance">
+        <app-provenance-tag
+          [libelle]="p.instance_libelle"
+          [instanceId]="p.instance_id"
+          [datePublication]="p.date_publication" />
+        <span>
+          @if (p.date_publication) {
             {{ 'exploration.fiche.provenance' | translate: {
               structure: p.instance_libelle,
               date: (p.date_publication | date: 'dd/MM/yyyy') ?? ''
             } }}
-          </span>
-          @if (p.url_instance) {
-            <a
-              class="link-default"
-              [href]="lienSource(p)"
-              target="_blank"
-              rel="noopener noreferrer">
-              {{ 'exploration.fiche.voirSource' | translate }}
-              <i class="fi fi-rr-arrow-up-right-from-square" aria-hidden="true"></i>
-            </a>
+          } @else {
+            {{ 'exploration.fiche.provenanceDirecte' | translate: { structure: p.instance_libelle } }}
           }
-        </p>
-      }
+        </span>
+        @if (p.date_publication && p.url_instance) {
+          <a
+            class="link-default"
+            [href]="lienSource(p)"
+            target="_blank"
+            rel="noopener noreferrer">
+            {{ 'exploration.fiche.voirSource' | translate }}
+            <i class="fi fi-rr-arrow-up-right-from-square" aria-hidden="true"></i>
+          </a>
+        }
+      </p>
 
       <!-- Périmètre de la fiche -->
       <p class="fiche-lecture-seule">

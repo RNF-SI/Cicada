@@ -214,20 +214,18 @@ export interface FichePlan {
   actions: FicheAction[];
 
   /**
-   * #636 — Provenance, ajoutée par le hub à côté de la fiche publiée.
-   *
-   * Absente quand la fiche est servie par l'instance elle-même : il n'y a alors
-   * qu'une provenance possible, celle de l'application qu'on est en train de
-   * consulter.
+   * #636 / #692 — Provenance, toujours renseignée : ajoutée par le hub à côté
+   * de la fiche publiée, ou par l'instance quand elle sert sa propre fiche.
    *
    * `date_publication` est l'âge de l'instantané, pas celui du plan : le hub
    * ressert la fiche telle que l'instance l'a déposée, et elle vieillit jusqu'à
    * la publication suivante. La taire ferait passer un instantané pour une
-   * donnée jointe à la volée.
+   * donnée jointe à la volée. Nulle quand la fiche est lue en direct dans
+   * cette base.
    */
   reference?: string;
-  instance_id?: string;
-  instance_libelle?: string;
-  url_instance?: string;
-  date_publication?: string;
+  instance_id: string;
+  instance_libelle: string;
+  url_instance: string;
+  date_publication: string | null;
 }

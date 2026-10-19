@@ -173,6 +173,10 @@ test.describe('Exploration servie par le hub', () => {
         'des résultats locaux.',
     ).toBeVisible({ timeout: 20000 });
 
+    // #692 — une pastille sur CHAQUE ligne, pas seulement sur certaines.
+    const lignes = page.getByTestId(RESULTATS).locator('.exploration-tuile');
+    await expect(sources).toHaveCount(await lignes.count());
+
     // Plusieurs structures nommées, et non un même libellé répété : c'est ce
     // qui rend la liste lisible.
     const libelles = new Set(

@@ -10,6 +10,7 @@ donnée jointe ne peut pas devenir obsolète, contrairement à une copie.
 from django.db.models import Prefetch
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
+from django.conf import settings
 from rest_framework import serializers
 
 from apps.geo.models import LArea
@@ -63,6 +64,43 @@ def _sites_du_plan(plan):
     return [lien.site for lien in getattr(plan, 'sites_ordonnes', [])]
 
 
+def identite_locale():
+    """
+    Provenance d'une donnée de cette instance (#692).
+
+    Les réponses relayées par le hub nomment la structure d'origine ; celles de
+    l'exploration locale ne le faisaient pas, et la pastille de provenance
+    n'apparaissait jamais. Même forme des deux côtés : le nom de la structure,
+    jamais vide — à défaut l'identifiant, mieux vaut une provenance laide
+    qu'une provenance absente — et l'adresse publique de l'instance.
+    """
+    return {
+        'instance_id': settings.CICADA_INSTANCE_ID,
+        'instance_libelle': settings.CICADA_INSTANCE_LABEL or settings.CICADA_INSTANCE_ID,
+        'url_instance': settings.CICADA_PUBLIC_URL or '',
+    }
+
+
+class ProvenanceLocaleMixin(serializers.Serializer):
+    """Ajoute la provenance de cette instance à un plan de cette base (#692)."""
+
+    instance_id = serializers.SerializerMethodField()
+    instance_libelle = serializers.SerializerMethodField()
+    url_instance = serializers.SerializerMethodField()
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_instance_id(self, objet):
+        return identite_locale()['instance_id']
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_instance_libelle(self, objet):
+        return identite_locale()['instance_libelle']
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_url_instance(self, objet):
+        return identite_locale()['url_instance']
+
+
 class SiteResumeSerializer(serializers.Serializer):
     """Site tel qu'affiché sur une tuile de résultat."""
 
@@ -71,7 +109,7 @@ class SiteResumeSerializer(serializers.Serializer):
     slug = serializers.CharField()
 
 
-class PlanResumeSerializer(serializers.Serializer):
+class PlanResumeSerializer(ProvenanceLocaleMixin, serializers.Serializer):
     """Bandeau « Plan de gestion / Gestionnaire / Période » d'une tuile."""
 
     id_pg = serializers.IntegerField()
@@ -106,6 +144,8 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
     """Une tuile de résultat du mode « contenu d'un plan de gestion »."""
 
     plan = serializers.SerializerMethodField()
+    # #692 — le nom de la structure d'origine, comme le hub.
+    instance_libelle = serializers.SerializerMethodField()
 
     correspondances = serializers.SerializerMethodField()
     extraits = serializers.SerializerMethodField()
@@ -121,7 +161,7 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
             # #682 — l'arborescence qui mène à l'objet, et la branche à ouvrir.
             'chemin', 'enjeu_slug',
             'sous_type', 'sous_type_libelle',
-            'instance_id',
+            'instance_id', 'instance_libelle',
             # #650 / #681 — pourquoi ce résultat est là, et quel mot surligner.
             'correspondances', 'extraits', 'termes_surlignes',
             # #683 — ce plan existe dans cette base : ses écrans réels s'ouvrent.
@@ -142,6 +182,18 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
         return contenu.id_pg_id is not None
 
     @extend_schema_field(PlanResumeSerializer)
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_instance_libelle(self, contenu):
+        """
+        Structure d'origine (#692) : cette instance pour un document produit
+        ici ; pour un document reçu d'une autre instance, le nom recopié dans
+        l'instantané de son plan, à défaut son identifiant.
+        """
+        local = identite_locale()
+        if contenu.instance_id == local['instance_id']:
+            return local['instance_libelle']
+        return (contenu.plan_denorm or {}).get('instance_libelle') or contenu.instance_id
+
     def get_plan(self, contenu):
         """
         Bandeau du plan — joint pour un document local, recopié pour un distant.
@@ -219,7 +271,7 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
         return extraits
 
 
-class PlanResultatSerializer(serializers.ModelSerializer):
+class PlanResultatSerializer(ProvenanceLocaleMixin, serializers.ModelSerializer):
     """Une tuile de résultat du mode « plan de gestion »."""
 
     type_document = serializers.SerializerMethodField()
@@ -235,6 +287,8 @@ class PlanResultatSerializer(serializers.ModelSerializer):
             'id_pg', 'nom', 'slug', 'statut', 'rang',
             'annee_debut', 'annee_fin',
             'type_document', 'sites', 'gestionnaire_principal',
+            # #692 — même provenance que les tuiles relayées par le hub.
+            'instance_id', 'instance_libelle', 'url_instance',
             'acces_direct', 'zones_correspondantes',
         ]
 

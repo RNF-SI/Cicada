@@ -3745,7 +3745,8 @@
         "archive": "Archivé",
         "valide": "Validé"
       },
-      "instances": "Structure d'origine"
+      "instances": "Structure d'origine",
+      "instanceSeule": "{{structure}} — seule structure explorée"
     },
     "sort": {
       "label": "Trier par :",
@@ -3786,7 +3787,8 @@
         "ficheAction": "Ouvre la fiche action",
         "plan": "Ouvre la page du plan de gestion",
         "distant": "— instantané publié par la structure d'origine"
-      }
+      },
+      "emptyStructures": "Recherche menée dans : {{structures}}."
     },
     "stats": {
       "title": "En quelques chiffres",
@@ -3856,7 +3858,8 @@
       "toutReplier": "Tout replier",
       "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés.",
       "provenance": "Fiche publiée par {{structure}} le {{date}}. Elle reflète l'état du plan à cette date.",
-      "voirSource": "Voir chez la structure"
+      "voirSource": "Voir chez la structure",
+      "provenanceDirecte": "Fiche de {{structure}}, lue en direct dans cette instance."
     },
     "portee": {
       "title": "Portée de la recherche",
@@ -3902,6 +3905,10 @@
       "resultat_attendu": "Résultat attendu",
       "indicateur": "Indicateur",
       "action": "Action"
+    },
+    "provenance": {
+      "identifiant": "Identifiant : {{id}}",
+      "publication": "publié le {{date}}"
     }
   },
   "errors": {

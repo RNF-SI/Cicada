@@ -6,8 +6,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import {
   EXPLORATION_PORTEES,
   ExplorationCriteres,
-  ExplorationPortee,
-} from '../../../core/models/exploration.model';
+  ExplorationPortee, nomsStructures } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
 import {
   FilterDropdownComponent,
@@ -62,9 +61,9 @@ export class ExplorationFiltresComponent {
   /**
    * #636 — Structures dont les données alimentent la recherche.
    *
-   * Le groupe n'est affiché qu'au-delà d'une structure : en exploration locale,
-   * proposer de filtrer sur la seule provenance possible n'offrirait aucun
-   * choix et laisserait croire qu'il en existe d'autres.
+   * #692 — Le groupe est toujours affiché : il rend visible la portée de la
+   * recherche au lieu de la sous-entendre. Avec une seule structure, il la
+   * nomme en lecture seule (aucun choix à offrir).
    */
   private readonly instances = toSignal(this.exploration.instances(), {
     initialValue: [],
@@ -105,6 +104,11 @@ export class ExplorationFiltresComponent {
 
   /** Vrai quand la recherche agrège plusieurs structures. */
   protected readonly federee = computed(() => this.instances().length > 1);
+
+  /** #692 — la seule structure explorée, nommée quand il n'y a pas de choix. */
+  protected readonly structureUnique = computed(() =>
+    this.federee() ? '' : nomsStructures(this.instances()),
+  );
 
   protected readonly optionsTypesSite = computed(() =>
     this.typesSite().map((nomenclature) => ({

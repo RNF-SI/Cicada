@@ -1080,3 +1080,56 @@ class TestFicheActionDetaillee:
         with django_assert_max_num_queries(25):
             reponse = client_connecte.get(url_fiche(plan))
         assert len(reponse.data['actions']) == 6
+
+
+# --------------------------------------------------------------------------- #
+# #692 — Provenance, en exploration locale comme fédérée
+# --------------------------------------------------------------------------- #
+
+@pytest.mark.integration
+class TestProvenanceLocale:
+    """
+    En exploration locale, aucune réponse ne nommait la structure : la pastille
+    de provenance n'apparaissait donc jamais. Les réponses portent désormais
+    `instance_libelle` et `url_instance`, comme celles relayées par le hub.
+    """
+
+    @pytest.fixture(autouse=True)
+    def identite(self, settings):
+        settings.CICADA_INSTANCE_ID = 'rnf'
+        settings.CICADA_INSTANCE_LABEL = 'Réserves Naturelles de France'
+        settings.CICADA_PUBLIC_URL = 'https://cicada.rnf.example'
+
+    def test_tuile_plan(self, client_connecte, jeu_de_donnees):
+        tuile = next(p for p in client_connecte.get(URL_PLANS).data['results']
+                     if p['nom'] == 'Plan Ouest')
+        assert tuile['instance_id'] == 'rnf'
+        assert tuile['instance_libelle'] == 'Réserves Naturelles de France'
+        assert tuile['url_instance'] == 'https://cicada.rnf.example'
+
+    def test_ligne_de_contenu_et_son_plan(self, client_connecte, jeu_de_donnees):
+        for plan in jeu_de_donnees['plans'].values():
+            index_plan(plan)
+        ligne = client_connecte.get(URL_CONTENUS, {'q': 'limicoles'}).data['results'][0]
+        assert ligne['instance_libelle'] == 'Réserves Naturelles de France'
+        assert ligne['plan']['instance_id'] == 'rnf'
+        assert ligne['plan']['instance_libelle'] == 'Réserves Naturelles de France'
+        assert ligne['plan']['url_instance'] == 'https://cicada.rnf.example'
+
+    def test_fiche(self, client_connecte, jeu_de_donnees):
+        fiche = client_connecte.get(url_fiche(jeu_de_donnees['plans']['ouest'])).data
+        assert fiche['instance_id'] == 'rnf'
+        assert fiche['instance_libelle'] == 'Réserves Naturelles de France'
+        assert fiche['url_instance'] == 'https://cicada.rnf.example'
+        # Lecture en direct de cette base, pas un instantané déposé.
+        assert fiche['date_publication'] is None
+
+    def test_sans_libelle_on_retombe_sur_l_identifiant(
+        self, client_connecte, jeu_de_donnees, settings
+    ):
+        """Jamais vide : mieux vaut une provenance laide qu'une provenance absente."""
+        settings.CICADA_INSTANCE_LABEL = ''
+        tuile = client_connecte.get(URL_PLANS).data['results'][0]
+        assert tuile['instance_libelle'] == 'rnf'
+        instances = client_connecte.get('/api/exploration/instances/').json()['instances']
+        assert instances[0]['libelle'] == 'rnf'

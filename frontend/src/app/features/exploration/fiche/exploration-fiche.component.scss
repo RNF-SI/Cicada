@@ -531,7 +531,9 @@ app-accordion.cible-enjeu {
   margin: 0 0 $spacing-sm;
   padding: $spacing-sm $spacing-md;
   border-radius: $border-radius-sm;
-  background-color: $tag-cyan;
+  /* #692 — fond blanc filet cyan : la pastille cyan s'y détache. */
+  border: 1px solid $tag-cyan;
+  background-color: $white;
   color: $black;
   font-size: $font-size-small;
   line-height: $line-height-small;

@@ -5,6 +5,11 @@
     data-testid="exploration-perimetre-national">
     <i class="fi fi-rr-globe" aria-hidden="true"></i>
     <span>{{ cleNationale() | translate: { count: nombreStructures() } }}</span>
+    @if (noms()) {
+      <!-- #692 — les structures nommées : un compte seul ne dit pas d'où
+           viennent les résultats. -->
+      <span class="portee-structures" data-testid="exploration-perimetre-structures">{{ noms() }}</span>
+    }
   </p>
 } @else {
   <!-- Permanent et non refermable : l'utilisateur doit savoir, à chaque
@@ -18,6 +23,9 @@
     <div class="portee-locale-corps">
       <p class="portee-locale-titre">
         {{ 'exploration.perimetreNational.locale.title' | translate }}
+        @if (noms()) {
+          <span class="portee-structure" data-testid="exploration-perimetre-structure">{{ noms() }}</span>
+        }
       </p>
       <p class="portee-locale-texte">
         {{ 'exploration.perimetreNational.locale.incitation' | translate }}

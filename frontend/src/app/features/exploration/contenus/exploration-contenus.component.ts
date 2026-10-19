@@ -17,6 +17,7 @@ import {
   ExplorationType,
   SegmentTexte,
   referencePlan,
+  nomsStructures,
   segmenterSurTerme,
 } from '../../../core/models/exploration.model';
 import { ExplorationService } from '../../../core/services/exploration.service';
@@ -29,6 +30,7 @@ import { HeaderComponent } from '../../../shared/components/header/header.compon
 import { criteresDepuisUrl, criteresVersUrl } from '../exploration-url';
 import { ExplorationFiltresComponent } from '../filtres/exploration-filtres.component';
 import { PorteeBanniereComponent } from '../portee-banniere/portee-banniere.component';
+import { ProvenanceTagComponent } from '../../../shared/components/provenance-tag/provenance-tag.component';
 
 /** Une puce de filtre actif, avec de quoi la retirer. */
 interface PuceFiltre {
@@ -87,6 +89,7 @@ const FRAGMENT_PAR_TYPE: Partial<Record<ExplorationType, string>> = {
     FilterOptionListComponent,
     FilterPanelDirective,
     PorteeBanniereComponent,
+    ProvenanceTagComponent,
   ],
   templateUrl: './exploration-contenus.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -232,6 +235,17 @@ export class ExplorationContenusComponent {
   });
 
   readonly criteres = signal<ExplorationCriteres>({});
+
+  /**
+   * #692 — Les structures sur lesquelles la recherche a porté, nommées dans
+   * l'état vide : « aucun résultat » ne dit pas où l'on a cherché.
+   */
+  private readonly instancesExplorees = toSignal(this.exploration.instances(), {
+    initialValue: [],
+  });
+  readonly structuresCherchees = computed(() =>
+    nomsStructures(this.instancesExplorees(), this.criteres().instances),
+  );
   readonly motCle = signal('');
   readonly resultats = signal<ExplorationContenu[]>([]);
   readonly compteurs = signal<Record<string, number>>({});

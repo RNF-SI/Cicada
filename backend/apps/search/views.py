@@ -44,7 +44,7 @@ from .pagination import ExplorationPagination, FederationPagination
 from .relay import reference_plan, relais_actif, relayer
 from . import schema
 from .serializers import (
-    ContenuResultatSerializer, PlanResultatSerializer, prefetch_sites,
+    ContenuResultatSerializer, PlanResultatSerializer, identite_locale, prefetch_sites,
 )
 from .serializers_fiche import FichePubliqueSerializer
 
@@ -271,7 +271,14 @@ class ExplorationPlanViewSet(ViewSet):
             .prefetch_related(_prefetch_sites()),
             slug=slug,
         )
-        return Response(FichePubliqueSerializer(construire_fiche(plan)).data)
+        # #692 — même provenance que la fiche servie par le hub. Pas de date de
+        # publication : c'est une lecture en direct de cette base, pas un
+        # instantané déposé.
+        return Response({
+            **FichePubliqueSerializer(construire_fiche(plan)).data,
+            **identite_locale(),
+            'date_publication': None,
+        })
 
     @extend_schema(
         operation_id='exploration_plans_list',
@@ -357,7 +364,8 @@ class InstancesExplorationView(APIView):
             'count': 1,
             'instances': [{
                 'instance_id': settings.CICADA_INSTANCE_ID,
-                'libelle': settings.CICADA_INSTANCE_LABEL,
+                # #692 — jamais vide, comme la provenance des résultats.
+                'libelle': identite_locale()['instance_libelle'],
                 'url_publique': settings.CICADA_PUBLIC_URL,
                 'plans': PlanGestion.objects.filter(
                     statut__in=INDEXED_STATUSES

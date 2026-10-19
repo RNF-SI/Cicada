@@ -37,11 +37,13 @@ import { SurlignerDirective } from '../../../shared/directives/surligner.directi
  * l'enjeu contenant l'objet trouvé et le met en évidence : sans cela, arriver
  * sur un plan de deux cents objets pour en retrouver un seul serait pénible.
  */
+import { ProvenanceTagComponent } from '../../../shared/components/provenance-tag/provenance-tag.component';
 @Component({
   selector: 'app-exploration-fiche',
   standalone: true,
   imports: [
     CommonModule,
+    ProvenanceTagComponent,
     RouterModule,
     TranslateModule,
     HeaderComponent,
