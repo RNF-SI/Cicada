@@ -299,6 +299,14 @@ def _lecteur(nom, plan, site):
         user = RoleFactory(role_level='redacteur_principal')
         plan.referents.add(user)
         return user
+    if nom == 'redacteur_externe_referent':
+        user = RoleFactory(role_level='redacteur')
+        plan.referents.add(user)
+        return user
+    if nom == 'redacteur_externe_membre':
+        user = RoleFactory(role_level='redacteur')
+        CorRolePlanFactory(id_role=user, plan_de_gestion=plan)
+        return user
     if nom == 'admin_og_du_site':
         user = AdminOrganismeFactory()
         CorOgSiteFactory(id_site=site, uuid_og=user.id_organisme)
@@ -325,6 +333,7 @@ class TestPlansNonPublicsOuvertsAuxLecteursLegitimes:
     @pytest.mark.parametrize('etat', ETATS_NON_PUBLICS, ids=lambda e: e.get('validation_step') or e['statut'])
     @pytest.mark.parametrize('lecteur', (
         'super_admin', 'redacteur_principal', 'redacteur_principal_referent',
+        'redacteur_externe_referent', 'redacteur_externe_membre',
         'admin_og_du_site', 'referent_du_plan', 'membre_du_plan', 'membre_du_site',
     ))
     def test_tous_les_ecrans_et_la_liste(self, lecteur, etat):
