@@ -418,9 +418,17 @@
     } @else if (chargement()) {
       <p class="fiche-etat">{{ 'common.loading' | translate }}</p>
     } @else {
-      <p class="fiche-etat info-block-error">
-        {{ 'exploration.fiche.introuvable' | translate }}
-      </p>
+      @if (autreStructure() !== null) {
+        <!-- #703 — lien vers la fiche d'une autre structure, ouvert ici en
+             exploration locale : jamais l'homonyme local. -->
+        <p class="fiche-etat info-block-warning" data-testid="fiche-autre-structure">
+          {{ 'exploration.fiche.autreStructure' | translate: { structure: autreStructure() } }}
+        </p>
+      } @else {
+        <p class="fiche-etat info-block-error">
+          {{ 'exploration.fiche.introuvable' | translate }}
+        </p>
+      }
     }
   </div>
 </main>

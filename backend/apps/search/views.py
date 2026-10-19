@@ -265,6 +265,23 @@ class ExplorationPlanViewSet(ViewSet):
         if relais_actif():
             return relayer(f'/api/exploration/plans/{reference_plan(slug)}/')
 
+        # #703 — une référence « instance:slug » ouverte en exploration locale
+        # (lien produit sur l'exploration nationale, partagé). Celle de cette
+        # instance désigne l'un de ses plans ; celle d'une autre structure n'a
+        # pas de fiche ici, et ouvrir l'homonyme local serait une réponse fausse
+        # et silencieuse.
+        if ':' in slug:
+            instance, slug = slug.split(':', 1)
+            if instance != settings.CICADA_INSTANCE_ID:
+                return Response({
+                    'erreur': 'autre_structure',
+                    'instance_id': instance,
+                    'detail': (
+                        "Ce plan appartient à une autre structure : sa fiche n'est "
+                        "consultable que depuis l'exploration nationale."
+                    ),
+                }, status=404)
+
         plan = get_object_or_404(
             PlanGestion.objects.filter(statut__in=INDEXED_STATUSES)
             .select_related('id_type_document')

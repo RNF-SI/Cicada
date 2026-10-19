@@ -150,6 +150,15 @@ export class ExplorationService {
     return this.instances$;
   }
 
+  /**
+   * #703 — Oublie la liste des structures : elle dépend du mode d'exploration
+   * (hub ou local), qui se bascule depuis les paramètres sans recharger la
+   * page (#695). Sans cela, l'exploration garderait celle de l'ancien mode.
+   */
+  oublierInstances(): void {
+    this.instances$ = undefined;
+  }
+
   /** Nomenclature complète d'un type, mise en cache (référentiel figé). */
   nomenclatures(type: string): Observable<NomenclatureOption[]> {
     if (!this.nomenclatures$.has(type)) {

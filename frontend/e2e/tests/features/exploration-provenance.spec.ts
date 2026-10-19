@@ -54,4 +54,25 @@ test.describe('Exploration locale — provenance (#692)', () => {
     await expect(page.getByTestId('fiche-provenance')).toContainText(plan.instance_libelle, { timeout: 20000 });
     await expect(page.getByTestId('fiche-fil-structure')).toHaveText(plan.instance_libelle);
   });
+
+  // #703 — un lien « instance:slug » partagé depuis l'exploration nationale,
+  // ouvert sur une instance qui explore en local.
+  test('le lien vers la fiche d\'une autre structure le dit, sans ouvrir l\'homonyme local', async ({ referentPage: page }) => {
+    const { data } = await apiGet(page, 'exploration/plans/', { page_size: '1' });
+    const plan = data.results[0];
+    test.skip(!plan, 'Aucun plan validé indexé.');
+
+    await page.goto(`/exploration/plans/autre-structure:${plan.slug}`);
+    await expect(page.getByTestId('fiche-autre-structure')).toContainText('autre-structure', { timeout: 20000 });
+    await expect(page.getByTestId('fiche-provenance')).toHaveCount(0);
+  });
+
+  test('la référence de cette instance ouvre son propre plan', async ({ referentPage: page }) => {
+    const { data } = await apiGet(page, 'exploration/plans/', { page_size: '1' });
+    const plan = data.results[0];
+    test.skip(!plan, 'Aucun plan validé indexé.');
+
+    await page.goto(`/exploration/plans/${plan.instance_id}:${plan.slug}`);
+    await expect(page.getByTestId('fiche-provenance')).toContainText(plan.instance_libelle, { timeout: 20000 });
+  });
 });

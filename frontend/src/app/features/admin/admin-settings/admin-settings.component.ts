@@ -26,6 +26,7 @@ import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/compo
 export const ONGLETS_PARAMETRES = ['apparence', 'exports', 'fonctionnalites', 'exploration'] as const;
 export type OngletParametres = (typeof ONGLETS_PARAMETRES)[number];
 
+import { ExplorationService } from '../../../core/services/exploration.service';
 @Component({
   selector: 'app-admin-settings',
   standalone: true,
@@ -48,6 +49,7 @@ export type OngletParametres = (typeof ONGLETS_PARAMETRES)[number];
   styleUrl: './admin-settings.component.scss'
 })
 export class AdminSettingsComponent implements OnInit {
+  private readonly exploration = inject(ExplorationService);
   private readonly settingsService = inject(SettingsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
@@ -386,6 +388,8 @@ export class AdminSettingsComponent implements OnInit {
         // Le retrait (ou la republication) a modifié l'historique et le
         // diagnostic : un hub injoignable s'y signale par « retrait en attente ».
         this.raccordement()?.charger();
+        // #703 — sans partage, l'exploration repasse en local (et inversement).
+        this.exploration.oublierInstances();
       },
       error: () => {
         this.isSaving.set(false);

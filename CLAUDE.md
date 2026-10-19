@@ -1143,6 +1143,8 @@ une décision de l'instance (décocher le partage, ou `retrait_federation --conf
 
 Passer à `hub` fait relayer l'exploration. **Pas de repli** sur l'index local si le hub est injoignable → **502 explicite** : servir les résultats d'une seule instance sous une interface qui promet une recherche transverse ferait conclure que les plans des autres organismes n'existent pas.
 
+**Bascule hub ↔ local (#703)** : réglée en base, lue à chaque appel — aucune donnée de l'ancien mode n'est servie après la bascule, et basculer ne touche ni au consentement (`federation_partage`) ni à la publication. En local, une référence `instance:slug` (lien partagé depuis l'exploration nationale) ouvre le plan si l'instance est la sienne, sinon répond **404 `autre_structure`** — jamais l'homonyme local ; la fiche affiche alors un message dédié (`exploration.fiche.autreStructure`). Côté interface, la liste des structures (`ExplorationService.instances()`, mise en cache) est oubliée (`oublierInstances()`) dès que le raccordement est modifié ou que le partage change. Tests : `tests/apps/search/test_bascule_exploration.py`, `e2e/tests/features/exploration-provenance.spec.ts`.
+
 #### Commandes
 
 ```bash

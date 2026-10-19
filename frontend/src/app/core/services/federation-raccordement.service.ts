@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
+
+import { ExplorationService } from './exploration.service';
 
 /**
  * #696 / #698 — État du raccordement de l'instance au hub d'exploration.
@@ -195,6 +197,7 @@ export function normaliserCode(code: string): string {
 @Injectable({ providedIn: 'root' })
 export class FederationRaccordementService {
   private readonly http = inject(HttpClient);
+  private readonly exploration = inject(ExplorationService);
   private readonly apiUrl = '/api/federation/raccordement/';
 
   /** État complet (actualise l'adhésion en attente auprès du suivi côté serveur). */
@@ -218,12 +221,17 @@ export class FederationRaccordementService {
    * journalisé : il ne transite que dans cette requête.
    */
   confirmerCode(code: string): Observable<EtatRaccordement> {
-    return this.http.post<EtatRaccordement>(`${this.apiUrl}confirmation/`, { code });
+    return this.http.post<EtatRaccordement>(`${this.apiUrl}confirmation/`, { code })
+      // #703 — l'adhésion acceptée peut ouvrir le relais vers le hub.
+      .pipe(tap(() => this.exploration.oublierInstances()));
   }
 
   /** Saisie manuelle de l'URL, des jetons et du relais (#695) ; renvoie l'état. */
   configurer(saisie: SaisieRaccordement): Observable<EtatRaccordement> {
-    return this.http.patch<EtatRaccordement>(`${this.apiUrl}configuration/`, saisie);
+    return this.http.patch<EtatRaccordement>(`${this.apiUrl}configuration/`, saisie)
+      // #703 — le relais a pu basculer : l'exploration ne doit pas garder la
+      // liste des structures de l'ancien mode.
+      .pipe(tap(() => this.exploration.oublierInstances()));
   }
 
   /** Écrit à RNF (si@rnfrance.org) via l'API de suivi. */

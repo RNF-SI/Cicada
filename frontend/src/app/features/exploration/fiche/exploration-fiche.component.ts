@@ -64,6 +64,12 @@ export class ExplorationFicheComponent {
   readonly plan = signal<FichePlan | null>(null);
   readonly chargement = signal(true);
   readonly introuvable = signal(false);
+  /**
+   * #703 — Identifiant de la structure d'origine quand la fiche demandée
+   * (« instance:slug », lien partagé depuis l'exploration nationale) appartient
+   * à une autre structure alors que cette instance explore en local.
+   */
+  readonly autreStructure = signal<string | null>(null);
 
   /**
    * Lien vers cette même fiche, chez la structure qui l'a publiée (#636).
@@ -172,6 +178,7 @@ export class ExplorationFicheComponent {
   private charger(slug: string): void {
     this.chargement.set(true);
     this.introuvable.set(false);
+    this.autreStructure.set(null);
 
     this.exploration.fiche(slug).subscribe({
       next: (plan) => {
@@ -179,8 +186,11 @@ export class ExplorationFicheComponent {
         this.chargement.set(false);
         this.ouvrirCible(plan);
       },
-      error: () => {
+      error: (err: { error?: { erreur?: string; instance_id?: string } }) => {
         this.plan.set(null);
+        if (err?.error?.erreur === 'autre_structure') {
+          this.autreStructure.set(err.error.instance_id ?? '');
+        }
         this.introuvable.set(true);
         this.chargement.set(false);
       },

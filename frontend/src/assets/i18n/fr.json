@@ -3860,7 +3860,8 @@
       "actionNonPublie": "Le budget, les moyens humains et le suivi des réalisations de cette action relèvent de la gestion interne de l’organisme et ne sont pas publiés.",
       "provenance": "Fiche publiée par {{structure}} le {{date}}. Elle reflète l'état du plan à cette date.",
       "voirSource": "Voir chez la structure",
-      "provenanceDirecte": "Fiche de {{structure}}, lue en direct dans cette instance."
+      "provenanceDirecte": "Fiche de {{structure}}, lue en direct dans cette instance.",
+      "autreStructure": "Ce plan appartient à une autre structure (« {{structure}} »). Votre instance explore uniquement ses propres plans : sa fiche n'est consultable que depuis l'exploration nationale."
     },
     "portee": {
       "title": "Portée de la recherche",
