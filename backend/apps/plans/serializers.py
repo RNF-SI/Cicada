@@ -572,6 +572,28 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'sites_ids': _("Au moins un site est requis.")})
         return data
 
+    def validate_sites_ids(self, value):
+        """Rejette un site inconnu en 400 (sinon ``Site.objects.get`` lève une 500)."""
+        from apps.users.models import Site
+        connus = set(Site.objects.filter(id_site__in=value).values_list('id_site', flat=True))
+        inconnus = sorted(set(value) - connus)
+        if inconnus:
+            raise serializers.ValidationError(
+                _("Site(s) introuvable(s) : %(ids)s") % {'ids': ', '.join(map(str, inconnus))}
+            )
+        return value
+
+    def validate_organismes_redacteurs_ids(self, value):
+        """Rejette un organisme inconnu en 400 (même raison que les sites)."""
+        from apps.users.models import BibOrganismes
+        connus = set(BibOrganismes.objects.filter(id_organisme__in=value).values_list('id_organisme', flat=True))
+        inconnus = sorted(set(value) - connus)
+        if inconnus:
+            raise serializers.ValidationError(
+                _("Organisme(s) introuvable(s) : %(ids)s") % {'ids': ', '.join(map(str, inconnus))}
+            )
+        return value
+
     def create(self, validated_data):
         """Créer un plan avec ses relations."""
         sites_ids = validated_data.pop('sites_ids', [])

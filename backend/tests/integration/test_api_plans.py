@@ -377,7 +377,7 @@ class TestPlansCreateEndpoint:
         assert referent in plan.referents.all()
 
     def test_create_plan_regular_user_denied(self, api_client):
-        """Test regular users cannot create plans."""
+        """Un utilisateur simple rattaché à aucun site ne crée pas de plan."""
         user = RoleFactory()
 
         api_client.force_authenticate(user=user)
@@ -385,6 +385,80 @@ class TestPlansCreateEndpoint:
             'nom': 'Unauthorized Plan',
             'statut': 'draft'
         })
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    @staticmethod
+    def _payload(nom, *sites):
+        return {
+            'nom': nom,
+            'statut': 'draft',
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'rang': 1,
+            'ct88': False,
+            'sites_ids': [site.id_site for site in sites],
+        }
+
+    def test_create_plan_unknown_site_rejected(self, api_client):
+        """Un site inexistant donne un 400, sans laisser de plan à moitié créé."""
+        site = SiteFactory()
+        unknown_id = site.id_site + 100000
+
+        api_client.force_authenticate(user=SuperAdminFactory())
+        response = api_client.post(
+            '/api/plans/plans/',
+            {**self._payload('Plan site inconnu', site), 'sites_ids': [site.id_site, unknown_id]},
+            format='json',
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'sites_ids' in response.data
+        assert not PlanGestion.objects.filter(nom='Plan site inconnu').exists()
+
+    def test_create_plan_site_member_on_own_site(self, api_client):
+        """Un utilisateur rattaché à un site (non référent) crée un plan sur ce site."""
+        user = RoleFactory()
+        site = SiteFactory()
+        CorRoleSiteFactory(id_role=user, id_site=site)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            '/api/plans/plans/', self._payload('Plan membre', site), format='json'
+        )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        plan = PlanGestion.objects.get(nom='Plan membre')
+        assert plan.referents.filter(pk=user.pk).exists()
+        assert api_client.get(f'/api/plans/plans/by-slug/{plan.slug}/').status_code == status.HTTP_200_OK
+
+    def test_create_plan_site_member_on_other_site_denied(self, api_client):
+        """Pas de création sur un site auquel il n'est pas rattaché, même mêlé au sien."""
+        user = RoleFactory()
+        own_site, other_site = SiteFactory(), SiteFactory()
+        CorRoleSiteFactory(id_role=user, id_site=own_site)
+
+        api_client.force_authenticate(user=user)
+        # Son premier plan le rend référent de ce plan : ce statut ne doit pas
+        # lui ouvrir les autres sites.
+        first = api_client.post('/api/plans/plans/', self._payload('Premier', own_site), format='json')
+        assert first.status_code == status.HTTP_201_CREATED
+
+        for nom, sites in (('Autre site', (other_site,)), ('Sites mêlés', (own_site, other_site))):
+            response = api_client.post('/api/plans/plans/', self._payload(nom, *sites), format='json')
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert not PlanGestion.objects.filter(nom=nom).exists()
+
+    def test_create_plan_redacteur_externe_site_link_denied(self, api_client):
+        """#700 — les sites d'un rédacteur externe ne lui ouvrent pas la création."""
+        user = RoleFactory(role_level='redacteur')
+        site = SiteFactory()
+        CorRoleSiteFactory(id_role=user, id_site=site)
+
+        api_client.force_authenticate(user=user)
+        response = api_client.post(
+            '/api/plans/plans/', self._payload('Plan externe', site), format='json'
+        )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 

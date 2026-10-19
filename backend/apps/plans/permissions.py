@@ -153,6 +153,52 @@ class CanModifyOnlyDraftPlan(BasePermission):
         return None
 
 
+class CanCreatePlan(BasePermission):
+    """
+    Création d'un plan de gestion (``POST /api/plans/plans/``).
+
+    - Admin organisme et au-dessus (rédacteur principal, super admin) : sur
+      n'importe quel site.
+    - Tout autre utilisateur **rattaché à un site** (``CorRoleSite``, référent
+      ou simple membre) : sur ce(s) site(s) uniquement. Tous les sites du plan
+      doivent être des sites auxquels il est rattaché. Être référent d'un plan
+      ne suffit pas : le créateur devenant référent de son plan, ce statut
+      ouvrirait sinon tous les sites dès le premier plan créé.
+    - Rédacteur externe (#700) : ses sites n'ouvrent rien, il ne crée pas de
+      plan (il demande l'accès à un plan existant).
+
+    Un payload sans site est laissé passer pour un utilisateur rattaché :
+    le serializer renvoie alors le 400 « Au moins un site est requis ».
+    """
+
+    message = (
+        "Vous ne pouvez créer un plan de gestion que sur un site auquel vous "
+        "êtes rattaché."
+    )
+
+    def has_permission(self, request, view):
+        from apps.users.models import CorRoleSite
+
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if user.is_admin_organisme():
+            return True
+        if user.is_redacteur():
+            return False
+
+        liens = CorRoleSite.objects.filter(id_role=user)
+        data = request.data
+        raw_ids = data.getlist('sites_ids') if hasattr(data, 'getlist') else data.get('sites_ids')
+        if not raw_ids:
+            return liens.exists()
+        try:
+            site_ids = {int(site_id) for site_id in raw_ids}
+        except (TypeError, ValueError):
+            return False
+        return liens.filter(id_site__in=site_ids).values('id_site').distinct().count() == len(site_ids)
+
+
 class DraftPlanRequiredMixin:
     """
     Filet de sécurité côté `perform_create / perform_update / perform_destroy`

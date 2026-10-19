@@ -73,7 +73,7 @@ from apps.users.permissions import (
     IsReferent, IsSuperAdmin, IsAdminOrganisme
 )
 from apps.users.pagination import StandardPagination
-from .permissions import CanModifyOnlyDraftPlan
+from .permissions import CanCreatePlan, CanModifyOnlyDraftPlan
 from .exploration import LectureExplorationMixin
 
 
@@ -250,8 +250,9 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         """Permissions selon l'action."""
         if self.action == 'create':
             # La création d'un plan n'a pas de plan associé existant : pas
-            # de check draft à appliquer.
-            return [permissions.IsAuthenticated(), IsReferent()]
+            # de check draft à appliquer. Un utilisateur rattaché à un site
+            # peut créer un plan sur ce site (cf. CanCreatePlan).
+            return [permissions.IsAuthenticated(), CanCreatePlan()]
         return super().get_permissions()
     filterset_class = PlanGestionFilter
     search_fields = [
@@ -363,7 +364,16 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         d'un PG (page « Créer un plan ») quand l'utilisateur confirme le
         rattachement au plan validé du rang précédent sur le même site. On
         valide ce parent côté serveur avant de poser le lien.
+
+        Atomique : une erreur après l'insertion du plan (sites, référents…)
+        ne doit pas laisser un plan à moitié créé.
         """
+        from django.db import transaction
+
+        with transaction.atomic():
+            self._create_plan(serializer)
+
+    def _create_plan(self, serializer):
         plan = serializer.save(id_utilisateur_ajout=self.request.user)
 
         # Le créateur devient référent de son plan. Sans cela, un non-admin
