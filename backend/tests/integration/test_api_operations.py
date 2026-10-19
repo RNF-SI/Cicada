@@ -760,6 +760,25 @@ class TestOperationUpdateEndpoint:
         operation_test_data['op1'].refresh_from_db()
         assert operation_test_data['op1'].libelle == 'Opération Mise à Jour'
 
+    def test_emprise_en_metres_refusee(self, api_client, operation_test_data):
+        """#687 — l'emprise d'une action passe par la même carte d'import que la
+        géométrie d'un site : des coordonnées en mètres sont refusées."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.patch(f'/api/plans/operations/{op_id}/', {
+            'geom_geojson': {"type": "Point", "coordinates": [652000, 6862000]},
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'WGS 84' in str(response.data['geom_geojson'])
+
+    def test_emprise_outre_mer_acceptee(self, api_client, operation_test_data):
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.patch(f'/api/plans/operations/{op_id}/', {
+            'geom_geojson': {"type": "Point", "coordinates": [45.15, -12.80]},  # Mayotte
+        }, format='json')
+        assert response.status_code == status.HTTP_200_OK
+
     def test_update_metrique_ids_preserves_response_indicator(self, api_client, operation_test_data):
         """#398 — la (re)synchro de `metrique_ids` au save ne touche QUE les liens
         vers des métriques État/Pression. Un indicateur de réponse (lié à l'action

@@ -22,6 +22,11 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import * as L from 'leaflet';
 import 'leaflet-draw';
 import shp from 'shpjs';
+import {
+  fichiersManquantsDuShapefile,
+  horsWgs84,
+  nomsFichiersZip,
+} from '../../utils/geometry-import.utils';
 
 /**
  * Composant carte Leaflet avec outils de dessin (leaflet-draw).
@@ -755,7 +760,11 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
    * Gère la sélection d'un fichier géographique.
    * Supporte les fichiers :
    * - GeoJSON : .geojson, .json
-   * - Shapefile : .zip (contenant .shp, .dbf, .prj) ou .shp direct
+   * - Shapefile : .zip contenant au moins .shp, .dbf et .prj
+   *
+   * #687 — le serveur ne reprojette pas : un fichier dont la projection est
+   * inconnue (.shp seul, .zip sans .prj) ou un GeoJSON hors WGS 84 est refusé
+   * ici, avec un message qui dit quoi corriger.
    */
   async onGeometryFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
@@ -765,7 +774,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
 
     // Vérifier l'extension
     const extension = file.name.split('.').pop()?.toLowerCase();
-    const supportedExtensions = ['geojson', 'json', 'zip', 'shp'];
+    const supportedExtensions = ['geojson', 'json', 'zip'];
 
     if (!extension || !supportedExtensions.includes(extension)) {
       this.snackBar.open(
@@ -796,24 +805,19 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
         // Le default export est lui-même appelable et gère le buffer .zip, avec
         // reprojection automatique vers WGS84 d'après le .prj (testé EPSG:2154).
         const arrayBuffer = await file.arrayBuffer();
-        geojson = await shp(arrayBuffer);
-      } else if (extension === 'shp') {
-        // Fichier .shp seul - parser les géométries via l'export nommé `parseShp`
-        // (absent du default en build ESM, cf. ci-dessus).
-        const arrayBuffer = await file.arrayBuffer();
-        const shpjs: any = await import('shpjs');
-        const parseShp = shpjs.parseShp ?? shpjs.default?.parseShp;
-        const geometries = parseShp ? parseShp(arrayBuffer) : [];
-        if (geometries && geometries.length > 0) {
-          geojson = {
-            type: 'FeatureCollection',
-            features: geometries.map((geom: any) => ({
-              type: 'Feature',
-              properties: {},
-              geometry: geom
-            }))
-          };
+        // #687 — sans .prj, shpjs ne reprojette pas et renvoie des mètres.
+        const manquants = fichiersManquantsDuShapefile(nomsFichiersZip(arrayBuffer));
+        if (manquants.length > 0) {
+          this.snackBar.open(
+            this.translate.instant('sites.form.geometry.import.missingFiles', {
+              fichiers: manquants.join(', '),
+            }),
+            this.translate.instant('common.actions.close'),
+            { duration: 8000 }
+          );
+          return;
         }
+        geojson = await shp(arrayBuffer);
       }
 
       // shpjs peut renvoyer un tableau de FeatureCollection (zip multi-couches) :
@@ -827,6 +831,17 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
 
       if (!geojson) {
         throw new Error('Format de fichier invalide');
+      }
+
+      // #687 — coordonnées en mètres (Lambert-93, UTM d'outre-mer) : le
+      // serveur les refuserait, autant le dire avant d'afficher quoi que ce soit.
+      if (horsWgs84(geojson)) {
+        this.snackBar.open(
+          this.translate.instant('sites.form.geometry.import.notWgs84'),
+          this.translate.instant('common.actions.close'),
+          { duration: 8000 }
+        );
+        return;
       }
 
       // Traiter et afficher la géométrie importée

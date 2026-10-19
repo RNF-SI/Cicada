@@ -620,11 +620,17 @@ class GeoJSONGeometryField(serializers.Field):
             return None
         import json as _json
         from django.contrib.gis.geos import GEOSGeometry
+        from apps.users.geo_utils import GeometryError, verifier_wgs84
         try:
             data_str = data if isinstance(data, str) else _json.dumps(data)
-            return GEOSGeometry(data_str)
+            geom = GEOSGeometry(data_str)
         except Exception as e:
             raise serializers.ValidationError(f"GeoJSON invalide: {e}")
+        # #687 — emprise importée par la même carte que la géométrie d'un site.
+        try:
+            return verifier_wgs84(geom)
+        except GeometryError as e:
+            raise serializers.ValidationError(str(e))
 
 
 class RealisationOperationAnneeSerializer(serializers.ModelSerializer):

@@ -196,3 +196,44 @@ class TestNormalizeErrors:
                                        "coordinates": [[0, 0], [1, 1]]})
         # message en français, exploitable côté UI
         assert "géométrie" in str(exc.value).lower()
+
+
+# #687 — coordonnées hors WGS 84 ------------------------------------------------
+
+def _carre(x, y, d=0.01):
+    return {"type": "Polygon",
+            "coordinates": [[[x, y], [x, y + d], [x + d, y + d], [x + d, y], [x, y]]]}
+
+
+class TestNormalizeWgs84:
+    """Une géométrie en mètres (Lambert-93, UTM) était enregistrée telle quelle,
+    comme si c'étaient des degrés : site « hors du globe », sans département."""
+
+    def test_geometrie_en_metres_refusee(self):
+        lambert93 = _carre(652000, 6862000, 500)  # Paris en Lambert-93
+        with pytest.raises(GeometryError) as exc:
+            normalize_to_multipolygon(lambert93)
+        assert "WGS 84" in str(exc.value)
+        assert ".prj" in str(exc.value)
+
+    def test_geometrie_utm_guadeloupe_refusee(self):
+        with pytest.raises(GeometryError):
+            normalize_to_multipolygon(_carre(650000, 1800000, 500))  # RGAF09 / UTM 20N
+
+    @pytest.mark.parametrize("lieu,x,y", [
+        ("Guadeloupe", -61.55, 16.25),
+        ("Guyane", -53.10, 4.90),
+        ("La Réunion", 55.50, -21.10),
+        ("Mayotte", 45.15, -12.80),
+        ("Polynésie", -149.50, -17.55),
+        ("Métropole", 4.70, 46.90),
+    ])
+    def test_outre_mer_en_wgs84_accepte(self, lieu, x, y):
+        geom = normalize_to_multipolygon(_carre(x, y))
+        assert geom.extent[0] == pytest.approx(x), lieu
+
+    def test_verifier_wgs84_sur_un_point(self):
+        from apps.users.geo_utils import verifier_wgs84
+        verifier_wgs84(GEOSGeometry("POINT(55.5 -21.1)", srid=4326))
+        with pytest.raises(GeometryError):
+            verifier_wgs84(GEOSGeometry("POINT(652000 6862000)", srid=4326))

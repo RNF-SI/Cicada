@@ -772,14 +772,19 @@ class SiteCreateUpdateSerializer(serializers.ModelSerializer):
     def validate_geom_pt_geojson(self, value):
         """Valide le point de référence GeoJSON."""
         if value is not None:
+            from .geo_utils import GeometryError, verifier_wgs84
             try:
                 from django.contrib.gis.geos import GEOSGeometry
                 geom = GEOSGeometry(str(value))
-                if not isinstance(geom, Point):
-                    raise serializers.ValidationError(_("Le point de référence doit être un Point."))
-                return geom
             except Exception as e:
                 raise serializers.ValidationError(_("Point GeoJSON invalide: %(error)s") % {'error': str(e)})
+            if not isinstance(geom, Point):
+                raise serializers.ValidationError(_("Le point de référence doit être un Point."))
+            try:
+                verifier_wgs84(geom)  # #687
+            except GeometryError as e:
+                raise serializers.ValidationError(str(e))
+            return geom
         return value
 
     def validate(self, attrs):

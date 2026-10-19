@@ -582,6 +582,24 @@ class TestSitesCreateGeometry:
             'geom_geojson': geom,
         }, format='json')
 
+    def test_geometrie_en_metres_refusee(self, api_client):
+        """#687 — un GeoJSON en Lambert-93 était enregistré comme des degrés."""
+        geom = {"type": "Polygon", "coordinates": [[
+            [652000, 6862000], [652000, 6862500], [652500, 6862500],
+            [652500, 6862000], [652000, 6862000]]]}
+        response = self._create(api_client, geom, 'Site Lambert')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'WGS 84' in str(response.data['geom_geojson'])
+
+    def test_point_de_reference_en_metres_refuse(self, api_client):
+        api_client.force_authenticate(user=SuperAdminFactory())
+        response = api_client.post('/api/users/sites/', {
+            'nom_site': 'Site point Lambert', 'surf_off': 10.0, 'active': True,
+            'geom_pt_geojson': {"type": "Point", "coordinates": [652000, 6862000]},
+        }, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert 'WGS 84' in str(response.data['geom_pt_geojson'])
+
     def test_create_with_multipolygon(self, api_client):
         geom = {
             "type": "MultiPolygon",

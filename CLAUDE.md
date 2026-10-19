@@ -1294,7 +1294,8 @@ OPTIONS = {
 ### Geospatial Handling
 
 - Always use PostGIS for spatial operations
-- Store geometries in EPSG:4326, display in EPSG:2154 (Lambert-93)
+- Store geometries in EPSG:4326 (WGS 84), metropole and overseas alike; maps (Leaflet) display WGS 84 coordinates on Web Mercator tiles — there is no Lambert-93 display
+- **The backend never reprojects (#687)**: it labels incoming coordinates as 4326. `verifier_wgs84()` (`apps/users/geo_utils.py`) rejects anything outside ±180 / ±90 — site geometry (`normalize_to_multipolygon`), reference point, action/realisation footprints (`GeoJSONGeometryField`). On the map (`leaflet-map-edit`), a shapefile must come as a `.zip` with its `.prj` (shpjs reprojects from it, UTM overseas included); a bare `.shp` is no longer accepted, a `.zip` without `.prj` and a GeoJSON outside WGS 84 are refused with a dedicated message (`shared/utils/geometry-import.utils.ts`)
 - Use GeoJSON format for API responses
 - Implement spatial indexes for performance
 

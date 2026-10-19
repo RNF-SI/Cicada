@@ -28,6 +28,27 @@ class GeometryError(ValueError):
     """Erreur de géométrie avec un message destiné à l'utilisateur final."""
 
 
+MESSAGE_HORS_WGS84 = _(
+    "Les coordonnées ne sont pas en WGS 84 (longitude entre -180 et 180, "
+    "latitude entre -90 et 90) : importez un shapefile .zip avec son .prj, "
+    "ou reprojetez le fichier en WGS 84 (EPSG:4326)."
+)
+
+
+def verifier_wgs84(geom):
+    """#687 — refuse une géométrie dont l'emprise sort de ±180 / ±90.
+
+    Le backend ne reprojette jamais : il pose l'étiquette 4326. Des coordonnées
+    en mètres (Lambert-93, UTM d'outre-mer) étaient donc enregistrées comme des
+    degrés, sans message — site « hors du globe », sans département. Aucune
+    donnée valide n'est concernée : l'outre-mer entier tient dans cette plage.
+    """
+    xmin, ymin, xmax, ymax = geom.extent
+    if xmin < -180 or xmax > 180 or ymin < -90 or ymax > 90:
+        raise GeometryError(MESSAGE_HORS_WGS84)
+    return geom
+
+
 def _close_rings(geojson):
     """Ferme les anneaux non fermés d'un GeoJSON Polygon / MultiPolygon.
 
@@ -90,6 +111,8 @@ def normalize_to_multipolygon(value):
 
     if geom.srid is None:
         geom.srid = SRID
+
+    verifier_wgs84(geom)
 
     # Réparer les invalidités topologiques (auto-intersection, trous mal formés…)
     if not geom.valid:

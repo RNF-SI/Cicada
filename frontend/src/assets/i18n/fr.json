@@ -1082,6 +1082,15 @@
       "confirmUpdate": "Voulez-vous mettre à jour vers la version {{version}} ?",
       "scheduled": "La mise à jour a été planifiée",
       "error": "Erreur lors de la mise à jour",
+      "check": {
+        "action": "Vérifier les mises à jour",
+        "checking": "Vérification en cours…",
+        "found": "La version {{version}} est disponible.",
+        "upToDate": "Aucune nouvelle version : l'application est à jour.",
+        "failed": "Le serveur de suivi n'a pas pu être interrogé. Détail sur le serveur : /var/log/cicada/heartbeat.log",
+        "noHost": "Le serveur n'a pas pris la demande en charge. Ce bouton nécessite le paquet CICADA 0.1.57 ou plus récent.",
+        "error": "Impossible de lancer la vérification"
+      },
       "progress": {
         "scheduled": "Mise à jour vers la version {{version}} demandée, en attente de prise en charge par le serveur…",
         "running": "Mise à jour vers la version {{version}} en cours : téléchargement du paquet et des images…",
@@ -3499,7 +3508,9 @@
           "help": "Fichiers acceptés : un shapefile dans un .zip contenant les fichiers .shp, .shx, .dbf et .prj (toute projection, métropole comme outre-mer : elle est lue dans le .prj), ou un GeoJSON en WGS84 (EPSG:4326).",
           "success": "Géométrie importée avec succès",
           "error": "Erreur lors de l'import. Vérifiez le format du fichier.",
-          "invalidFormat": "Format invalide. Utilisez .geojson, .json, .zip ou .shp",
+          "invalidFormat": "Format invalide. Utilisez un shapefile dans un .zip (avec son .prj) ou un GeoJSON (.geojson, .json).",
+          "missingFiles": "Fichier(s) manquant(s) dans le .zip : {{fichiers}}. Un shapefile doit contenir le .shp, le .dbf et le .prj (la projection) : sans .prj, les coordonnées ne peuvent pas être converties en WGS 84.",
+          "notWgs84": "Les coordonnées de ce fichier ne sont pas en WGS 84 (longitude entre -180 et 180, latitude entre -90 et 90). Importez le shapefile dans un .zip avec son .prj, ou reprojetez le GeoJSON en WGS 84 (EPSG:4326).",
           "noGeometry": "Aucune géométrie valide trouvée dans le fichier"
         }
       }
