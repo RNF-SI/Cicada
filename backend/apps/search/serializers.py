@@ -181,7 +181,6 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
         """
         return contenu.id_pg_id is not None
 
-    @extend_schema_field(PlanResumeSerializer)
     @extend_schema_field(OpenApiTypes.STR)
     def get_instance_libelle(self, contenu):
         """
@@ -194,6 +193,7 @@ class ContenuResultatSerializer(serializers.ModelSerializer):
             return local['instance_libelle']
         return (contenu.plan_denorm or {}).get('instance_libelle') or contenu.instance_id
 
+    @extend_schema_field(PlanResumeSerializer)
     def get_plan(self, contenu):
         """
         Bandeau du plan — joint pour un document local, recopié pour un distant.
