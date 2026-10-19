@@ -305,6 +305,32 @@ class TestPlansCreateEndpoint:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data['nom'] == 'Referent Plan'
 
+    def test_create_plan_redacteur_principal_can_open_it(self, api_client):
+        """Le RP ouvre le brouillon qu'il vient de créer (détail + slug).
+
+        Régression #683 : son périmètre « tout » (``Q()``) OR-é au périmètre
+        d'exploration se réduisait aux plans validés → 404 / 403 sur son
+        propre brouillon juste après la création.
+        """
+        rp = RoleFactory(role_level='redacteur_principal')
+        site = SiteFactory()
+
+        api_client.force_authenticate(user=rp)
+        response = api_client.post('/api/plans/plans/', {
+            'nom': 'Plan RP',
+            'statut': 'draft',
+            'annee_debut': 2024,
+            'annee_fin': 2034,
+            'rang': 1,
+            'ct88': False,
+            'sites_ids': [site.id_site]
+        })
+        assert response.status_code == status.HTTP_201_CREATED
+
+        plan = PlanGestion.objects.get(nom='Plan RP')
+        assert api_client.get(f'/api/plans/plans/{plan.id_pg}/').status_code == status.HTTP_200_OK
+        assert api_client.get(f'/api/plans/plans/by-slug/{plan.slug}/').status_code == status.HTTP_200_OK
+
     def test_create_plan_sets_creator(self, api_client):
         """Test created plan has creator set."""
         referent = ReferentFactory()

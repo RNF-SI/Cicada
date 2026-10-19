@@ -306,8 +306,11 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             queryset = self.queryset
         scope = self.request.query_params.get('scope')
 
-        # Super admin : voir tous les plans
-        if user.is_super_admin():
+        # Super admin / rédacteur principal : voir tous les plans. Le RP doit
+        # sortir ici : son périmètre ``Q()`` (tout) disparaîtrait une fois OR-é
+        # au périmètre d'exploration ci-dessous (``Q() | X`` vaut ``X``), et il
+        # ne verrait plus que les plans validés — pas même ceux qu'il crée.
+        if user.is_super_admin() or user.is_redacteur_principal():
             return queryset
 
         # #683 — lecture d'exploration : un plan validé est consultable par
@@ -320,11 +323,8 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         return queryset.filter(self._q_lecture(user, scope)).distinct()
 
     def _q_lecture(self, user, scope):
-        """``Q`` du périmètre de lecture ordinaire (hors accès global)."""
-
-        # Rédacteur principal : voir tous les plans
-        if user.is_redacteur_principal():
-            return Q()
+        """``Q`` du périmètre de lecture ordinaire (hors accès global :
+        super admin et rédacteur principal sortent avant, cf. get_queryset)."""
 
         # Admin organisme : voir les plans des sites de son organisme
         # (#714 — être organisme rédacteur n'ouvre pas le plan).

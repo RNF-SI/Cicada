@@ -248,3 +248,116 @@ class TestCloisonnementParFragments:
     def test_un_indicateur(self, etranger, plan_valide):
         reponse = etranger.get(f'/api/plans/indicateurs/{plan_valide.indicateur_racine.pk}/')
         assert self._fautifs(reponse.data) == []
+
+
+# ---------------------------------------------------------------------------
+# Non-régression 0.1.52 → 0.1.56 : le périmètre d'exploration (plans validés)
+# est OR-é au périmètre de lecture. Pour le rédacteur principal, ce périmètre
+# était ``Q()`` (tout) — et ``Q() | X`` vaut ``X`` en Django : il ne voyait
+# plus que les plans validés, et aucun brouillon, même ceux qu'il venait de
+# créer ou dont il était référent. La matrice ci-dessous croise chaque lecteur
+# légitime, chaque état non public et chaque écran de lecture.
+# ---------------------------------------------------------------------------
+
+ETATS_NON_PUBLICS = (
+    {'statut': 'draft'},
+    {'statut': 'draft', 'validation_step': 'avis_csrpn'},
+    {'statut': 'draft', 'validation_step': 'comite_consultatif'},
+    {'statut': 'draft', 'validation_step': 'arrete_pref'},
+)
+
+ECRANS_LECTURE = (
+    '/api/plans/plans/{id}/',
+    '/api/plans/plans/by-slug/{slug}/',
+    '/api/plans/plans/{id}/mindmap/',
+    '/api/plans/plans/{id}/mindmap-inverse/',
+    '/api/plans/plans/{id}/geojson/',
+)
+
+
+def _plan_trouve(reponse):
+    """Vrai si l'écran a trouvé le plan. ``geojson`` répond 404 avec ``error``
+    quand le plan n'a pas de géométrie : ce 404-là n'est pas un refus d'accès,
+    contrairement au 404 de ``get_object()`` (clé ``detail``)."""
+    if reponse.status_code == 200:
+        return True
+    return reponse.status_code == 404 and 'error' in reponse.data
+
+
+def _lecteur(nom, plan, site):
+    """Crée l'utilisateur ``nom``, lié au plan comme son nom l'indique."""
+    from tests.factories.plans import CorRolePlanFactory
+    from tests.factories.users import (
+        AdminOrganismeFactory, CorOgSiteFactory, CorRoleSiteFactory, SuperAdminFactory,
+    )
+
+    if nom == 'super_admin':
+        return SuperAdminFactory()
+    if nom == 'redacteur_principal':
+        return RoleFactory(role_level='redacteur_principal')
+    if nom == 'redacteur_principal_referent':
+        user = RoleFactory(role_level='redacteur_principal')
+        plan.referents.add(user)
+        return user
+    if nom == 'admin_og_du_site':
+        user = AdminOrganismeFactory()
+        CorOgSiteFactory(id_site=site, uuid_og=user.id_organisme)
+        return user
+    if nom == 'referent_du_plan':
+        user = RoleFactory()
+        plan.referents.add(user)
+        return user
+    if nom == 'membre_du_plan':
+        user = RoleFactory()
+        CorRolePlanFactory(id_role=user, plan_de_gestion=plan)
+        return user
+    if nom == 'membre_du_site':
+        user = RoleFactory()
+        CorRoleSiteFactory(id_role=user, id_site=site)
+        return user
+    raise ValueError(nom)
+
+
+@pytest.mark.django_db
+class TestPlansNonPublicsOuvertsAuxLecteursLegitimes:
+    """Un plan non public s'ouvre sur tous ses écrans à qui doit le lire."""
+
+    @pytest.mark.parametrize('etat', ETATS_NON_PUBLICS, ids=lambda e: e.get('validation_step') or e['statut'])
+    @pytest.mark.parametrize('lecteur', (
+        'super_admin', 'redacteur_principal', 'redacteur_principal_referent',
+        'admin_og_du_site', 'referent_du_plan', 'membre_du_plan', 'membre_du_site',
+    ))
+    def test_tous_les_ecrans_et_la_liste(self, lecteur, etat):
+        from tests.factories.plans import CorSitePgFactory
+        from tests.factories.users import SiteFactory
+
+        plan = PlanGestionFactory(**etat)
+        site = SiteFactory()
+        CorSitePgFactory(plan_de_gestion=plan, site=site, rang=1)
+
+        client = APIClient()
+        client.force_authenticate(_lecteur(lecteur, plan, site))
+
+        for ecran in ECRANS_LECTURE:
+            url = ecran.format(id=plan.id_pg, slug=plan.slug)
+            reponse = client.get(url)
+            assert _plan_trouve(reponse), f'{lecteur} / {etat} : {url} → {reponse.status_code}'
+
+        liste = client.get('/api/plans/plans/', {'page_size': 1000})
+        assert liste.status_code == 200
+        assert plan.id_pg in {p['id_pg'] for p in liste.data['results']}
+
+    @pytest.mark.parametrize('etat', ETATS_NON_PUBLICS, ids=lambda e: e.get('validation_step') or e['statut'])
+    def test_etranger_reste_dehors(self, etranger, etat):
+        plan = PlanGestionFactory(**etat)
+        for ecran in ECRANS_LECTURE:
+            url = ecran.format(id=plan.id_pg, slug=plan.slug)
+            assert not _plan_trouve(etranger.get(url)), url
+
+    def test_redacteur_principal_lit_un_plan_valide_sans_elagage(self, plan_valide):
+        """Accès global ≠ lecture d'exploration : la réponse reste entière."""
+        client = APIClient()
+        client.force_authenticate(RoleFactory(role_level='redacteur_principal'))
+        reponse = client.get(f'/api/plans/plans/{plan_valide.id_pg}/')
+        assert reponse.status_code == 200
+        assert not reponse.data.get('acces_exploration')
