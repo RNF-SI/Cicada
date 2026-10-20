@@ -124,6 +124,7 @@ export class HeaderComponent implements OnInit {
   readonly isAuthenticated = this.authService.isAuthenticated;
   readonly currentUser = this.authService.currentUser;
   readonly canAccessAdmin = this.authService.canAccessAdmin;
+  readonly isSuperAdmin = this.authService.isSuperAdmin;
 
   constructor() {
     // Load accessible modules when authentication state changes

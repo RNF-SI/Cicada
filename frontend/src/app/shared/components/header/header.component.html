@@ -83,10 +83,13 @@
             <i class="fi fi-rr-time-past menu-icon"></i>
             <span>{{ 'header.myRequests' | translate }}</span>
           </button>
-          <button mat-menu-item routerLink="/settings">
-            <i class="fi fi-rr-settings menu-icon"></i>
-            <span>{{ 'header.settings' | translate }}</span>
-          </button>
+          <!-- #723 — raccourci vers les paramètres de l'instance, réservés au super admin. -->
+          @if (isSuperAdmin()) {
+            <a mat-menu-item routerLink="/administration/parametres" data-testid="header-settings-link">
+              <i class="fi fi-rr-settings menu-icon"></i>
+              <span>{{ 'header.settings' | translate }}</span>
+            </a>
+          }
           @if (canAccessAdmin()) {
             <mat-divider></mat-divider>
             <button mat-menu-item routerLink="/administration/validations">

@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { Router, NavigationEnd, provideRouter, Routes } from '@angular/router';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { TranslateModule } from '@ngx-translate/core';
-import { Component, signal, WritableSignal } from '@angular/core';
+import { Component, computed, signal, WritableSignal } from '@angular/core';
 import { of, throwError } from 'rxjs';
 
 // Dummy component for routes
@@ -64,6 +64,7 @@ describe('HeaderComponent', () => {
       isAuthenticated: isAuthenticatedSignal.asReadonly(),
       currentUser: currentUserSignal.asReadonly(),
       canAccessAdmin: canAccessAdminSignal.asReadonly(),
+      isSuperAdmin: computed(() => currentUserSignal()?.niveau_role === 'super_admin'),
       isImpersonating: isImpersonatingSignal.asReadonly(),
       impersonationInfo: impersonationInfoSignal.asReadonly(),
       getUserDisplayName: jest.fn().mockReturnValue('John Doe'),
@@ -362,6 +363,28 @@ describe('HeaderComponent', () => {
       expect(window.open).toHaveBeenCalledWith('/administration', '_blank');
 
       window.open = originalOpen;
+    });
+  });
+
+  // ==================== SETTINGS SHORTCUT (#723) ====================
+
+  describe('Settings shortcut (#723)', () => {
+    const openUserMenu = (): HTMLElement | null => {
+      fixture.detectChanges();
+      (fixture.nativeElement.querySelector('[data-testid="user-menu-trigger"]') as HTMLButtonElement).click();
+      fixture.detectChanges();
+      return document.querySelector('[data-testid="header-settings-link"]');
+    };
+
+    it('mène le super admin à la page des paramètres de l\'instance', () => {
+      const link = openUserMenu();
+      expect(link).not.toBeNull();
+      expect(link!.getAttribute('href')).toBe('/administration/parametres');
+    });
+
+    it('n\'est pas proposé aux autres rôles (la page leur est fermée)', () => {
+      currentUserSignal.set({ ...mockUser, niveau_role: 'admin_og' });
+      expect(openUserMenu()).toBeNull();
     });
   });
 
