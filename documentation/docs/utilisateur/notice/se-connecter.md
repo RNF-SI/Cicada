@@ -15,6 +15,9 @@ Si vous n'avez pas encore de compte, cliquez sur « Créer un compte » depuis l
 
 Votre demande n'est pas effective immédiatement : elle doit être validée par un administrateur (organisme ou instance). Une fois le formulaire envoyé, une page vous confirme que votre inscription est en attente. Vous recevrez un e-mail dès que votre compte sera activé.
 
+!!! tip "Inscription sur une autre plateforme"
+    Certaines structures gèrent leurs comptes sur leur propre plateforme. « Créer un compte » vous y mène alors, dans un nouvel onglet : suivez la procédure de cette plateforme.
+
 <figure markdown="span" class="figure--small">
 ![Page d'inscription](../../assets/figures/fig03.webp){ loading=lazy }
 <figcaption>Figure 3 : Page d'inscription</figcaption>

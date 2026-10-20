@@ -6,6 +6,7 @@
 - Choisir la couleur du bandeau (couleurs proposées ou personnalisée, avec aperçu) et ajouter le logo de la structure, affiché en haut à gauche ;
 - Choisir la couleur des exports Excel et Word (les couleurs des scores ne changent pas) ;
 - Afficher le champ « ID Doc'Gestion FCEN » dans les plans (instance de la FCEN), mesure d'audience et raccordement manuel au hub ;
+- **Confier l'inscription à une plateforme externe** (onglet « Fonctionnalités ») : si votre structure gère les comptes ailleurs (annuaire, portail…), indiquez son adresse. Les boutons « Créer un compte » de l'accueil et de la page de connexion l'ouvrent alors dans un nouvel onglet, et le formulaire de demande de compte de CICADA est fermé. Laisser le champ vide pour garder l'inscription dans CICADA ;
 - **Ouvrir l'API publique des métadonnées des plans** : permet à une application tierce de gestion documentaire de lire les métadonnées des plans (jamais leur contenu, leur budget ni les brouillons) ;
 - **Partager les plans avec l'exploration nationale** : voir ci-dessous.
 
