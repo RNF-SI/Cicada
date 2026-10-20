@@ -24,7 +24,7 @@ Deux options de création sont proposées (Figure 25) :
 - La case « Rattacher ce plan à la suite de … », cochée par défaut : elle relie le nouveau plan au plan du rang précédent, pour conserver l'historique du site. Décochez-la pour créer un plan indépendant ;
 - Le volet « Plans de gestion déjà associés à ce site », qui les liste par rang.
 
-À l'enregistrement, le plan est créé en brouillon : il est alors entièrement modifiable. Vous en devenez automatiquement référent. Tant que le plan est en brouillon, le bouton « Modifier le plan de gestion » permet de revenir sur ces informations générales (y compris le lien avec le plan du rang précédent) ; la fenêtre rappelle la place du plan dans sa chaîne de versions (rang, version, plan parent).
+À l'enregistrement, le plan est créé en brouillon : il est alors entièrement modifiable. Vous en devenez automatiquement référent (sauf si vous êtes administrateur de l'instance ou rédacteur général : vous avez déjà tous les droits sur le plan). Tant que le plan est en brouillon, le bouton « Modifier le plan de gestion » permet de revenir sur ces informations générales (y compris le lien avec le plan du rang précédent) ; la fenêtre rappelle la place du plan dans sa chaîne de versions (rang, version, plan parent).
 
 <figure markdown="span">
 ![Formulaire de création d'un plan de gestion – saisie des informations générales](../assets/figures/fig26.webp){ loading=lazy }
