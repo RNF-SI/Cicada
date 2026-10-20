@@ -87,6 +87,11 @@ describe('AdminSettingsComponent', () => {
         ...mockConfig,
         homepage_image: null,
         homepage_image_url: null
+      })),
+      resetStructureLogo: jest.fn().mockReturnValue(of({
+        ...mockConfig,
+        structure_logo: null,
+        structure_logo_url: null
       }))
     };
 
@@ -339,8 +344,31 @@ describe('AdminSettingsComponent', () => {
   // =============================================================================
 
   describe('resetToDefault', () => {
-    it('should call resetHomepageImage', fakeAsync(() => {
+    // #725 — Rétablir l'image par défaut SUPPRIME le fichier déposé : un clic
+    // de trop effaçait l'image d'accueil sans retour possible. Une
+    // confirmation est désormais demandée.
+    const confirmer = (reponse: boolean) =>
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(reponse) });
+
+    it('demande confirmation avant de supprimer l\'image (#725)', () => {
       fixture.detectChanges();
+      confirmer(false);
+      component.resetToDefault();
+      expect(mockDialog.open).toHaveBeenCalledWith(ConfirmDialogComponent, expect.objectContaining({
+        data: expect.objectContaining({ destructive: true }),
+      }));
+    });
+
+    it('ne supprime rien si la confirmation est annulée (#725)', () => {
+      fixture.detectChanges();
+      confirmer(false);
+      component.resetToDefault();
+      expect(mockSettingsService.resetHomepageImage).not.toHaveBeenCalled();
+    });
+
+    it('should call resetHomepageImage once confirmed', fakeAsync(() => {
+      fixture.detectChanges();
+      confirmer(true);
 
       component.resetToDefault();
       tick();
@@ -352,6 +380,7 @@ describe('AdminSettingsComponent', () => {
 
     it('should show success message after reset', fakeAsync(() => {
       fixture.detectChanges();
+      confirmer(true);
 
       component.resetToDefault();
       tick();
@@ -361,6 +390,7 @@ describe('AdminSettingsComponent', () => {
 
     it('should handle reset error', fakeAsync(() => {
       fixture.detectChanges();
+      confirmer(true);
 
       // Set the error mock AFTER fixture.detectChanges() to avoid affecting loadSettings
       (mockSettingsService.resetHomepageImage as jest.Mock).mockReturnValue(
@@ -373,6 +403,26 @@ describe('AdminSettingsComponent', () => {
       expect(component.isSaving()).toBe(false);
       expect(mockSnackBar.open).toHaveBeenCalled();
     }));
+  });
+
+  describe('resetLogo (#725)', () => {
+    const confirmer = (reponse: boolean) =>
+      mockDialog.open.mockReturnValue({ afterClosed: () => of(reponse) });
+
+    it('demande confirmation et ne supprime rien si on annule', () => {
+      fixture.detectChanges();
+      confirmer(false);
+      component.resetLogo();
+      expect(mockDialog.open).toHaveBeenCalledWith(ConfirmDialogComponent, expect.anything());
+      expect(mockSettingsService.resetStructureLogo).not.toHaveBeenCalled();
+    });
+
+    it('supprime le logo une fois confirmé', () => {
+      fixture.detectChanges();
+      confirmer(true);
+      component.resetLogo();
+      expect(mockSettingsService.resetStructureLogo).toHaveBeenCalled();
+    });
   });
 
   // =============================================================================

@@ -1079,6 +1079,17 @@
           "externe": "Les boutons « Créer un compte » mènent désormais à la plateforme externe.",
           "locale": "L'inscription se fait de nouveau dans CICADA."
         }
+      },
+      "suppression": {
+        "image": {
+          "titre": "Rétablir l'image d'accueil par défaut ?",
+          "message": "L'image d'accueil actuelle sera supprimée définitivement du serveur : pour la retrouver, il faudra la déposer de nouveau."
+        },
+        "logo": {
+          "titre": "Retirer le logo de la structure ?",
+          "message": "Le logo actuel sera supprimé définitivement du serveur : pour le retrouver, il faudra le déposer de nouveau."
+        },
+        "confirmer": "Supprimer"
       }
     },
     "update": {

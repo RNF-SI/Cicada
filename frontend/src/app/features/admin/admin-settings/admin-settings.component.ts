@@ -272,9 +272,39 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   /**
-   * Reset to default image
+   * #725 — Une confirmation avant tout retour à l'image ou au logo par défaut :
+   * le fichier déposé est supprimé du serveur, sans retour possible. Un clic de
+   * trop effaçait l'image d'accueil d'une instance.
+   */
+  private confirmerSuppression(cle: 'image' | 'logo', suite: () => void): void {
+    const data: ConfirmDialogData = {
+      title: this.translate.instant(`admin.settings.suppression.${cle}.titre`),
+      message: this.translate.instant(`admin.settings.suppression.${cle}.message`),
+      confirmText: this.translate.instant('admin.settings.suppression.confirmer'),
+      cancelText: this.translate.instant('common.actions.cancel'),
+      confirmColor: 'warn',
+      destructive: true,
+    };
+    this.dialog
+      .open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
+        width: '600px',
+        maxWidth: '95vw',
+        data,
+      })
+      .afterClosed()
+      .subscribe(confirme => {
+        if (confirme) suite();
+      });
+  }
+
+  /**
+   * Reset to default image (#725 : après confirmation)
    */
   resetToDefault(): void {
+    this.confirmerSuppression('image', () => this.supprimerImageAccueil());
+  }
+
+  private supprimerImageAccueil(): void {
     this.isSaving.set(true);
 
     this.settingsService.resetHomepageImage().subscribe({
@@ -696,6 +726,10 @@ export class AdminSettingsComponent implements OnInit {
   }
 
   resetLogo(): void {
+    this.confirmerSuppression('logo', () => this.supprimerLogo());
+  }
+
+  private supprimerLogo(): void {
     this.isSaving.set(true);
     this.settingsService.resetStructureLogo().subscribe({
       next: () => {

@@ -5,7 +5,7 @@
 La page s'ouvre depuis Administration > Paramètres, ou directement par « Paramètres » dans votre menu utilisateur (en haut à droite).
 
 
-- Personnaliser l'image d'accueil de l'application et sa position (haut, centre, bas) ;
+- Personnaliser l'image d'accueil de l'application et sa position (haut, centre, bas). « Rétablir l'image par défaut » (comme le retrait du logo) **supprime définitivement** l'image déposée : une confirmation est demandée ;
 - Choisir la couleur du bandeau (couleurs proposées ou personnalisée, avec aperçu) et ajouter le logo de la structure, affiché en haut à gauche ;
 - Choisir la couleur des exports Excel et Word (les couleurs des scores ne changent pas) ;
 - Afficher le champ « ID Doc'Gestion FCEN » dans les plans (instance de la FCEN), mesure d'audience et raccordement manuel au hub ;
