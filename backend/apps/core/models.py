@@ -473,6 +473,18 @@ class SiteConfiguration(models.Model):
         )],
         help_text=_("Identifiant numérique du site dans Matomo (idSite)")
     )
+    # #724 — Inscription confiée à une plateforme externe (annuaire, portail…).
+    # Renseignée, elle remplace l'inscription locale : les boutons « Créer un
+    # compte » y mènent et le formulaire local est refusé par le serveur.
+    inscription_url_externe = models.URLField(
+        _("URL d'inscription externe"),
+        blank=True,
+        default='',
+        help_text=_(
+            "Adresse de la plateforme où créer un compte. Vide = inscription "
+            "dans CICADA (formulaire de demande de compte)."
+        )
+    )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),
         auto_now=True

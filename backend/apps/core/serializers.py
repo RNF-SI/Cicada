@@ -61,6 +61,7 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'matomo_enabled',
             'matomo_url',
             'matomo_site_id',
+            'inscription_url_externe',
             'updated_at',
             'updated_by',
             'updated_by_name',
@@ -132,9 +133,11 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
             'matomo_enabled',
             'matomo_url',
             'matomo_site_id',
+            'inscription_url_externe',
         ]
         extra_kwargs = {
             'matomo_url': {'validators': [URLValidator(schemes=['http', 'https'])]},
+            'inscription_url_externe': {'validators': [URLValidator(schemes=['http', 'https'])]},
         }
 
     def validate_matomo_url(self, value: str) -> str:

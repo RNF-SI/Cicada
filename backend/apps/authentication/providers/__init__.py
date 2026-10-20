@@ -30,6 +30,25 @@ def message_connexion_externe():
         'libelle': settings.GEONATURE_AUTH_LIBELLE}
 
 
+class InscriptionLocaleOuverte(BasePermission):
+    """
+    #724 — Fermée quand l'inscription est confiée à une plateforme externe
+    (``SiteConfiguration.inscription_url_externe``) : une seule porte
+    d'entrée. La réponse porte l'URL, pour que le client puisse y renvoyer.
+    """
+
+    def has_permission(self, request, view):
+        from apps.core.models import SiteConfiguration
+
+        url = SiteConfiguration.get_instance().inscription_url_externe
+        if not url:
+            return True
+        raise PermissionDenied({
+            'detail': "L'inscription se fait sur une plateforme externe.",
+            'inscription_url_externe': url,
+        })
+
+
 class ConnexionLocaleActive(BasePermission):
     """
     Ouvert à tous tant que l'instance est en connexion locale ; fermé en mode

@@ -34,9 +34,18 @@
           <!-- CTA Buttons (revue design #305 : Se connecter en bouton secondaire avec icône) -->
           <div class="guest-hero__actions">
             @if (inscriptionOuverte()) {
-              <a routerLink="/auth/register" mat-flat-button class="guest-hero__btn guest-hero__btn--primary">
-                {{ 'home.guest.createAccount' | translate }}
-              </a>
+              <!-- #724 — inscription confiée à une plateforme externe : nouvel onglet. -->
+              @if (inscriptionExterne(); as url) {
+                <a [href]="url" target="_blank" rel="noopener noreferrer" mat-flat-button
+                   class="guest-hero__btn guest-hero__btn--primary" data-testid="home-create-account">
+                  {{ 'home.guest.createAccount' | translate }}
+                </a>
+              } @else {
+                <a routerLink="/auth/register" mat-flat-button
+                   class="guest-hero__btn guest-hero__btn--primary" data-testid="home-create-account">
+                  {{ 'home.guest.createAccount' | translate }}
+                </a>
+              }
             }
             <!-- Icône retirée (revue design — mauvais alignement, demande utilisateur) -->
             <a routerLink="/auth/login" mat-stroked-button class="guest-hero__btn guest-hero__btn--secondary">

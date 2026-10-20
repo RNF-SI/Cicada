@@ -93,7 +93,11 @@
         </p>
         <p class="register-link">
           {{ 'auth.login.noAccount' | translate }}
-          <a routerLink="/auth/register">{{ 'auth.login.createAccount' | translate }}</a>
+          @if (inscriptionExterne(); as url) {
+            <a [href]="url" target="_blank" rel="noopener noreferrer" data-testid="register-link">{{ 'auth.login.createAccount' | translate }}</a>
+          } @else {
+            <a routerLink="/auth/register" data-testid="register-link">{{ 'auth.login.createAccount' | translate }}</a>
+          }
         </p>
       }
       <a routerLink="/accueil" class="back-link">

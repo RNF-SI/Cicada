@@ -1069,6 +1069,16 @@
           "active": "Mesure d'audience activée. Elle s'applique aux pages chargées à partir de maintenant.",
           "desactive": "Réglages de mesure d'audience enregistrés. Aucune statistique n'est envoyée."
         }
+      },
+      "inscription": {
+        "title": "Inscription des utilisateurs",
+        "description": "Par défaut, un visiteur demande son compte dans CICADA, et un administrateur valide la demande. Si votre structure gère les comptes sur une autre plateforme (annuaire, portail…), indiquez son adresse : les boutons « Créer un compte » y mèneront, dans un nouvel onglet, et le formulaire de demande de CICADA sera fermé.",
+        "url": "Adresse de la plateforme d'inscription",
+        "urlHint": "Laisser vide pour garder l'inscription dans CICADA.",
+        "messages": {
+          "externe": "Les boutons « Créer un compte » mènent désormais à la plateforme externe.",
+          "locale": "L'inscription se fait de nouveau dans CICADA."
+        }
       }
     },
     "update": {

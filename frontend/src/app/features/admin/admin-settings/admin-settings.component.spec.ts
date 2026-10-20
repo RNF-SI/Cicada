@@ -66,6 +66,7 @@ describe('AdminSettingsComponent', () => {
     matomo_enabled: false,
     matomo_url: '',
     matomo_site_id: '',
+    inscription_url_externe: '',
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -537,6 +538,45 @@ describe('AdminSettingsComponent', () => {
       tick();
 
       expect(component.matomoError()).toBe('Saisissez une URL valide.');
+    }));
+  });
+
+  describe('Inscription externe (#724)', () => {
+    const lastFormData = (): FormData =>
+      (mockSettingsService.updateSettings as jest.Mock).mock.calls.at(-1)[0];
+
+    it('reprend l\'URL de l\'instance', () => {
+      configSignal.set({ ...mockConfig, inscription_url_externe: 'https://inscription.example.org' });
+      fixture.detectChanges();
+      expect(component.inscriptionUrl()).toBe('https://inscription.example.org');
+    });
+
+    it('enregistre l\'URL (espaces retirés)', fakeAsync(() => {
+      fixture.detectChanges();
+      component.inscriptionUrl.set(' https://inscription.example.org ');
+      component.saveInscription();
+      tick();
+      expect(lastFormData().get('inscription_url_externe')).toBe('https://inscription.example.org');
+      expect(mockSnackBar.open).toHaveBeenCalled();
+    }));
+
+    it('un champ vidé rétablit l\'inscription dans CICADA', fakeAsync(() => {
+      fixture.detectChanges();
+      component.inscriptionUrl.set('');
+      component.saveInscription();
+      tick();
+      expect(lastFormData().get('inscription_url_externe')).toBe('');
+    }));
+
+    it('affiche l\'erreur renvoyée par le serveur', fakeAsync(() => {
+      fixture.detectChanges();
+      (mockSettingsService.updateSettings as jest.Mock).mockReturnValueOnce(
+        throwError(() => ({ error: { inscription_url_externe: ['Saisissez une URL valide.'] } })),
+      );
+      component.inscriptionUrl.set('pas une url');
+      component.saveInscription();
+      tick();
+      expect(component.inscriptionError()).toBe('Saisissez une URL valide.');
     }));
   });
 

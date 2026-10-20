@@ -59,6 +59,8 @@ export class HomeComponent implements OnInit {
 
   /** #710 — Logo de la structure qui déploie l'instance (null si aucun). */
   readonly structureLogoUrl = computed(() => this.settingsService.getStructureLogoUrl());
+  /** #724 — Inscription confiée à une plateforme externe (null = formulaire local). */
+  readonly inscriptionExterne = computed(() => this.settingsService.inscriptionUrlExterne());
   /** #710 — Textes d'accueil personnalisés ; vides → textes par défaut (fr.json). */
   readonly accueilTitre = computed(() => this.settingsService.config()?.accueil_titre || '');
   readonly accueilSousTitre = computed(() => this.settingsService.config()?.accueil_sous_titre || '');

@@ -38,6 +38,8 @@ export class LoginComponent {
   isLoading = this.authService.isLoading;
   /** #710 — Logo de la structure (paramètres de l'instance, chargés par AppComponent). */
   readonly structureLogoUrl = computed(() => this.settingsService.getStructureLogoUrl());
+  /** #724 — Inscription confiée à une plateforme externe (null = formulaire local). */
+  readonly inscriptionExterne = computed(() => this.settingsService.inscriptionUrlExterne());
 
   /** #689 — mode de connexion imposé par l'instance (un seul à la fois). */
   loginMode = signal<LoginMode>({ mode: 'local' });

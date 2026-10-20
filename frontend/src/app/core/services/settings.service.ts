@@ -48,6 +48,11 @@ export interface SiteConfiguration {
   matomo_enabled: boolean;
   matomo_url: string;
   matomo_site_id: string;
+  /**
+   * #724 — Inscription confiée à une plateforme externe. Renseignée, elle
+   * remplace l'inscription locale ; vide = formulaire de CICADA.
+   */
+  inscription_url_externe: string;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;
@@ -124,6 +129,11 @@ export class SettingsService {
     return this.configSignal()?.api_publique_plans === true;
   }
 
+  /** #724 — URL de la plateforme d'inscription externe (null = inscription locale). */
+  inscriptionUrlExterne(): string | null {
+    return this.configSignal()?.inscription_url_externe || null;
+  }
+
   /** #448 — URL du logo de la structure (null si non défini). */
   getStructureLogoUrl(): string | null {
     return this.configSignal()?.structure_logo_url || null;
@@ -170,6 +180,7 @@ export class SettingsService {
           matomo_enabled: false,
           matomo_url: '',
           matomo_site_id: '',
+          inscription_url_externe: '',
           updated_at: '',
           updated_by: null,
           updated_by_name: null

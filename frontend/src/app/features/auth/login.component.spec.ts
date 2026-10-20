@@ -36,6 +36,8 @@ describe('LoginComponent', () => {
   let isLoadingSignal: WritableSignal<boolean>;
   /** #710 — Logo de la structure renvoyé par les paramètres de l'instance. */
   const structureLogo = signal<string | null>(null);
+  /** #724 — URL d'inscription externe (vide = formulaire local). */
+  const inscriptionExterne = signal<string | null>(null);
 
   const setupTestBed = async (
     returnUrl: string | null = null,
@@ -74,7 +76,10 @@ describe('LoginComponent', () => {
           { path: 'sites/:id', component: DummyComponent }
         ]),
         { provide: AuthService, useValue: authServiceMock },
-        { provide: SettingsService, useValue: { getStructureLogoUrl: () => structureLogo() } },
+        { provide: SettingsService, useValue: {
+          getStructureLogoUrl: () => structureLogo(),
+          inscriptionUrlExterne: () => inscriptionExterne(),
+        } },
         { provide: ActivatedRoute, useValue: activatedRouteMock }
       ]
     }).compileComponents();
@@ -114,6 +119,28 @@ describe('LoginComponent', () => {
 
     it('should start with no error message', () => {
       expect(component.errorMessage()).toBeNull();
+    });
+  });
+
+  // ==================== #724 — INSCRIPTION EXTERNE ====================
+
+  describe('Lien « Créer un compte » (#724)', () => {
+    const lien = () => fixture.nativeElement.querySelector('[data-testid="register-link"]') as HTMLAnchorElement;
+
+    afterEach(() => inscriptionExterne.set(null));
+
+    it('mène au formulaire local par défaut', async () => {
+      await setupTestBed();
+      expect(lien().getAttribute('href')).toBe('/auth/register');
+      expect(lien().getAttribute('target')).toBeNull();
+    });
+
+    it('ouvre la plateforme externe dans un nouvel onglet quand elle est réglée', async () => {
+      inscriptionExterne.set('https://inscription.example.org/cicada');
+      await setupTestBed();
+      expect(lien().getAttribute('href')).toBe('https://inscription.example.org/cicada');
+      expect(lien().getAttribute('target')).toBe('_blank');
+      expect(lien().getAttribute('rel')).toContain('noopener');
     });
   });
 

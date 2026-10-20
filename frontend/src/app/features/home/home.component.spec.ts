@@ -67,6 +67,7 @@ describe('HomeComponent — accueil visiteur (#710)', () => {
             loadSettings: () => of(config()),
             getHomepageImageUrl: () => 'assets/images/homepage-default.jpg',
             getStructureLogoUrl: () => config()?.structure_logo_url || null,
+            inscriptionUrlExterne: () => config()?.inscription_url_externe || null,
           },
         },
       ],
@@ -86,6 +87,21 @@ describe('HomeComponent — accueil visiteur (#710)', () => {
     (fixture.nativeElement.querySelector(`[data-testid="${testId}"]`) as HTMLElement | null)?.textContent?.trim();
 
   afterEach(() => TestBed.resetTestingModule());
+
+  // #724 — « Créer un compte » mène à la plateforme externe quand elle est réglée.
+  it('« Créer un compte » mène au formulaire local par défaut', async () => {
+    await setup({ inscription_url_externe: '' });
+    const lien = fixture.nativeElement.querySelector('[data-testid="home-create-account"]') as HTMLAnchorElement;
+    expect(lien.getAttribute('href')).toBe('/auth/register');
+  });
+
+  it('« Créer un compte » ouvre la plateforme externe dans un nouvel onglet', async () => {
+    await setup({ inscription_url_externe: 'https://inscription.example.org/cicada' });
+    const lien = fixture.nativeElement.querySelector('[data-testid="home-create-account"]') as HTMLAnchorElement;
+    expect(lien.getAttribute('href')).toBe('https://inscription.example.org/cicada');
+    expect(lien.getAttribute('target')).toBe('_blank');
+    expect(lien.getAttribute('rel')).toContain('noopener');
+  });
 
   it('affiche les textes par défaut quand l\'instance ne les a pas personnalisés', async () => {
     await setup({ accueil_titre: '', accueil_sous_titre: '' });

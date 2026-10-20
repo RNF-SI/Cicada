@@ -374,6 +374,31 @@
           ></app-checkbox>
         </section>
 
+        <!-- #724 — Inscription confiée à une plateforme externe. -->
+        <section class="settings-section" data-testid="settings-inscription">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-user-add"></i>
+              {{ 'admin.settings.inscription.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.inscription.description' | translate }}</p>
+          </div>
+
+          <app-form-field
+            [label]="'admin.settings.inscription.url' | translate"
+            [helpText]="'admin.settings.inscription.urlHint' | translate"
+            [error]="inscriptionError()">
+            <input type="url" [ngModel]="inscriptionUrl()" (ngModelChange)="inscriptionUrl.set($event)"
+                   placeholder="https://" [disabled]="isSaving()" data-testid="settings-inscription-url" />
+          </app-form-field>
+
+          <div class="banner-actions">
+            <button mat-flat-button color="primary" (click)="saveInscription()" [disabled]="isSaving()">
+              <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+            </button>
+          </div>
+        </section>
+
         <!-- #670 — Mesure d'audience Matomo, réglée par instance. -->
         <section class="settings-section">
           <div class="section-header">

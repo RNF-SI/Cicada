@@ -18,6 +18,7 @@ describe('SettingsService', () => {
     accueil_sous_titre: '',
     enable_docgestion_fcen: false,
     federation_partage: false,
+    inscription_url_externe: '',
     api_publique_plans: false,
     matomo_enabled: false,
     matomo_url: '',
@@ -198,6 +199,7 @@ describe('SettingsService', () => {
         matomo_enabled: false,
         matomo_url: '',
         matomo_site_id: '',
+        inscription_url_externe: '',
         updated_at: '',
         updated_by: null,
         updated_by_name: null

@@ -94,6 +94,9 @@ export class AdminSettingsComponent implements OnInit {
   readonly matomoUrl = signal<string>('');
   readonly matomoSiteId = signal<string>('');
   readonly matomoError = signal<string | null>(null);
+  /** #724 — Inscription confiée à une plateforme externe (vide = formulaire local). */
+  readonly inscriptionUrl = signal<string>('');
+  readonly inscriptionError = signal<string | null>(null);
 
   // #448 — Personnalisation : couleur du bandeau + logo structure.
   // Bandeau blanc par défaut (comportement historique).
@@ -151,6 +154,8 @@ export class AdminSettingsComponent implements OnInit {
       this.matomoEnabled.set(config?.matomo_enabled === true);
       this.matomoUrl.set(config?.matomo_url ?? '');
       this.matomoSiteId.set(config?.matomo_site_id ?? '');
+      // #724 — Plateforme d'inscription externe.
+      this.inscriptionUrl.set(config?.inscription_url_externe ?? '');
     });
   }
 
@@ -478,6 +483,37 @@ export class AdminSettingsComponent implements OnInit {
           ? Object.values(err.error).flat().find(message => typeof message === 'string')
           : undefined;
         this.matomoError.set(detail || this.translate.instant('admin.settings.messages.error'));
+      },
+    });
+  }
+
+  /**
+   * #724 — Enregistre l'URL de la plateforme d'inscription externe. Renseignée,
+   * elle remplace l'inscription locale ; vidée, le formulaire de CICADA revient.
+   */
+  saveInscription(): void {
+    const url = this.inscriptionUrl().trim();
+    this.inscriptionError.set(null);
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('inscription_url_externe', url);
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant(url
+            ? 'admin.settings.inscription.messages.externe'
+            : 'admin.settings.inscription.messages.locale'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 },
+        );
+      },
+      error: (err: { error?: Record<string, string[] | string> }) => {
+        this.isSaving.set(false);
+        const detail = err?.error
+          ? Object.values(err.error).flat().find(message => typeof message === 'string')
+          : undefined;
+        this.inscriptionError.set(detail || this.translate.instant('admin.settings.messages.error'));
       },
     });
   }

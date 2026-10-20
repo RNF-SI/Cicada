@@ -1297,7 +1297,7 @@ class PublicRegistrationView:
 # Vue fonction pour l'inscription publique
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from apps.authentication.throttles import AuthRateThrottle
-from apps.authentication.providers import ConnexionLocaleActive
+from apps.authentication.providers import InscriptionLocaleOuverte, ConnexionLocaleActive
 
 
 @extend_schema(
@@ -1319,12 +1319,12 @@ from apps.authentication.providers import ConnexionLocaleActive
             },
         ),
         400: OpenApiResponse(description='Données invalides (email déjà utilisé, mot de passe faible…)'),
-        403: OpenApiResponse(description='Inscription locale désactivée sur cette instance'),
+        403: OpenApiResponse(description="Inscription locale désactivée sur cette instance, ou confiée à une plateforme externe (#724 : la réponse porte `inscription_url_externe`)"),
         429: OpenApiResponse(description='Trop de tentatives'),
     },
 )
 @api_view(['POST'])
-@permission_classes([ConnexionLocaleActive])
+@permission_classes([ConnexionLocaleActive, InscriptionLocaleOuverte])
 @throttle_classes([AuthRateThrottle])
 def public_registration_view(request):
     """Endpoint d'inscription publique."""
