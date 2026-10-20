@@ -54,7 +54,8 @@ class ElementCopyService:
         for site in old_op.sites.all():
             CorOperationSite.objects.create(id_operation=new_op, id_site=site)
 
-        for old_oa in OperationAnnee.objects.filter(id_operation=old_op):
+        # #735 — ligne globale (sans année) comprise.
+        for old_oa in OperationAnnee.tous.filter(id_operation=old_op):
             new_oa = dup(old_oa, user, id_operation=new_op)
             new_oa.save()
             for old_org in OperationAnneeOrganisme.objects.filter(id_operation_annee=old_oa):

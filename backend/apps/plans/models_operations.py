@@ -644,6 +644,16 @@ class Operation(models.Model):
         help_text=_("Calcule le coût salarial depuis les jours saisis × le coût "
                     "jour des postes. Décochée, le coût salarial est saisi à la main.")
     )
+    # #735 — programmation GLOBALE : budget et temps de travail saisis une fois
+    # pour toute la période de l'action (ligne `OperationAnnee` sans année,
+    # cf. `annee_globale`), au lieu d'année par année. Les années programmées
+    # (périodicité, mois) restent annuelles, le réalisé aussi.
+    programmation_globale = models.BooleanField(
+        _("Programmation globale sur la période"),
+        default=False,
+        help_text=_("Budget et temps de travail saisis globalement sur la période "
+                    "de l'action plutôt que par année.")
+    )
 
     # Emprise spatiale (PostGIS)
     geom = models.GeometryField(
@@ -870,6 +880,14 @@ class Operation(models.Model):
         return 'NON_DEMARRE'
 
     @property
+    def annee_globale(self):
+        """#735 — ligne de programmation globale (sans année), ou None."""
+        cache = getattr(self, '_prefetched_annee_globale', None)
+        if cache is not None:
+            return cache[0] if cache else None
+        return OperationAnnee.tous.filter(id_operation=self, annee__isnull=True).first()
+
+    @property
     def realisation_globale_override(self):
         """Objet OperationRealisationGlobale (surcharge manuelle) ou None."""
         return getattr(self, 'realisation_globale', None)
@@ -960,11 +978,30 @@ class CorOperationMetrique(models.Model):
         return f"Opération {self.id_operation_id} - Métrique {self.id_metrique_id}"
 
 
+class OperationAnneeManager(models.Manager):
+    """
+    #735 — n'expose que les lignes ANNUELLES : la ligne globale (sans année)
+    d'une action programmée globalement ne doit apparaître dans aucune lecture
+    « par année » (exports, bilan, statuts, suivi). Comme gestionnaire par
+    défaut, il filtre aussi `operation.operation_annees` et ses prefetch. La
+    ligne globale se lit par `OperationAnnee.tous` / `Operation.annee_globale`.
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().filter(annee__isnull=False)
+
+
 class OperationAnnee(models.Model):
     """
     Programmation annuelle d'une opération.
     Une ligne par année entre annee_min et annee_max de l'opération.
+
+    #735 — une ligne SANS année porte le budget et le temps de travail d'une
+    action programmée globalement (`Operation.programmation_globale`).
     """
+
+    objects = OperationAnneeManager()
+    tous = models.Manager()
 
     id_operation_annee = models.AutoField(primary_key=True)
     id_operation = models.ForeignKey(
@@ -974,7 +1011,7 @@ class OperationAnnee(models.Model):
         db_column='id_operation',
         verbose_name=_("Opération")
     )
-    annee = models.IntegerField(_("Année"))
+    annee = models.IntegerField(_("Année"), null=True, blank=True)
     periodicite = models.BooleanField(_("Périodicité"), default=False)
     budget = models.DecimalField(
         _("Budget prévisionnel (€)"),
@@ -1067,9 +1104,18 @@ class OperationAnnee(models.Model):
         verbose_name_plural = _("Années d'opération")
         unique_together = ['id_operation', 'annee']
         ordering = ['annee']
+        base_manager_name = 'tous'
+        constraints = [
+            # Une seule ligne globale par action (#735).
+            models.UniqueConstraint(
+                fields=['id_operation'],
+                condition=models.Q(annee__isnull=True),
+                name='uniq_operation_annee_globale',
+            ),
+        ]
 
     def __str__(self):
-        return f"Opération {self.id_operation_id} - {self.annee}"
+        return f"Opération {self.id_operation_id} - {self.annee or 'global'}"
 
 
 class OperationAnneeOrganisme(models.Model):

@@ -9,7 +9,7 @@ import {
   fonctDetailPrev, investDetailPrev, fonctDetailReal, investDetailReal,
   salarialCost, sumJours, yearBudgetPrev, yearBudgetReal,
   yearJoursPrev, yearJoursReal,
-  salaryOptionAvailable, salaryIsComputed,
+  salaryOptionAvailable, salaryIsComputed, prevAnnees,
 } from './operation-budget';
 
 const OP = (mode: string) => ({ ventilation_mode: mode }) as any;
@@ -289,14 +289,56 @@ describe('coût salarial : calculé ou saisi', () => {
     // Sans poste, aucun coût jour : la valeur calculée serait figée à 0.
     expect(salaryIsComputed('by_type', true, true)).toBe(false);
     expect(salaryIsComputed('by_org_type', true, true)).toBe(false);
+    // #735 — « aucune » et « par organisme » détaillent aussi leurs coûts.
+    expect(salaryIsComputed('none', true, true)).toBe(false);
+    expect(salaryIsComputed('by_org', true, true)).toBe(false);
   });
 
   it('laisse les modes sans détail des coûts en calcul (comportement historique)', () => {
     // L'enveloppe saisie contient déjà tout : le drapeau ne doit pas basculer
     // ces actions en « coût salarial saisi » côté serveur (totaux inchangés).
-    expect(salaryIsComputed('none', true, true)).toBe(true);
-    expect(salaryIsComputed('by_org', true, true)).toBe(true);
+    expect(salaryIsComputed('none', false, true)).toBe(true);
+    expect(salaryIsComputed('by_org', false, true)).toBe(true);
     expect(salaryIsComputed('by_type', false, true)).toBe(true);
     expect(salaryIsComputed('by_org_type_poste', false, true)).toBe(true);
+  });
+});
+
+describe('#735 — détail des coûts sans type de budget', () => {
+  it('additionne les types de coût saisis en mode « aucune ventilation »', () => {
+    const op = { ventilation_mode: 'none', declinaison_par_type_cout: true, cout_salarial_auto: false } as any;
+    const oa: any = {
+      annee: 2027, budget: '1700.00', cout_salarial: '1000.00', cout_stage: '200.00',
+      cout_prestataire: '400.00', autre_cout: '100.00', organismes: [], rh_lignes: [],
+    };
+    expect(fonctDetailPrev(op, oa)).toEqual(
+      { salarial: 1000, stage: 200, prestataire: 400, autres: 100, total: 1700 });
+    expect(yearBudgetPrev(op, oa).total).toBe(1700);
+  });
+
+  it('additionne les types de coût de chaque organisme en mode « par organisme »', () => {
+    const op = { ventilation_mode: 'by_org', declinaison_par_type_cout: true, cout_salarial_auto: false } as any;
+    const oa: any = {
+      annee: 2027, budget: null, organismes: [
+        { id_organisme: 1, cout_salarial: '500.00', autre_cout: '50.00' },
+        { id_organisme: 2, cout_prestataire: '300.00' },
+      ], rh_lignes: [],
+    };
+    expect(yearBudgetPrev(op, oa).total).toBe(850);
+  });
+});
+
+describe('#735 — programmation globale', () => {
+  const annuelle: any = { annee: 2028, budget: null, organismes: [], rh_lignes: [] };
+  const globale: any = { annee: null, budget: '20000.00', organismes: [], rh_lignes: [] };
+
+  it('porte le prévu sur la seule ligne globale', () => {
+    const op: any = { programmation_globale: true, operation_annees: [annuelle], operation_annee_globale: globale };
+    expect(prevAnnees(op)).toEqual([globale]);
+  });
+
+  it('garde les années pour une action annuelle', () => {
+    const op: any = { programmation_globale: false, operation_annees: [annuelle], operation_annee_globale: null };
+    expect(prevAnnees(op)).toEqual([annuelle]);
   });
 });

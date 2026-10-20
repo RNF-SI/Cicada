@@ -694,9 +694,11 @@ def test_validate_budget_en_double():
 @pytest.mark.parametrize(
     "budgets, rh, expected",
     [
-        ([], [], ("none", True)),
-        ([{"budget_total": "1"}], [], ("none", True)),
-        ([{"organisme": "O1", "budget_total": "1"}], [], ("by_org", True)),
+        # #735 — « aucune » / « par organisme » : le classeur ne porte que leur
+        # total, l'action importée est donc saisie en total (case décochée).
+        ([], [], ("none", False)),
+        ([{"budget_total": "1"}], [], ("none", False)),
+        ([{"organisme": "O1", "budget_total": "1"}], [], ("by_org", False)),
         ([{"budget_fonctionnement": "1"}], [], ("by_type", False)),
         ([{"cout_stage": "1"}], [], ("by_type", True)),
         ([{"organisme": "O1", "budget_investissement": "1"}], [],

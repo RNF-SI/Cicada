@@ -617,7 +617,8 @@ class PlanDuplicationService:
                 CorOperationSite.objects.create(id_operation=new_op, id_site=site)
 
             # Années de programmation (+ ventilation par organisme).
-            for old_oa in OperationAnnee.objects.filter(id_operation=old_op):
+            # #735 — `tous` : la ligne globale (sans année) est copiée aussi.
+            for old_oa in OperationAnnee.tous.filter(id_operation=old_op):
                 new_oa = dup(old_oa, user, id_operation=new_op)
                 new_oa.save()
                 for old_org in OperationAnneeOrganisme.objects.filter(id_operation_annee=old_oa):

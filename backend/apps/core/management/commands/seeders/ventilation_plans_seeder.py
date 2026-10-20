@@ -124,6 +124,19 @@ _VARIANTES = [
     }),
 ]
 
+# #735 — plan brouillon dont les actions sont programmées GLOBALEMENT sur leur
+# période (budget et temps de travail sans répartition annuelle), dans le mode
+# le plus détaillé. Même contenu, donc mêmes totaux, que les plans annuels.
+_PLAN_PREFIX_GLOBAL = 'Ventilation globale — '
+_PLAN_PREFIX_GLOBAL_VALIDE = 'Ventilation globale validée — '
+_MODE_GLOBAL = 'by_org_type_poste'
+_CODE_GLOBAL = 'GLOB-ORGTYPEPOSTE'
+# Brouillon (saisie de la fiche action) + validé (saisie du suivi).
+_VARIANTES_GLOBAL = [
+    (_PLAN_PREFIX_GLOBAL, 'draft', ''),
+    (_PLAN_PREFIX_GLOBAL_VALIDE, 'valide', 'VAL-'),
+]
+
 # Mode dont les actions saisissent le coût salarial à la main (#600) plutôt que
 # de le laisser calculer depuis les jours × coût jour. Sert de support de recette
 # à la reprise du paramétrage d'une action à l'autre (#641).
@@ -432,6 +445,29 @@ class VentilationPlansSeeder(BaseSeeder):
                     nb_ops += 1
                 plans.append(plan)
                 self.log_item('plan', f'{plan.nom} ({len(_ACTIONS)} actions, {len(years)} années)')
+
+        # #735 — programmation globale sur la période.
+        libelle_global = next(lib for m, lib, _s in _MODES if m == _MODE_GLOBAL)
+        for prefixe, statut, code_variante in _VARIANTES_GLOBAL:
+            plan = self._create_plan(
+                prefixe, statut, libelle_global, site, admin, users,
+                annee_debut, annee_fin, nomenclatures,
+            )
+            postes = self._create_postes(plan, org_map)
+            metrique = self._create_arborescence(plan, admin, years, nomenclatures)
+            for action in _ACTIONS:
+                op = self._create_operation(
+                    plan, prefixe, action, f'{code_variante}{_CODE_GLOBAL}', site,
+                    metrique, admin, years, nomenclatures,
+                )
+                self._program_operation(
+                    op, action, _MODE_GLOBAL, postes, org_map, years, current_year,
+                    admin, nomenclatures, None,
+                )
+                self._globaliser(op)
+                nb_ops += 1
+            plans.append(plan)
+            self.log_item('plan', f'{plan.nom} ({len(_ACTIONS)} actions programmées globalement)')
 
         self.log_summary(len(plans), 'plans « Ventilation » créés (brouillons + validés)')
         self.log_summary(nb_ops, 'actions programmées (budget + RH + suivi)')
@@ -908,6 +944,64 @@ class VentilationPlansSeeder(BaseSeeder):
         return oa
 
     @staticmethod
+    def _globaliser(op) -> None:
+        """
+        #735 — reporte le budget et le temps de travail des années sur la ligne
+        globale (sans année) : sommes par champ, par organisme et par ligne RH.
+        Les années gardent leur programmation et leurs organismes (vides), le
+        réalisé par organisme s'y rattachant.
+        """
+        montants = ('budget', 'etp', 'budget_fonctionnement', 'budget_investissement',
+                    'cout_salarial', 'cout_salarial_invest', *_COUT_FIELDS)
+        textes = ('autre_cout_commentaire', 'autre_cout_invest_commentaire')
+        org_montants = (*montants[2:], 'etp')
+        annees = list(OperationAnnee.objects.filter(id_operation=op))
+
+        def somme(objs, champ):
+            vals = [getattr(o, champ) for o in objs if getattr(o, champ) is not None]
+            return _q(sum(vals, Decimal('0'))) if vals else None
+
+        def premier(objs, champ):
+            return next((getattr(o, champ) for o in objs if getattr(o, champ)), '')
+
+        OperationAnnee.tous.filter(id_operation=op, annee__isnull=True).delete()
+        globale = OperationAnnee.objects.create(
+            id_operation=op, annee=None,
+            **{c: somme(annees, c) for c in montants},
+            **{c: premier(annees, c) for c in textes},
+        )
+        orgs = OperationAnneeOrganisme.objects.filter(id_operation_annee__in=annees)
+        par_org: Dict[int, list] = {}
+        for oao in orgs:
+            par_org.setdefault(oao.id_organisme_id, []).append(oao)
+        for org_id, lignes in par_org.items():
+            OperationAnneeOrganisme.objects.create(
+                id_operation_annee=globale, id_organisme_id=org_id,
+                **{c: somme(lignes, c) for c in org_montants},
+                **{c: premier(lignes, c) for c in textes},
+            )
+        par_rh: Dict[tuple, Decimal] = {}
+        rh = OperationAnneeRH.objects.filter(id_operation_annee__in=annees)
+        for ligne in rh:
+            cle = (ligne.id_poste_id, ligne.id_organisme_id, ligne.categorie_depense)
+            par_rh[cle] = par_rh.get(cle, Decimal('0')) + _dec(ligne.jours)
+        rh.delete()
+        OperationAnneeRH.objects.bulk_create([
+            OperationAnneeRH(
+                id_operation_annee=globale, id_poste_id=poste, id_organisme_id=org,
+                jours=jours, categorie_depense=cat,
+                finance=cat != CategorieDepense.BENEVOLAT_PARTENARIAT,
+            )
+            for (poste, org, cat), jours in par_rh.items()
+        ])
+        vides = {c: None for c in montants}
+        OperationAnnee.objects.filter(pk__in=[a.pk for a in annees]).update(
+            **vides, **{c: '' for c in textes})
+        orgs.update(**{c: None for c in org_montants}, **{c: '' for c in textes})
+        op.programmation_globale = True
+        op.save(update_fields=['programmation_globale'])
+
+    @staticmethod
     def _fusion_couts(action) -> dict:
         """Composants de coût cumulés tous organismes (mode sans organisme)."""
         fusion: dict = {}
@@ -1132,8 +1226,13 @@ class VentilationPlansSeeder(BaseSeeder):
             for _prefixe, _statut, variante, _suivi in _VARIANTES
             for _mode, _libelle, suffix in _MODES
             for action in _ACTIONS
+        ] + [
+            f"{VENTILATION_OP_CODE_PREFIX}{variante}{_CODE_GLOBAL}-{a['suffix']}"
+            for _p, _s, variante in _VARIANTES_GLOBAL for a in _ACTIONS
         ]
         prefixes = Q()
+        for prefixe, *_ in _VARIANTES_GLOBAL:
+            prefixes |= Q(nom__startswith=prefixe)
         for prefixe, *_ in _VARIANTES:
             prefixes |= Q(nom__startswith=prefixe)
         plans = PlanGestion.objects.filter(prefixes)
@@ -1160,4 +1259,6 @@ class VentilationPlansSeeder(BaseSeeder):
             '(action CS, pour la fiche action et son export — #642)',
             f'  - coût salarial saisi à la main sur le plan « {_MODE_SALAIRE_MANUEL} » '
             '(reprise du paramétrage de ventilation — #641)',
+            f'  - 2 plans « {_PLAN_PREFIX_GLOBAL}… » (brouillon + validé) : actions '
+            'programmées globalement sur leur période (#735), mêmes totaux',
         ]

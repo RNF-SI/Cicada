@@ -24,7 +24,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from . import export_theme
-from .services_export_finance import build_plan_finance
+from .services_export_finance import build_plan_finance, year_label
 
 _ZERO = Decimal(0)
 
@@ -156,7 +156,7 @@ class _ActionMatrix:
         for i, y in enumerate(self.years):
             if self.suivi:
                 ws.merge_cells(start_row=hr, start_column=self._yc(i), end_row=hr, end_column=self._yc(i, True))
-            _set(ws, hr, self._yc(i), str(y), fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
+            _set(ws, hr, self._yc(i), str(year_label(y)), fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
         if self.suivi:
             ws.merge_cells(start_row=hr, start_column=self._tc(), end_row=hr, end_column=self._tc(True))
         _set(ws, hr, self._tc(), "TOTAL", fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
@@ -267,7 +267,7 @@ class _LabelMatrix:
         for i, y in enumerate(self.years):
             if self.suivi:
                 ws.merge_cells(start_row=hr, start_column=self._yc(i), end_row=hr, end_column=self._yc(i, True))
-            _set(ws, hr, self._yc(i), str(y), fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
+            _set(ws, hr, self._yc(i), str(year_label(y)), fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
         if self.suivi:
             ws.merge_cells(start_row=hr, start_column=self._tc(), end_row=hr, end_column=self._tc(True))
         _set(ws, hr, self._tc(), "TOTAL", fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)

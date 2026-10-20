@@ -1034,6 +1034,14 @@ class MetriqueLieeSerializer(serializers.Serializer):
     group_open = serializers.BooleanField(allow_null=True)
 
 
+def _annee_globale_data(operation, context):
+    """#735 — ligne de programmation globale sérialisée, ou None (action annuelle)."""
+    if not operation.programmation_globale:
+        return None
+    globale = operation.annee_globale
+    return OperationAnneeSerializer(globale, context=context).data if globale else None
+
+
 class OperationSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour une Opération."""
     priorite_label = serializers.CharField(source='id_priorite.label', read_only=True)
@@ -1051,6 +1059,8 @@ class OperationSerializer(serializers.ModelSerializer):
     # dans l'architecture du plan depuis la fiche action.
     enjeu_slug = serializers.SerializerMethodField()
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
+    # #735 — budget / temps de travail d'une action programmée globalement.
+    operation_annee_globale = serializers.SerializerMethodField()
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
     geom_geojson = serializers.SerializerMethodField()
@@ -1099,6 +1109,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'ventilation_mode', 'declinaison_par_poste',
             # #600 (retour 08/2026) — réglages du tableau de programmation.
             'declinaison_par_type_cout', 'cout_salarial_auto',
+            'programmation_globale', 'operation_annee_globale',
             'geom', 'geom_geojson',
             'id_indicateur',
             'metriques', 'metrique_ids',
@@ -1115,6 +1126,10 @@ class OperationSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_enjeu_slug(self, obj):
         return _operation_enjeu_slug(obj)
+
+    @extend_schema_field(OperationAnneeSerializer(allow_null=True))
+    def get_operation_annee_globale(self, obj):
+        return _annee_globale_data(obj, self.context)
 
     @extend_schema_field(geojson_geometry_schema(nullable=True))
     def get_geom_geojson(self, obj):
@@ -1406,7 +1421,12 @@ class OperationNestedSerializer(OperationListSerializer):
     opération nichée. On les exclut explicitement.
     """
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
+    operation_annee_globale = serializers.SerializerMethodField()
     finances = FinanceOperationSerializer(many=True, read_only=True)
+
+    @extend_schema_field(OperationAnneeSerializer(allow_null=True))
+    def get_operation_annee_globale(self, obj):
+        return _annee_globale_data(obj, self.context)
 
     class Meta(OperationListSerializer.Meta):
         fields = [
@@ -1414,7 +1434,8 @@ class OperationNestedSerializer(OperationListSerializer):
             if f not in ('nb_operation_annees', 'nb_finances', 'enjeu_slug', 'oo_id')
         ] + ['operation_annees', 'finances', 'ventilation_mode',
              'declinaison_par_poste',
-             'declinaison_par_type_cout', 'cout_salarial_auto']
+             'declinaison_par_type_cout', 'cout_salarial_auto',
+             'programmation_globale', 'operation_annee_globale']
 
 
 # =============================================================================
@@ -1466,6 +1487,14 @@ class OperationAnneeWriteSerializer(serializers.Serializer):
     rh_lignes = OperationAnneeRHWriteSerializer(many=True, required=False, default=[])
 
 
+class OperationAnneeGlobaleWriteSerializer(OperationAnneeWriteSerializer):
+    """#735 — budget / temps de travail sur toute la période : ni année ni périodicité."""
+    annee = None
+    periodicite = None
+    periodicite_mensuelle = None
+    geom = None
+
+
 class OperationCreateSerializer(serializers.ModelSerializer):
     """Serializer pour la création/modification d'une Opération."""
     site_ids = serializers.ListField(
@@ -1481,6 +1510,9 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         default=[]
     )
     operation_annees = OperationAnneeWriteSerializer(many=True, required=False, default=[])
+    operation_annee_globale = OperationAnneeGlobaleWriteSerializer(
+        required=False, allow_null=True, write_only=True,
+    )
     finances = FinanceOperationSerializer(many=True, required=False, default=[])
     suivi_inventaire = SuiviInventaireWriteSerializer(required=False, allow_null=True, write_only=True)
     # Emprise spatiale acceptée en GeoJSON (cohérent avec `geom_realisee` de la
@@ -1508,6 +1540,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'ventilation_mode', 'declinaison_par_poste',
             # #600 (retour 08/2026) — réglages du tableau de programmation.
             'declinaison_par_type_cout', 'cout_salarial_auto',
+            'programmation_globale', 'operation_annee_globale',
             'geom_geojson',
             'metrique_ids', 'site_ids',
             'operation_annees', 'finances'
@@ -1535,6 +1568,12 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             return True
         code = type_action.cd_nomenclature or type_action.mnemonique or ''
         return code.startswith('CS')
+
+    def _save_annee_globale(self, operation, globale_data):
+        """#735 — remplace la ligne globale ; aucune pour une action annuelle."""
+        OperationAnnee.tous.filter(id_operation=operation, annee__isnull=True).delete()
+        if operation.programmation_globale and globale_data:
+            self._create_operation_annees(operation, [{**globale_data, 'annee': None}])
 
     def _create_operation_annees(self, operation, annees_data):
         """Create OperationAnnee objects with nested organismes."""
@@ -1594,8 +1633,16 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         site_ids = validated_data.pop('site_ids', [])
         metrique_ids = validated_data.pop('metrique_ids', [])
         annees_data = validated_data.pop('operation_annees', [])
+        globale_data = validated_data.pop('operation_annee_globale', None)
         finances_data = validated_data.pop('finances', [])
         suivi_data = validated_data.pop('suivi_inventaire', None)
+
+        # #735 — « aucune » / « par organisme » se saisissent en total tant que
+        # le détail des coûts n'est pas demandé explicitement (le formulaire
+        # envoie toujours la case ; un appel d'API sans elle garde le total).
+        if 'declinaison_par_type_cout' not in validated_data and \
+                validated_data.get('ventilation_mode', 'none') in ('none', 'by_org'):
+            validated_data['declinaison_par_type_cout'] = False
 
         # #398 — garantir le rattachement à un indicateur : si aucun
         # `id_indicateur` n'est fourni mais des métriques le sont, on déduit
@@ -1651,6 +1698,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
 
         # Nested: operation_annees and finances
         self._create_operation_annees(operation, annees_data)
+        self._save_annee_globale(operation, globale_data)
         self._create_finances(operation, finances_data)
 
         return operation
@@ -1659,6 +1707,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         site_ids = validated_data.pop('site_ids', None)
         metrique_ids = validated_data.pop('metrique_ids', None)
         annees_data = validated_data.pop('operation_annees', None)
+        globale_data = validated_data.pop('operation_annee_globale', None)
         finances_data = validated_data.pop('finances', None)
         suivi_data = validated_data.pop('suivi_inventaire', None)
 
@@ -1737,6 +1786,10 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         if annees_data is not None:
             OperationAnnee.objects.filter(id_operation=instance).delete()
             self._create_operation_annees(instance, annees_data)
+        # #735 — la ligne globale est réécrite quand elle est envoyée, et
+        # supprimée dès que l'action redevient annuelle.
+        if globale_data is not None or not instance.programmation_globale:
+            self._save_annee_globale(instance, globale_data)
 
         # Replace nested finances (delete + recreate)
         if finances_data is not None:

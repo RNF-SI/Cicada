@@ -201,7 +201,9 @@
                   <!-- #615 — catégorie de dépense (menu déroulant), comme dans la
                        saisie de l'action, à la place de la case « Financé ». -->
                   <th class="rh-categorie-col">{{ 'plans.rh.colCategorie' | translate }}</th>
-                  <th class="rh-num-col">{{ 'plans.suivis.saisie.rh.prevu' | translate }}</th>
+                  @if (!isGlobale()) {
+                    <th class="rh-num-col">{{ 'plans.suivis.saisie.rh.prevu' | translate }}</th>
+                  }
                   <th class="rh-num-col active">{{ 'plans.suivis.saisie.rh.realise' | translate }}</th>
                   <th class="rh-actions-col"></th>
                 </tr>
@@ -250,9 +252,11 @@
                         }
                       </mat-select>
                     </td>
-                    <td class="rh-num-col rh-plan-cell">
-                      {{ formatNumber($safeNavigationMigration(ctrl.get('plan_jours')?.value), ' j') }}
-                    </td>
+                    @if (!isGlobale()) {
+                      <td class="rh-num-col rh-plan-cell">
+                        {{ formatNumber($safeNavigationMigration(ctrl.get('plan_jours')?.value), ' j') }}
+                      </td>
+                    }
                     <td class="rh-num-col active">
                       <input type="number" min="0" step="0.25"
                              formControlName="jours" placeholder="j" />
@@ -272,21 +276,27 @@
                 <tr class="rh-total-row">
                   <td class="text-bold">{{ 'plans.suivis.saisie.rh.total' | translate }}</td>
                   <td></td>
-                  <td class="rh-num-col">{{ sumRh('plan_jours') | number:'1.0-2' }} j</td>
+                  @if (!isGlobale()) {
+                    <td class="rh-num-col">{{ sumRh('plan_jours') | number:'1.0-2' }} j</td>
+                  }
                   <td class="rh-num-col active">{{ sumRh('jours') | number:'1.0-2' }} j</td>
                   <td></td>
                 </tr>
                 <tr class="rh-subtotal-row">
                   <td>{{ 'plans.rh.finance' | translate }}</td>
                   <td></td>
-                  <td class="rh-num-col">{{ sumRh('plan_jours', true) | number:'1.0-2' }} j</td>
+                  @if (!isGlobale()) {
+                    <td class="rh-num-col">{{ sumRh('plan_jours', true) | number:'1.0-2' }} j</td>
+                  }
                   <td class="rh-num-col active">{{ sumRh('jours', true) | number:'1.0-2' }} j</td>
                   <td></td>
                 </tr>
                 <tr class="rh-subtotal-row">
                   <td>{{ 'plans.rh.nonFinance' | translate }}</td>
                   <td></td>
-                  <td class="rh-num-col">{{ sumRh('plan_jours', false) | number:'1.0-2' }} j</td>
+                  @if (!isGlobale()) {
+                    <td class="rh-num-col">{{ sumRh('plan_jours', false) | number:'1.0-2' }} j</td>
+                  }
                   <td class="rh-num-col active">{{ sumRh('jours', false) | number:'1.0-2' }} j</td>
                   <td></td>
                 </tr>
@@ -314,6 +324,22 @@
           <!-- Matrice Champs × Années (Figma 161-20144 / 4290-22241) :
                seules les cellules réalisé × année active sont éditables.
                Année active surlignée terra-cotta. -->
+          <!-- #735 — action programmée globalement : pas de prévu par année, un
+               seul rappel du prévu de la période face au réalisé cumulé. -->
+          @if (prevuPeriode(); as p) {
+            <div class="info-block prevu-periode" data-testid="prevu-periode">
+              <p class="text-bold">{{ 'plans.suivis.saisie.globale.title' | translate:{ periode: periodeLabel() } }}</p>
+              <p>
+                {{ 'plans.suivis.saisie.globale.prevu' | translate:{ budget: formatNumber(p.budget, ' €'), jours: formatNumber(p.jours, ' j') } }}
+                @if (p.invest) {
+                  ({{ 'plans.suivis.saisie.globale.split' | translate:{ fonct: formatNumber(p.fonct, ' €'), invest: formatNumber(p.invest, ' €') } }})
+                }
+              </p>
+              <p>{{ 'plans.suivis.saisie.globale.realise' | translate:{ budget: formatNumber(realiseCumule().budget, ' €'), jours: formatNumber(realiseCumule().jours, ' j') } }}</p>
+              <p class="text-mention">{{ 'plans.suivis.saisie.globale.hint' | translate }}</p>
+            </div>
+          }
+
           @if (years().length === 0) {
             <p class="text-mention">{{ 'plans.suivis.saisie.noProgrammation' | translate }}</p>
           } @else if (!isOrgVentilation()) {
@@ -322,7 +348,7 @@
                  #625 — enveloppé dans un conteneur défilant : avec 10 années ou
                  plus, la largeur minimale des colonnes dépassait la carte. -->
             <div class="matrix-scroll">
-            <table class="realisation-matrix">
+            <table class="realisation-matrix" [class.sans-prevu-annuel]="isGlobale()">
               <thead>
                 <tr>
                   <th class="col-field">{{ 'plans.suivis.saisie.table.programmation' | translate }}</th>
@@ -355,9 +381,11 @@
                        détail des coûts que la ventilation maximale, sans
                        organisme. Chaque coût réalisé est précédé de son
                        prévisionnel, comme en #614. -->
+                  @if (showInvest()) {
                   <tr class="budget-subheader">
                     <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.fonctionnement' | translate }}</td>
                   </tr>
+                  }
                   <tr class="prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarialPrev' | translate }}</td>
                     @for (y of years(); track y) {
@@ -414,13 +442,13 @@
                     }
                   </tr>
                   <tr class="prev-row">
-                    <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsFonctPrev' | translate }}</td>
+                    <td class="col-field">{{ (showInvest() ? 'plans.suivis.saisie.table.autresCoutsFonctPrev' : 'plans.suivis.saisie.table.autresCoutsPrev') | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'autre_cout'), ' €') }}</td>
                     }
                   </tr>
                   <tr>
-                    <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsFonct' | translate }}</td>
+                    <td class="col-field">{{ (showInvest() ? 'plans.suivis.saisie.table.autresCoutsFonct' : 'plans.suivis.saisie.table.autresCouts') | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">
                         @if (y === selectedYear()) {
@@ -443,6 +471,7 @@
                       </td>
                     }
                   </tr>
+                  @if (showInvest()) {
                   <tr class="subtotal-row prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.totalFonctPrev' | translate }}</td>
                     @for (y of years(); track y) {
@@ -455,8 +484,10 @@
                       <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalFonctTotal(y), ' €') }}</td>
                     }
                   </tr>
+                  }
 
                   <!-- Investissement -->
+                  @if (showInvest()) {
                   <tr class="budget-subheader">
                     <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.investissement' | translate }}</td>
                   </tr>
@@ -539,6 +570,7 @@
                       <td [class.active]="y === selectedYear()">{{ formatNumber(realGlobalInvestTotal(y), ' €') }}</td>
                     }
                   </tr>
+                  }
                   <tr class="subtotal-row prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetTotalPrev' | translate }}</td>
                     @for (y of years(); track y) {
@@ -624,7 +656,7 @@
                  puis lignes de l'organisme, puis bloc TOTAL en bas.)
                  #625 — même conteneur défilant que ci-dessus. -->
             <div class="matrix-scroll">
-            <table class="realisation-matrix" formArrayName="organismes">
+            <table class="realisation-matrix" [class.sans-prevu-annuel]="isGlobale()" formArrayName="organismes">
               <thead>
                 <tr>
                   <th class="col-field">{{ 'plans.suivis.saisie.table.programmation' | translate }}</th>
@@ -660,9 +692,11 @@
                          garder la comparaison prévu / réalisé sous les yeux. -->
                     <ng-container [formGroupName]="orgIdx">
                       <!-- Fonctionnement -->
+                      @if (showInvest()) {
                       <tr class="budget-subheader">
                         <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.fonctionnement' | translate }}</td>
                       </tr>
+                      }
                       <tr class="prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarialPrev' | translate }}</td>
                         @for (y of years(); track y) {
@@ -720,13 +754,13 @@
                         }
                       </tr>
                       <tr class="prev-row">
-                        <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsFonctPrev' | translate }}</td>
+                        <td class="col-field">{{ (showInvest() ? 'plans.suivis.saisie.table.autresCoutsFonctPrev' : 'plans.suivis.saisie.table.autresCoutsPrev') | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.autre_cout), ' €') }}</td>
                         }
                       </tr>
                       <tr>
-                        <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsFonct' | translate }}</td>
+                        <td class="col-field">{{ (showInvest() ? 'plans.suivis.saisie.table.autresCoutsFonct' : 'plans.suivis.saisie.table.autresCouts') | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">
                             @if (y === selectedYear()) {
@@ -749,6 +783,7 @@
                           </td>
                         }
                       </tr>
+                      @if (showInvest()) {
                       <tr class="subtotal-row prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.totalFonctPrev' | translate }}</td>
                         @for (y of years(); track y) {
@@ -761,7 +796,9 @@
                           <td [class.active]="y === selectedYear()">{{ formatNumber(realOrgFonctTotal(y, org.id_organisme), ' €') }}</td>
                         }
                       </tr>
+                      }
                       <!-- Investissement -->
+                      @if (showInvest()) {
                       <tr class="budget-subheader">
                         <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.investissement' | translate }}</td>
                       </tr>
@@ -844,6 +881,7 @@
                           <td [class.active]="y === selectedYear()">{{ formatNumber(realOrgInvestTotal(y, org.id_organisme), ' €') }}</td>
                         }
                       </tr>
+                      }
                       <tr class="subtotal-row prev-row">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.budgetTotalOGPrev' | translate }}</td>
                         @for (y of years(); track y) {
@@ -917,6 +955,7 @@
                 @if (isMaxVentilation()) {
                   <!-- #608 — totaux réalisés calculés (fonct / invest / total).
                        #614 — accompagnés de leur prévisionnel. -->
+                  @if (showInvest()) {
                   <tr class="prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetFonct' | translate }} (prévi.)</td>
                     @for (y of years(); track y) {
@@ -941,6 +980,7 @@
                       <td [class.active]="y === selectedYear()">{{ formatNumber(realYearInvestTotal(y), ' €') }}</td>
                     }
                   </tr>
+                  }
                   <tr class="subtotal-row prev-row">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.budgetTotalPrev' | translate }}</td>
                     @for (y of years(); track y) {

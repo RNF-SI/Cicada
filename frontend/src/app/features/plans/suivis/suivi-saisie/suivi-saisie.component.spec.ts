@@ -225,6 +225,8 @@ describe('SuiviSaisieComponent — lignes RH (#560)', () => {
   function rhComp(): any {
     const c: any = comp();
     c.fb = fb;
+    // #735 — action annuelle (pas de programmation globale).
+    c.operation = signal<any>(null);
     c.form = fb.group({ rhLignes: fb.array<FormGroup>([]) });
     Object.defineProperty(c, 'rhLignesFA', {
       get: () => c.form.get('rhLignes') as FormArray<FormGroup>,
@@ -457,6 +459,9 @@ describe('SuiviSaisieComponent — budget prévisionnel (#614)', () => {
       { id_poste: 3, id_organisme: 200, cout_jour: 300 },
     ]);
     c.operation = signal({
+      // Ventilation maximale : seul mode (avec « type de budget + poste ») qui
+      // calcule le coût salarial (#735 — les autres le saisissent).
+      ventilation_mode: 'by_org_type_poste',
       operation_annees: [{
         annee: 2025,
         rh_lignes: [
@@ -564,6 +569,8 @@ describe('SuiviSaisieComponent — catégorie de dépense du temps de travail (#
   function catComp(): any {
     const c: any = comp();
     c.fb = fb;
+    // #735 — action annuelle (pas de programmation globale).
+    c.operation = signal<any>(null);
     c.form = fb.group({ rhLignes: fb.array<FormGroup>([]) });
     Object.defineProperty(c, 'rhLignesFA', {
       get: () => c.form.get('rhLignes') as FormArray<FormGroup>,

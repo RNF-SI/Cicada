@@ -18,15 +18,16 @@ import {
 } from '../action-status.util';
 import { computeMetriqueScore, computeCombinedScore, scoreLevelName } from '../metrique-seuils.util';
 import {
-  yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+  prevAnnees, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
 } from '../../../../shared/utils/operation-budget';
 
 interface YearRow {
   annee: number;
   status: ActionStatus | null;
-  budgetPrev: number;
+  /** `null` : action programmée globalement, pas de prévu annuel (#735). */
+  budgetPrev: number | null;
   budgetReal: number;
-  etpPrev: number;
+  etpPrev: number | null;
   etpReal: number;
 }
 
@@ -178,6 +179,7 @@ export class ActionGlobalComponent implements OnInit {
   yearRows = computed<YearRow[]>(() => {
     const op = this.operation();
     if (!op) return [];
+    const globale = !!op.programmation_globale;
     return [...(op.operation_annees || [])]
       .sort((a, b) => a.annee - b.annee)
       .map(oa => ({
@@ -186,25 +188,29 @@ export class ActionGlobalComponent implements OnInit {
         // #616 — budget et temps de travail DÉRIVÉS de ce qui est réellement
         // saisi (détail des coûts, lignes RH), sinon les modes « + type de
         // poste » et les suivis n'apparaissaient jamais dans les totaux.
-        budgetPrev: yearBudgetPrev(op, oa).total ?? 0,
+        budgetPrev: globale ? null : yearBudgetPrev(op, oa).total ?? 0,
         budgetReal: yearBudgetReal(op, oa).total ?? 0,
-        etpPrev: yearJoursPrev(oa, true) ?? 0,
+        etpPrev: globale ? null : yearJoursPrev(oa, true) ?? 0,
         etpReal: yearJoursReal(oa) ?? 0,
       }));
   });
 
+  // #735 — le prévu se lit sur les lignes qui le portent (`prevAnnees`) : la
+  // ligne globale d'une action programmée sur sa période, sinon ses années.
   budgetTotal = computed(() => {
+    const op = this.operation();
     const rows = this.yearRows();
     return {
-      prev: rows.reduce((s, r) => s + r.budgetPrev, 0),
+      prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearBudgetPrev(op, oa).total ?? 0), 0) : 0,
       real: rows.reduce((s, r) => s + r.budgetReal, 0),
     };
   });
 
   etpTotal = computed(() => {
+    const op = this.operation();
     const rows = this.yearRows();
     return {
-      prev: rows.reduce((s, r) => s + r.etpPrev, 0),
+      prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearJoursPrev(oa, true) ?? 0), 0) : 0,
       real: rows.reduce((s, r) => s + r.etpReal, 0),
     };
   });

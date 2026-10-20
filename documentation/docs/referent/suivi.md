@@ -62,6 +62,8 @@ Pour chaque année, vous pouvez renseigner :
 
 Les onglets d'années couvrent toute la durée du plan : saisir une année non prévue enregistre une action réalisée non prévue.
 
+Pour une action **programmée globalement sur sa période** (voir [§ 4.8.1](actions.md#481-la-saisie-dune-action-de-gestion)), le réalisé se saisit toujours année par année, mais le tableau ne rappelle pas de prévu par année : un encadré au-dessus du tableau donne le budget et le temps de travail prévus pour la période, face au réalisé enregistré toutes années confondues. Dans les onglets Budget et RH du suivi des actions, son prévu ne compte que dans la colonne du total du plan.
+
 La page globale d'une action récapitule sa réalisation, son budget et son temps de travail année par année. Le bouton « Ajuster manuellement la réalisation » permet de forcer la réalisation globale et d'ajouter un commentaire global.
 
 <figure markdown="span">

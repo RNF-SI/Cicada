@@ -42,7 +42,9 @@ from openpyxl.utils import get_column_letter
 
 from . import export_theme
 from .metrique_seuils import intervalle_palier
-from .services_export_finance import build_action_finance, poste_entry_factory
+from .services_export_finance import (
+    build_action_finance, poste_entry_factory, with_global_year, year_label,
+)
 
 # ---------------------------------------------------------------------------
 # Styles (palette CICADA)
@@ -631,7 +633,7 @@ class _Writer:
         lc.font = _F_LABEL
         lc.alignment = _AL_L
         for i, y in enumerate(years):
-            c = self.put(i, len(years), y)
+            c = self.put(i, len(years), year_label(y))
             c.fill = PatternFill("solid", fgColor=_YEARHDR_FILL)
             c.font = _F_YEAR
             c.alignment = _AL_C
@@ -814,6 +816,9 @@ _MONTH_MIN_WIDTH = 6
 
 
 def _render_action(ws, op, years, *, is_cs, code_local=""):
+    # #735 — action programmée globalement : son budget tient dans une colonne
+    # « période » à droite des années.
+    years = with_global_year(years, [op])
     n_data = _data_columns(len(years))
     ncols = 3 + n_data
     w = _Writer(ws, ncols)

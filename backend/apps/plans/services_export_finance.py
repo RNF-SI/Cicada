@@ -33,8 +33,28 @@ ORG_VENTILATION_MODES = {"by_org", "by_org_type", "by_org_type_poste"}
 TYPE_VENTILATION_MODES = {
     "by_type", "by_org_type", "by_type_poste", "by_org_type_poste",
 }
+# Modes déclinant le temps par poste : eux seuls calculent le coût salarial.
+POSTE_VENTILATION_MODES = {"by_type_poste", "by_org_type_poste"}
 
 _ZERO = Decimal(0)
+
+# #735 — « année » des montants d'une action programmée globalement : ils
+# portent sur toute la période, et s'affichent dans une colonne dédiée.
+GLOBAL_YEAR = None
+GLOBAL_YEAR_LABEL = "Période (global)"
+
+
+def year_label(year):
+    """Libellé d'une colonne d'année (la colonne globale a le sien)."""
+    return GLOBAL_YEAR_LABEL if year is GLOBAL_YEAR else year
+
+
+def with_global_year(years, ops):
+    """Années d'export + colonne « période » dès qu'une action est globale (#735)."""
+    years = list(years)
+    if any(getattr(op, "programmation_globale", False) for op in ops):
+        years.append(GLOBAL_YEAR)
+    return years
 
 
 def _d(value) -> Decimal:
@@ -243,11 +263,16 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     # ses types de coût ; il est calculé (jours × coût jour) en saisie
     # automatique, sinon lu sur les montants saisis. Sans détail des coûts,
     # l'enveloppe fonctionnement / investissement saisie contient déjà tout.
-    has_cost_detail = (
-        op.ventilation_mode not in TYPE_VENTILATION_MODES
-        or getattr(op, "declinaison_par_type_cout", True)
+    # #735 — la case vaut désormais pour tous les modes (« aucune » et « par
+    # organisme » compris).
+    has_cost_detail = getattr(op, "declinaison_par_type_cout", True)
+    # Seul un temps décliné par poste a un coût jour à multiplier (modes
+    # « + type de poste », ou déclinaison par poste antérieure à #600).
+    auto_salary = (
+        has_cost_detail
+        and (op.ventilation_mode in POSTE_VENTILATION_MODES or op.declinaison_par_poste)
+        and getattr(op, "cout_salarial_auto", True)
     )
-    auto_salary = has_cost_detail and getattr(op, "cout_salarial_auto", True)
     manual_salary = has_cost_detail and not auto_salary
 
     def cell(oid, year):
@@ -360,10 +385,19 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             c.rautre_invest += _d(real.autre_cout_invest_realise) + _d(real.budget_investissement_realise)
 
     # --- Modes sans ventilation par organisme : budgets portés par l'année ---
+    # #735 — `tous` : la ligne globale (sans année) compte aussi, en colonne
+    # « période » (GLOBAL_YEAR).
     if not has_org_lines:
-        annees = OperationAnnee.objects.filter(id_operation=op).select_related("realisation")
+        annees = OperationAnnee.tous.filter(id_operation=op).select_related("realisation")
         for oa in annees:
-            fonct = _d(oa.budget_fonctionnement) or (_d(oa.budget) if op.ventilation_mode == "none" else _ZERO)
+            # Mode « aucune » : `budget` est le total saisi. Avec le détail des
+            # coûts (#735), il en est la somme : ne pas le compter deux fois.
+            total_direct = (
+                op.ventilation_mode == "none"
+                and not any(_d(v) for v in (
+                    oa.cout_salarial, oa.cout_stage, oa.cout_prestataire, oa.autre_cout))
+            )
+            fonct = _d(oa.budget_fonctionnement) or (_d(oa.budget) if total_direct else _ZERO)
             invest = _d(oa.budget_investissement)
             c = cell(0, oa.annee)
             # #624 — le mode « by_type_poste » détaille les coûts au niveau de
@@ -379,9 +413,15 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             if (c.prest_fonct or c.prest_invest or c.autre_fonct or c.autre_invest
                     or c.sal_fonct or c.sal_invest):
                 org_names.setdefault(0, "Non ventilé")
-            real = getattr(oa, "realisation", None)
+            real = getattr(oa, "realisation", None) if oa.annee is not None else None
             if real:
-                rf = _d(real.budget_fonctionnement_realise) or (_d(real.budget_realise) if op.ventilation_mode == "none" else _ZERO)
+                real_direct = (
+                    op.ventilation_mode == "none"
+                    and not any(_d(v) for v in (
+                        real.cout_salarial_realise, real.cout_stage_realise,
+                        real.cout_prestataire_realise, real.autre_cout_realise))
+                )
+                rf = _d(real.budget_fonctionnement_realise) or (_d(real.budget_realise) if real_direct else _ZERO)
                 if manual_salary:
                     c.rsal_fonct += _d(real.cout_salarial_realise)
                     c.rsal_invest += _d(real.cout_salarial_invest_realise)
@@ -457,15 +497,15 @@ def build_plan_finance(plan) -> PlanFinance:
     # vide). On le calcule une fois pour tout le plan.
     from .serializers_operations import compute_operation_codes_for_plan
 
-    # #672 — années de prolongation comprises.
-    years = plan.annees_plan()
-
     codes = compute_operation_codes_for_plan(plan.pk)
+    ops = plan_operations(plan)
+    # #672 — années de prolongation comprises ; #735 — + colonne « période ».
+    years = with_global_year(plan.annees_plan(), ops)
 
     org_names: dict = {}
     poste_jours: dict = defaultdict(poste_entry_factory)
     actions = []
-    for op in plan_operations(plan):
+    for op in ops:
         af = build_action_finance(op, org_names, poste_jours)
         cat = getattr(op, "id_categorie_action_reserve", None)
         af.categorie = _txt(getattr(cat, "mnemonique", "")) if cat else ""

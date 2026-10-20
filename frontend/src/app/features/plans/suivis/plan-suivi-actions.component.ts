@@ -752,6 +752,15 @@ export class PlanSuiviActionsComponent implements OnInit {
       }
     }
 
+    // #735 — action programmée globalement : son prévu ne se répartit pas par
+    // année, il ne compte que sur la période complète.
+    const globale = op.programmation_globale ? op.operation_annee_globale : null;
+    if (globale && period === 'total') {
+      previsionnel += metric === 'budget'
+        ? yearBudgetPrev(op, globale).total ?? 0
+        : yearJoursPrev(globale, true) ?? 0;
+    }
+
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
     return { previsionnel, realise, hasRealise, ecartPct };
   }

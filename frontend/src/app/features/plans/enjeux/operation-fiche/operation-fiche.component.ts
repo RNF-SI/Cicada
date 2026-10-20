@@ -8,7 +8,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { MetriqueRef, Operation, Protocole } from '../../../../core/models/enjeu.model';
 import { CategorieDepense } from '../../../../core/models/rh.model';
 import {
-  fonctDetailPrev, investDetailPrev, salarialCost, yearBudgetPrev, yearJoursPrev,
+  fonctDetailPrev, investDetailPrev, prevAnnees, salarialCost, yearBudgetPrev, yearJoursPrev,
 } from '../../../../shared/utils/operation-budget';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
@@ -174,7 +174,12 @@ export class OperationFicheComponent implements OnInit {
   readonly programmation = computed(() => {
     const op = this.operation();
     if (!op) return [];
-    return [...(op.operation_annees ?? [])]
+    const globale = op.programmation_globale ? op.operation_annee_globale : null;
+    const rows: {
+      annee: number | string; periodicite: boolean | null;
+      fonctionnement: number | null; investissement: number | null;
+      budget: number | null; jours: number | null;
+    }[] = [...(op.operation_annees ?? [])]
       .sort((a, b) => a.annee - b.annee)
       .map(oa => {
         // #613 — le budget est DÉRIVÉ des composants réellement saisis (détail
@@ -191,6 +196,21 @@ export class OperationFicheComponent implements OnInit {
           jours: yearJoursPrev(oa),
         };
       });
+    // #735 — action programmée globalement : les années n'ont pas de budget,
+    // une dernière ligne porte celui de la période.
+    if (globale) {
+      const { fonctionnement, investissement, total } = yearBudgetPrev(op, globale);
+      const ys = rows.filter(r => r.periodicite).map(r => Number(r.annee));
+      const periode = ys.length
+        ? (Math.min(...ys) === Math.max(...ys) ? `${ys[0]}` : `${Math.min(...ys)}–${Math.max(...ys)}`)
+        : '';
+      rows.push({
+        annee: this.translate.instant('enjeux.operations.programmationGlobale.colLabel', { periode }),
+        periodicite: null,
+        fonctionnement, investissement, budget: total, jours: yearJoursPrev(globale),
+      });
+    }
+    return rows;
   });
 
   /**
@@ -202,7 +222,8 @@ export class OperationFicheComponent implements OnInit {
   readonly coutDetail = computed(() => {
     const op = this.operation();
     if (!op) return { rows: [], totalFonct: 0, totalInvest: 0 };
-    const annees = op.operation_annees ?? [];
+    // #735 — lignes porteuses du prévu (ligne globale ou années).
+    const annees = prevAnnees(op);
     const fonct = { salarial: 0, stage: 0, prestataire: 0, autres: 0 };
     const invest = { salarial: 0, stage: 0, prestataire: 0, autres: 0 };
     for (const oa of annees) {
@@ -249,7 +270,8 @@ export class OperationFicheComponent implements OnInit {
       if (!e) { e = { nom, fonctionnement: 0, investissement: 0 }; byOrg.set(id, e); }
       return e;
     };
-    for (const oa of this.operation()?.operation_annees ?? []) {
+    const op = this.operation();
+    for (const oa of op ? prevAnnees(op) : []) {
       for (const org of oa.organismes ?? []) {
         const e = ensure(org.id_organisme, org.organisme_nom || '—');
         // Fonctionnement = budget saisi (mode « par organisme + type ») OU somme des
@@ -294,7 +316,8 @@ export class OperationFicheComponent implements OnInit {
       libelle: string; organisme: string; finance: boolean;
       categorie: CategorieDepense; jours: number;
     }>();
-    for (const oa of this.operation()?.operation_annees ?? []) {
+    const op = this.operation();
+    for (const oa of op ? prevAnnees(op) : []) {
       for (const l of oa.rh_lignes ?? []) {
         const categorie: CategorieDepense =
           l.categorie_depense ?? (l.finance ? 'fonctionnement' : 'benevolat_partenariat');

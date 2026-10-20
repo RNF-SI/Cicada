@@ -58,6 +58,7 @@ import { serializeTaxonRefs, parseTaxonRefs } from '../../../../shared/utils/tax
 import { parseSuiviHabitats, serializeSuiviHabitats } from '../../../../shared/utils/suivi-habitats.utils';
 import { protocolesDepuisAction } from '../../../../shared/utils/suivi-protocoles.utils';
 import { salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
+import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import {
   blankMetriqueFormData,
   metriqueRefToFormData,
@@ -651,6 +652,46 @@ export class OperationFormComponent implements OnInit {
    */
   coutSalarialAuto = signal(true);
 
+  /**
+   * #735 — budget et temps de travail saisis GLOBALEMENT sur la période de
+   * l'action (une seule colonne), au lieu d'année par année. Les années restent
+   * programmées une à une (périodicité, mois).
+   */
+  programmationGlobale = signal(false);
+
+  /** Colonne unique de la saisie globale (même objet tant que l'année 0 l'est). */
+  private globalColumn: OperationAnnee[] = [];
+
+  /**
+   * Colonnes des tableaux temps de travail et budget : les années, ou — en
+   * programmation globale — une seule colonne « période », portée par l'index
+   * 0 des structures de saisie (et enregistrée sur la ligne globale).
+   */
+  budgetAnnees(): OperationAnnee[] {
+    if (!this.programmationGlobale()) return this.operationAnnees;
+    const first = this.operationAnnees[0];
+    if (this.globalColumn[0] !== first) this.globalColumn = first ? [first] : [];
+    return this.globalColumn;
+  }
+
+  /** En-tête d'une colonne budget : l'année, ou la période en saisie globale. */
+  budgetColLabel(annee: OperationAnnee): string {
+    if (!this.programmationGlobale()) return String(annee.annee);
+    return this.translate.instant('enjeux.operations.programmationGlobale.colLabel', {
+      periode: this.periodeLabel(),
+    });
+  }
+
+  /** Période couverte : années programmées, à défaut toutes les années. */
+  periodeLabel(): string {
+    const programmed = this.operationAnnees.filter(a => a.periodicite).map(a => a.annee);
+    const years = programmed.length ? programmed : this.operationAnnees.map(a => a.annee);
+    if (!years.length) return '';
+    const min = Math.min(...years);
+    const max = Math.max(...years);
+    return min === max ? String(min) : `${min}–${max}`;
+  }
+
   /** Vrai si le mode de ventilation intègre le type de budget (les 4 derniers). */
   hasTypeVentilation = computed<boolean>(() => {
     const m = this.ventilationMode();
@@ -658,10 +699,8 @@ export class OperationFormComponent implements OnInit {
       || m === 'by_type_poste' || m === 'by_org_type_poste';
   });
 
-  /** Le tableau budgétaire détaille les types de coût (#600). */
-  showCostDetail = computed<boolean>(
-    () => this.hasTypeVentilation() && this.declinaisonParTypeCout(),
-  );
+  /** Le tableau budgétaire détaille les types de coût (#600 ; tous modes depuis #735). */
+  showCostDetail = computed<boolean>(() => this.declinaisonParTypeCout());
 
   /**
    * #600 (retour 08/2026) — la case « coût salarial calculé automatiquement »
@@ -697,13 +736,19 @@ export class OperationFormComponent implements OnInit {
    */
   budgetMode = computed<'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste'>(() => {
     const mode = this.ventilationMode();
-    if (!this.hasTypeVentilation()) return mode;
-    const parOrganisme = mode === 'by_org_type' || mode === 'by_org_type_poste';
+    const parOrganisme = mode === 'by_org' || mode === 'by_org_type' || mode === 'by_org_type_poste';
+    // #735 — « aucune » et « par organisme » détaillent aussi leurs coûts :
+    // même tableau que leur pendant « par type de budget », sans le bloc
+    // investissement (cf. `showInvest()`).
     if (this.declinaisonParTypeCout()) {
       return parOrganisme ? 'by_org_type_poste' : 'by_type_poste';
     }
+    if (!this.hasTypeVentilation()) return mode;
     return parOrganisme ? 'by_org_type' : 'by_type';
   });
+
+  /** #735 — le bloc investissement n'existe que si le mode ventile par type de budget. */
+  showInvest = computed<boolean>(() => this.hasTypeVentilation());
 
   /** Vrai si le mode décline le temps de travail par poste (#600). */
   isPosteVentilation = computed<boolean>(() =>
@@ -1606,6 +1651,10 @@ export class OperationFormComponent implements OnInit {
       this.selectedSiteIdsVersion.update(v => v + 1);
     }
 
+    // #735 — programmation globale : le budget et le temps de travail viennent
+    // de la ligne globale, rangée dans la colonne « période » (index 0).
+    this.programmationGlobale.set(!!op.programmation_globale);
+
     // Restore operation_annees from relational data
     if (op.operation_annees && op.operation_annees.length > 0) {
       // Merge server data with existing year slots
@@ -1632,9 +1681,12 @@ export class OperationFormComponent implements OnInit {
       // Re-sort
       this.years.sort((a, b) => a - b);
       this.operationAnnees.sort((a, b) => a.annee - b.annee);
+    }
 
+    const budgetSources = this.budgetSourcesOf(op);
+    if (budgetSources.length > 0) {
       // Restore per-organisme data
-      for (const serverAnnee of op.operation_annees) {
+      for (const serverAnnee of budgetSources) {
         const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
         if (yearIdx >= 0 && serverAnnee.organismes) {
           for (const org of serverAnnee.organismes) {
@@ -1664,10 +1716,10 @@ export class OperationFormComponent implements OnInit {
     // année. `syncRhLines()` remettra ensuite ces lignes dans l'ordre des
     // postes / organismes de référence.
     this.declinaisonParPoste.set(!!op.declinaison_par_poste);
-    if (op.operation_annees && op.operation_annees.length > 0) {
+    if (budgetSources.length > 0) {
       this.rhLines = [];
       const rhMap = new Map<string, (typeof this.rhLines)[number]>();
-      for (const serverAnnee of op.operation_annees) {
+      for (const serverAnnee of budgetSources) {
         const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
         if (yearIdx < 0 || !serverAnnee.rh_lignes) continue;
         for (const l of serverAnnee.rh_lignes) {
@@ -1705,9 +1757,9 @@ export class OperationFormComponent implements OnInit {
     const layout = this.budgetMode();
     const savedBudgetMode = layout === 'by_org_type_poste' ? 'by_org_type' : layout;
 
-    if (op.operation_annees && op.operation_annees.length > 0) {
+    if (budgetSources.length > 0) {
       if (savedBudgetMode === 'by_org') {
-        for (const serverAnnee of op.operation_annees) {
+        for (const serverAnnee of budgetSources) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0 && serverAnnee.organismes) {
             for (const org of serverAnnee.organismes) {
@@ -1719,7 +1771,7 @@ export class OperationFormComponent implements OnInit {
           }
         }
       } else if (savedBudgetMode === 'by_type') {
-        for (const serverAnnee of op.operation_annees) {
+        for (const serverAnnee of budgetSources) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0) {
             this.typeBudgets[yearIdx] = {
@@ -1734,7 +1786,7 @@ export class OperationFormComponent implements OnInit {
         // fonctionnement / investissement saisies AVANT #624 (quand ce mode
         // réutilisait le layout « par type de budget ») sont réinjectées dans
         // « Autres coûts » : rien n'est perdu, et le montant reste corrigeable.
-        for (const serverAnnee of op.operation_annees) {
+        for (const serverAnnee of budgetSources) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx < 0) continue;
           const num = (v: unknown): number | null =>
@@ -1760,7 +1812,7 @@ export class OperationFormComponent implements OnInit {
           };
         }
       } else if (savedBudgetMode === 'none') {
-        for (const serverAnnee of op.operation_annees) {
+        for (const serverAnnee of budgetSources) {
           const yearIdx = this.operationAnnees.findIndex(a => a.annee === serverAnnee.annee);
           if (yearIdx >= 0) {
             this.directTotals[yearIdx] = {
@@ -2336,12 +2388,54 @@ export class OperationFormComponent implements OnInit {
       return { ...base, budget: orgEntries.length > 0 ? totalBudget : a.budget, etp: orgEntries.length > 0 ? totalEtp : a.etp, budget_fonctionnement: null, budget_investissement: null, organismes: orgEntries };
     });
 
+    // #735 — sans type de budget (« aucune », « par organisme »), le détail des
+    // coûts ne porte rien côté investissement.
+    if (!this.showInvest()) {
+      const noInvest = { cout_salarial_invest: null, cout_prestataire_invest: null,
+        autre_cout_invest: null, autre_cout_invest_commentaire: '' };
+      for (const a of anneesToSave as Array<Record<string, any>>) {
+        if ('cout_prestataire_invest' in a) Object.assign(a, noInvest);
+        for (const o of a['organismes'] as OrgEntry[]) Object.assign(o, noInvest);
+      }
+    }
+
+    // #735 — programmation globale : le budget et le temps de travail saisis
+    // dans la colonne « période » (index 0) vont sur la ligne globale ; les
+    // années ne gardent que leur programmation (périodicité, mois).
+    payload.programmation_globale = this.programmationGlobale();
+    if (this.programmationGlobale() && anneesToSave.length) {
+      const { annee: _a, periodicite: _p, periodicite_mensuelle: _m, ...globale } = anneesToSave[0];
+      payload.operation_annee_globale = globale;
+      const sansBudget = {
+        budget: null, etp: null, budget_fonctionnement: null, budget_investissement: null,
+        cout_salarial: null, cout_salarial_invest: null, cout_stage: null,
+        cout_prestataire: null, autre_cout: null, autre_cout_commentaire: '',
+        cout_prestataire_invest: null, autre_cout_invest: null, autre_cout_invest_commentaire: '',
+        rh_lignes: [] as typeof anneesToSave[number]['rh_lignes'],
+      };
+      // Les organismes restent rattachés à chaque année, sans montant : le
+      // réalisé par organisme, saisi année par année, s'y accroche.
+      const organismesVides: OrgEntry[] = globale.organismes.map(o => ({
+        id_organisme: o.id_organisme,
+        budget_fonctionnement: null, budget_investissement: null,
+        cout_salarial: null, cout_salarial_invest: null,
+        cout_stage: null, cout_prestataire: null, autre_cout: null, autre_cout_commentaire: '',
+        cout_prestataire_invest: null, autre_cout_invest: null, autre_cout_invest_commentaire: '',
+        etp: null,
+      }));
+      anneesToSave.forEach((a, i) => {
+        anneesToSave[i] = { ...a, ...sansBudget, organismes: organismesVides.map(o => ({ ...o })) };
+      });
+    } else {
+      payload.operation_annee_globale = null;
+    }
+
     const hasAnneeData = anneesToSave.some(
       a => a.periodicite || a.budget != null || a.etp != null ||
         a.organismes.length > 0 ||
         a.rh_lignes.length > 0 ||
         Object.values(a.periodicite_mensuelle).some(v => v)
-    );
+    ) || this.programmationGlobale();
     if (hasAnneeData) {
       payload.operation_annees = anneesToSave;
     }
@@ -3628,6 +3722,7 @@ export class OperationFormComponent implements OnInit {
 
   /** Total investissement d'un organisme/année = salarial + prestataire + autres. */
   getOrgInvestTotal(yearIdx: number, orgId: number): number {
+    if (!this.showInvest()) return 0; // #735 — mode sans type de budget
     const data = this.getOrgBudget(yearIdx, orgId);
     return this.getOrgCoutSalarial(yearIdx, orgId, 'investissement')
       + (data.coutPrestaInvest || 0) + (data.autreCoutInvest || 0);
@@ -3693,7 +3788,9 @@ export class OperationFormComponent implements OnInit {
   togglePeriodicite(index: number): void {
     const annee = this.operationAnnees[index];
     annee.periodicite = !annee.periodicite;
-    if (!annee.periodicite) {
+    // #735 — en saisie globale, l'index 0 porte le budget de toute la période :
+    // décocher une année ne l'efface pas.
+    if (!annee.periodicite && !this.programmationGlobale()) {
       // #425 — décocher la programmation d'une année doit remettre à zéro le
       // budget et la RH de cette colonne, quel que soit le mode de ventilation.
       this.clearYearBudget(index);
@@ -3735,6 +3832,8 @@ export class OperationFormComponent implements OnInit {
    * on grise et on verrouille la saisie de budget / ETP de cette colonne.
    */
   isYearLocked(index: number): boolean {
+    // #735 — la colonne « période » s'ouvre dès qu'une année est programmée.
+    if (this.programmationGlobale()) return !this.operationAnnees.some(a => a.periodicite);
     return !this.operationAnnees[index]?.periodicite;
   }
 
@@ -3867,6 +3966,120 @@ export class OperationFormComponent implements OnInit {
   formatBudget(value: number | null): string {
     if (value == null) return '';
     return value.toLocaleString('fr-FR');
+  }
+
+  /**
+   * #735 — lignes serveur qui portent le budget / temps de travail à recharger :
+   * les années, ou la ligne globale rangée sous l'année de la colonne 0.
+   */
+  private budgetSourcesOf(op: Operation): OperationAnnee[] {
+    if (!op.programmation_globale) return op.operation_annees ?? [];
+    const first = this.operationAnnees[0];
+    if (!op.operation_annee_globale || !first) return [];
+    return [{ ...op.operation_annee_globale, annee: first.annee }];
+  }
+
+  /**
+   * #735 — bascule annuelle ↔ globale. Annuel → global : les montants et jours
+   * des années sont CUMULÉS dans la colonne période (le détail par année est
+   * perdu). Global → annuel : la colonne période est VIDÉE (à ressaisir par
+   * année). Dans les deux cas, une confirmation l'annonce dès qu'il y a des
+   * données.
+   */
+  onProgrammationGlobaleToggle(globale: boolean): void {
+    if (globale === this.programmationGlobale()) return;
+    const indices = globale
+      ? this.operationAnnees.map((_, i) => i)
+      : [0];
+    if (!indices.some(i => this.budgetIndexHasData(i))) {
+      this.applyProgrammationGlobale(globale);
+      return;
+    }
+    const key = globale ? 'toGlobal' : 'toAnnual';
+    const ref = this.dialog.open(ConfirmDialogComponent, {
+      width: '500px',
+      data: {
+        title: this.translate.instant(`enjeux.operations.programmationGlobale.${key}Title`),
+        message: this.translate.instant(`enjeux.operations.programmationGlobale.${key}Message`),
+        confirmText: this.translate.instant(`enjeux.operations.programmationGlobale.${key}Confirm`),
+        cancelText: this.translate.instant('common.actions.cancel'),
+        confirmColor: 'warn',
+      },
+    });
+    ref.afterClosed().subscribe(confirmed => {
+      if (confirmed) this.applyProgrammationGlobale(globale);
+    });
+  }
+
+  private applyProgrammationGlobale(globale: boolean): void {
+    if (globale) {
+      this.mergeBudgetIntoFirstColumn();
+    } else {
+      this.clearYearBudget(0);
+      for (const line of this.rhLines) line.jours[0] = null;
+    }
+    this.programmationGlobale.set(globale);
+  }
+
+  /** Vrai si la colonne `idx` porte un montant ou des jours. */
+  private budgetIndexHasData(idx: number): boolean {
+    if (this.yearHasAnyAmount(idx)) return true;
+    if (this.rhLines.some(l => l.jours[idx] != null)) return true;
+    const costs = this.typeCosts[idx];
+    if (costs && ((costs.coutSalarial ?? 0) > 0 || (costs.coutSalarialInvest ?? 0) > 0)) return true;
+    return Object.keys(this.orgBudgets).some(k => {
+      if (!k.startsWith(`${idx}-`)) return false;
+      const b = this.orgBudgets[k];
+      return (b.coutSalarial ?? 0) > 0 || (b.coutSalarialInvest ?? 0) > 0 || (b.coutStage ?? 0) > 0
+        || (b.coutPresta ?? 0) > 0 || (b.autreCout ?? 0) > 0
+        || (b.coutPrestaInvest ?? 0) > 0 || (b.autreCoutInvest ?? 0) > 0;
+    });
+  }
+
+  /** #735 — cumule les saisies de toutes les années dans l'index 0, puis vide les autres. */
+  private mergeBudgetIntoFirstColumn(): void {
+    const n = this.operationAnnees.length;
+    if (n < 2) return;
+    const merge = <T extends object>(target: T | undefined, src: T | undefined): T | undefined => {
+      if (!src) return target;
+      const out: Record<string, unknown> = { ...(target ?? {}) };
+      for (const [k, v] of Object.entries(src)) {
+        const cur = out[k];
+        if (typeof v === 'number') {
+          out[k] = (typeof cur === 'number' ? cur : 0) + v;
+        } else if (typeof v === 'string' && v.trim()) {
+          out[k] = typeof cur === 'string' && cur.trim() && cur !== v ? `${cur} ; ${v}` : v;
+        } else if (!(k in out)) {
+          out[k] = v;
+        }
+      }
+      return out as T;
+    };
+    const orgIds = this.availableOrganismes().map(o => o.id_organisme);
+    for (let i = 1; i < n; i++) {
+      this.directTotals[0] = merge(this.directTotals[0], this.directTotals[i])!;
+      this.typeBudgets[0] = merge(this.typeBudgets[0], this.typeBudgets[i])!;
+      this.typeCosts[0] = merge(this.typeCosts[0], this.typeCosts[i])!;
+      for (const orgId of orgIds) {
+        const k0 = this.orgKey(0, orgId);
+        const ki = this.orgKey(i, orgId);
+        this.orgBudgets[k0] = merge(this.orgBudgets[k0], this.orgBudgets[ki])!;
+        this.orgByOrgData[k0] = merge(this.orgByOrgData[k0], this.orgByOrgData[ki])!;
+      }
+      for (const line of this.rhLines) {
+        const v = line.jours[i];
+        if (v != null) line.jours[0] = (line.jours[0] ?? 0) + v;
+        line.jours[i] = null;
+      }
+      this.clearYearBudget(i);
+    }
+    // Ces structures sont lues sans garde en aval : on retire les `undefined`.
+    for (const store of [this.directTotals, this.typeBudgets, this.typeCosts] as Record<number, unknown>[]) {
+      if (store[0] === undefined) delete store[0];
+    }
+    for (const store of [this.orgBudgets, this.orgByOrgData] as Record<string, unknown>[]) {
+      for (const k of Object.keys(store)) if (store[k] === undefined) delete store[k];
+    }
   }
 
   onModeToggle(mode: string): void {
@@ -4020,6 +4233,7 @@ export class OperationFormComponent implements OnInit {
 
   /** Total investissement de l'année = salarial + prestataire + autres. */
   getTypeInvestTotal(yearIdx: number): number {
+    if (!this.showInvest()) return 0; // #735 — mode sans type de budget
     const c = this.getTypeCost(yearIdx);
     return this.getTypeCoutSalarial(yearIdx, 'investissement')
       + (c.coutPrestaInvest || 0) + (c.autreCoutInvest || 0);
@@ -4050,6 +4264,8 @@ export class OperationFormComponent implements OnInit {
    * la case (cf. `toggleAnneePeriodicite`) peut la repasser à false.
    */
   private autoCheckPeriodicite(yearIdx: number): void {
+    // #735 — la colonne globale ne désigne aucune année.
+    if (this.programmationGlobale()) return;
     const annee = this.operationAnnees[yearIdx];
     if (!annee) return;
     if (annee.periodicite) return; // déjà cochée — pas besoin

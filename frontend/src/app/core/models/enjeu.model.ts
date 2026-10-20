@@ -927,6 +927,13 @@ export interface Operation {
   enjeu_slug?: string | null;
   // Nested relational data
   operation_annees?: OperationAnnee[];
+  /**
+   * #735 — budget et temps de travail saisis globalement sur la période de
+   * l'action (et non par année). Les années restent programmées une à une.
+   */
+  programmation_globale?: boolean;
+  /** #735 — porteur du budget / temps de travail d'une action globale (`annee` nulle). */
+  operation_annee_globale?: OperationAnnee | null;
   finances?: FinanceOperation[];
   // #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge sinon calcul auto
   niveau_realisation_global_mnemonique?: string | null;
@@ -986,6 +993,9 @@ export interface OperationCreatePayload {
   site_ids?: number[];
   // Nested relational data
   operation_annees?: Omit<OperationAnnee, 'id_operation_annee'>[];
+  /** #735 — programmation globale sur la période (cf. `Operation`). */
+  programmation_globale?: boolean;
+  operation_annee_globale?: Omit<OperationAnnee, 'id_operation_annee' | 'annee' | 'periodicite' | 'periodicite_mensuelle'> | null;
   finances?: Omit<FinanceOperation, 'id_finance_operation' | 'categorie_label'>[];
 }
 

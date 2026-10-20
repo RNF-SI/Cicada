@@ -48,9 +48,12 @@ function createComponentInstance(): OperationFormComponent {
     return m === 'by_type' || m === 'by_org_type'
       || m === 'by_type_poste' || m === 'by_org_type_poste';
   });
-  (comp as any).showCostDetail = computed(
-    () => (comp as any).hasTypeVentilation() && (comp as any).declinaisonParTypeCout(),
-  );
+  // #735 — la déclinaison par type de coût vaut pour tous les modes.
+  (comp as any).showCostDetail = computed(() => (comp as any).declinaisonParTypeCout());
+  (comp as any).showInvest = computed(() => (comp as any).hasTypeVentilation());
+  // #735 — saisie globale sur la période (annuelle par défaut).
+  (comp as any).programmationGlobale = signal(false);
+  (comp as any).globalColumn = [];
   // #600 (retour 08/2026) — la case « coût salarial automatique » et l'état
   // effectif « calculé / saisi » viennent de `shared/utils/operation-budget`.
   (comp as any).showCoutSalarialOption = computed(() => salaryOptionAvailable(
@@ -65,11 +68,11 @@ function createComponentInstance(): OperationFormComponent {
   // layout suit aussi la case « déclinaison par type de coût ».
   (comp as any).budgetMode = computed(() => {
     const mode = (comp as any).ventilationMode();
-    if (!(comp as any).hasTypeVentilation()) return mode;
-    const parOrganisme = mode === 'by_org_type' || mode === 'by_org_type_poste';
+    const parOrganisme = mode === 'by_org' || mode === 'by_org_type' || mode === 'by_org_type_poste';
     if ((comp as any).declinaisonParTypeCout()) {
       return parOrganisme ? 'by_org_type_poste' : 'by_type_poste';
     }
+    if (!(comp as any).hasTypeVentilation()) return mode;
     return parOrganisme ? 'by_org_type' : 'by_type';
   });
   (comp as any).isPosteVentilation = computed(() => {
@@ -235,6 +238,8 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     });
 
     it('mode type de poste : totaux fonct/invest calculés depuis leurs composants (#602)', () => {
+      // #735 — le calcul du coût salarial est propre aux modes « + type de poste ».
+      (comp as any).ventilationMode.set('by_org_type_poste');
       comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
       comp.rhLines = [{
         id_poste: 5, id_organisme: null, finance: true,
@@ -319,6 +324,7 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     });
 
     it('getOrgCoutSalarial = Σ jours × coût jour des postes de l’organisme', () => {
+      (comp as any).ventilationMode.set('by_org_type_poste');
       comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
       comp.rhLines = [{
         id_poste: 5, id_organisme: null, finance: true,
@@ -339,17 +345,37 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect((comp as any).coutSalarialAuto()).toBe(true);
     });
 
-    it('les réglages ne sont proposés que si le mode intègre le type de budget', () => {
+    it('#735 — la déclinaison par type de coût vaut aussi sans type de budget', () => {
       for (const mode of ['none', 'by_org']) {
         comp.onModeToggle(mode);
         expect((comp as any).hasTypeVentilation()).toBe(false);
-        expect((comp as any).showCostDetail()).toBe(false);
+        expect((comp as any).showCostDetail()).toBe(true);
+        // Même tableau détaillé, sans bloc investissement.
+        expect((comp as any).showInvest()).toBe(false);
       }
+      comp.onModeToggle('none');
+      expect(comp.budgetMode()).toBe('by_type_poste');
+      comp.onModeToggle('by_org');
+      expect(comp.budgetMode()).toBe('by_org_type_poste');
+      (comp as any).declinaisonParTypeCout.set(false);
+      expect(comp.budgetMode()).toBe('by_org');
+      (comp as any).declinaisonParTypeCout.set(true);
       for (const mode of ['by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste']) {
         comp.onModeToggle(mode);
         expect((comp as any).hasTypeVentilation()).toBe(true);
         expect((comp as any).showCostDetail()).toBe(true);
+        expect((comp as any).showInvest()).toBe(true);
       }
+    });
+
+    it('#735 — sans type de budget, l\'investissement ne compte pas dans le total', () => {
+      comp.onModeToggle('none');
+      (comp as any).coutSalarialAuto.set(false);
+      comp.typeCosts[0] = {
+        coutSalarial: 1000, coutSalarialInvest: 400, coutStage: 200, coutPresta: 300,
+        autreCout: 100, autreComment: '', coutPrestaInvest: 50, autreCoutInvest: 25, autreCommentInvest: '',
+      };
+      expect(comp.getTypePosteTotal(0)).toBe(1600);
     });
 
     it('« par type de budget » affiche le détail des coûts par défaut, les enveloppes si décochée', () => {
@@ -1688,5 +1714,119 @@ describe('OperationFormComponent — suivi partagé avec le module Inventaires (
 
   it('transmet le type d\'action au suivi', () => {
     expect(payloadSuivi(makeComp()).id_type_action).toBe(CS8.id_nomenclature);
+  });
+});
+
+describe('OperationFormComponent — programmation globale sur la période (#735)', () => {
+  function makeComp(): OperationFormComponent {
+    const comp = createComponentInstance();
+    (comp as any).fb = new FormBuilder();
+    (comp as any).initForm();
+    (comp as any).translate = { instant: (k: string, p?: any) => (p ? `${k}:${JSON.stringify(p)}` : k) };
+    (comp as any).selectedTypeAction = signal<any>(null);
+    (comp as any).isCSAction = computed(() => false);
+    (comp as any).estSuiviExistant = signal(false);
+    (comp as any).suiviProtocoles = signal<any[]>([]);
+    (comp as any).categorieActionReserveCtrl = new FormControl(null);
+    (comp as any).currentIndicateurId = () => null;
+    comp.taxonItems = [];
+    comp.habitatItems = [];
+    (comp as any).finances = [];
+    (comp as any).pendingEmprise = signal(undefined);
+    (comp as any).form.patchValue({ libelle: 'Action globale' });
+    (comp as any).ventilationMode.set('by_type');
+    (comp as any).declinaisonParTypeCout.set(false);
+    comp.operationAnnees = [
+      { annee: 2028, periodicite: true, budget: null, etp: null, periodicite_mensuelle: {} },
+      { annee: 2029, periodicite: true, budget: null, etp: null, periodicite_mensuelle: {} },
+    ];
+    return comp;
+  }
+
+  it('n\'affiche qu\'une colonne « période » en saisie globale', () => {
+    const c = makeComp();
+    expect(c.budgetAnnees()).toHaveLength(2);
+    (c as any).programmationGlobale.set(true);
+    expect(c.budgetAnnees()).toHaveLength(1);
+    expect(c.periodeLabel()).toBe('2028–2029');
+    // Une année non programmée sort de la période affichée.
+    c.operationAnnees[1].periodicite = false;
+    expect(c.periodeLabel()).toBe('2028');
+  });
+
+  it('annuel → global : cumule les montants et les jours des années', () => {
+    const c = makeComp();
+    c.updateTypeFonct(0, '12000');
+    c.updateTypeFonct(1, '8000');
+    c.rhLines = [{ id_poste: null, id_organisme: null, finance: true,
+      categorie_depense: 'fonctionnement', jours: { 0: 100, 1: 50 }, derived: true }] as any;
+    (c as any).applyProgrammationGlobale(true);
+    expect(c.getTypeBudget(0).fonct).toBe(20000);
+    expect(c.getTypeBudget(1).fonct).toBeNull();
+    expect(c.rhLines[0].jours[0]).toBe(150);
+    expect(c.rhLines[0].jours[1]).toBeNull();
+  });
+
+  it('global → annuel : vide la colonne période', () => {
+    const c = makeComp();
+    (c as any).programmationGlobale.set(true);
+    c.updateTypeFonct(0, '20000');
+    (c as any).applyProgrammationGlobale(false);
+    expect(c.getTypeBudget(0).fonct).toBeNull();
+    expect((c as any).programmationGlobale()).toBe(false);
+  });
+
+  it('décocher une année ne vide pas la colonne période', () => {
+    const c = makeComp();
+    (c as any).programmationGlobale.set(true);
+    c.updateTypeFonct(0, '20000');
+    c.togglePeriodicite(0);
+    expect(c.getTypeBudget(0).fonct).toBe(20000);
+    // La colonne reste ouverte tant qu'une année est programmée.
+    expect(c.isYearLocked(0)).toBe(false);
+  });
+
+  it('enregistre le budget sur la ligne globale, pas sur les années', () => {
+    const c = makeComp();
+    (c as any).programmationGlobale.set(true);
+    c.updateTypeFonct(0, '20000');
+    c.rhLines = [{ id_poste: null, id_organisme: null, finance: true,
+      categorie_depense: 'fonctionnement', jours: { 0: 150 }, derived: true }] as any;
+    const payload = (c as any).buildPayload();
+    expect(payload.programmation_globale).toBe(true);
+    expect(payload.operation_annee_globale).toMatchObject({ budget_fonctionnement: 20000 });
+    expect(payload.operation_annee_globale.rh_lignes).toEqual([
+      expect.objectContaining({ jours: 150 }),
+    ]);
+    expect(payload.operation_annee_globale.annee).toBeUndefined();
+    for (const a of payload.operation_annees) {
+      expect(a.budget_fonctionnement).toBeNull();
+      expect(a.rh_lignes).toEqual([]);
+    }
+  });
+
+  it('garde les organismes sur chaque année, sans montant (réalisé par organisme)', () => {
+    const c = makeComp();
+    (c as any).ventilationMode.set('by_org_type');
+    (c as any).availableOrganismes = signal([{ id_organisme: 7, nom_organisme: 'RNF' }]);
+    (c as any).programmationGlobale.set(true);
+    c.orgBudgets['0-7'] = { fonct: 5000, invest: null, etp: null, coutSalarial: null, coutSalarialInvest: null,
+      coutStage: null, coutPresta: null, autreCout: null, autreComment: '', coutPrestaInvest: null,
+      autreCoutInvest: null, autreCommentInvest: '' };
+    const payload = (c as any).buildPayload();
+    expect(payload.operation_annee_globale.organismes[0]).toMatchObject({ id_organisme: 7, budget_fonctionnement: 5000 });
+    for (const a of payload.operation_annees) {
+      expect(a.organismes).toEqual([expect.objectContaining({ id_organisme: 7, budget_fonctionnement: null })]);
+    }
+    expect(payload.operation_annees.map((a: any) => a.periodicite)).toEqual([true, true]);
+  });
+
+  it('action annuelle : aucune ligne globale', () => {
+    const c = makeComp();
+    c.updateTypeFonct(0, '1000');
+    const payload = (c as any).buildPayload();
+    expect(payload.programmation_globale).toBe(false);
+    expect(payload.operation_annee_globale).toBeNull();
+    expect(payload.operation_annees[0].budget_fonctionnement).toBe(1000);
   });
 });

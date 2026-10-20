@@ -281,11 +281,11 @@
                     } @else { — }
                   </td>
                   <td>
-                    {{ row.budgetPrev | number:'1.0-0':'fr-FR' }} €
+                    @if (row.budgetPrev == null) { — } @else { {{ row.budgetPrev | number:'1.0-0':'fr-FR' }} € }
                     <small>/ {{ row.budgetReal | number:'1.0-0':'fr-FR' }} €</small>
                   </td>
                   <td>
-                    {{ row.etpPrev | number:'1.0-1':'fr-FR' }}
+                    @if (row.etpPrev == null) { — } @else { {{ row.etpPrev | number:'1.0-1':'fr-FR' }} }
                     <small>/ {{ row.etpReal | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</small>
                   </td>
                 </tr>

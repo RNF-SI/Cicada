@@ -2570,6 +2570,13 @@
         }
       },
       "saisie": {
+        "globale": {
+          "title": "Budget et temps de travail prévus sur la période {{periode}}",
+          "prevu": "Prévu : {{budget}} · {{jours}}",
+          "split": "fonctionnement {{fonct}}, investissement {{invest}}",
+          "realise": "Réalisé enregistré, toutes années confondues : {{budget}} · {{jours}}",
+          "hint": "L'action est programmée globalement : le prévu n'est pas réparti par année. Le réalisé se saisit année par année."
+        },
         "subtitle": "Remplir le suivi d'une action",
         "viewGlobal": "Voir le résultat global",
         "viewFiche": "Voir la fiche action",
@@ -2644,6 +2651,8 @@
           "coutPrestataire": "Coût prestataire (réalisé)",
           "coutPrestatairePrev": "Coût prestataire (prévi.)",
           "autresCoutsFonct": "Autres coûts de fonctionnement (réalisé)",
+          "autresCoutsPrev": "Autres coûts (prévi.)",
+          "autresCouts": "Autres coûts (réalisé)",
           "autresCoutsFonctPrev": "Autres coûts de fonctionnement (prévi.)",
           "autresCoutsInvest": "Autres coûts d'investissement (réalisé)",
           "autresCoutsInvestPrev": "Autres coûts d'investissement (prévi.)",
@@ -4419,9 +4428,23 @@
       "modeByOrgType": "Par organisme + type de budget",
       "modeByTypePoste": "Par type de budget + type de poste",
       "modeByOrgTypePoste": "Par organisme + type de budget + type de poste",
+      "programmationGlobale": {
+        "label": "Saisie du budget et du temps de travail",
+        "annuelle": "Par année",
+        "globale": "Globale sur la période",
+        "hint": "Le budget et le temps de travail sont saisis une fois pour toute la période de l'action, sans répartition par année. Le suivi reste saisi année par année.",
+        "colLabel": "Période {{periode}}",
+        "toGlobalTitle": "Passer à une saisie globale ?",
+        "toGlobalMessage": "Les montants et les jours saisis pour chaque année vont être additionnés dans une seule colonne « période ». La répartition par année sera perdue à l'enregistrement.",
+        "toGlobalConfirm": "Cumuler sur la période",
+        "toAnnualTitle": "Passer à une saisie par année ?",
+        "toAnnualMessage": "Les montants et les jours saisis pour la période vont être effacés : ils ne peuvent pas être répartis automatiquement entre les années. Il faudra les ressaisir année par année.",
+        "toAnnualConfirm": "Effacer et saisir par année"
+      },
       "budgetOptions": {
         "declinaisonTypeCout": "Déclinaison par type de coût",
         "declinaisonTypeCoutHint": "Détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts. Décochée, seuls les budgets de fonctionnement et d'investissement sont saisis à la main.",
+        "declinaisonTypeCoutHintTotal": "Détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts. Décochée, seul le budget total est saisi à la main.",
         "coutSalarialAuto": "Saisie automatique du coût salarial",
         "coutSalarialAutoHint": "Calcule le coût salarial à partir des jours saisis et du coût jour des postes. Décochée, le coût salarial est saisi à la main.",
         "postesLink": "Gérer les postes et les coûts jour"
@@ -4430,6 +4453,7 @@
       "coutStage": "Coût stage",
       "coutPrestataire": "Coût prestataire",
       "autreCout": "Autre coût",
+      "autresCouts": "Autres coûts",
       "autresCoutsFonct": "Autres coûts de fonctionnement",
       "autresCoutsInvest": "Autres coûts d'investissement",
       "budgetTotalFonct": "Total Budget de fonctionnement (€)",

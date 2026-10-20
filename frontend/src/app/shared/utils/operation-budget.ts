@@ -36,6 +36,13 @@
  * - `cout_salarial_auto` : décochée, le coût salarial est SAISI (et stocké
  *   dans `cout_salarial` / `cout_salarial_invest`) au lieu d'être calculé.
  *   #722 — idem au réalisé : `cout_salarial_realise` / `_invest_realise`.
+ *
+ * #735 — « déclinaison par type de coût » vaut aussi pour les modes « aucune »
+ * et « par organisme » : le budget s'y détaille en types de coût (salarial,
+ * stage, prestataire, autres), rangés côté fonctionnement, sans investissement.
+ * Une action peut aussi être programmée GLOBALEMENT : son budget et son temps
+ * de travail sont portés par une seule ligne (`operation_annee_globale`) pour
+ * toute la période, et ses années n'en portent aucun (`prevAnnees()`).
  */
 
 import { Operation, OperationAnnee, OperationAnneeOrganisme } from '../../core/models/enjeu.model';
@@ -102,12 +109,31 @@ export function sumJours(lignes: readonly OperationRHLigne[] | null | undefined)
 const orgs = (oa: OperationAnnee): OperationAnneeOrganisme[] => oa.organismes ?? [];
 
 /**
- * Modes ventilant par type de budget : eux seuls portent le détail des coûts
- * (#600 — case « déclinaison par type de coût », cochée par défaut).
+ * Modes ventilant par type de budget (fonctionnement / investissement). Depuis
+ * #735, le détail des coûts n'en dépend plus : il suit la seule case
+ * « déclinaison par type de coût », quel que soit le mode.
  */
-const TYPE_VENTILATION_MODES = [
+export const TYPE_VENTILATION_MODES = [
   'by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste',
 ];
+
+/** Vrai si le mode sépare fonctionnement et investissement. */
+export function hasTypeBudget(mode: string | null | undefined): boolean {
+  return TYPE_VENTILATION_MODES.includes(mode ?? 'none');
+}
+
+/**
+ * #735 — lignes qui portent le budget / temps de travail PRÉVU de l'action :
+ * sa ligne globale si elle est programmée globalement, sinon ses années.
+ */
+export function prevAnnees(
+  op: Pick<Operation, 'programmation_globale' | 'operation_annee_globale' | 'operation_annees'>,
+): OperationAnnee[] {
+  if (op.programmation_globale) {
+    return op.operation_annee_globale ? [op.operation_annee_globale] : [];
+  }
+  return op.operation_annees ?? [];
+}
 
 /**
  * Modes qui déclinent le temps de travail PAR POSTE. Eux seuls savent calculer
@@ -145,11 +171,12 @@ export function salaryIsComputed(
   coutSalarialAuto: boolean,
 ): boolean {
   if (salaryOptionAvailable(mode, declinaisonParTypeCout)) return coutSalarialAuto;
-  const hasDetail = TYPE_VENTILATION_MODES.includes(mode ?? 'none') && declinaisonParTypeCout;
-  return !hasDetail;
+  // #735 — tous les modes peuvent détailler leurs coûts.
+  return !declinaisonParTypeCout;
 }
 
-type OpMode = Pick<Operation, 'ventilation_mode' | 'declinaison_par_type_cout' | 'cout_salarial_auto'>;
+type OpMode = Pick<Operation, 'ventilation_mode' | 'declinaison_par_type_cout' | 'cout_salarial_auto'
+  | 'declinaison_par_poste'>;
 
 /**
  * Vrai si le budget de l'action est décomposé en types de coût (salarial,
@@ -158,18 +185,23 @@ type OpMode = Pick<Operation, 'ventilation_mode' | 'declinaison_par_type_cout' |
  * ajouter un coût salarial le doublerait.
  */
 function hasCostDetail(op: OpMode): boolean {
-  return TYPE_VENTILATION_MODES.includes(op.ventilation_mode ?? 'none')
-    && op.declinaison_par_type_cout !== false;
+  return op.declinaison_par_type_cout !== false;
 }
 
-/** Coût salarial CALCULÉ (jours × coût jour) plutôt que saisi (#600). */
+/**
+ * Coût salarial CALCULÉ (jours × coût jour) plutôt que saisi (#600). Seul un
+ * temps décliné par poste le peut — modes « + type de poste », ou déclinaison
+ * par poste antérieure à #600 (#735 : ailleurs il est saisi).
+ */
 function derivesSalary(op: OpMode): boolean {
-  return hasCostDetail(op) && op.cout_salarial_auto !== false;
+  return hasCostDetail(op)
+    && (POSTE_VENTILATION_MODES.includes(op.ventilation_mode ?? 'none') || !!op.declinaison_par_poste)
+    && op.cout_salarial_auto !== false;
 }
 
 /** Coût salarial SAISI à la main sur l'année / les organismes (#600). */
 function manualSalary(op: OpMode, oa: OperationAnnee, invest: boolean): number {
-  if (!hasCostDetail(op) || op.cout_salarial_auto !== false) return 0;
+  if (!hasCostDetail(op) || derivesSalary(op)) return 0;
   return invest
     ? add(oa.cout_salarial_invest, ...orgs(oa).map(o => o.cout_salarial_invest))
     : add(oa.cout_salarial, ...orgs(oa).map(o => o.cout_salarial));
@@ -180,7 +212,7 @@ function manualSalary(op: OpMode, oa: OperationAnnee, invest: boolean): number {
  * (la case « calculé automatiquement » vaut pour les deux).
  */
 function manualSalaryReal(op: OpMode, oa: OperationAnnee, invest: boolean): number {
-  if (!hasCostDetail(op) || op.cout_salarial_auto !== false) return 0;
+  if (!hasCostDetail(op) || derivesSalary(op)) return 0;
   const r = oa.realisation;
   const ro = orgs(oa).map(o => o.realisation);
   return invest

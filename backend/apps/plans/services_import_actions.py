@@ -1425,6 +1425,13 @@ def _extract_budgets(plan, org_code_by_id) -> list[dict]:
                         value = (
                             src.budget_fonctionnement if mode == "by_org" else src.budget
                         )
+                        if mode == "by_org" and op.declinaison_par_type_cout:
+                            # #735 — détail des coûts : le classeur n'en porte
+                            # que la somme (relue comme un total).
+                            parts = [src.cout_salarial, src.cout_stage,
+                                     src.cout_prestataire, src.autre_cout]
+                            if any(v is not None for v in parts):
+                                value = sum(v or 0 for v in parts)
                     else:
                         value = getattr(src, col)
                     row[col] = _cell_value(value)
@@ -1650,6 +1657,11 @@ def _resolve_settings(action_row, budget_rows, rh_rows) -> dict:
     if detail is None:
         # Défaut du modèle (cochée), sauf si seules les enveloppes sont saisies.
         detail = not (has_envelopes and not has_detail)
+    if mode not in TYPE_VENTILATION_MODES:
+        # #735 — la fiche propose aussi le détail des coûts en modes « aucune »
+        # et « par organisme », mais le classeur ne porte que leur total :
+        # l'action importée est saisie en total.
+        detail = False
 
     auto = _parse_bool(action_row.get("cout_salarial_auto"))
     if auto is None:

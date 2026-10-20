@@ -32,10 +32,15 @@ La fréquence (ex. 2 fois par an), intégrée pour les actions de suivis, peut �
 
 <p style="text-align:center"><em style="color:#025359;font-size:0.78rem">Figure 45 : Modes de ventilation budgétaire</em></p>
 
-Lorsque le mode inclut le type de budget, deux cases s'ajoutent :
+Deux cases complètent le mode de ventilation :
 
-- « **Déclinaison par type de coût** » : détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts (décochée, seuls les totaux de fonctionnement et d'investissement sont saisis) ;
+- « **Déclinaison par type de coût** » (tous les modes) : détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts. Décochée, seuls les totaux sont saisis : fonctionnement et investissement quand le mode inclut le type de budget, le budget total sinon. Dans les modes « Pas de ventilation » et « Par organisme », le détail n'a pas de partie investissement et le coût salarial se saisit à la main ;
 - « **Saisie automatique du coût salarial** » (modes « + type de poste ») : calcule le coût salarial à partir des jours saisis et du coût jour des postes ([§ 4.3.1](parametrage.md#431-les-postes-ressources-humaines)).
+
+**La saisie du budget et du temps de travail** se fait « **Par année** » (par défaut) ou « **Globale sur la période** ». En saisie globale, les années programmées restent cochées une à une (périodicité, mois), mais le budget et le temps de travail n'ont plus qu'une colonne « Période », pour toute la durée de l'action : c'est utile quand le budget d'une action est connu pour l'ensemble de sa période sans pouvoir être réparti par année. Les sous-modes de ventilation restent les mêmes. Passer d'une saisie à l'autre demande une confirmation, car une partie de la saisie est perdue :
+
+- par année → globale : les montants et les jours des années sont **additionnés** dans la colonne « Période » ; la répartition par année disparaît ;
+- globale → par année : la colonne « Période » est **vidée** ; les montants sont à ressaisir année par année.
 
 Le temps de travail distingue le temps agent (gestionnaire) et le temps partenaire / bénévole (valorisé), avec une catégorie de dépense (fonctionnement, investissement, bénévolat partenariat). Une nouvelle action reprend le paramétrage de ventilation de la dernière action saisie dans le plan.
 

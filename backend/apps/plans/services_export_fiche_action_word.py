@@ -38,7 +38,9 @@ from docx.shared import Cm, Pt, RGBColor
 
 from . import export_theme
 from . import services_export_fiche_action as fiche
-from .services_export_finance import build_action_finance, poste_entry_factory
+from .services_export_finance import (
+    build_action_finance, poste_entry_factory, with_global_year, year_label,
+)
 
 _txt = fiche._txt
 _euro = fiche._euro
@@ -237,6 +239,8 @@ def _write_multiline(cell, value):
 # ---------------------------------------------------------------------------
 
 def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
+    # #735 — colonne « période » pour une action programmée globalement.
+    years = with_global_year(years, [op])
     prio = op.id_priorite.label if op.id_priorite_id else ""
     d.title(_txt(op.libelle), prio)
 
@@ -301,7 +305,7 @@ def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
     d.section("3) Détail du volet administratif et financier de l'opération")
     from .models_operations import OperationAnnee
     annees = {oa.annee: oa for oa in OperationAnnee.objects.filter(id_operation=op)}
-    header = ["Programmation annuelle"] + [str(y) for y in years]
+    header = ["Programmation annuelle"] + [str(year_label(y)) for y in years]
     d.grid(header, [(
         "Périodicité",
         ["x" if getattr(annees.get(y), "periodicite", False) else "" for y in years],
@@ -349,7 +353,7 @@ def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
     else:
         finance += cost_rows("Budget de l'opération", af.year_total)
     finance.append(line("Jours bénévoles / partenaires", af.year_total, "j_benevole", _jours))
-    d.grid(["Budget prévisionnel"] + [str(y) for y in years], finance, first_width=Cm(8))
+    d.grid(["Budget prévisionnel"] + [str(year_label(y)) for y in years], finance, first_width=Cm(8))
 
     # Programmation mensuelle (mois programmé sur au moins une année)
     month_flags = fiche._monthly_flags(op, annees)

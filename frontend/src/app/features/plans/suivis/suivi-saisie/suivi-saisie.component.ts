@@ -49,7 +49,9 @@ import {
 import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLevelName, formatBlockFormula } from '../metrique-seuils.util';
 import { hasSaisieRealisation } from '../action-status.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
-import { salaryIsComputed } from '../../../../shared/utils/operation-budget';
+import {
+  hasTypeBudget, salaryIsComputed, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+} from '../../../../shared/utils/operation-budget';
 import { planEndYear } from '../../../../shared/utils/plan-periode';
 
 interface Niveau {
@@ -230,10 +232,61 @@ export class SuiviSaisieComponent implements OnInit {
     return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
   });
 
+  // ---- #735 — action programmée GLOBALEMENT sur sa période ------------------
+
+  /** Budget et temps de travail prévus pour toute la période, sans détail annuel. */
+  isGlobale(): boolean {
+    return !!this.operation()?.programmation_globale;
+  }
+
+  /** Ligne qui porte le prévu d'une action globale. */
+  globalRow(): OperationAnnee | null {
+    return this.isGlobale() ? this.operation()?.operation_annee_globale ?? null : null;
+  }
+
+  /** Années programmées de l'action, ou toutes ses années à défaut. */
+  periodeLabel = computed<string>(() => {
+    const annees = this.operation()?.operation_annees ?? [];
+    const programmees = annees.filter(a => a.periodicite).map(a => a.annee);
+    const ys = programmees.length ? programmees : annees.map(a => a.annee);
+    if (!ys.length) return '';
+    const min = Math.min(...ys);
+    const max = Math.max(...ys);
+    return min === max ? String(min) : `${min}–${max}`;
+  });
+
+  /** Prévu sur la période (rappel au-dessus du tableau). */
+  prevuPeriode = computed<{ budget: number; fonct: number | null; invest: number | null; jours: number } | null>(() => {
+    const op = this.operation();
+    const g = this.globalRow();
+    if (!op || !g) return null;
+    const b = yearBudgetPrev(op, g);
+    return { budget: b.total ?? 0, fonct: b.fonctionnement, invest: b.investissement, jours: yearJoursPrev(g) ?? 0 };
+  });
+
+  /** Réalisé ENREGISTRÉ, cumulé sur toutes les années (à comparer au prévu de la période). */
+  realiseCumule = computed<{ budget: number; jours: number }>(() => {
+    const op = this.operation();
+    let budget = 0;
+    let jours = 0;
+    for (const oa of op?.operation_annees ?? []) {
+      budget += yearBudgetReal(op!, oa).total ?? 0;
+      jours += yearJoursReal(oa) ?? 0;
+    }
+    return { budget, jours };
+  });
+
+  /** Lignes porteuses d'organismes : les années, plus la ligne globale. */
+  private orgSources(): OperationAnnee[] {
+    const op = this.operation();
+    const g = this.globalRow();
+    return [...(op?.operation_annees ?? []), ...(g ? [g] : [])];
+  }
+
   /** Organismes de la ventilation de l'action (cibles en mode organisme). */
   rhOrganismes = computed<{ id_organisme: number; nom_organisme: string }[]>(() => {
     const map = new Map<number, { id_organisme: number; nom_organisme: string }>();
-    for (const oa of this.operation()?.operation_annees ?? []) {
+    for (const oa of this.orgSources()) {
       for (const oao of oa.organismes ?? []) {
         if (oao.id_organisme != null && !map.has(oao.id_organisme)) {
           map.set(oao.id_organisme, {
@@ -263,15 +316,20 @@ export class SuiviSaisieComponent implements OnInit {
   >(() => {
     const op = this.operation();
     const mode = op?.ventilation_mode ?? 'none';
-    const parType = mode === 'by_type' || mode === 'by_org_type'
-      || mode === 'by_type_poste' || mode === 'by_org_type_poste';
-    if (!parType) return mode;
-    const parOrganisme = mode === 'by_org_type' || mode === 'by_org_type_poste';
+    const parOrganisme = mode === 'by_org' || mode === 'by_org_type' || mode === 'by_org_type_poste';
+    // #735 — « aucune » et « par organisme » détaillent aussi leurs coûts :
+    // même tableau, sans bloc investissement (`showInvest()`).
     if (op?.declinaison_par_type_cout !== false) {
       return parOrganisme ? 'by_org_type_poste' : 'by_type_poste';
     }
+    if (!hasTypeBudget(mode)) return mode;
     return parOrganisme ? 'by_org_type' : 'by_type';
   });
+
+  /** #735 — fonctionnement / investissement séparés seulement si le mode les ventile. */
+  showInvest(): boolean {
+    return hasTypeBudget(this.operation()?.ventilation_mode);
+  }
 
   /** Mode supporté par le MVP : pas de ventilation par organisme (#600 inclus). */
   isOrgVentilation = computed(() => {
@@ -714,9 +772,8 @@ export class SuiviSaisieComponent implements OnInit {
   /** Liste des organismes ventilés pour le mode by_org/by_org_type (déduplication entre années). */
   organismesList = computed<{ id_organisme: number; nom: string }[]>(() => {
     if (!this.isOrgVentilation()) return [];
-    const op = this.operation();
     const seen = new Map<number, string>();
-    for (const oa of op?.operation_annees || []) {
+    for (const oa of this.orgSources()) {
       for (const oao of oa.organismes || []) {
         if (!seen.has(oao.id_organisme)) {
           seen.set(oao.id_organisme, oao.organisme_nom || `Org #${oao.id_organisme}`);
@@ -1173,7 +1230,11 @@ export class SuiviSaisieComponent implements OnInit {
       if (r.id_operation_annee_rh != null) reelParPrevu.set(r.id_operation_annee_rh, r);
     }
 
-    for (const prev of oa.rh_lignes ?? []) {
+    // #735 — action globale : les lignes de référence sont celles de la période,
+    // sans prévu annuel à rappeler.
+    const globale = this.isGlobale();
+    const prevus = globale ? this.globalRow()?.rh_lignes ?? [] : oa.rh_lignes ?? [];
+    for (const prev of prevus) {
       const reel = prev.id_operation_annee_rh != null
         ? reelParPrevu.get(prev.id_operation_annee_rh)
         : undefined;
@@ -1192,7 +1253,7 @@ export class SuiviSaisieComponent implements OnInit {
         categorie_depense: [this.rhCategorie(reel) ?? this.rhCategorie(prev)
           ?? this.categorieFromFinance(!!source.finance)],
         /** Prévu (lecture seule, référence affichée). */
-        plan_jours: [prev.jours ?? null],
+        plan_jours: [globale ? null : prev.jours ?? null],
         /**
          * Financement du PRÉVU, distinct de `finance` : une ré-attribution au
          * suivi (prévu = garde financé, réel = bénévole) ne doit pas

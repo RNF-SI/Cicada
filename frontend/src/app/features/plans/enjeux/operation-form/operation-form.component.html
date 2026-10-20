@@ -704,6 +704,26 @@
                 </mat-button-toggle-group>
               </div>
 
+              <!-- #735 — saisie du budget et du temps de travail : par année ou
+                   globale sur la période de l'action. -->
+              <div class="programmation-mode-toggle" data-testid="programmation-globale-toggle">
+                <span class="field-label">{{ 'enjeux.operations.programmationGlobale.label' | translate }}</span>
+                <mat-button-toggle-group
+                  [value]="programmationGlobale() ? 'globale' : 'annuelle'"
+                  [disabled]="isReadOnly()"
+                  (change)="onProgrammationGlobaleToggle($event.value === 'globale')">
+                  <mat-button-toggle value="annuelle">
+                    {{ 'enjeux.operations.programmationGlobale.annuelle' | translate }}
+                  </mat-button-toggle>
+                  <mat-button-toggle value="globale">
+                    {{ 'enjeux.operations.programmationGlobale.globale' | translate }}
+                  </mat-button-toggle>
+                </mat-button-toggle-group>
+                @if (programmationGlobale()) {
+                  <p class="text-mention">{{ 'enjeux.operations.programmationGlobale.hint' | translate }}</p>
+                }
+              </div>
+
               @if (operationAnnees.length > 0) {
                 <!-- Périodicité (#595 : extraite du tableau annuel, placée au-dessus) -->
                 <div class="programmation-section periodicite-section">
@@ -779,8 +799,8 @@
                             @if (showRhCategorie()) {
                               <th class="rh-finance-col">{{ 'enjeux.operations.rh.colCategorie' | translate }}</th>
                             }
-                            @for (annee of operationAnnees; track annee.annee) {
-                              <th>{{ annee.annee }}</th>
+                            @for (annee of budgetAnnees(); track annee.annee) {
+                              <th>{{ budgetColLabel(annee) }}</th>
                             }
                             <th class="rh-actions-col"></th>
                           </tr>
@@ -831,7 +851,7 @@
                                   </mat-select>
                                 </td>
                               }
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -861,7 +881,7 @@
                           <tr>
                             <td class="label-cell text-bold rh-target-col">{{ 'enjeux.operations.rh.total' | translate }}</td>
                             @if (showRhCategorie()) { <td class="rh-finance-col"></td> }
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getRhYearTotal(i) | number:'1.0-2' }} j</td>
                             }
                             <td class="rh-actions-col"></td>
@@ -870,7 +890,7 @@
                             <tr class="rh-subtotal-row">
                               <td class="label-cell rh-target-col">{{ 'plans.rh.finance' | translate }}</td>
                               @if (showRhCategorie()) { <td class="rh-finance-col"></td> }
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>{{ getRhYearTotalByFinance(i, true) | number:'1.0-2' }} j</td>
                               }
                               <td class="rh-actions-col"></td>
@@ -878,7 +898,7 @@
                             <tr class="rh-subtotal-row">
                               <td class="label-cell rh-target-col">{{ 'plans.rh.nonFinance' | translate }}</td>
                               @if (showRhCategorie()) { <td class="rh-finance-col"></td> }
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>{{ getRhYearTotalByFinance(i, false) | number:'1.0-2' }} j</td>
                               }
                               <td class="rh-actions-col"></td>
@@ -902,16 +922,18 @@
 
                 <!-- Programmation annuelle (OperationAnnee[]) -->
                 <div class="programmation-section">
-                  <!-- #600 — réglages du tableau budgétaire, proposés dès que
-                       le mode de ventilation intègre le type de budget. -->
-                  @if (hasTypeVentilation()) {
+                  <!-- #600 — réglages du tableau budgétaire ; #735 : proposés
+                       pour tous les modes de ventilation. -->
+                  @if (budgetAnnees().length > 0) {
                     <div class="budget-options">
                       <app-checkbox
                         [checked]="declinaisonParTypeCout()"
                         (checkedChange)="declinaisonParTypeCout.set($event)"
                         [disabled]="isReadOnly()"
                         [label]="'enjeux.operations.budgetOptions.declinaisonTypeCout' | translate"
-                        [mention]="'enjeux.operations.budgetOptions.declinaisonTypeCoutHint' | translate">
+                        [mention]="(showInvest()
+                          ? 'enjeux.operations.budgetOptions.declinaisonTypeCoutHint'
+                          : 'enjeux.operations.budgetOptions.declinaisonTypeCoutHintTotal') | translate">
                       </app-checkbox>
                       <!-- #600 (retour 08/2026) — réservée aux modes « + type de
                            poste » : eux seuls savent calculer le coût salarial. -->
@@ -937,8 +959,8 @@
                       <thead>
                         <tr class="header-row-primary">
                           <th class="label-cell">{{ 'enjeux.operations.programmationAnnuelle' | translate }}</th>
-                          @for (annee of operationAnnees; track annee.annee) {
-                            <th>{{ annee.annee }}</th>
+                          @for (annee of budgetAnnees(); track annee.annee) {
+                            <th>{{ budgetColLabel(annee) }}</th>
                           }
                         </tr>
                       </thead>
@@ -948,14 +970,14 @@
                         @if (budgetMode() === 'by_org_type') {
                           @for (org of availableOrganismes(); track org.id_organisme) {
                             <tr class="org-group-header">
-                              <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                              <td class="label-cell org-name" [attr.colspan]="budgetAnnees().length + 1">
                                 {{ org.nom_organisme }}
                               </td>
                             </tr>
                             <!-- Budget fonctionnement -->
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -971,7 +993,7 @@
                             <!-- Budget investissement -->
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -987,7 +1009,7 @@
                             <!-- Budget total OG (computed = fonct + invest) -->
                             <tr>
                               <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td class="computed-cell">
                                   {{ getOrgTotal(i, org.id_organisme) | number:'1.0-2' }} €
                                 </td>
@@ -997,13 +1019,13 @@
 
                           <!-- TOTAL cross-organismes (computed) -->
                           <tr class="total-group-header">
-                            <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                            <td class="label-cell org-name" [attr.colspan]="budgetAnnees().length + 1">
                               {{ 'enjeux.operations.totalLabel' | translate }}
                             </td>
                           </tr>
                           <tr>
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">
                                 {{ getYearTotalBudget(i) | number:'1.0-2' }} €
                               </td>
@@ -1014,20 +1036,22 @@
                         } @else if (budgetMode() === 'by_org_type_poste') {
                           @for (org of availableOrganismes(); track org.id_organisme) {
                             <tr class="org-group-header">
-                              <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                              <td class="label-cell org-name" [attr.colspan]="budgetAnnees().length + 1">
                                 {{ org.nom_organisme }}
                               </td>
                             </tr>
 
+                            @if (showInvest()) {
                             <!-- ── Fonctionnement ── -->
                             <tr class="budget-subheader">
-                              <td class="label-cell label-indent text-bold" [attr.colspan]="operationAnnees.length + 1">
+                              <td class="label-cell label-indent text-bold" [attr.colspan]="budgetAnnees().length + 1">
                                 {{ 'enjeux.operations.budgetFonctionnement' | translate }}
                               </td>
                             </tr>
+                            }
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 @if (coutSalarialCalcule()) {
                                   <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'fonctionnement') | number:'1.0-2' }} €</td>
                                 } @else {
@@ -1047,7 +1071,7 @@
                             <!-- Coût stage (fonctionnement) — #600 Q2b, réintégré -->
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutStage' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -1062,7 +1086,7 @@
                             </tr>
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -1076,8 +1100,8 @@
                               }
                             </tr>
                             <tr>
-                              <td class="label-cell label-indent">{{ 'enjeux.operations.autresCoutsFonct' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              <td class="label-cell label-indent">{{ (showInvest() ? 'enjeux.operations.autresCoutsFonct' : 'enjeux.operations.autresCouts') | translate }}</td>
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -1092,7 +1116,7 @@
                             </tr>
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.autreCoutCommentaire' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <input type="text" class="prog-input"
                                          [disabled]="isYearLocked(i)"
@@ -1102,22 +1126,26 @@
                                 </td>
                               }
                             </tr>
+                            @if (showInvest()) {
                             <tr class="budget-subtotal-row">
                               <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalFonct' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td class="computed-cell">{{ getOrgFonctTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
                               }
                             </tr>
+                            }
 
+                            <!-- #735 — pas d'investissement sans type de budget. -->
+                            @if (showInvest()) {
                             <!-- ── Investissement ── -->
                             <tr class="budget-subheader">
-                              <td class="label-cell label-indent text-bold" [attr.colspan]="operationAnnees.length + 1">
+                              <td class="label-cell label-indent text-bold" [attr.colspan]="budgetAnnees().length + 1">
                                 {{ 'enjeux.operations.budgetInvestissement' | translate }}
                               </td>
                             </tr>
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 @if (coutSalarialCalcule()) {
                                   <td class="computed-cell">{{ getOrgCoutSalarial(i, org.id_organisme, 'investissement') | number:'1.0-2' }} €</td>
                                 } @else {
@@ -1136,7 +1164,7 @@
                             </tr>
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -1151,7 +1179,7 @@
                             </tr>
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.autresCoutsInvest' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -1166,7 +1194,7 @@
                             </tr>
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.autreCoutCommentaire' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <input type="text" class="prog-input"
                                          [disabled]="isYearLocked(i)"
@@ -1178,15 +1206,16 @@
                             </tr>
                             <tr class="budget-subtotal-row">
                               <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalInvest' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td class="computed-cell">{{ getOrgInvestTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
                               }
                             </tr>
+                            }
 
                             <!-- Budget total OG -->
                             <tr class="org-total-row">
                               <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalOrganisme' | translate:{ organisme: org.nom_organisme } }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td class="computed-cell">{{ getOrgPosteTotal(i, org.id_organisme) | number:'1.0-2' }} €</td>
                               }
                             </tr>
@@ -1194,25 +1223,27 @@
 
                           <!-- TOTAL cross-organismes (computed) -->
                           <tr class="total-group-header">
-                            <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                            <td class="label-cell org-name" [attr.colspan]="budgetAnnees().length + 1">
                               {{ 'enjeux.operations.totalLabel' | translate }}
                             </td>
                           </tr>
+                          @if (showInvest()) {
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getYearFonctTotal(i) | number:'1.0-2' }} €</td>
                             }
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getYearInvestTotal(i) | number:'1.0-2' }} €</td>
                             }
                           </tr>
+                          }
                           <tr>
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getYearPosteTotal(i) | number:'1.0-2' }} €</td>
                             }
                           </tr>
@@ -1221,14 +1252,14 @@
                         } @else if (budgetMode() === 'by_org') {
                           @for (org of availableOrganismes(); track org.id_organisme) {
                             <tr class="org-group-header">
-                              <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                              <td class="label-cell org-name" [attr.colspan]="budgetAnnees().length + 1">
                                 {{ org.nom_organisme }}
                               </td>
                             </tr>
                             <!-- Budget total par organisme -->
                             <tr>
                               <td class="label-cell label-indent">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                              @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                              @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                                 <td>
                                   <div class="prog-input-wrapper">
                                     <input type="text" inputmode="decimal"
@@ -1244,13 +1275,13 @@
                           }
                           <!-- TOTAL cross-organismes -->
                           <tr class="total-group-header">
-                            <td class="label-cell org-name" [attr.colspan]="operationAnnees.length + 1">
+                            <td class="label-cell org-name" [attr.colspan]="budgetAnnees().length + 1">
                               {{ 'enjeux.operations.totalLabel' | translate }}
                             </td>
                           </tr>
                           <tr>
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">
                                 {{ getByOrgYearTotalBudget(i) | number:'1.0-2' }} €
                               </td>
@@ -1261,15 +1292,17 @@
                              même détail des coûts que la ventilation maximale,
                              mais global : pas de déclinaison par organisme. -->
                         } @else if (budgetMode() === 'by_type_poste') {
+                          @if (showInvest()) {
                           <!-- ── Fonctionnement ── -->
                           <tr class="budget-subheader">
-                            <td class="label-cell label-indent text-bold" [attr.colspan]="operationAnnees.length + 1">
+                            <td class="label-cell label-indent text-bold" [attr.colspan]="budgetAnnees().length + 1">
                               {{ 'enjeux.operations.budgetFonctionnement' | translate }}
                             </td>
                           </tr>
+                          }
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               @if (coutSalarialCalcule()) {
                                 <td class="computed-cell">{{ getTypeCoutSalarial(i, 'fonctionnement') | number:'1.0-2' }} €</td>
                               } @else {
@@ -1288,7 +1321,7 @@
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutStage' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1303,7 +1336,7 @@
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1317,8 +1350,8 @@
                             }
                           </tr>
                           <tr>
-                            <td class="label-cell label-indent">{{ 'enjeux.operations.autresCoutsFonct' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            <td class="label-cell label-indent">{{ (showInvest() ? 'enjeux.operations.autresCoutsFonct' : 'enjeux.operations.autresCouts') | translate }}</td>
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1333,7 +1366,7 @@
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.autreCoutCommentaire' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <input type="text" class="prog-input"
                                        [disabled]="isYearLocked(i)"
@@ -1343,22 +1376,26 @@
                               </td>
                             }
                           </tr>
+                          @if (showInvest()) {
                           <tr class="budget-subtotal-row">
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalFonct' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getTypeFonctTotal(i) | number:'1.0-2' }} €</td>
                             }
                           </tr>
+                          }
 
+                          <!-- #735 — pas d'investissement sans type de budget. -->
+                          @if (showInvest()) {
                           <!-- ── Investissement ── -->
                           <tr class="budget-subheader">
-                            <td class="label-cell label-indent text-bold" [attr.colspan]="operationAnnees.length + 1">
+                            <td class="label-cell label-indent text-bold" [attr.colspan]="budgetAnnees().length + 1">
                               {{ 'enjeux.operations.budgetInvestissement' | translate }}
                             </td>
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutSalarial' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               @if (coutSalarialCalcule()) {
                                 <td class="computed-cell">{{ getTypeCoutSalarial(i, 'investissement') | number:'1.0-2' }} €</td>
                               } @else {
@@ -1377,7 +1414,7 @@
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.coutPrestataire' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1392,7 +1429,7 @@
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.autresCoutsInvest' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1407,7 +1444,7 @@
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.autreCoutCommentaire' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <input type="text" class="prog-input"
                                        [disabled]="isYearLocked(i)"
@@ -1419,16 +1456,17 @@
                           </tr>
                           <tr class="budget-subtotal-row">
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotalInvest' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getTypeInvestTotal(i) | number:'1.0-2' }} €</td>
                             }
                           </tr>
+                          }
 
                           <!-- Budget total (fonctionnement + investissement) : sans
                                organisme, c'est LE total du tableau → bandeau TOTAL (#643). -->
                           <tr class="grand-total-row">
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">{{ getTypePosteTotal(i) | number:'1.0-2' }} €</td>
                             }
                           </tr>
@@ -1437,7 +1475,7 @@
                         } @else if (budgetMode() === 'by_type') {
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.budgetFonctionnement' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1452,7 +1490,7 @@
                           </tr>
                           <tr>
                             <td class="label-cell label-indent">{{ 'enjeux.operations.budgetInvestissement' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1467,7 +1505,7 @@
                           </tr>
                           <tr>
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.budgetTotal' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td class="computed-cell">
                                 {{ (getTypeBudget(i).fonct || 0) + (getTypeBudget(i).invest || 0) | number:'1.0-2' }} €
                               </td>
@@ -1478,7 +1516,7 @@
                         } @else if (budgetMode() === 'none') {
                           <tr>
                             <td class="label-cell label-indent text-bold">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1496,7 +1534,7 @@
                           <!-- Fallback: flat budget/travail rows when no sites selected -->
                           <tr>
                             <td class="label-cell">{{ 'enjeux.operations.progBudget' | translate }}</td>
-                            @for (annee of operationAnnees; track annee.annee; let i = $index) {
+                            @for (annee of budgetAnnees(); track annee.annee; let i = $index) {
                               <td>
                                 <div class="prog-input-wrapper">
                                   <input type="text" inputmode="decimal"
@@ -1511,7 +1549,8 @@
                           </tr>
                         }
 
-                        <!-- Row: Dupliquer -->
+                        <!-- Row: Dupliquer (sans objet en saisie globale, #735) -->
+                        @if (!programmationGlobale()) {
                         <tr class="duplicate-row">
                           <td class="label-cell"></td>
                           <td [attr.colspan]="operationAnnees.length">
@@ -1521,6 +1560,7 @@
                             </button>
                           </td>
                         </tr>
+                        }
                       </tbody>
                     </table>
                     <div class="prog-bar"></div>

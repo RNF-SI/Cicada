@@ -394,6 +394,11 @@ textarea.full-width {
 }
 
 .realisation-matrix {
+  // #735 — action programmée globalement : aucun prévu annuel à rappeler.
+  &.sans-prevu-annuel tr.prev-row {
+    display: none;
+  }
+
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -924,5 +929,14 @@ textarea.full-width {
 
   i {
     margin-right: $spacing-xs;
+  }
+}
+
+// #735 — rappel du prévu de la période (action programmée globalement).
+.prevu-periode {
+  margin-bottom: $spacing-md;
+
+  p {
+    margin: 0 0 $spacing-xxs;
   }
 }

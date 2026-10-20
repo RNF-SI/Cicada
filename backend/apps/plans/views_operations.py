@@ -13,6 +13,7 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 
 from collections import defaultdict
 from datetime import date
+from decimal import Decimal
 
 from .models_operations import (
     Operation, CorOperationMetrique, OperationAnnee, OperationAnneeOrganisme,
@@ -1062,6 +1063,31 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             ),
         )
 
+    @staticmethod
+    def _prev_budget(op, oa):
+        """Budget (fonct, invest) et jours (financés, non financés) prévus d'une ligne."""
+        fonct = invest = Decimal('0')
+        if op.programmation_globale and oa.annee is not None:
+            return fonct, invest, Decimal('0'), Decimal('0')
+        mode = op.ventilation_mode
+        if mode == 'none':
+            fonct += (oa.budget or 0)
+        elif mode == 'by_type':
+            fonct += (oa.budget_fonctionnement or 0)
+            invest += (oa.budget_investissement or 0)
+        else:  # by_org / by_org_type
+            for oao in oa.organismes.all():
+                fonct += (oao.budget_fonctionnement or 0)
+                invest += (oao.budget_investissement or 0)
+        # #560 — travail prévisionnel = somme des lignes RH (financé + non)
+        j_fin = j_non = Decimal('0')
+        for rh in oa.rh_lignes.all():
+            if rh.finance:
+                j_fin += rh.jours or 0
+            else:
+                j_non += rh.jours or 0
+        return fonct, invest, j_fin, j_non
+
     @action(detail=False, methods=['get'], url_path=r'bilan-indicateurs/(?P<plan_id>\d+)')
     def bilan_indicateurs(self, request, plan_id=None):
         """
@@ -1351,24 +1377,15 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             mode = op.ventilation_mode
 
             # Prévisionnel : on ne le compte qu'une fois par OperationAnnee
+            # #735 — une action globale n'a pas de prévu annuel : son prévu
+            # (ligne globale) est ajouté une fois, après la boucle.
             if oa.id_operation_annee not in seen_op_annees:
                 seen_op_annees.add(oa.id_operation_annee)
-                if mode == 'none':
-                    budget_previsionnel_fonct += (oa.budget or 0)
-                elif mode == 'by_type':
-                    budget_previsionnel_fonct += (oa.budget_fonctionnement or 0)
-                    budget_previsionnel_invest += (oa.budget_investissement or 0)
-                else:  # by_org / by_org_type
-                    for oao in oa.organismes.all():
-                        budget_previsionnel_fonct += (oao.budget_fonctionnement or 0)
-                        budget_previsionnel_invest += (oao.budget_investissement or 0)
-                # #560 — travail prévisionnel = somme des lignes RH (financé + non)
-                for rh in oa.rh_lignes.all():
-                    jours = rh.jours or 0
-                    if rh.finance:
-                        rh_prev_finance += jours
-                    else:
-                        rh_prev_non_finance += jours
+                fonct, invest, j_fin, j_non = self._prev_budget(op, oa)
+                budget_previsionnel_fonct += fonct
+                budget_previsionnel_invest += invest
+                rh_prev_finance += j_fin
+                rh_prev_non_finance += j_non
 
             # Réalisé
             if mode in ('none',):
@@ -1389,6 +1406,20 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     rh_reel_finance += jours
                 else:
                     rh_reel_non_finance += jours
+
+        # #735 — prévu des actions programmées globalement : il porte sur toute
+        # leur période, il ne compte donc que hors de la vue annuelle.
+        if is_global_view and seen_op_ids:
+            globales = OperationAnnee.tous.filter(
+                id_operation__in=seen_op_ids, annee__isnull=True,
+                id_operation__programmation_globale=True,
+            ).select_related('id_operation').prefetch_related('organismes', 'rh_lignes')
+            for oa in globales:
+                fonct, invest, j_fin, j_non = self._prev_budget(oa.id_operation, oa)
+                budget_previsionnel_fonct += fonct
+                budget_previsionnel_invest += invest
+                rh_prev_finance += j_fin
+                rh_prev_non_finance += j_non
 
         # #355 — Vue globale : comptage du niveau UNE fois par opération via son
         # statut global (surcharge sinon calcul sur les années programmées).

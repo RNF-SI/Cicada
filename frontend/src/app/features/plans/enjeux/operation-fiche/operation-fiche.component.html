@@ -211,7 +211,7 @@
               @for (p of programmation(); track p.annee) {
                 <tr>
                   <td>{{ p.annee }}</td>
-                  <td>{{ (p.periodicite ? 'common.yes' : 'common.no') | translate }}</td>
+                  <td>{{ p.periodicite == null ? '—' : ((p.periodicite ? 'common.yes' : 'common.no') | translate) }}</td>
                   @if (hasBudgetTypes()) {
                     <td class="num">{{ p.fonctionnement != null ? (p.fonctionnement | number:'1.0-2') + ' €' : '—' }}</td>
                     <td class="num">{{ p.investissement != null ? (p.investissement | number:'1.0-2') + ' €' : '—' }}</td>
