@@ -46,7 +46,7 @@ Une grille actions × années pour saisir la réalisation des actions, ainsi que
 - **Une colonne « Global »** qui donne la **réalisation sur toute la période** et ouvre la page globale de l'action.
 - **Onglets Budget et RH :** pour l'année de référence choisie, la période écoulée et le total du plan, le prévisionnel et le réalisé, avec l'écart (montant restant en vert, dépassé en rouge).
 - **Planification mensuelle** : vue Agenda (ce mois-ci, le mois prochain, cette année) ou vue Calendrier (une ligne par action, douze mois).
-- « **Exporter le tableau** » produit un fichier Excel **selon l'onglet et les filtres en cours.**
+- « **Exporter le tableau** » produit un fichier Excel **selon l'onglet et les filtres en cours.** Depuis l'onglet « Réalisation », chaque case d'année y porte le **même pictogramme qu'à l'écran**, et la légende des pictogrammes figure en tête du fichier.
 - **Voir la fiche action,** en cliquant sur l'icône œil.
 
 ### Saisir la réalisation d'une action

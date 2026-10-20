@@ -16,13 +16,24 @@ export type GridScoreLevel =
  * Cellule exportée :
  * - une chaîne ou un **nombre** (écrit comme tel, pour rester sommable) ;
  * - `{ t, s }` pour une case que le serveur colore selon le niveau de score ;
+ * - `{ t, a }` pour une case de réalisation rendue par son pictogramme (#726) ;
  * - `null` pour une case vide.
  */
 export type GridCell =
   | string
   | number
   | null
-  | { t: string | number; s: GridScoreLevel };
+  | { t: string | number; s: GridScoreLevel }
+  | { t: string; a: GridActionStatus };
+
+/**
+ * #726 — Statut annuel d'une action (`ActionStatus`) : la case est rendue par
+ * le pictogramme de l'écran de suivi, sans texte (`t` reste le libellé, pour
+ * un client qui ne connaîtrait pas le statut).
+ */
+export type GridActionStatus =
+  | 'planned' | 'planned-realized' | 'planned-partial'
+  | 'planned-not-realized' | 'realized-unplanned' | 'partial-unplanned';
 
 /**
  * Format d'affichage d'une colonne chiffrée. `euro` suffixe les montants d'un
@@ -49,6 +60,8 @@ export interface GridExportPayload {
   entetes: string[];
   /** Format des colonnes chiffrées, aligné sur `entetes`. */
   formats?: GridColumnFormat[];
+  /** #726 — Légende des pictogrammes de réalisation, écrite avant le tableau. */
+  legende?: { a: GridActionStatus; t: string }[];
   /** Nombre de colonnes d'identification à figer à gauche. */
   gel?: number;
   lignes: GridRow[];

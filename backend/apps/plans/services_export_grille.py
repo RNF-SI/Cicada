@@ -35,7 +35,12 @@ Types de ligne :
 
 Une cellule est soit un texte, soit un nombre (écrit **comme un nombre**, pour
 rester sommable dans le tableur), soit ``{'t': texte, 's': niveau de score}``
-pour une case colorée, soit ``None`` pour une case vide.
+pour une case colorée, soit ``{'t': libellé, 'a': statut d'action}`` pour
+une case de réalisation rendue par son **pictogramme** (#726), soit ``None``
+pour une case vide.
+
+``legende`` (facultatif) : ``[{'a': statut, 't': libellé}]``, écrite avant le
+tableau — pictogramme et libellé, puisque les cases n'affichent plus de texte.
 """
 
 from __future__ import annotations
@@ -44,7 +49,13 @@ import io
 import math
 import numbers
 
+from pathlib import Path
+
 from openpyxl import Workbook
+from openpyxl.drawing.image import Image as XLImage
+from openpyxl.drawing.spreadsheet_drawing import AnchorMarker, OneCellAnchor
+from openpyxl.drawing.xdr import XDRPositiveSize2D
+from openpyxl.utils.units import pixels_to_EMU
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
@@ -144,8 +155,54 @@ def _format_nombre(valeur, euro: bool) -> str:
 
 def _texte(cellule) -> str:
     """Représentation textuelle, pour le calcul des largeurs de colonnes."""
+    if _statut(cellule):
+        return ''  # #726 — pictogramme seul : la case n'a pas à s'élargir
     valeur = _valeur(cellule)
     return '' if valeur is None else str(valeur)
+
+
+# --- pictogrammes de réalisation (#726) -----------------------------------
+
+_ICONES = Path(__file__).resolve().parent / 'assets' / 'action_icons'
+
+#: Statut annuel d'une action (`ActionStatus`, frontend) → pictogramme de
+#: l'écran de suivi. Les mêmes images que l'interface, pour une seule lecture.
+STATUTS_ACTION = {
+    statut: _ICONES / f'{statut}.png'
+    for statut in (
+        'planned', 'planned-realized', 'planned-partial',
+        'planned-not-realized', 'realized-unplanned', 'partial-unplanned',
+    )
+}
+
+#: Côté du pictogramme dans la case, en pixels, et hauteur de ligne qui le loge.
+_ICONE_PX = 18
+_LIGNE_ICONE_PT = 18
+
+
+def _statut(cellule) -> str | None:
+    """Statut d'action d'une cellule, s'il y en a un et qu'il est connu."""
+    if not isinstance(cellule, dict):
+        return None
+    statut = cellule.get('a')
+    return statut if statut in STATUTS_ACTION else None
+
+
+def _poser_icone(ws, ligne: int, col: int, statut: str) -> None:
+    """Pictogramme centré dans la case (ligne, col), ancré sur elle."""
+    img = XLImage(str(STATUTS_ACTION[statut]))
+    img.width = img.height = _ICONE_PX
+    largeur_px = round((ws.column_dimensions[get_column_letter(col)].width or 8.43) * 7) + 5
+    hauteur_px = round((ws.row_dimensions[ligne].height or _LIGNE_ICONE_PT) / 0.75)
+    marqueur = AnchorMarker(
+        col=col - 1, colOff=pixels_to_EMU(max(0, (largeur_px - _ICONE_PX) // 2)),
+        row=ligne - 1, rowOff=pixels_to_EMU(max(0, (hauteur_px - _ICONE_PX) // 2)),
+    )
+    img.anchor = OneCellAnchor(
+        _from=marqueur,
+        ext=XDRPositiveSize2D(pixels_to_EMU(_ICONE_PX), pixels_to_EMU(_ICONE_PX)),
+    )
+    ws.add_image(img)
 
 
 # --- construction ----------------------------------------------------------
@@ -174,7 +231,16 @@ def build_grille_workbook(payload: dict) -> bytes:
         ws.cell(row=ligne, column=2, value=str(valeur)).font = _F_META
         ligne += 1
 
-    if titre or meta:
+    # #726 — Légende des pictogrammes : les cases d'année n'ont plus de texte.
+    legende = [e for e in (payload.get('legende') or []) if _statut(e)]
+    if legende:
+        ligne += 1
+        for entree in legende:
+            ws.row_dimensions[ligne].height = _LIGNE_ICONE_PT
+            ws.cell(row=ligne, column=2, value=str(entree.get('t') or '')).font = _F_META
+            ligne += 1
+
+    if titre or meta or legende:
         ligne += 1  # respiration avant le tableau
 
     # En-têtes : aplat à la couleur de l'instance, texte blanc.
@@ -193,6 +259,17 @@ def build_grille_workbook(payload: dict) -> bytes:
 
     _mettre_en_page(ws, entetes, lignes, entete_ligne, payload.get('gel'))
 
+    # Les pictogrammes se posent une fois les largeurs connues, pour être
+    # centrés dans leur case.
+    debut_legende = entete_ligne - 1 - len(legende) if legende else None
+    for i, entree in enumerate(legende):
+        _poser_icone(ws, debut_legende + i, 1, _statut(entree))
+    for i, row in enumerate(lignes):
+        for col, brute in enumerate(row.get('cellules') or [], start=1):
+            statut = _statut(brute)
+            if statut:
+                _poser_icone(ws, entete_ligne + 1 + i, col, statut)
+
     flux = io.BytesIO()
     wb.save(flux)
     return flux.getvalue()
@@ -203,8 +280,12 @@ def _ecrire_ligne(ws, ligne: int, row: dict, formats=()):
     fond = {'detail': _DETAIL_FILL, 'total': _TOTAL_FILL}.get(type_ligne)
     police = {'detail': _F_DETAIL, 'total': _F_TOTAL}.get(type_ligne, _F_NORMAL)
 
-    for col, brute in enumerate(row.get('cellules') or [], start=1):
-        cell = ws.cell(row=ligne, column=col, value=_valeur(brute))
+    cellules = row.get('cellules') or []
+    if any(_statut(c) for c in cellules):
+        ws.row_dimensions[ligne].height = _LIGNE_ICONE_PT
+    for col, brute in enumerate(cellules, start=1):
+        # #726 — Case de réalisation : le pictogramme seul, posé plus loin.
+        cell = ws.cell(row=ligne, column=col, value=None if _statut(brute) else _valeur(brute))
         niveau = _score(brute)
         if niveau and type_ligne != 'total':
             # Case colorée comme la pastille de score de l'interface. Le score

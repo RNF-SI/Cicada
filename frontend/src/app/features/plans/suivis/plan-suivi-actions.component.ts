@@ -814,6 +814,7 @@ export class PlanSuiviActionsComponent implements OnInit {
       // les années ou les périodes (l'onglet agrégé ouvre sur l'organisme).
       gel: this.identityHeaders().length + (isAggregation ? 1 : 0),
       lignes,
+      ...(this.activeTab() === 'realisation' ? { legende: this.realisationLegend() } : {}),
     };
   }
 
@@ -894,12 +895,20 @@ export class PlanSuiviActionsComponent implements OnInit {
     return this.identityHeaders().map(() => '');
   }
 
-  /** Libellé traduit du statut annuel (case du tableau Réalisation). */
-  private yearStatusLabel(op: Operation, year: number): string {
+  /**
+   * Case d'année du tableau Réalisation : le statut, que le serveur rend par
+   * son pictogramme (#726 — plus lisible que le libellé), ou vide.
+   */
+  private yearStatusCell(op: Operation, year: number): GridCell {
     const status = this.getActionStatusForYear(op, year);
     if (!status) return '';
     const item = ACTION_LEGEND_ITEMS.find(i => i.status === status);
-    return item ? this.t(item.labelKey) : '';
+    return { t: item ? this.t(item.labelKey) : '', a: status };
+  }
+
+  /** #726 — Légende des pictogrammes, en tête du classeur. */
+  private realisationLegend(): GridExportPayload['legende'] {
+    return ACTION_LEGEND_ITEMS.map(i => ({ a: i.status, t: this.t(i.labelKey) }));
   }
 
   /** Onglet Réalisation : une ligne par action, une colonne par année. */
@@ -913,7 +922,7 @@ export class PlanSuiviActionsComponent implements OnInit {
     const lignes: GridRow[] = this.filteredOperations().map(item => ({
       cellules: [
         ...this.identityCells(item),
-        ...years.map(y => this.yearStatusLabel(item.operation, y)),
+        ...years.map(y => this.yearStatusCell(item.operation, y)),
         this.t(this.globalRealisationLabelKey(item.operation.niveau_realisation_global_mnemonique)),
       ],
     }));

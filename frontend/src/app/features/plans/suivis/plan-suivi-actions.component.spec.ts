@@ -477,6 +477,31 @@ describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
     expect(payload.formats).toHaveLength(payload.entetes.length);
   });
 
+  // #726 — Les cases d'année portent le statut, que le serveur rend par son
+  // pictogramme ; la légende des six pictogrammes accompagne l'onglet.
+  it('envoie le statut de chaque année pour son pictogramme, avec la légende (#726)', () => {
+    component.setTab('realisation');
+    const g = (component as any).buildRealisationGrid();
+    const col2026 = g.entetes.indexOf('2026');
+    const col2027 = g.entetes.indexOf('2027');
+    expect(g.lignes[0].cellules[col2026]).toEqual({
+      t: 'plans.suivis.actions.actionPrevue', a: 'planned',
+    });
+    expect(g.lignes[0].cellules[col2027]).toBe('');
+
+    const payload = (component as any).buildExportPayload();
+    expect(payload.legende.map((e: any) => e.a)).toEqual([
+      'planned', 'planned-realized', 'planned-partial',
+      'planned-not-realized', 'realized-unplanned', 'partial-unplanned',
+    ]);
+    expect(payload.legende[0].t).toBe('plans.suivis.actions.actionPrevue');
+  });
+
+  it('pas de légende des pictogrammes hors de l’onglet Réalisation (#726)', () => {
+    component.setTab('budget');
+    expect((component as any).buildExportPayload().legende).toBeUndefined();
+  });
+
   it('n’ajoute pas de « € » aux colonnes de jours de l’onglet RH (#644)', () => {
     component.setTab('rh');
     const payload = (component as any).buildExportPayload();

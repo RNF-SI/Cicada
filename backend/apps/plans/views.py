@@ -1657,7 +1657,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         return self._xlsx_response(
             build_grille_workbook(payload), f'tableau-de-bord-{suffix}.xlsx')
 
-    @extend_schema(summary='Mettre en forme le tableau de suivi des actions', description="Même contrat que le tableau de bord : le client envoie l'onglet affiché (Réalisation, Budget, RH, Planification), filtres compris ; le serveur ne fait que la mise en forme Excel. Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", request=OpenApiTypes.OBJECT, responses={200: reponse_xlsx('Suivi des actions mis en forme'), 403: REPONSE_403, 404: REPONSE_404})
+    @extend_schema(summary='Mettre en forme le tableau de suivi des actions', description="Même contrat que le tableau de bord : le client envoie l'onglet affiché (Réalisation, Budget, RH, Planification), filtres compris ; le serveur ne fait que la mise en forme Excel. Une cellule `{t, a}` (statut annuel d'une action : planned, planned-realized, planned-partial, planned-not-realized, realized-unplanned, partial-unplanned) est rendue par son pictogramme, et `legende` (`[{a, t}]`) est écrite avant le tableau (#726). Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", request=OpenApiTypes.OBJECT, responses={200: reponse_xlsx('Suivi des actions mis en forme'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='export-suivi-actions-xlsx')
     def export_suivi_actions_xlsx(self, request, pk=None):
         """
