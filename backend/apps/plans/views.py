@@ -374,14 +374,20 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             self._create_plan(serializer)
 
     def _create_plan(self, serializer):
-        plan = serializer.save(id_utilisateur_ajout=self.request.user)
+        from .access import has_global_plan_access
+
+        user = self.request.user
+        plan = serializer.save(id_utilisateur_ajout=user, id_utilisateur_maj=user)
 
         # Le créateur devient référent de son plan. Sans cela, un non-admin
         # (référent/utilisateur) perd immédiatement l'accès en édition sur le
         # plan qu'il vient de créer : côté frontend `canEditPlan` /
         # `canManageLifecycle` exigent le statut de référent du plan pour les
         # non-admins. Idempotent vis-à-vis d'éventuels `referents_ids` envoyés.
-        plan.referents.add(self.request.user)
+        # #736 — sauf super admin et rédacteur principal : ils ont déjà tous
+        # les droits sur le plan, la trace de création suffit.
+        if not has_global_plan_access(user):
+            plan.referents.add(user)
 
         parent_id = self.request.data.get('plan_parent_id')
         if parent_id and not plan.plan_parent_id:

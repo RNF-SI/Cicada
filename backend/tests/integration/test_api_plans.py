@@ -376,6 +376,23 @@ class TestPlansCreateEndpoint:
         plan = PlanGestion.objects.get(nom='Self Referent Plan')
         assert referent in plan.referents.all()
 
+    @pytest.mark.parametrize('role_level', ['super_admin', 'redacteur_principal'])
+    def test_create_plan_global_access_creator_not_referent(self, api_client, role_level):
+        """#736 — super admin et rédacteur principal ont déjà tous les droits
+        sur le plan : ils n'en deviennent pas référents en le créant. La trace
+        de création reste dans `id_utilisateur_ajout` / `id_utilisateur_maj`."""
+        creator = RoleFactory(role_level=role_level, is_superuser=role_level == 'super_admin')
+        site = SiteFactory()
+
+        api_client.force_authenticate(user=creator)
+        response = api_client.post('/api/plans/plans/', self._payload('Plan gestionnaire global', site))
+
+        assert response.status_code == status.HTTP_201_CREATED
+        plan = PlanGestion.objects.get(nom='Plan gestionnaire global')
+        assert creator not in plan.referents.all()
+        assert plan.id_utilisateur_ajout == creator
+        assert plan.id_utilisateur_maj == creator
+
     def test_create_plan_regular_user_denied(self, api_client):
         """Un utilisateur simple rattaché à aucun site ne crée pas de plan."""
         user = RoleFactory()
