@@ -73,7 +73,7 @@ curl -X POST https://<instance>/api/plans/plans/ \
   }'
 ```
 
-Le lien `plan_parent_id` n'est retenu que si le parent est de rang strictement inférieur et partage au moins un site ; sinon il est ignoré silencieusement. L'appelant devient référent du plan créé.
+Le lien `plan_parent_id` n'est retenu que si le parent est de rang strictement inférieur et partage au moins un site ; sinon il est ignoré silencieusement. L'appelant devient référent du plan créé, sauf s'il est super administrateur ou rédacteur général (il a déjà tous les droits sur le plan).
 
 ## Référence interactive
 
