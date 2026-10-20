@@ -2,6 +2,9 @@
 
 <p class="lead">Paramètres :</p>
 
+La page s'ouvre depuis Administration > Paramètres, ou directement par « Paramètres » dans votre menu utilisateur (en haut à droite).
+
+
 - Personnaliser l'image d'accueil de l'application et sa position (haut, centre, bas) ;
 - Choisir la couleur du bandeau (couleurs proposées ou personnalisée, avec aperçu) et ajouter le logo de la structure, affiché en haut à gauche ;
 - Choisir la couleur des exports Excel et Word (les couleurs des scores ne changent pas) ;
