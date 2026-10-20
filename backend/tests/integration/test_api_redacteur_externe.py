@@ -304,3 +304,39 @@ class TestRattacherRedacteurExterneDepuisLePlan:
         response = client.delete(f'/api/plans/plans/{plan.id_pg}/remove_member/?user_id={redacteur.pk}')
         assert response.status_code == status.HTTP_200_OK
         assert not user_can_access_plan(redacteur, plan)
+
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestRedacteursExternesDisponibles:
+    """#737 — « Gérer les utilisateurs du plan » propose les rédacteurs externes
+    de toute l'instance, quel que soit leur organisme."""
+
+    URL = '/api/plans/plans/{}/redacteurs-externes/'
+
+    def test_admin_og_voit_les_redacteurs_des_autres_organismes(self, redacteur_data):
+        RoleFactory(role_level='redacteur', active=False, id_organisme=redacteur_data['bureau'])
+        RoleFactory(role_level='utilisateur', id_organisme=redacteur_data['bureau'])
+        plan = redacteur_data['plan']
+
+        response = _client(redacteur_data['admin_og']).get(self.URL.format(plan.id_pg))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [u['id_role'] for u in response.data] == [redacteur_data['redacteur'].id_role]
+        [redacteur] = response.data
+        assert redacteur['email'] == redacteur_data['redacteur'].email
+        assert redacteur['nom_organisme'] == redacteur_data['bureau'].nom_organisme
+
+    def test_referent_du_plan(self, redacteur_data):
+        referent = RoleFactory(role_level='utilisateur')
+        redacteur_data['plan'].referents.add(referent)
+        response = _client(referent).get(self.URL.format(redacteur_data['plan'].id_pg))
+        assert response.status_code == status.HTTP_200_OK
+        assert len(response.data) == 1
+
+    def test_refuse_a_qui_ne_gere_pas_le_plan(self, redacteur_data):
+        membre = RoleFactory(role_level='utilisateur')
+        from apps.plans.models import CorRolePlan
+        CorRolePlan.objects.create(id_role=membre, plan_de_gestion=redacteur_data['plan'], referent=False)
+        response = _client(membre).get(self.URL.format(redacteur_data['plan'].id_pg))
+        assert response.status_code == status.HTTP_403_FORBIDDEN

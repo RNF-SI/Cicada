@@ -18,10 +18,13 @@ describe('LinkPlanReferentModalComponent — rédacteur externe (#714)', () => {
   const candidat = { id_role: 42, email: 'be@bureau.fr', prenom_role: 'Bea', nom_role: 'Bureau' };
   let adminService: Record<string, jest.Mock>;
   let close: jest.Mock;
+  let redacteursInstance: any[] = [];
+  beforeEach(() => { redacteursInstance = []; });
 
   async function setup(membres: any[] = []): Promise<LinkPlanReferentModalComponent> {
     adminService = {
       getUsers: jest.fn(() => of({ results: [candidat] })),
+      getRedacteursExternesForPlan: jest.fn(() => of(redacteursInstance)),
       assignRedacteurExterneToPlan: jest.fn(() => of({})),
       assignReferentToPlan: jest.fn(() => of({})),
       assignMemberToPlan: jest.fn(() => of({})),
@@ -114,6 +117,34 @@ describe('LinkPlanReferentModalComponent — rédacteur externe (#714)', () => {
       const search = el.querySelector('.user-search-field');
       expect(toggle && search).toBeTruthy();
       expect(toggle!.compareDocumentPosition(search!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+  });
+
+  describe('#737 — rédacteurs externes de l\'instance', () => {
+    const bureau = { id_role: 77, email: 'r@etoile.fr', prenom_role: 'Rita', nom_role: 'Redac', nom_organisme: 'Bureau étoile' };
+
+    it('propose les rédacteurs externes hors de la liste des utilisateurs', async () => {
+      redacteursInstance = [bureau];
+      const component = await setup();
+      expect(adminService['getRedacteursExternesForPlan']).toHaveBeenCalledWith(7);
+      expect(component.filteredUsers().map(u => u.id_role)).toEqual([42, 77]);
+      expect(component.isRedacteurExterne(77)).toBe(true);
+      expect(component.isRedacteurExterne(42)).toBe(false);
+    });
+
+    it('ne duplique pas un utilisateur présent dans les deux listes', async () => {
+      redacteursInstance = [{ ...candidat, nom_organisme: 'X' }];
+      const component = await setup();
+      expect(component.filteredUsers().map(u => u.id_role)).toEqual([42]);
+    });
+
+    it('marque le rédacteur externe ajouté, même sans cocher la case', async () => {
+      redacteursInstance = [bureau];
+      const component = await setup();
+      component.addUser(component.filteredUsers()[1]);
+      expect(component.userAssignments()[0].user.is_redacteur_externe).toBe(true);
+      component.setAddAsReferent(true);
+      expect(component.userAssignments()[0].user.is_redacteur_externe).toBe(true);
     });
   });
 });

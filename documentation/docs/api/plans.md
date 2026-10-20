@@ -14,6 +14,7 @@ Un plan de gestion (`PlanGestion`, clé `id_pg`) couvre un ou plusieurs sites, p
 | `GET /api/plans/plans/stats/`, `…/geojson_list/`, `…/{id_pg}/geojson/`, `…/export_geojson/` | Statistiques et géométries |
 | `POST /api/plans/plans/{id_pg}/assign_site/`, `…/remove_site/`, `…/replace_site/`, `POST …/bulk_assign_sites/` | Sites du plan |
 | `POST /api/plans/plans/{id_pg}/assign_referent/`, `…/remove_referent/`, `…/assign_member/`, `…/remove_member/` | Référents et membres |
+| `POST /api/plans/plans/{id_pg}/assign-redacteur-externe/`, `GET …/redacteurs-externes/` | Rattacher un rédacteur externe ; liste des rédacteurs externes de l'instance, tous organismes confondus (référents du plan et gestionnaires) |
 | `GET /api/plans/plans/{id_pg}/mindmap/`, `…/mindmap-inverse/` | Arbre complet du plan (tableau d'arborescence), dans les deux sens |
 | `GET /api/plans/plans/{id_pg}/operation-codes/`, `…/operation-code-preview/` | Codes d'affichage des actions (CS1, IP2…) |
 | `GET/POST /api/plans/fichiers/`, `GET …/{id}/download/` | Documents joints au plan (type, téléchargement, suppression) |

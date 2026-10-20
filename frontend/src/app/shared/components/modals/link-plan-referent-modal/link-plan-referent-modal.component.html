@@ -143,6 +143,14 @@
                       }
                     </span>
                     <span class="option-email">{{ user.email }}</span>
+                    @if (isRedacteurExterne(user.id_role)) {
+                      <span class="option-redacteur">
+                        <app-tag variant="neutral" size="sm" [label]="'plans.detail.redacteurExterne' | translate"></app-tag>
+                        @if (redacteurOrganisme(user.id_role); as org) {
+                          <span class="option-email">{{ org }}</span>
+                        }
+                      </span>
+                    }
                   </div>
                 </mat-option>
               }

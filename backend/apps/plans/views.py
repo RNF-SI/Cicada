@@ -893,6 +893,53 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
 
         return Response({'message': f'Rédacteur externe {target} rattaché au plan'})
 
+    @extend_schema(
+        summary="Rédacteurs externes de l'instance",
+        description=(
+            "#737 — Comptes « Rédacteur externe » actifs de toute l'instance, quel que soit "
+            "leur organisme, proposés dans « Gérer les utilisateurs du plan ». Réservé aux "
+            "référents du plan et aux gestionnaires."
+        ),
+        responses={200: inline_serializer('RedacteurExterneDisponible', fields={
+            'id_role': drf_serializers.IntegerField(),
+            'email': drf_serializers.EmailField(),
+            'nom_role': drf_serializers.CharField(allow_null=True),
+            'prenom_role': drf_serializers.CharField(allow_null=True),
+            'nom_organisme': drf_serializers.CharField(allow_null=True),
+        }, many=True)},
+    )
+    @action(detail=True, methods=['get'], url_path='redacteurs-externes', pagination_class=None,
+            permission_classes=[permissions.IsAuthenticated])
+    def redacteurs_externes(self, request, pk=None):
+        """
+        #737 — Rédacteurs externes que l'on peut rattacher au plan.
+
+        GET /api/plans/plans/{id}/redacteurs-externes/
+
+        `/api/users/` borne un admin organisme à son organisme et un référent à
+        son propre profil : un bureau d'étude n'y apparaît jamais. Le rédacteur
+        externe étant par nature extérieur à l'organisme gestionnaire, on les
+        expose ici, à qui gère le plan, avec le strict nécessaire pour les choisir.
+        """
+        from apps.users.models import Role
+
+        plan = self.get_object()
+        if not self._can_manage_plan(request.user, plan):
+            return Response({'error': 'Vous devez être référent de ce plan ou administrateur.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        redacteurs = (Role.objects.filter(role_level='redacteur', active=True)
+                      .select_related('id_organisme').order_by('nom_role', 'prenom_role'))
+        return Response([
+            {
+                'id_role': r.id_role,
+                'email': r.email,
+                'nom_role': r.nom_role,
+                'prenom_role': r.prenom_role,
+                'nom_organisme': r.id_organisme.nom_organisme if r.id_organisme_id else None,
+            }
+            for r in redacteurs
+        ])
+
     @action(detail=True, methods=['delete'],
             permission_classes=[permissions.IsAuthenticated])
     def remove_referent(self, request, pk=None):

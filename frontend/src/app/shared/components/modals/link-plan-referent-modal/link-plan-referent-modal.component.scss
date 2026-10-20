@@ -328,6 +328,13 @@
     font-size: 11px;
     color: $gray-dark;
   }
+
+  // #737 — rédacteur externe : tag + organisme
+  .option-redacteur {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+  }
 }
 
 // Info box

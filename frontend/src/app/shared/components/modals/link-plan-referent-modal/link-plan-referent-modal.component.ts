@@ -10,9 +10,10 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { AdminUser } from '../../../../core/models/admin.model';
+import { AdminUser, RedacteurExterneDisponible } from '../../../../core/models/admin.model';
 import { TagComponent } from '../../tag/tag.component';
 
 // Interface for user linked to plan
@@ -85,6 +86,9 @@ export class LinkPlanReferentModalComponent implements OnInit {
   // All available users
   allUsers = signal<AdminUser[]>([]);
 
+  /** #737 — rédacteurs externes de l'instance (id → organisme), hors du périmètre de /api/users/. */
+  private readonly redacteursExternes = signal<Map<number, string | null>>(new Map());
+
   // Users currently assigned to plan (with modifications tracking)
   userAssignments = signal<UserAssignment[]>([]);
 
@@ -126,9 +130,25 @@ export class LinkPlanReferentModalComponent implements OnInit {
     // Load users - if admin_org, only load users from their organisme
     const params = filterByOrg ? { organisme: currentOrgId, page_size: 500 } : { page_size: 500 };
 
-    this.adminService.getUsers(params).subscribe({
-      next: (response) => {
-        this.allUsers.set(response.results);
+    // #737 — les rédacteurs externes (bureaux d'étude) n'appartiennent pas à
+    // l'organisme gestionnaire : on les ajoute à la liste, quel que soit le rôle.
+    const redacteurs$ = this.adminService.getRedacteursExternesForPlan(this.data.plan.id_pg)
+      .pipe(catchError(() => of([] as RedacteurExterneDisponible[])));
+
+    forkJoin([this.adminService.getUsers(params), redacteurs$]).subscribe({
+      next: ([response, redacteurs]) => {
+        this.redacteursExternes.set(new Map(redacteurs.map(r => [r.id_role, r.nom_organisme])));
+        const known = new Set(response.results.map(u => u.id_role));
+        const extra = redacteurs
+          .filter(r => !known.has(r.id_role))
+          .map(r => ({
+            id_role: r.id_role,
+            email: r.email,
+            nom_role: r.nom_role ?? undefined,
+            prenom_role: r.prenom_role ?? undefined,
+            active: true,
+          }) as AdminUser);
+        this.allUsers.set([...response.results, ...extra]);
         this.initUserAssignments();
       },
       error: (error: Error) => {
@@ -195,6 +215,14 @@ export class LinkPlanReferentModalComponent implements OnInit {
     this.filteredUsers.set(filtered);
   }
 
+  isRedacteurExterne(userId: number): boolean {
+    return this.redacteursExternes().has(userId);
+  }
+
+  redacteurOrganisme(userId: number): string | null {
+    return this.redacteursExternes().get(userId) ?? null;
+  }
+
   displayUser(user: AdminUser | null): string {
     if (!user) return '';
     if (user.prenom_role && user.nom_role) {
@@ -223,7 +251,7 @@ export class LinkPlanReferentModalComponent implements OnInit {
         nom_role: user.nom_role,
         prenom_role: user.prenom_role,
         referent: this.addAsReferent || this.addAsRedacteurExterne,
-        is_redacteur_externe: this.addAsRedacteurExterne,
+        is_redacteur_externe: this.addAsRedacteurExterne || this.isRedacteurExterne(user.id_role),
       },
       isNew: true,
       isDeleted: false,
@@ -257,7 +285,11 @@ export class LinkPlanReferentModalComponent implements OnInit {
   private applyAddOptionsToPending(): void {
     const referent = this.addAsReferent || this.addAsRedacteurExterne;
     this.userAssignments.update(assignments => assignments.map(a => a.isNew
-      ? { ...a, user: { ...a.user, referent, is_redacteur_externe: this.addAsRedacteurExterne } }
+      ? { ...a, user: {
+          ...a.user,
+          referent,
+          is_redacteur_externe: this.addAsRedacteurExterne || this.isRedacteurExterne(a.user.id_role),
+        } }
       : a));
   }
 

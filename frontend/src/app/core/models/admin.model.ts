@@ -847,6 +847,15 @@ export interface ArborescenceImportResult {
 
 /** #700 — Plan trouvé par un rédacteur externe pour en demander l'accès
  *  (`GET /api/plans/plans/recherche-acces/`). Métadonnées seulement. */
+/** #737 — Rédacteur externe de l'instance, rattachable à un plan. */
+export interface RedacteurExterneDisponible {
+  id_role: number;
+  email: string;
+  nom_role: string | null;
+  prenom_role: string | null;
+  nom_organisme: string | null;
+}
+
 export interface PlanAccesRecherche {
   id_pg: number;
   nom: string;

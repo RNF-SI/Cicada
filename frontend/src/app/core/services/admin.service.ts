@@ -36,6 +36,7 @@ import {
   ParsedData,
   ForeignSheet,
   PlanAccesRecherche,
+  RedacteurExterneDisponible,
 } from '../models/admin.model';
 import { SiteCreationValidatorsResponse } from '../models/notification.model';
 
@@ -1128,6 +1129,15 @@ export class AdminService {
     return this.http.post(`${this.plansApiUrl}/plans/${planId}/assign-redacteur-externe/`, {
       user_id: userId
     }).pipe(catchError(this.handleError));
+  }
+
+  /**
+   * #737 — Rédacteurs externes actifs de toute l'instance, rattachables au plan.
+   * GET /api/plans/plans/{id}/redacteurs-externes/
+   */
+  getRedacteursExternesForPlan(planId: number): Observable<RedacteurExterneDisponible[]> {
+    return this.http.get<RedacteurExterneDisponible[]>(`${this.plansApiUrl}/plans/${planId}/redacteurs-externes/`)
+      .pipe(catchError(this.handleError));
   }
 
   assignMemberToPlan(planId: number, userId: number): Observable<any> {
