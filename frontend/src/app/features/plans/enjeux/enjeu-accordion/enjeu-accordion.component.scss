@@ -119,13 +119,6 @@
   color: $black;
 }
 
-.body-actions {
-  display: flex;
-  align-items: center;
-  gap: $spacing-xxs;
-  flex-shrink: 0;
-}
-
 // Property lines (inline)
 .property-lines {
   margin-bottom: $spacing-md;

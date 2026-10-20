@@ -219,6 +219,29 @@ describe('EnjeuAccordionComponent', () => {
       expect(mockEvent.stopPropagation).toHaveBeenCalled();
     });
 
+    // #728 — Modifier et Supprimer à côté de l'œil, dans l'en-tête, comme sur
+    // les autres éléments ; plus dans le sous-en-tête du corps déplié.
+    it('should place edit and delete next to the eye in the header', () => {
+      component.canEdit = true;
+      component.toggle();
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const icones = Array.from(el.querySelectorAll('.header-actions button i'))
+        .map(i => Array.from(i.classList).find(c => c.startsWith('fi-rr-')));
+      expect(icones.slice(0, 3)).toEqual(['fi-rr-pencil', 'fi-rr-trash', 'fi-rr-eye']);
+      expect(el.querySelector('.body-sub-header .fi-rr-pencil')).toBeNull();
+      expect(el.querySelector('.body-sub-header .fi-rr-trash')).toBeNull();
+    });
+
+    it('should not show edit and delete without edit rights', () => {
+      component.canEdit = false;
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      expect(el.querySelector('.header-actions .fi-rr-pencil')).toBeNull();
+      expect(el.querySelector('.header-actions .fi-rr-trash')).toBeNull();
+      expect(el.querySelector('.header-actions .fi-rr-eye')).toBeTruthy();
+    });
+
     it('should emit navigateToDetail event', () => {
       const spy = jest.spyOn(component.navigateToDetail, 'emit');
       const mockEvent = { stopPropagation: jest.fn() } as unknown as Event;

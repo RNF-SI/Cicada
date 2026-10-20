@@ -9,12 +9,26 @@
       size="md"
       titleColor="primary"
       [showLine]="true">
-      <!-- Bouton modifier retiré (revue design Amandine — doublon avec celui du body sub-header) -->
       <div sectionActions class="header-actions">
         @if (numeroPinned) {
           <i class="fi fi-rr-thumbtack enjeu-pinned-badge"
              [title]="'enjeux.enjeuForm.numeroPinned' | translate"
              [attr.aria-label]="'enjeux.enjeuForm.numeroPinned' | translate"></i>
+        }
+        <!-- #728 — Modifier / Supprimer à côté de l'œil, comme sur les autres éléments. -->
+        @if (canEdit) {
+          <button mat-icon-button
+                  (click)="onEdit($event)"
+                  [matTooltip]="'common.actions.edit' | translate"
+                  class="action-btn">
+            <i class="fi fi-rr-pencil"></i>
+          </button>
+          <button mat-icon-button
+                  (click)="onDelete($event)"
+                  [matTooltip]="'common.actions.delete' | translate"
+                  class="action-btn">
+            <i class="fi fi-rr-trash"></i>
+          </button>
         }
         <!-- Accès à la page détail de l'enjeu / FCR (icône œil, comme ailleurs). -->
         <button mat-icon-button
@@ -40,22 +54,6 @@
                alt="" class="body-sub-ellipse">
           <h4 class="body-sub-title">{{ enjeu.intitule_court || enjeu.libelle }}</h4>
         </div>
-        @if (canEdit) {
-          <div class="body-actions">
-            <button mat-icon-button
-                    (click)="onEdit($event)"
-                    [matTooltip]="'common.actions.edit' | translate"
-                    class="action-btn">
-              <i class="fi fi-rr-pencil"></i>
-            </button>
-            <button mat-icon-button
-                    (click)="onDelete($event)"
-                    [matTooltip]="'common.actions.delete' | translate"
-                    class="action-btn">
-              <i class="fi fi-rr-trash"></i>
-            </button>
-          </div>
-        }
       </div>
 
       <!-- Properties (inline lines) -->
