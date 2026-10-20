@@ -859,8 +859,12 @@ class CorRedacteurPlan(models.Model):
         _("Date d'association"),
         auto_now_add=True
     )
+    # #739 — rédacteur principal du plan (au plus un). Les autres — dont
+    # l'organisme d'un rédacteur externe rattaché — sont listés en dessous.
+    principal = models.BooleanField(_("Rédacteur principal"), default=False)
 
     class Meta:
+        ordering = ['-principal', 'date_association', 'pk']
         db_table = '"general"."cor_redacteur_plan"'
         db_table_comment = 'Organismes rédacteurs des plans de gestion'
         verbose_name = _("Organisme rédacteur - Plan")

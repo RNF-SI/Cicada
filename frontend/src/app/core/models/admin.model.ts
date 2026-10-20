@@ -521,7 +521,8 @@ export interface AdminPlan {
   redacteurs?: string;
   relecteurs?: string;
   autres_contributeurs?: string;
-  organismes_redacteurs_list?: Array<{ id_organisme: number; nom_organisme: string }>;
+  /** Le principal en tête (#739) ; `externe` = organisme d'un rédacteur externe rattaché (#714). */
+  organismes_redacteurs_list?: OrganismeRedacteur[];
   commentaire?: string;
   date_ajout?: string;
   date_maj?: string;
@@ -571,6 +572,8 @@ export interface PlanCreatePayload {
   relecteurs?: string;
   autres_contributeurs?: string;
   organismes_redacteurs_ids?: number[];
+  /** #739 — rédacteur principal parmi `organismes_redacteurs_ids` (null = aucun). */
+  organisme_redacteur_principal_id?: number | null;
   commentaire?: string;
   referents_ids?: number[];
   /**
@@ -847,6 +850,14 @@ export interface ArborescenceImportResult {
 
 /** #700 — Plan trouvé par un rédacteur externe pour en demander l'accès
  *  (`GET /api/plans/plans/recherche-acces/`). Métadonnées seulement. */
+/** Organisme rédacteur d'un plan (#714, #739). */
+export interface OrganismeRedacteur {
+  id_organisme: number;
+  nom_organisme: string;
+  principal?: boolean;
+  externe?: boolean;
+}
+
 /** #737 — Rédacteur externe de l'instance, rattachable à un plan. */
 export interface RedacteurExterneDisponible {
   id_role: number;

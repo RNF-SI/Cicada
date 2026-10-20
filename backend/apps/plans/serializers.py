@@ -8,7 +8,7 @@ from django.contrib.gis.serializers.geojson import Serializer as GeoJSONSerializ
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from django.utils.translation import gettext_lazy as _
 
-from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan, CorRedacteurPlan
+from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
 from apps.users.serializers import RoleBasicSerializer, SiteBasicSerializer
 
 
@@ -413,6 +413,9 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     sites_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     referents_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     organismes_redacteurs_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+    # #739 — rédacteur principal parmi `organismes_redacteurs_ids` (null = aucun).
+    # Absent : le premier de la liste.
+    organisme_redacteur_principal_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     organismes_redacteurs_list = serializers.SerializerMethodField(read_only=True)
 
     @extend_schema_field(OpenApiTypes.BOOL)
@@ -517,12 +520,19 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OrganismeResumeSerializer(many=True))
     def get_organismes_redacteurs_list(self, obj):
-        """Retourne la liste des organismes rédacteurs du plan."""
+        """Organismes rédacteurs du plan, le principal en tête (#739).
+
+        ``externe`` : organisme d'un rédacteur externe rattaché au plan (#714).
+        """
         from apps.plans.models import CorRedacteurPlan
+        from .redacteurs import organismes_redacteurs_externes
+        externes = set(organismes_redacteurs_externes(obj).values_list('pk', flat=True))
         return [
             {
                 'id_organisme': cor.uuid_og.id_organisme,
                 'nom_organisme': cor.uuid_og.nom_organisme,
+                'principal': cor.principal,
+                'externe': cor.uuid_og.id_organisme in externes,
             }
             for cor in CorRedacteurPlan.objects.filter(
                 plan_de_gestion=obj
@@ -553,7 +563,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'plan_parent_rang', 'plan_parent_version',
             'type_document_display', 'children_count', 'version_chain',
             'geometrie', 'is_multi_sites', 'organismes_gestionnaires', 'sites_list',
-            'organismes_redacteurs_list', 'organismes_redacteurs_ids',
+            'organismes_redacteurs_list', 'organismes_redacteurs_ids', 'organisme_redacteur_principal_id',
             'sites', 'fichiers', 'referents', 'membres', 'sites_ids', 'referents_ids',
             'utilisateur_ajout', 'utilisateur_maj',
             'date_ajout', 'date_maj'
@@ -599,6 +609,8 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         sites_ids = validated_data.pop('sites_ids', [])
         referents_ids = validated_data.pop('referents_ids', [])
         organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', [])
+        principal_fourni = 'organisme_redacteur_principal_id' in validated_data
+        principal_id = validated_data.pop('organisme_redacteur_principal_id', None)
 
         plan = super().create(validated_data)
 
@@ -620,11 +632,9 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             plan.referents.set(referents)
 
         # Ajouter les organismes rédacteurs
-        if organismes_redacteurs_ids:
-            from apps.users.models import BibOrganismes
-            for org_id in organismes_redacteurs_ids:
-                org = BibOrganismes.objects.get(id_organisme=org_id)
-                CorRedacteurPlan.objects.get_or_create(plan_de_gestion=plan, uuid_og=org)
+        if organismes_redacteurs_ids or principal_fourni:
+            from .redacteurs import enregistrer_organismes_redacteurs
+            enregistrer_organismes_redacteurs(plan, organismes_redacteurs_ids, principal_id, principal_fourni)
 
         return plan
 
@@ -633,6 +643,8 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         sites_ids = validated_data.pop('sites_ids', None)
         referents_ids = validated_data.pop('referents_ids', None)
         organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', None)
+        principal_fourni = 'organisme_redacteur_principal_id' in validated_data
+        principal_id = validated_data.pop('organisme_redacteur_principal_id', None)
 
         plan = super().update(instance, validated_data)
 
@@ -656,17 +668,13 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             referents = Role.objects.filter(id_role__in=referents_ids)
             plan.referents.set(referents)
 
-        # Mettre à jour les organismes rédacteurs si fournis
-        if organismes_redacteurs_ids is not None:
-            from apps.users.models import BibOrganismes
-            from .redacteurs import organismes_redacteurs_externes
-            # #714 — l'organisme d'un rédacteur externe rattaché au plan reste
-            # rédacteur tant qu'il l'est : le formulaire ne le connaît pas.
-            conserves = {o.id_organisme for o in organismes_redacteurs_externes(plan)}
-            CorRedacteurPlan.objects.filter(plan_de_gestion=plan).delete()
-            for org_id in set(organismes_redacteurs_ids) | conserves:
-                org = BibOrganismes.objects.get(id_organisme=org_id)
-                CorRedacteurPlan.objects.create(plan_de_gestion=plan, uuid_og=org)
+        # Mettre à jour les organismes rédacteurs si fournis. #739 — le
+        # formulaire fait foi, y compris pour l'organisme d'un rédacteur externe
+        # (avant : réinscrit d'office, donc impossible à modifier).
+        if organismes_redacteurs_ids is not None or principal_fourni:
+            from .redacteurs import enregistrer_organismes_redacteurs
+            enregistrer_organismes_redacteurs(
+                plan, organismes_redacteurs_ids or [], principal_id, principal_fourni)
 
         return plan
 
@@ -703,6 +711,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
     sites_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=True, min_length=1)
     referents_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
     organismes_redacteurs_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True, required=False)
+    organisme_redacteur_principal_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
 
     class Meta:
         model = PlanGestion
@@ -713,7 +722,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             'id_evaluation', 'id_redacteur_type', 'redacteur_nom',
             'redacteurs', 'relecteurs', 'autres_contributeurs',
             'commentaire', 'statut', 'version', 'geometrie',
-            'sites_ids', 'referents_ids', 'organismes_redacteurs_ids'
+            'sites_ids', 'referents_ids', 'organismes_redacteurs_ids', 'organisme_redacteur_principal_id'
         ]
         read_only_fields = ['id_pg', 'slug']
         extra_kwargs = {
@@ -728,6 +737,8 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
         sites_ids = validated_data.pop('sites_ids', [])
         referents_ids = validated_data.pop('referents_ids', [])
         organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', [])
+        principal_fourni = 'organisme_redacteur_principal_id' in validated_data
+        principal_id = validated_data.pop('organisme_redacteur_principal_id', None)
 
         # Créer le plan
         plan = super().create(validated_data)
@@ -749,11 +760,9 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             referents = Role.objects.filter(id_role__in=referents_ids)
             plan.referents.set(referents)
 
-        # Associer l'organisme rédacteur
-        if organismes_redacteurs_ids:
-            from apps.users.models import BibOrganismes
-            for org_id in organismes_redacteurs_ids:
-                org = BibOrganismes.objects.get(id_organisme=org_id)
-                CorRedacteurPlan.objects.get_or_create(plan_de_gestion=plan, uuid_og=org)
+        # Associer l'organisme rédacteur (le premier est le principal, #739)
+        if organismes_redacteurs_ids or principal_fourni:
+            from .redacteurs import enregistrer_organismes_redacteurs
+            enregistrer_organismes_redacteurs(plan, organismes_redacteurs_ids, principal_id, principal_fourni)
 
         return plan

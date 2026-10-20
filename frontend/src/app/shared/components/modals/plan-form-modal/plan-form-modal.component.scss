@@ -491,6 +491,13 @@ mat-dialog-actions {
   color: $white;
 }
 
+// #739 — plusieurs organismes rédacteurs secondaires
+.autres-organismes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
 // Chip row dans les formulaires (organisme rédacteur)
 .selected-organisme {
   ::ng-deep {

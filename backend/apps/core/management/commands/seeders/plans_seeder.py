@@ -717,12 +717,13 @@ class PlansSeeder(BaseSeeder):
                 'risque_incendie': False,
                 'id_evaluation': None,
                 'id_redacteur_type': redac_be,
-                'redacteur_nom': BUREAU_ETUDE_NOM,
+                'redacteur_nom': None,
                 'commentaire': 'Rédaction confiée à un bureau d\'étude (#718) : '
                                'redacteur.externe@test.fr en est référent.',
                 'sites': [sites[6]],  # Lac de Remoray
+                # #739 — son bureau devient organisme rédacteur SECONDAIRE ;
+                # le principal reste le gestionnaire du site (cf. plus bas).
                 'membres': [(redacteur_externe, True)],
-                'organismes_redacteurs_lookup': [BUREAU_ETUDE_NOM],
             })
 
         return plans
@@ -940,15 +941,22 @@ class PlansSeeder(BaseSeeder):
             # Ajouter les organismes rédacteurs pour certains plans
             redacteur_lookups = redacteur_config
             redacteur_orgs = []
-            for lookup in redacteur_lookups:
+            for i, lookup in enumerate(redacteur_lookups):
                 org = BibOrganismes.objects.filter(nom_organisme__icontains=lookup).first()
                 if org:
                     from apps.plans.models import CorRedacteurPlan
                     CorRedacteurPlan.objects.get_or_create(
                         plan_de_gestion=plan,
-                        uuid_og=org
+                        uuid_og=org,
+                        defaults={'principal': i == 0},
                     )
                     redacteur_orgs.append(org)
+
+            # #714 / #739 — signaux coupés pendant le seed : l'organisme d'un
+            # rédacteur externe rattaché est inscrit ici, sous le principal.
+            from apps.plans.redacteurs import rattacher_organisme_redacteur
+            for user, _ in plan_membres:
+                rattacher_organisme_redacteur(plan, user)
 
             plans.append(plan)
             status = "créé" if created else "mis à jour"

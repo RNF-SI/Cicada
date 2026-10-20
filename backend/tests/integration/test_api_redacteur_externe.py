@@ -141,16 +141,67 @@ class TestRedacteurRattache:
             assert response.data['results'] == []
             assert _client(collegue).get(f'/api/plans/plans/{plan.id_pg}/').status_code == 404
 
-    def test_le_formulaire_du_plan_garde_l_organisme(self, rattache):
-        """#714 — la fiche du plan n'envoie qu'un organisme rédacteur : celui
-        du rédacteur externe ne doit pas être effacé à l'enregistrement."""
-        plan, bureau = rattache['plan'], rattache['bureau']
+    def test_le_gestionnaire_reste_redacteur_principal(self, rattache):
+        """#739 — l'organisme du bureau d'étude s'ajoute EN DESSOUS du rédacteur
+        principal, qui reste l'organisme gestionnaire du site."""
+        plan, bureau, og = rattache['plan'], rattache['bureau'], rattache['og']
+        response = _client(rattache['admin_og']).get(f'/api/plans/plans/{plan.id_pg}/')
+        assert [(o['id_organisme'], o['principal'], o['externe'])
+                for o in response.data['organismes_redacteurs_list']] == [
+            (og.id_organisme, True, False),
+            (bureau.id_organisme, False, True),
+        ]
+
+    def test_un_principal_deja_choisi_le_reste(self, redacteur_data):
+        """#739 — le rattachement ne remplace pas le principal saisi à la création."""
+        from apps.plans.models import CorRedacteurPlan
+        autre = OrganismeFactory()
+        plan = redacteur_data['plan']
+        CorRedacteurPlan.objects.create(plan_de_gestion=plan, uuid_og=autre, principal=True)
+        _client(redacteur_data['admin_og']).post(
+            f'/api/plans/plans/{plan.id_pg}/assign-redacteur-externe/',
+            {'user_id': redacteur_data['redacteur'].pk}, format='json')
+        assert list(plan.organismes_redacteurs.values_list('uuid_og', 'principal')) == [
+            (autre.uuid_organisme, True), (redacteur_data['bureau'].uuid_organisme, False)]
+
+    def _patch(self, rattache, payload):
+        plan = rattache['plan']
         response = _client(rattache['admin_og']).patch(
-            f'/api/plans/plans/{plan.id_pg}/',
-            {'organismes_redacteurs_ids': [rattache['og'].id_organisme]}, format='json')
+            f'/api/plans/plans/{plan.id_pg}/', payload, format='json')
         assert response.status_code == status.HTTP_200_OK, response.data
-        assert set(plan.organismes_redacteurs.values_list('uuid_og', flat=True)) == {
-            rattache['og'].uuid_organisme, bureau.uuid_organisme}
+        return list(plan.organismes_redacteurs.values_list('uuid_og', 'principal'))
+
+    def test_le_formulaire_peut_retirer_l_organisme_du_bureau(self, rattache):
+        """#739 — l'organisme rédacteur se modifie : retiré, il ne revient pas
+        (avant : réinscrit d'office à chaque enregistrement)."""
+        og = rattache['og']
+        assert self._patch(rattache, {
+            'organismes_redacteurs_ids': [og.id_organisme],
+            'organisme_redacteur_principal_id': og.id_organisme,
+        }) == [(og.uuid_organisme, True)]
+        # retirer l'organisme n'ôte pas l'accès du rédacteur
+        assert rattache['plan'].referents.filter(pk=rattache['redacteur'].pk).exists()
+
+    def test_le_formulaire_garde_le_bureau_en_secondaire(self, rattache):
+        og, bureau = rattache['og'], rattache['bureau']
+        assert self._patch(rattache, {
+            'organismes_redacteurs_ids': [og.id_organisme, bureau.id_organisme],
+            'organisme_redacteur_principal_id': og.id_organisme,
+        }) == [(og.uuid_organisme, True), (bureau.uuid_organisme, False)]
+
+    def test_le_formulaire_peut_designer_le_bureau_principal(self, rattache):
+        og, bureau = rattache['og'], rattache['bureau']
+        assert self._patch(rattache, {
+            'organismes_redacteurs_ids': [og.id_organisme, bureau.id_organisme],
+            'organisme_redacteur_principal_id': bureau.id_organisme,
+        }) == [(bureau.uuid_organisme, True), (og.uuid_organisme, False)]
+
+    def test_sans_principal_explicite_le_premier_l_est(self, rattache):
+        """Compatibilité (création) : le premier de la liste est le principal."""
+        og, bureau = rattache['og'], rattache['bureau']
+        assert self._patch(rattache, {
+            'organismes_redacteurs_ids': [bureau.id_organisme, og.id_organisme],
+        }) == [(bureau.uuid_organisme, True), (og.uuid_organisme, False)]
 
     def test_membre_du_plan_marque_redacteur_externe(self, rattache):
         plan, redacteur = rattache['plan'], rattache['redacteur']

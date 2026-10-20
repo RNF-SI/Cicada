@@ -38,7 +38,11 @@ def test_redacteur_externe_et_son_plan():
     plan = PlanGestion.objects.get(nom=NOM_PLAN_REDACTION_EXTERNE)
     assert plan.statut == 'draft'
     assert plan.referents.filter(pk=redacteur.pk).exists()
-    assert plan.organismes_redacteurs.filter(uuid_og=bureau).exists()
+    # #739 — le bureau est rédacteur secondaire, sous le gestionnaire du site.
+    redacteurs = list(plan.organismes_redacteurs.values_list('uuid_og', 'principal'))
+    assert redacteurs[-1] == (bureau.uuid_organisme, False)
+    [(principal, _)] = [r for r in redacteurs if r[1]]
+    assert plan.get_principal_site().corogsite_set.filter(uuid_og=principal).exists()
 
     # « Mes plans » : le seul plan rattaché, sans les suivis.
     assert list(accessible_plan_ids(redacteur).values_list('id_pg', flat=True)) == [plan.pk]

@@ -307,6 +307,27 @@
           }
         </div>
 
+        <!-- #739 — autres organismes rédacteurs, sous le principal -->
+        @if (autresOrganismes().length > 0) {
+          <div class="form-section organisme-section" data-testid="autres-organismes-redacteurs">
+            <label class="field-label">{{ 'modals.planForm.fields.otherEditors' | translate }}</label>
+            <div class="selected-organisme autres-organismes">
+              @for (org of autresOrganismes(); track org.id_organisme) {
+                <mat-chip-row (removed)="removeAutreOrganisme(org.id_organisme)">
+                  <i class="fi fi-rr-building chip-icon"></i>
+                  {{ org.nom_organisme }}
+                  <button matChipRemove [attr.aria-label]="'common.actions.delete' | translate">
+                    <i class="fi fi-rr-cross-small"></i>
+                  </button>
+                </mat-chip-row>
+              }
+            </div>
+            @if (hasAutreOrganismeExterne()) {
+              <p class="text-mention">{{ 'modals.planForm.hints.otherEditorsExterne' | translate }}</p>
+            }
+          </div>
+        }
+
         <!-- Rédacteurs -->
         <app-form-field [label]="'modals.planForm.fields.redacteurs' | translate" [helpText]="'modals.planForm.hints.redacteurs' | translate">
   <textarea

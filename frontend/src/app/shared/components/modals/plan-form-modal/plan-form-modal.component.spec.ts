@@ -692,6 +692,73 @@ describe('PlanFormModalComponent', () => {
     }));
   });
 
+  // ==================== #739 — ORGANISMES RÉDACTEURS ====================
+
+  describe('#739 — organisme rédacteur principal et secondaires', () => {
+    const planAvecBureau: AdminPlan = {
+      ...mockPlan,
+      organismes_redacteurs_list: [
+        { id_organisme: 5, nom_organisme: 'CEN gestionnaire', principal: true, externe: false },
+        { id_organisme: 9, nom_organisme: 'Bureau étoile', principal: false, externe: true },
+      ],
+    };
+
+    beforeEach(async () => {
+      await setupTestBed({ plan: planAvecBureau });
+      fixture.detectChanges();
+    });
+
+    it('le principal va dans le champ, le bureau d\'étude en dessous', fakeAsync(() => {
+      tick();
+      expect(component.selectedOrganisme()?.organismeId).toBe(5);
+      expect(component.autresOrganismes().map(o => o.id_organisme)).toEqual([9]);
+    }));
+
+    it('enregistre principal + secondaires', fakeAsync(() => {
+      tick();
+      component.onSubmit();
+      tick();
+      expect(updatePlanMock).toHaveBeenCalledWith(1, expect.objectContaining({
+        organismes_redacteurs_ids: [5, 9],
+        organisme_redacteur_principal_id: 5,
+      }));
+    }));
+
+    it('le bureau d\'étude peut être retiré', fakeAsync(() => {
+      tick();
+      component.removeAutreOrganisme(9);
+      component.onSubmit();
+      tick();
+      expect(updatePlanMock).toHaveBeenCalledWith(1, expect.objectContaining({
+        organismes_redacteurs_ids: [5],
+        organisme_redacteur_principal_id: 5,
+      }));
+    }));
+
+    it('principal retiré : aucun principal, le bureau reste secondaire', fakeAsync(() => {
+      tick();
+      component.clearOrganisme();
+      component.onSubmit();
+      tick();
+      expect(updatePlanMock).toHaveBeenCalledWith(1, expect.objectContaining({
+        organismes_redacteurs_ids: [9],
+        organisme_redacteur_principal_id: null,
+      }));
+    }));
+
+    it('choisir le bureau comme principal le sort des secondaires', fakeAsync(() => {
+      tick();
+      component.selectOrganisme({ option: { value: { id_organisme: 9, nom_organisme: 'Bureau étoile' } } } as any);
+      expect(component.autresOrganismes()).toEqual([]);
+      component.onSubmit();
+      tick();
+      expect(updatePlanMock).toHaveBeenCalledWith(1, expect.objectContaining({
+        organismes_redacteurs_ids: [9],
+        organisme_redacteur_principal_id: 9,
+      }));
+    }));
+  });
+
   // ==================== VERSION CHAIN — PARENT LINK (#506) ====================
 
   describe('Version chain — parent link (#506)', () => {

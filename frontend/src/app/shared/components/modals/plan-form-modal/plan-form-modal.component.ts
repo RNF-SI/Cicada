@@ -30,6 +30,7 @@ import { getUserRoleTag, TagAppearance } from '../../../utils/tag-icons';
 import {
   AdminPlan,
   PlanCreatePayload,
+  OrganismeRedacteur,
   PlanStatut,
   AdminSite,
   AdminUser,
@@ -137,6 +138,9 @@ export class PlanFormModalComponent implements OnInit {
   @ViewChild('organismeInput') organismeInput!: ElementRef<HTMLInputElement>;
   private readonly dialog = inject(MatDialog);
   selectedOrganisme = signal<OrganismeEntry | null>(null);
+  /** #739 — autres organismes rédacteurs, sous le principal (dont celui d'un rédacteur externe). */
+  autresOrganismes = signal<OrganismeRedacteur[]>([]);
+  readonly hasAutreOrganismeExterne = computed(() => this.autresOrganismes().some(o => o.externe));
   organismeCtrl = new FormControl('');
   filteredOrganismes$!: Observable<{ id_organisme: number; nom_organisme: string }[]>;
 
@@ -383,12 +387,18 @@ export class PlanFormModalComponent implements OnInit {
     }
 
     // Pre-populate organisme rédacteur in edit mode
-    if (plan?.organismes_redacteurs_list?.length) {
-      const firstOrg = plan.organismes_redacteurs_list[0];
+    // #739 — le principal dans le champ, les autres en dessous. Liste sans
+    // marqueur `principal` (ancienne réponse) : le premier fait office.
+    const organismes = plan?.organismes_redacteurs_list ?? [];
+    const principal = organismes.some(o => o.principal !== undefined)
+      ? organismes.find(o => o.principal)
+      : organismes[0];
+    this.autresOrganismes.set(organismes.filter(o => o !== principal));
+    if (principal) {
       this.selectedOrganisme.set({
         type: 'organisme',
-        organismeId: firstOrg.id_organisme,
-        displayName: firstOrg.nom_organisme
+        organismeId: principal.id_organisme,
+        displayName: principal.nom_organisme
       });
     } else if (plan?.redacteur_nom) {
       this.selectedOrganisme.set({
@@ -476,9 +486,25 @@ export class PlanFormModalComponent implements OnInit {
         organismeId: org.id_organisme,
         displayName: org.nom_organisme
       });
+      this.removeAutreOrganisme(org.id_organisme);
     }
     this.organismeCtrl.setValue('');
     if (this.organismeInput) this.organismeInput.nativeElement.value = '';
+  }
+
+  /** #739 — retire un organisme rédacteur secondaire (le rédacteur externe garde son accès). */
+  removeAutreOrganisme(idOrganisme: number): void {
+    this.autresOrganismes.update(orgs => orgs.filter(o => o.id_organisme !== idOrganisme));
+  }
+
+  /** #739 — principal d'abord, puis les secondaires ; le principal est explicite. */
+  private organismesRedacteursPayload(): Pick<PlanCreatePayload, 'organismes_redacteurs_ids' | 'organisme_redacteur_principal_id'> {
+    const principalId = this.selectedOrganisme()?.organismeId ?? null;
+    const autres = this.autresOrganismes().map(o => o.id_organisme).filter(id => id !== principalId);
+    return {
+      organismes_redacteurs_ids: principalId !== null ? [principalId, ...autres] : autres,
+      organisme_redacteur_principal_id: principalId,
+    };
   }
 
   /** Supprime l'organisme sélectionné */
@@ -675,9 +701,7 @@ export class PlanFormModalComponent implements OnInit {
       id_evaluation: formValue.id_evaluation || undefined,
       commentaire: formValue.commentaire || undefined,
       referents_ids: this.selectedReferentIds(),
-      organismes_redacteurs_ids: this.selectedOrganisme()?.organismeId
-        ? [this.selectedOrganisme()!.organismeId!]
-        : []
+      ...this.organismesRedacteursPayload(),
     };
 
     // #506 — En modification, transmettre le rattachement choisi (null = retiré).

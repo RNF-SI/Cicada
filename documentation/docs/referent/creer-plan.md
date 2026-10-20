@@ -26,6 +26,8 @@ Deux options de création sont proposées (Figure 25) :
 
 À l'enregistrement, le plan est créé en brouillon : il est alors entièrement modifiable. Vous en devenez automatiquement référent (sauf si vous êtes administrateur de l'instance ou rédacteur général : vous avez déjà tous les droits sur le plan). Tant que le plan est en brouillon, le bouton « Modifier le plan de gestion » permet de revenir sur ces informations générales (y compris le lien avec le plan du rang précédent) ; la fenêtre rappelle la place du plan dans sa chaîne de versions (rang, version, plan parent).
 
+**Organisme rédacteur d'un plan confié à un rédacteur externe :** quand un rédacteur externe (bureau d'étude…) est rattaché au plan, son organisme s'ajoute sous « Autres organismes rédacteurs ». L'organisme rédacteur principal ne change pas : c'est celui que vous avez choisi ou, à défaut, l'organisme gestionnaire du site. Dans « Modifier le plan de gestion », vous pouvez changer l'organisme principal et retirer un autre organisme. Retirer l'organisme du rédacteur externe ne lui retire pas son accès au plan.
+
 <figure markdown="span">
 ![Formulaire de création d'un plan de gestion – saisie des informations générales](../assets/figures/fig26.webp){ loading=lazy }
 <figcaption>Figure 26 : Formulaire de création d'un plan de gestion – saisie des informations générales</figcaption>
