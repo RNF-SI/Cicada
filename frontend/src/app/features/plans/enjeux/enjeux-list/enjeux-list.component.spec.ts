@@ -606,6 +606,69 @@ describe('EnjeuxListComponent', () => {
   });
 
   // =========================================================================
+  // #731 — FCR : alerte tant qu'un OO n'est relié à aucune pression, dès que
+  // le FCR a ses propres pressions.
+  // =========================================================================
+  describe('FCR — OO sans pression (#731)', () => {
+    beforeEach(() => setup());
+
+    const oo = (id: number, pressionIds: number[]) => ({
+      id_oo: id, libelle: `OO ${id}`, id_enjeu: mockFcr.id_enjeu,
+      pressions: pressionIds.map(p => ({ id_pression: p, libelle: `P ${p}` })),
+      pression_ids: pressionIds, ordre: id, date_ajout: '', date_maj: '',
+    });
+
+    function fcr(avecPressions: boolean, oos: ReturnType<typeof oo>[]): void {
+      const facteurs = avecPressions ? [{
+        id_facteur_influence: 401, id_enjeu: mockFcr.id_enjeu, enjeu_ids: [mockFcr.id_enjeu],
+        libelle: 'Facteur FCR', date_ajout: '', date_maj: '',
+        pressions: [{ id_pression: 501, id_facteur_influence: 401, libelle: 'Pression FCR', date_ajout: '', date_maj: '' }],
+      }] : [];
+      component.planEnjeuxData.set({
+        ...mockPlanEnjeuxResponse,
+        fcr: [{ ...mockFcr, facteurs_influence: facteurs, objectifs_operationnels: oos } as any],
+      } as any);
+      component['selectedEnjeuSlug'].set('connaissance-scientifique');
+      component.setActiveTab('operations');
+      fixture.detectChanges();
+    }
+
+    const el = () => fixture.nativeElement as HTMLElement;
+
+    it('nomme les OO reliés à aucune pression quand le FCR a des pressions', () => {
+      fcr(true, [oo(10, []), oo(11, [501]), oo(12, [301])]);
+      expect(component.fcrOosSansPression().map(o => o.id_oo)).toEqual([10]);
+      const alerte = el().querySelector('[data-testid="fcr-oo-sans-pression"]');
+      expect(alerte).toBeTruthy();
+      expect(alerte!.textContent).toContain('OO 10');
+      expect(alerte!.textContent).not.toContain('OO 11');
+      // Repère sur l'OO concerné, et sur lui seul.
+      expect(el().querySelectorAll('[data-testid="oo-sans-pression-badge"]').length).toBe(1);
+      expect(el().querySelector('#oo-10 [data-testid="oo-sans-pression-badge"]')).toBeTruthy();
+    });
+
+    it('un OO relié à une pression d\'un enjeu écologique (#474) compte comme relié', () => {
+      fcr(true, [oo(12, [301])]);
+      expect(component.fcrOosSansPression()).toEqual([]);
+      expect(el().querySelector('[data-testid="fcr-oo-sans-pression"]')).toBeNull();
+    });
+
+    it('pas d\'alerte tant que le FCR n\'a aucune pression', () => {
+      fcr(false, [oo(10, [])]);
+      expect(component.fcrOosSansPression()).toEqual([]);
+      expect(el().querySelector('[data-testid="fcr-oo-sans-pression"]')).toBeNull();
+    });
+
+    it('pas d\'alerte sur un enjeu (ses OO ont toujours une pression)', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      component.setActiveTab('operations');
+      fixture.detectChanges();
+      expect(component.fcrOosSansPression()).toEqual([]);
+      expect(el().querySelector('[data-testid="fcr-oo-sans-pression"]')).toBeNull();
+    });
+  });
+
+  // =========================================================================
   // Enjeu / FCR numbering — auto + manuel (#526, décline #442)
   // =========================================================================
 

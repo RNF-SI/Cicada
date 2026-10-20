@@ -1372,6 +1372,20 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
     });
   });
 
+  /**
+   * #731 — Un FCR peut recevoir ses OO avant ses facteurs et pressions (#337).
+   * Dès qu'il a des pressions, un OO relié à aucune pression est signalé, tant
+   * qu'il le reste. Une pression d'un enjeu écologique (#474) suffit à le relier.
+   */
+  fcrOosSansPression = computed((): ObjectifOperationnel[] => {
+    if (!this.isSelectedFcr() || this.selectedPressions().length === 0) return [];
+    return this.selectedOos().filter(oo => !(oo.pression_ids?.length || oo.pressions?.length));
+  });
+
+  isOoSansPression(oo: ObjectifOperationnel): boolean {
+    return this.fcrOosSansPression().some(o => o.id_oo === oo.id_oo);
+  }
+
   totalOoCount = computed(() => {
     return this.selectedOos().length;
   });

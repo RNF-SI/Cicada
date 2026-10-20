@@ -1568,6 +1568,24 @@
                 </div>
               </div>
 
+              <!-- #731 — FCR avec pressions : OO reliés à aucune pression -->
+              @if (fcrOosSansPression().length > 0) {
+                <div class="info-block info-block-warning" role="alert" data-testid="fcr-oo-sans-pression">
+                  <div class="info-icon">
+                    <i class="fi fi-rr-exclamation"></i>
+                  </div>
+                  <div class="info-content">
+                    <p class="info-title">{{ 'enjeux.oo.sansPression.title' | translate:{ count: fcrOosSansPression().length } }}</p>
+                    <p class="info-description">{{ 'enjeux.oo.sansPression.description' | translate }}</p>
+                    <ul class="list-bullets">
+                      @for (o of fcrOosSansPression(); track o.id_oo) {
+                        <li>{{ ('enjeux.oo.label' | translate) + ' ' + getOoNumber(o.id_oo) + ' : ' + o.libelle }}</li>
+                      }
+                    </ul>
+                  </div>
+                </div>
+              }
+
               <!-- Barre haut : compteur -->
               <div class="olt-top-bar">
                 <p class="count-text">{{ totalOoCount() }} {{ 'enjeux.oo.countSuffix' | translate }}</p>
@@ -1663,6 +1681,12 @@
                           <i class="fi fi-rr-thumbtack olt-pinned-badge"
                              [title]="'enjeux.oo.numeroPinned' | translate"
                              [attr.aria-label]="'enjeux.oo.numeroPinned' | translate"></i>
+                        }
+                        @if (isOoSansPression(oo)) {
+                          <app-tag variant="warning" size="sm" icon="fi-rr-exclamation"
+                                   data-testid="oo-sans-pression-badge"
+                                   [label]="'enjeux.oo.sansPression.badge' | translate"
+                                   [matTooltip]="'enjeux.oo.sansPression.description' | translate"></app-tag>
                         }
                         @if (isOoShared(oo)) {
                           <span class="shared-badge"

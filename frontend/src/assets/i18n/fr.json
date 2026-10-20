@@ -4260,7 +4260,12 @@
       "noFacteurTitle": "Aucun facteur d'influence",
       "noFacteurDescription": "Vous devez d'abord créer au moins un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel.",
       "noPressionTitle": "Aucune pression",
-      "noPressionDescription": "Vous devez d'abord créer au moins une pression sous un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel, dans le cas d'un enjeu."
+      "noPressionDescription": "Vous devez d'abord créer au moins une pression sous un facteur d'influence dans l'onglet « Détail » avant de pouvoir ajouter un objectif opérationnel, dans le cas d'un enjeu.",
+      "sansPression": {
+        "title": "{{count}} objectif(s) opérationnel(s) relié(s) à aucune pression",
+        "description": "Ce FCR a désormais des pressions : reliez chaque objectif opérationnel à au moins une pression (bouton « Modifier » de l'objectif).",
+        "badge": "Sans pression"
+      }
     },
     "resultatAttendu": {
       "label": "Résultat attendu",

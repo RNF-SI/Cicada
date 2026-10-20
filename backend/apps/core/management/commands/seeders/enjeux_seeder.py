@@ -969,6 +969,33 @@ class EnjeuxSeeder(BaseSeeder):
             fcr_created.append(fcr)
             self.log_item('créé' if created else 'mis à jour', f'FCR: {fcr.intitule_court}')
 
+            # #731 — FCR (plan en brouillon) dont les OO ont été saisis avant
+            # ses facteurs et pressions : un OO relié à la pression du FCR, un
+            # autre relié à aucune → alerte en « Stratégie opérationnelle ».
+            fi_fcr, _ = self._upsert_facteur(
+                id_enjeu=fcr,
+                libelle='Faible prise en compte de la réserve dans les documents d\'urbanisme',
+                defaults={'id_utilisateur_ajout': admin},
+            )
+            pression_fcr, _ = Pression.objects.update_or_create(
+                id_facteur_influence=fi_fcr,
+                libelle='Projets d\'aménagement sans concertation avec le gestionnaire',
+                defaults={'id_utilisateur_ajout': admin},
+            )
+            oo_relie, _ = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=fcr,
+                libelle='Être associé à la révision du PLUi',
+                defaults={'id_utilisateur_ajout': admin},
+            )
+            oo_relie.pressions.set([pression_fcr])
+            oo_seul, _ = ObjectifOperationnel.objects.update_or_create(
+                id_enjeu=fcr,
+                libelle='Siéger à la commission locale de l\'eau du SAGE',
+                defaults={'id_utilisateur_ajout': admin},
+            )
+            oo_seul.pressions.clear()
+            self.log_item('créé', 'FCR: OO sans pression (#731)')
+
         # ==================== RESPONSABILITÉS - CAMARGUE (3) ====================
 
         if site_camargue and resp_faunistique and niveau_national:
