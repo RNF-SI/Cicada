@@ -106,6 +106,29 @@ class EnjeuxSeeder(BaseSeeder):
         )
         return facteur, created
 
+    def _upsert_oo(self, ancre, libelle, defaults=None):
+        """Crée/met à jour un OO rattaché à une pression, clé (pression, libellé).
+
+        Un OO n'a pas de plan en propre : chercher par le seul libellé
+        récupérait aussi les copies d'un plan dupliqué (nouvelle version,
+        évaluation, tests E2E) et ``update_or_create`` échouait sur
+        « get() returned more than one ». La pression, elle, appartient à un
+        seul plan. Sans pression connue, on retombe sur un OO orphelin.
+
+        Retourne ``(oo, created)`` comme ``update_or_create`` ; l'appelant
+        rattache ensuite la ou les pressions.
+        """
+        defaults = defaults or {}
+        qs = ObjectifOperationnel.objects.filter(libelle=libelle)
+        qs = qs.filter(pressions=ancre) if ancre else qs.filter(pressions__isnull=True, id_enjeu__isnull=True)
+        oo = qs.first()
+        if oo is None:
+            return ObjectifOperationnel.objects.create(libelle=libelle, **defaults), True
+        for field, value in defaults.items():
+            setattr(oo, field, value)
+        oo.save()
+        return oo, False
+
     def seed(self) -> dict:
         """
         Crée les enjeux, FCR et responsabilités de test.
@@ -1861,7 +1884,8 @@ class EnjeuxSeeder(BaseSeeder):
             facteur_hydro = next((f for f in facteurs_created if 'hydrologique' in f.libelle.lower() or 'hydraulique' in f.libelle.lower()), None)
 
             pression_urbain = Pression.objects.filter(id_facteur_influence=facteur_urbain).first()
-            oo, created = ObjectifOperationnel.objects.update_or_create(
+            oo, created = self._upsert_oo(
+                ancre=pression_urbain,
                 libelle='Réduire la pression urbaine sur les zones humides',
                 defaults={
                     'description': 'Mettre en place des mesures de protection et de gestion '
@@ -1899,7 +1923,8 @@ class EnjeuxSeeder(BaseSeeder):
             self.log_item('créé' if created else 'mis à jour', f'RA: {ra2.libelle[:50]}')
 
             pression_hydro = Pression.objects.filter(id_facteur_influence=facteur_hydro).first()
-            oo2, created = ObjectifOperationnel.objects.update_or_create(
+            oo2, created = self._upsert_oo(
+                ancre=pression_hydro,
                 libelle='Restaurer le régime hydrologique naturel',
                 defaults={
                     'description': 'Agir sur les ouvrages hydrauliques pour restaurer un régime '
@@ -1929,7 +1954,8 @@ class EnjeuxSeeder(BaseSeeder):
         facteur_assechement = next((f for f in facteurs_created if 'assèchement' in f.libelle.lower()), None)
         if enjeu_tourbieres:
             pression_assechement = Pression.objects.filter(id_facteur_influence=facteur_assechement).first()
-            oo_tourb, created = ObjectifOperationnel.objects.update_or_create(
+            oo_tourb, created = self._upsert_oo(
+                ancre=pression_assechement,
                 libelle='Maintenir le niveau piézométrique des tourbières',
                 defaults={
                     'description': 'Surveiller et maintenir le niveau piézométrique '
@@ -1991,7 +2017,8 @@ class EnjeuxSeeder(BaseSeeder):
                     }
                 )
                 pressions_created.append(pression_colonisation)
-            oo_veg, created = ObjectifOperationnel.objects.update_or_create(
+            oo_veg, created = self._upsert_oo(
+                ancre=pression_colonisation,
                 libelle='Restaurer les communautés végétales turficoles',
                 defaults={
                     'description': 'Favoriser la recolonisation par les sphaignes et espèces '
@@ -2024,7 +2051,8 @@ class EnjeuxSeeder(BaseSeeder):
         facteur_agricole = next((f for f in facteurs_created if 'agricoles du bassin' in f.libelle.lower()), None)
         if enjeu_qualite:
             pression_agricole = Pression.objects.filter(id_facteur_influence=facteur_agricole).first()
-            oo_qualite, created = ObjectifOperationnel.objects.update_or_create(
+            oo_qualite, created = self._upsert_oo(
+                ancre=pression_agricole,
                 libelle='Réduire les apports en nutriments d\'origine agricole',
                 defaults={
                     'description': 'Réduire de 30% les flux de phosphore et d\'azote '
@@ -2087,7 +2115,8 @@ class EnjeuxSeeder(BaseSeeder):
                     }
                 )
                 pressions_created.append(pression_eee)
-            oo_eee, created = ObjectifOperationnel.objects.update_or_create(
+            oo_eee, created = self._upsert_oo(
+                ancre=pression_eee,
                 libelle='Contenir l\'expansion de la Renouée du Japon',
                 defaults={
                     'description': 'Empêcher la progression des 3 stations connues de Renouée '
@@ -6277,7 +6306,8 @@ class EnjeuxSeeder(BaseSeeder):
             nes_created.append(ne_b)
 
             # OO + RA + indicateur + métrique
-            oo_b, _ = ObjectifOperationnel.objects.update_or_create(
+            oo_b, _ = self._upsert_oo(
+                ancre=pression_b,
                 libelle='Surveiller et adapter la gestion hydraulique',
                 defaults={
                     'description': 'Pilotage des ouvrages hydrauliques selon les niveaux observés.',
@@ -6474,7 +6504,8 @@ class EnjeuxSeeder(BaseSeeder):
 
             # OO réel (lié à la pression « Non défini ») → RA « Non défini »
             # → indicateur de pression « Non défini »
-            demo_oo, _ = ObjectifOperationnel.objects.update_or_create(
+            demo_oo, _ = self._upsert_oo(
+                ancre=demo_p,
                 libelle='OO de démonstration (#523)',
                 defaults={'id_utilisateur_ajout': admin}
             )
