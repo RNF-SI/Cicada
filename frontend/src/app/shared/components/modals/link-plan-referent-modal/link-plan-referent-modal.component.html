@@ -108,6 +108,20 @@
         </h3>
 
         <div class="add-referent-form">
+          <!-- #738 — options avant la recherche : le choix précède la sélection -->
+          <div class="add-as-toggle">
+            <label class="toggle-label">
+              <input type="checkbox" [ngModel]="addAsReferent" (ngModelChange)="setAddAsReferent($event)" [disabled]="addAsRedacteurExterne">
+              <span>{{ 'modals.linkPlanReferent.addAsReferent' | translate }}</span>
+            </label>
+          </div>
+          <div class="add-as-toggle">
+            <label class="toggle-label">
+              <input type="checkbox" [ngModel]="addAsRedacteurExterne" (ngModelChange)="setAddAsRedacteurExterne($event)" data-testid="add-as-redacteur-externe">
+              <span>{{ 'modals.linkPlanReferent.addAsRedacteurExterne' | translate }}</span>
+            </label>
+            <span class="toggle-hint">{{ 'modals.linkPlanReferent.addAsRedacteurExterneHint' | translate }}</span>
+          </div>
           <label class="app-mat-label">{{ 'modals.linkPlanReferent.searchUser' | translate }}</label>
       <mat-form-field class="app-mat-form-field user-search-field" appearance="outline">
             <mat-label></mat-label>
@@ -135,19 +149,6 @@
             </mat-autocomplete>
           </mat-form-field>
 
-          <div class="add-as-toggle">
-            <label class="toggle-label">
-              <input type="checkbox" [(ngModel)]="addAsReferent" [disabled]="addAsRedacteurExterne">
-              <span>{{ 'modals.linkPlanReferent.addAsReferent' | translate }}</span>
-            </label>
-          </div>
-          <div class="add-as-toggle">
-            <label class="toggle-label">
-              <input type="checkbox" [(ngModel)]="addAsRedacteurExterne" data-testid="add-as-redacteur-externe">
-              <span>{{ 'modals.linkPlanReferent.addAsRedacteurExterne' | translate }}</span>
-            </label>
-            <span class="toggle-hint">{{ 'modals.linkPlanReferent.addAsRedacteurExterneHint' | translate }}</span>
-          </div>
         </div>
       </div>
 

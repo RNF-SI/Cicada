@@ -242,6 +242,25 @@ export class LinkPlanReferentModalComponent implements OnInit {
     setTimeout(() => this.successMessage.set(null), 3000);
   }
 
+  /** #738 — la case vaut aussi pour les utilisateurs déjà choisis mais pas encore
+   *  enregistrés : cocher après avoir choisi l'utilisateur ne doit pas le laisser membre. */
+  setAddAsReferent(value: boolean): void {
+    this.addAsReferent = value;
+    this.applyAddOptionsToPending();
+  }
+
+  setAddAsRedacteurExterne(value: boolean): void {
+    this.addAsRedacteurExterne = value;
+    this.applyAddOptionsToPending();
+  }
+
+  private applyAddOptionsToPending(): void {
+    const referent = this.addAsReferent || this.addAsRedacteurExterne;
+    this.userAssignments.update(assignments => assignments.map(a => a.isNew
+      ? { ...a, user: { ...a.user, referent, is_redacteur_externe: this.addAsRedacteurExterne } }
+      : a));
+  }
+
   // Toggle referent status for an assignment
   toggleReferent(assignment: UserAssignment): void {
     const assignments = [...this.userAssignments()];

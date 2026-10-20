@@ -77,4 +77,43 @@ describe('LinkPlanReferentModalComponent — rédacteur externe (#714)', () => {
     ]);
     expect(component.userAssignments()[0].user.is_redacteur_externe).toBe(true);
   });
+
+  describe('#738 — « Ajouter en tant que référent » coché après le choix', () => {
+    it('promeut les utilisateurs ajoutés et pas encore enregistrés', async () => {
+      const component = await setup();
+      component.addUser(candidat as any);
+      component.setAddAsReferent(true);
+
+      expect(component.userAssignments()[0].user.referent).toBe(true);
+      component.onSave();
+      expect(adminService['assignReferentToPlan']).toHaveBeenCalledWith(7, 42);
+      expect(adminService['assignMemberToPlan']).not.toHaveBeenCalled();
+    });
+
+    it('la case rédacteur externe s\'applique aussi après coup', async () => {
+      const component = await setup();
+      component.addUser(candidat as any);
+      component.setAddAsRedacteurExterne(true);
+      component.onSave();
+      expect(adminService['assignRedacteurExterneToPlan']).toHaveBeenCalledWith(7, 42);
+    });
+
+    it('ne touche pas aux utilisateurs déjà enregistrés', async () => {
+      const component = await setup([{ id_role: 5, email: 'm@x.fr', referent: false }]);
+      component.setAddAsReferent(true);
+      expect(component.userAssignments()[0].user.referent).toBe(false);
+      expect(component.hasChanges).toBe(false);
+    });
+
+    it('les options précèdent le champ de recherche', async () => {
+      await setup();
+      const fixture = TestBed.createComponent(LinkPlanReferentModalComponent);
+      fixture.detectChanges();
+      const el: HTMLElement = fixture.nativeElement;
+      const toggle = el.querySelector('.add-as-toggle');
+      const search = el.querySelector('.user-search-field');
+      expect(toggle && search).toBeTruthy();
+      expect(toggle!.compareDocumentPosition(search!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+  });
 });
