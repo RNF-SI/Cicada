@@ -340,6 +340,29 @@
             </div>
           }
 
+          <!-- #741 — réglages du tableau budgétaire propres au suivi : valables
+               pour toutes les années de l'action, modifiables plan validé. -->
+          <div class="budget-options" data-testid="suivi-reglages">
+            <app-checkbox
+              [checked]="declinaisonRealise()"
+              (checkedChange)="setReglage('declinaison_par_type_cout_realise', $event)"
+              [disabled]="planNotValidated() || declinaisonVerrouillee() || isSavingReglages()"
+              [label]="'plans.suivis.saisie.reglages.declinaison' | translate"
+              [mention]="(declinaisonVerrouillee()
+                ? 'plans.suivis.saisie.reglages.declinaisonVerrouillee'
+                : 'plans.suivis.saisie.reglages.declinaisonHint') | translate">
+            </app-checkbox>
+            @if (showSalaireRealiseOption()) {
+              <app-checkbox
+                [checked]="salaireCalcule()"
+                (checkedChange)="setReglage('cout_salarial_auto_realise', $event)"
+                [disabled]="planNotValidated() || isSavingReglages()"
+                [label]="'plans.suivis.saisie.reglages.coutSalarialAuto' | translate"
+                [mention]="'plans.suivis.saisie.reglages.coutSalarialAutoHint' | translate">
+              </app-checkbox>
+            }
+          </div>
+
           @if (years().length === 0) {
             <p class="text-mention">{{ 'plans.suivis.saisie.noProgrammation' | translate }}</p>
           } @else if (!isOrgVentilation()) {
@@ -348,7 +371,7 @@
                  #625 — enveloppé dans un conteneur défilant : avec 10 années ou
                  plus, la largeur minimale des colonnes dépassait la carte. -->
             <div class="matrix-scroll">
-            <table class="realisation-matrix" [class.sans-prevu-annuel]="isGlobale()">
+            <table class="realisation-matrix" [class.sans-prevu-annuel]="isGlobale()" [class.prevu-sans-detail]="!prevDetail()">
               <thead>
                 <tr>
                   <th class="col-field">{{ 'plans.suivis.saisie.table.programmation' | translate }}</th>
@@ -386,7 +409,7 @@
                     <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.fonctionnement' | translate }}</td>
                   </tr>
                   }
-                  <tr class="prev-row">
+                  <tr class="prev-row prev-detail">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarialPrev' | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(prevGlobalCoutSalarial(y, 'fonctionnement'), ' €') }}</td>
@@ -405,7 +428,7 @@
                       </td>
                     }
                   </tr>
-                  <tr class="prev-row">
+                  <tr class="prev-row prev-detail">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.coutStagePrev' | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'cout_stage'), ' €') }}</td>
@@ -423,7 +446,7 @@
                       </td>
                     }
                   </tr>
-                  <tr class="prev-row">
+                  <tr class="prev-row prev-detail">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestatairePrev' | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'cout_prestataire'), ' €') }}</td>
@@ -441,7 +464,7 @@
                       </td>
                     }
                   </tr>
-                  <tr class="prev-row">
+                  <tr class="prev-row prev-detail">
                     <td class="col-field">{{ (showInvest() ? 'plans.suivis.saisie.table.autresCoutsFonctPrev' : 'plans.suivis.saisie.table.autresCoutsPrev') | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'autre_cout'), ' €') }}</td>
@@ -491,7 +514,7 @@
                   <tr class="budget-subheader">
                     <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.investissement' | translate }}</td>
                   </tr>
-                  <tr class="prev-row">
+                  <tr class="prev-row prev-detail">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarialPrev' | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(prevGlobalCoutSalarial(y, 'investissement'), ' €') }}</td>
@@ -510,7 +533,7 @@
                       </td>
                     }
                   </tr>
-                  <tr class="prev-row">
+                  <tr class="prev-row prev-detail">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestatairePrev' | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'cout_prestataire_invest'), ' €') }}</td>
@@ -528,7 +551,7 @@
                       </td>
                     }
                   </tr>
-                  <tr class="prev-row">
+                  <tr class="prev-row prev-detail">
                     <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsInvestPrev' | translate }}</td>
                     @for (y of years(); track y) {
                       <td [class.active]="y === selectedYear()">{{ formatNumber(planCost(y, 'autre_cout_invest'), ' €') }}</td>
@@ -656,7 +679,7 @@
                  puis lignes de l'organisme, puis bloc TOTAL en bas.)
                  #625 — même conteneur défilant que ci-dessus. -->
             <div class="matrix-scroll">
-            <table class="realisation-matrix" [class.sans-prevu-annuel]="isGlobale()" formArrayName="organismes">
+            <table class="realisation-matrix" [class.sans-prevu-annuel]="isGlobale()" [class.prevu-sans-detail]="!prevDetail()" formArrayName="organismes">
               <thead>
                 <tr>
                   <th class="col-field">{{ 'plans.suivis.saisie.table.programmation' | translate }}</th>
@@ -697,7 +720,7 @@
                         <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.fonctionnement' | translate }}</td>
                       </tr>
                       }
-                      <tr class="prev-row">
+                      <tr class="prev-row prev-detail">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarialPrev' | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">{{ formatNumber(prevCoutSalarial(y, org.id_organisme, 'fonctionnement'), ' €') }}</td>
@@ -717,7 +740,7 @@
                         }
                       </tr>
                       <!-- Coût stage prévu / réalisé (#600 Q2b, #614) -->
-                      <tr class="prev-row">
+                      <tr class="prev-row prev-detail">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutStagePrev' | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.cout_stage), ' €') }}</td>
@@ -735,7 +758,7 @@
                           </td>
                         }
                       </tr>
-                      <tr class="prev-row">
+                      <tr class="prev-row prev-detail">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestatairePrev' | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.cout_prestataire), ' €') }}</td>
@@ -753,7 +776,7 @@
                           </td>
                         }
                       </tr>
-                      <tr class="prev-row">
+                      <tr class="prev-row prev-detail">
                         <td class="col-field">{{ (showInvest() ? 'plans.suivis.saisie.table.autresCoutsFonctPrev' : 'plans.suivis.saisie.table.autresCoutsPrev') | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.autre_cout), ' €') }}</td>
@@ -802,7 +825,7 @@
                       <tr class="budget-subheader">
                         <td [attr.colspan]="years().length + 1">{{ 'plans.suivis.saisie.table.investissement' | translate }}</td>
                       </tr>
-                      <tr class="prev-row">
+                      <tr class="prev-row prev-detail">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutSalarialPrev' | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">{{ formatNumber(prevCoutSalarial(y, org.id_organisme, 'investissement'), ' €') }}</td>
@@ -821,7 +844,7 @@
                           </td>
                         }
                       </tr>
-                      <tr class="prev-row">
+                      <tr class="prev-row prev-detail">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.coutPrestatairePrev' | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.cout_prestataire_invest), ' €') }}</td>
@@ -839,7 +862,7 @@
                           </td>
                         }
                       </tr>
-                      <tr class="prev-row">
+                      <tr class="prev-row prev-detail">
                         <td class="col-field">{{ 'plans.suivis.saisie.table.autresCoutsInvestPrev' | translate }}</td>
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">{{ formatNumber($safeNavigationMigration(getOaoForYearOrg(y, org.id_organisme)?.autre_cout_invest), ' €') }}</td>

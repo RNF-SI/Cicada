@@ -621,7 +621,10 @@ describe('SuiviSaisieComponent — catégorie de dépense du temps de travail (#
 
   it('remplace la case « Financé » par le menu déroulant dans le template', () => {
     const template = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
-    expect(template).not.toContain('<app-checkbox');
+    // #741 — le template a désormais des cases (réglages du suivi), mais plus
+    // aucune dans le tableau du temps de travail.
+    const rhTable = template.slice(template.indexOf('class="rh-table"'), template.indexOf('rh-controls'));
+    expect(rhTable).not.toContain('<app-checkbox');
     expect(template).toContain('setRhCategorie(ctrl, $event)');
     expect(template).toContain('plans.rh.colCategorie');
   });
@@ -993,5 +996,69 @@ describe('SuiviSaisieComponent — effacer la saisie (#699)', () => {
   it('le template n\'affiche le bouton que si une saisie existe et le plan est validé', () => {
     const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
     expect(html).toMatch(/@if \(hasSaisieForYear\(\)\)[\s\S]*?\(click\)="clearSaisie\(\)"/);
+  });
+});
+
+describe('SuiviSaisieComponent — réglages propres au suivi (#741)', () => {
+  const OA = {
+    annee: 2025,
+    budget: null, budget_fonctionnement: '4000.00', budget_investissement: '1000.00',
+    cout_salarial: null,
+    rh_lignes: [{ id_poste: 1, categorie_depense: 'fonctionnement', jours: '10.00', poste_cout_jour: '300.00' }],
+    organismes: [],
+  };
+
+  function instance(op: any): any {
+    const c: any = comp();
+    c.selectedYear = signal(2026);
+    c.postes = signal([{ id_poste: 1, id_organisme: 100, cout_jour: 300 }]);
+    c.operation = signal({ operation_annees: [OA], ...op });
+    return c;
+  }
+
+  it('coût salarial réalisé saisi quand le suivi le demande, prévu toujours calculé', () => {
+    const c = instance({
+      ventilation_mode: 'by_type_poste', declinaison_par_type_cout: true, cout_salarial_auto: true,
+      declinaison_par_type_cout_realise: true, cout_salarial_auto_realise: false,
+    });
+    expect(c.salaireCalcule()).toBe(false);
+    expect(c.salaireCalculePrev()).toBe(true);
+    expect(c.prevGlobalCoutSalarial(2025, 'fonctionnement')).toBe(3000);
+    expect(c.showSalaireRealiseOption()).toBe(true);
+  });
+
+  it('réalisé détaillé alors que la programmation ne l\'est pas', () => {
+    const c = instance({
+      ventilation_mode: 'by_type', declinaison_par_type_cout: false, cout_salarial_auto: true,
+      declinaison_par_type_cout_realise: true,
+    });
+    // Tableau du réalisé détaillé…
+    expect(c.declinaisonRealise()).toBe(true);
+    expect(c.declinaisonVerrouillee()).toBe(false);
+    // …le prévu n'est rappelé qu'en totaux (enveloppes saisies).
+    expect(c.prevDetail()).toBe(false);
+    expect(c.prevGlobalFonctTotal(2025)).toBe(4000);
+    expect(c.prevGlobalInvestTotal(2025)).toBe(1000);
+  });
+
+  it('programmation détaillée : la déclinaison du suivi est verrouillée', () => {
+    const c = instance({ ventilation_mode: 'by_type', declinaison_par_type_cout: true });
+    expect(c.declinaisonRealise()).toBe(true);
+    expect(c.declinaisonVerrouillee()).toBe(true);
+  });
+
+  it('enregistre un réglage et met à jour le tableau', () => {
+    const c = instance({ id_operation: 9, ventilation_mode: 'by_type_poste', declinaison_par_type_cout: true });
+    const post = jest.fn().mockReturnValue({
+      subscribe: (o: any) => o.next({
+        id_operation: 9, declinaison_par_type_cout_realise: true,
+        cout_salarial_auto_realise: false, declinaison_verrouillee: true,
+      }),
+    });
+    c.enjeuService = { setSuiviReglages: post };
+    c.isSavingReglages = signal(false);
+    c.setReglage('cout_salarial_auto_realise', false);
+    expect(post).toHaveBeenCalledWith(9, { cout_salarial_auto_realise: false });
+    expect(c.salaireCalcule()).toBe(false);
   });
 });

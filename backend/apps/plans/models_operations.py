@@ -912,6 +912,24 @@ class Operation(models.Model):
         ov = self.realisation_globale_override
         return bool(ov is not None and ov.id_niveau_realisation_id)
 
+    def get_declinaison_par_type_cout_realise(self):
+        """
+        #741 — réalisé détaillé par type de coût : toujours si la programmation
+        l'est (on ne peut pas suivre moins finement qu'on n'a prévu), sinon au
+        choix du suivi.
+        """
+        if self.declinaison_par_type_cout:
+            return True
+        ov = self.realisation_globale_override
+        return bool(ov is not None and ov.declinaison_par_type_cout_realise)
+
+    def get_cout_salarial_auto_realise(self):
+        """#741 — coût salarial réalisé calculé (jours × coût jour) ou saisi au suivi."""
+        ov = self.realisation_globale_override
+        if ov is not None and ov.cout_salarial_auto_realise is not None:
+            return ov.cout_salarial_auto_realise
+        return self.cout_salarial_auto
+
     def get_niveau_realisation_global_commentaire(self):
         """Commentaire global de l'action (page globale) ou None (#356)."""
         ov = self.realisation_globale_override
@@ -1543,6 +1561,20 @@ class OperationRealisationGlobale(models.Model):
         _("Commentaire de surcharge"),
         blank=True,
         null=True
+    )
+    # #741 — réglages du tableau budgétaire propres au SUIVI. `None` : ceux de
+    # la programmation (cf. Operation.get_*_realise()).
+    declinaison_par_type_cout_realise = models.BooleanField(
+        _("Réalisé décliné par type de coût"),
+        null=True, blank=True,
+        help_text=_("Détaille le réalisé par type de coût même si la programmation "
+                    "ne l'est pas. Sans effet si la programmation est détaillée.")
+    )
+    cout_salarial_auto_realise = models.BooleanField(
+        _("Coût salarial réalisé calculé automatiquement"),
+        null=True, blank=True,
+        help_text=_("Jours réalisés × coût jour des postes, ou coût salarial saisi au "
+                    "suivi. Vide : même réglage qu'à la programmation.")
     )
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)

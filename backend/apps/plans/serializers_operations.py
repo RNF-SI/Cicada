@@ -725,6 +725,14 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
         return instance
 
 
+class SuiviReglagesSerializer(serializers.Serializer):
+    """#741 — réglages du tableau budgétaire du suivi d'une action."""
+    id_operation = serializers.IntegerField(read_only=True)
+    declinaison_par_type_cout_realise = serializers.BooleanField(required=False)
+    cout_salarial_auto_realise = serializers.BooleanField(required=False)
+    declinaison_verrouillee = serializers.BooleanField(read_only=True)
+
+
 class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
     """Serializer pour la ventilation budget/travail par organisme."""
     organisme_nom = serializers.CharField(source='id_organisme.nom_organisme', read_only=True)
@@ -1061,6 +1069,11 @@ class OperationSerializer(serializers.ModelSerializer):
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
     # #735 — budget / temps de travail d'une action programmée globalement.
     operation_annee_globale = serializers.SerializerMethodField()
+    # #741 — réglages effectifs du tableau budgétaire du SUIVI.
+    declinaison_par_type_cout_realise = serializers.BooleanField(
+        source='get_declinaison_par_type_cout_realise', read_only=True)
+    cout_salarial_auto_realise = serializers.BooleanField(
+        source='get_cout_salarial_auto_realise', read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
     geom_geojson = serializers.SerializerMethodField()
@@ -1110,6 +1123,7 @@ class OperationSerializer(serializers.ModelSerializer):
             # #600 (retour 08/2026) — réglages du tableau de programmation.
             'declinaison_par_type_cout', 'cout_salarial_auto',
             'programmation_globale', 'operation_annee_globale',
+            'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
             'geom', 'geom_geojson',
             'id_indicateur',
             'metriques', 'metrique_ids',
@@ -1422,6 +1436,10 @@ class OperationNestedSerializer(OperationListSerializer):
     """
     operation_annees = OperationAnneeSerializer(many=True, read_only=True)
     operation_annee_globale = serializers.SerializerMethodField()
+    declinaison_par_type_cout_realise = serializers.BooleanField(
+        source='get_declinaison_par_type_cout_realise', read_only=True)
+    cout_salarial_auto_realise = serializers.BooleanField(
+        source='get_cout_salarial_auto_realise', read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
 
     @extend_schema_field(OperationAnneeSerializer(allow_null=True))
@@ -1435,7 +1453,8 @@ class OperationNestedSerializer(OperationListSerializer):
         ] + ['operation_annees', 'finances', 'ventilation_mode',
              'declinaison_par_poste',
              'declinaison_par_type_cout', 'cout_salarial_auto',
-             'programmation_globale', 'operation_annee_globale']
+             'programmation_globale', 'operation_annee_globale',
+             'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise']
 
 
 # =============================================================================

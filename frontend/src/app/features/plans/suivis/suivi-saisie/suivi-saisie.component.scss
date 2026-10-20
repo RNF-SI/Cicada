@@ -399,6 +399,12 @@ textarea.full-width {
     display: none;
   }
 
+  // #741 — programmation non détaillée par type de coût : seuls ses totaux
+  // sont rappelés face au réalisé détaillé.
+  &.prevu-sans-detail tr.prev-detail {
+    display: none;
+  }
+
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -939,4 +945,12 @@ textarea.full-width {
   p {
     margin: 0 0 $spacing-xxs;
   }
+}
+
+// #741 — réglages du tableau budgétaire du suivi.
+.budget-options {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
 }

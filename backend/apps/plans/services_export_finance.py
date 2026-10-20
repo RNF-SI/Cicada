@@ -274,6 +274,15 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         and getattr(op, "cout_salarial_auto", True)
     )
     manual_salary = has_cost_detail and not auto_salary
+    # #741 — le suivi a ses propres réglages : réalisé détaillé même si le prévu
+    # ne l'est pas, coût salarial réalisé calculé ou saisi indépendamment.
+    real_detail = op.get_declinaison_par_type_cout_realise()
+    auto_salary_real = (
+        real_detail
+        and (op.ventilation_mode in POSTE_VENTILATION_MODES or op.declinaison_par_poste)
+        and op.get_cout_salarial_auto_realise()
+    )
+    manual_salary_real = real_detail and not auto_salary_real
 
     def cell(oid, year):
         return af.cells[(oid, year)]
@@ -345,12 +354,12 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         # calculé qu'en saisie automatique ; sinon il est saisi (plus bas).
         if cat == "investissement":
             c.rj_invest += jours
-            if auto_salary:
+            if auto_salary_real:
                 c.rsal_invest += jours * cout_jour
             pj["sali_real"] += jours * cout_jour
         else:
             c.rj_fonct += jours
-            if auto_salary:
+            if auto_salary_real:
                 c.rsal_fonct += jours * cout_jour
             pj["salf_real"] += jours * cout_jour
         pj["real"] += jours
@@ -376,7 +385,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         c.autre_invest += _d(line.autre_cout_invest) + _d(line.budget_investissement)
         real = getattr(line, "realisation", None)
         if real:
-            if manual_salary:
+            if manual_salary_real:
                 c.rsal_fonct += _d(real.cout_salarial_realise)
                 c.rsal_invest += _d(real.cout_salarial_invest_realise)
             c.rprest_fonct += _d(real.cout_prestataire_realise)
@@ -422,7 +431,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
                         real.cout_prestataire_realise, real.autre_cout_realise))
                 )
                 rf = _d(real.budget_fonctionnement_realise) or (_d(real.budget_realise) if real_direct else _ZERO)
-                if manual_salary:
+                if manual_salary_real:
                     c.rsal_fonct += _d(real.cout_salarial_realise)
                     c.rsal_invest += _d(real.cout_salarial_invest_realise)
                 c.rprest_fonct += _d(real.cout_prestataire_realise)

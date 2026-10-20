@@ -57,7 +57,9 @@ Pour chaque année, vous pouvez renseigner :
 
 - **Le niveau de réalisation** : réalisée, partiellement réalisée ou non réalisée ;
 - **Les opérateurs et financeurs** effectifs de l'année ;
-- **Le temps de travail réalisé** (saisi avant le budget, car il calcule le coût salarial), puis le **budget réalisé** ;
+- **Le temps de travail réalisé** (saisi avant le budget, car il calcule le coût salarial), puis le **budget réalisé**. Deux cases, au-dessus du tableau du budget, règlent sa saisie pour **toutes les années de l'action**, indépendamment de la programmation :
+    - « **Déclinaison par type de coût** » : détaille le réalisé en coût salarial, stage, prestataire et autres coûts, même si l'action a été programmée en totaux (le prévu n'est alors rappelé qu'en totaux). Si la programmation est déclinée par type de coût, la case est cochée et ne peut pas être décochée ;
+    - « **Saisie automatique du coût salarial** » (modes « + type de poste ») : décochée, le coût salarial réalisé se saisit à la main, même si la programmation le calculait — le coût jour réel diffère souvent du prévu ;
 - Un commentaire, l'emprise réalisée (le bouton « Copier l'emprise prévue » reprend l'emprise programmée) et les valeurs des indicateurs de réponse.
 
 Les onglets d'années couvrent toute la durée du plan : saisir une année non prévue enregistre une action réalisée non prévue.

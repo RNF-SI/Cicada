@@ -36,9 +36,10 @@ from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
     RealisationOperationAnneeSerializer, RealisationOperationAnneeOrganismeSerializer,
-    FonctionSerializer, PosteSerializer, PosteWriteSerializer,
+    FonctionSerializer, PosteSerializer, PosteWriteSerializer, SuiviReglagesSerializer,
 )
 from .filters_operations import OperationFilter
+from drf_spectacular.utils import extend_schema
 
 
 # #452 — Champs de grille de scoring d'une métrique (réponse en format GRILLE).
@@ -938,7 +939,16 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             )
 
         if request.method == 'DELETE':
-            OperationRealisationGlobale.objects.filter(id_operation=operation).delete()
+            # #741 — la ligne porte aussi les réglages du suivi : on ne retire
+            # que la surcharge (niveau + commentaire) quand ils sont posés.
+            ov = OperationRealisationGlobale.objects.filter(id_operation=operation).first()
+            if ov is not None:
+                if ov.declinaison_par_type_cout_realise is None and ov.cout_salarial_auto_realise is None:
+                    ov.delete()
+                else:
+                    ov.id_niveau_realisation = None
+                    ov.commentaire_override = ''
+                    ov.save(update_fields=['id_niveau_realisation', 'commentaire_override', 'date_maj'])
             fresh = get_object_or_404(Operation, pk=operation_id)
             return Response(self._global_payload(fresh))
 
@@ -968,6 +978,61 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         )
         fresh = get_object_or_404(Operation, pk=operation_id)
         return Response(self._global_payload(fresh))
+
+    @staticmethod
+    def _reglages_payload(operation):
+        return {
+            'id_operation': operation.id_operation,
+            'declinaison_par_type_cout_realise': operation.get_declinaison_par_type_cout_realise(),
+            'cout_salarial_auto_realise': operation.get_cout_salarial_auto_realise(),
+            # La case est verrouillée (cochée) quand la programmation est détaillée.
+            'declinaison_verrouillee': bool(operation.declinaison_par_type_cout),
+        }
+
+    @extend_schema(request=SuiviReglagesSerializer, responses=SuiviReglagesSerializer)
+    @action(detail=False, methods=['get', 'post'],
+            url_path=r'suivi-reglages/(?P<operation_id>\d+)')
+    def suivi_reglages(self, request, operation_id=None):
+        """
+        #741 — réglages du tableau budgétaire du SUIVI d'une action.
+
+        GET  /api/plans/realisations/suivi-reglages/{operation_id}/
+        POST …  body { declinaison_par_type_cout_realise?, cout_salarial_auto_realise? }
+
+        Données de suivi : valables pour toutes les années de l'action et
+        modifiables plan validé, par ceux qui saisissent le suivi. Le réalisé ne
+        peut pas être MOINS détaillé que la programmation.
+        """
+        operation = get_object_or_404(Operation, pk=operation_id)
+        accessible = _scope_realisation_queryset(
+            OperationAnnee.objects.filter(id_operation=operation), request.user, 'id_operation',
+        ).exists() or _scope_realisation_queryset(
+            OperationAnnee.tous.filter(id_operation=operation), request.user, 'id_operation',
+        ).exists()
+        if not accessible:
+            return Response({'detail': "Vous n'avez pas accès à cette opération."},
+                            status=status.HTTP_403_FORBIDDEN)
+        if request.method == 'GET':
+            return Response(self._reglages_payload(operation))
+
+        ser = SuiviReglagesSerializer(data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        if data.get('declinaison_par_type_cout_realise') is False and operation.declinaison_par_type_cout:
+            return Response(
+                {'declinaison_par_type_cout_realise': [
+                    "La programmation est déclinée par type de coût : le suivi l'est aussi."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        defaults = {'id_utilisateur_maj': request.user}
+        for champ in ('declinaison_par_type_cout_realise', 'cout_salarial_auto_realise'):
+            if champ in data:
+                defaults[champ] = data[champ]
+        OperationRealisationGlobale.objects.update_or_create(
+            id_operation=operation, defaults=defaults,
+        )
+        fresh = get_object_or_404(Operation, pk=operation_id)
+        return Response(self._reglages_payload(fresh))
 
     @action(detail=False, methods=['get'], url_path=r'by-operation/(?P<operation_id>\d+)')
     def by_operation(self, request, operation_id=None):

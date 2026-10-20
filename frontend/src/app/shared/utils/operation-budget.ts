@@ -176,7 +176,7 @@ export function salaryIsComputed(
 }
 
 type OpMode = Pick<Operation, 'ventilation_mode' | 'declinaison_par_type_cout' | 'cout_salarial_auto'
-  | 'declinaison_par_poste'>;
+  | 'declinaison_par_poste' | 'declinaison_par_type_cout_realise' | 'cout_salarial_auto_realise'>;
 
 /**
  * Vrai si le budget de l'action est décomposé en types de coût (salarial,
@@ -199,6 +199,35 @@ function derivesSalary(op: OpMode): boolean {
     && op.cout_salarial_auto !== false;
 }
 
+/**
+ * #741 — le SUIVI a ses propres réglages : réalisé détaillé par type de coût
+ * même si la programmation ne l'est pas, et coût salarial réalisé calculé ou
+ * saisi indépendamment (le coût jour réel diffère souvent du prévu). Absents de
+ * l'API (anciennes données), ce sont ceux de la programmation.
+ */
+function hasCostDetailReal(op: OpMode): boolean {
+  return op.declinaison_par_type_cout_realise ?? hasCostDetail(op);
+}
+
+function derivesSalaryReal(op: OpMode): boolean {
+  return hasCostDetailReal(op)
+    && (POSTE_VENTILATION_MODES.includes(op.ventilation_mode ?? 'none') || !!op.declinaison_par_poste)
+    && (op.cout_salarial_auto_realise ?? op.cout_salarial_auto) !== false;
+}
+
+/** #741 — réalisé détaillé par type de coût (réglage du suivi). */
+export function realHasCostDetail(op: OpMode): boolean {
+  return hasCostDetailReal(op);
+}
+
+/** #741 — pendant de `salaryIsComputed()` pour le réalisé. */
+export function salaryIsComputedReal(op: OpMode): boolean {
+  return salaryIsComputed(
+    op.ventilation_mode, hasCostDetailReal(op),
+    (op.cout_salarial_auto_realise ?? op.cout_salarial_auto) !== false,
+  );
+}
+
 /** Coût salarial SAISI à la main sur l'année / les organismes (#600). */
 function manualSalary(op: OpMode, oa: OperationAnnee, invest: boolean): number {
   if (!hasCostDetail(op) || derivesSalary(op)) return 0;
@@ -212,7 +241,7 @@ function manualSalary(op: OpMode, oa: OperationAnnee, invest: boolean): number {
  * (la case « calculé automatiquement » vaut pour les deux).
  */
 function manualSalaryReal(op: OpMode, oa: OperationAnnee, invest: boolean): number {
-  if (!hasCostDetail(op) || derivesSalary(op)) return 0;
+  if (!hasCostDetailReal(op) || derivesSalaryReal(op)) return 0;
   const r = oa.realisation;
   const ro = orgs(oa).map(o => o.realisation);
   return invest
@@ -322,7 +351,7 @@ export function fonctDetailReal(op: OpMode, oa: OperationAnnee): CostDetail {
   const r = oa.realisation;
   const ro = orgs(oa).map(o => o.realisation);
   const detail = {
-    salarial: derivesSalary(op)
+    salarial: derivesSalaryReal(op)
       ? salarialCost(r?.rh_lignes, 'fonctionnement')
       : manualSalaryReal(op, oa, false),
     stage: add(r?.cout_stage_realise, ...ro.map(x => x?.cout_stage_realise)),
@@ -342,7 +371,7 @@ export function investDetailReal(op: OpMode, oa: OperationAnnee): CostDetail {
   const r = oa.realisation;
   const ro = orgs(oa).map(o => o.realisation);
   const detail = {
-    salarial: derivesSalary(op)
+    salarial: derivesSalaryReal(op)
       ? salarialCost(r?.rh_lignes, 'investissement')
       : manualSalaryReal(op, oa, true),
     stage: 0,
@@ -385,7 +414,7 @@ export function yearBudgetReal(
   op: OpMode, oa: OperationAnnee,
 ): BudgetSplit & { hasValue: boolean } {
   const r = oa.realisation;
-  const salarial = derivesSalary(op) && (r?.rh_lignes ?? []).length > 0;
+  const salarial = derivesSalaryReal(op) && (r?.rh_lignes ?? []).length > 0;
   if (!hasRealMonetaryDetail(oa) && !salarial) {
     const total = num(r?.budget_realise);
     return { fonctionnement: null, investissement: null, total, hasValue: total != null };

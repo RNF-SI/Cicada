@@ -2570,6 +2570,14 @@
         }
       },
       "saisie": {
+        "reglages": {
+          "declinaison": "Déclinaison par type de coût",
+          "declinaisonHint": "Détaille le réalisé en coût salarial, coût stage, coût prestataire et autres coûts, même si la programmation ne l'est pas : le prévu n'est alors rappelé qu'en totaux. Vaut pour toutes les années de l'action.",
+          "declinaisonVerrouillee": "La programmation de l'action est déclinée par type de coût : le suivi l'est aussi.",
+          "coutSalarialAuto": "Saisie automatique du coût salarial",
+          "coutSalarialAutoHint": "Calcule le coût salarial réalisé à partir des jours réalisés et du coût jour des postes. Décochée, il est saisi au suivi (le coût réel diffère souvent du prévu), quel que soit le réglage de la programmation. Vaut pour toutes les années de l'action.",
+          "error": "Le réglage n'a pas pu être enregistré."
+        },
         "globale": {
           "title": "Budget et temps de travail prévus sur la période {{periode}}",
           "prevu": "Prévu : {{budget}} · {{jours}}",

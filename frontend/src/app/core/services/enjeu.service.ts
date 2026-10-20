@@ -91,6 +91,15 @@ export interface IndicateurGlobalResponse {
   manuel?: boolean;
 }
 
+/** #741 — réglages effectifs du suivi d'une action. */
+export interface SuiviReglages {
+  id_operation: number;
+  declinaison_par_type_cout_realise: boolean;
+  cout_salarial_auto_realise: boolean;
+  /** Cochée d'office : la programmation est déclinée par type de coût. */
+  declinaison_verrouillee: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -216,6 +225,19 @@ export class EnjeuService {
       id_niveau_realisation: niveauId,
       commentaire_override: commentaire ?? '',
     });
+  }
+
+  /**
+   * #741 — réglages du tableau budgétaire du SUIVI d'une action (réalisé
+   * décliné par type de coût, coût salarial réalisé calculé ou saisi).
+   */
+  setSuiviReglages(
+    operationId: number,
+    reglages: { declinaison_par_type_cout_realise?: boolean; cout_salarial_auto_realise?: boolean },
+  ): Observable<SuiviReglages> {
+    return this.http.post<SuiviReglages>(
+      `${this.apiUrl}/realisations/suivi-reglages/${operationId}/`, reglages,
+    );
   }
 
   /**

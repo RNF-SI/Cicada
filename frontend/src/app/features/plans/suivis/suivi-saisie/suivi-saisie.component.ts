@@ -50,9 +50,10 @@ import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLeve
 import { hasSaisieRealisation } from '../action-status.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
 import {
-  hasTypeBudget, salaryIsComputed, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+  hasTypeBudget, salaryIsComputed, salaryIsComputedReal, salaryOptionAvailable, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
 } from '../../../../shared/utils/operation-budget';
 import { planEndYear } from '../../../../shared/utils/plan-periode';
+import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 
 interface Niveau {
   id_nomenclature: number;
@@ -73,7 +74,7 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
     TranslateModule,
     MatTooltipModule,
     HeaderComponent, PlanSidebarComponent, FormFieldComponent,
-    EmpriseEditorComponent,
+    EmpriseEditorComponent, CheckboxComponent,
   ],
   templateUrl: './suivi-saisie.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -319,12 +320,64 @@ export class SuiviSaisieComponent implements OnInit {
     const parOrganisme = mode === 'by_org' || mode === 'by_org_type' || mode === 'by_org_type_poste';
     // #735 — « aucune » et « par organisme » détaillent aussi leurs coûts :
     // même tableau, sans bloc investissement (`showInvest()`).
-    if (op?.declinaison_par_type_cout !== false) {
+    // #741 — c'est la déclinaison du RÉALISÉ qui fixe le tableau de saisie.
+    if (this.declinaisonRealise()) {
       return parOrganisme ? 'by_org_type_poste' : 'by_type_poste';
     }
     if (!hasTypeBudget(mode)) return mode;
     return parOrganisme ? 'by_org_type' : 'by_type';
   });
+
+  // ---- #741 — réglages propres au suivi ------------------------------------
+
+  /** Réalisé décliné par type de coût (≥ programmation). */
+  declinaisonRealise(): boolean {
+    const op = this.operation();
+    return op?.declinaison_par_type_cout_realise ?? (op?.declinaison_par_type_cout !== false);
+  }
+
+  /** Programmation déclinée par type de coût : le suivi l'est d'office. */
+  declinaisonVerrouillee(): boolean {
+    return this.operation()?.declinaison_par_type_cout !== false;
+  }
+
+  /** Prévu détaillé par type de coût : sinon, seuls ses totaux sont rappelés. */
+  prevDetail(): boolean {
+    return this.operation()?.declinaison_par_type_cout !== false;
+  }
+
+  /** La case « coût salarial calculé » n'a de sens que pour un temps décliné par poste. */
+  showSalaireRealiseOption(): boolean {
+    return salaryOptionAvailable(this.operation()?.ventilation_mode, this.declinaisonRealise());
+  }
+
+  isSavingReglages = signal(false);
+
+  /** Enregistre un réglage du suivi (valable pour toutes les années de l'action). */
+  setReglage(
+    champ: 'declinaison_par_type_cout_realise' | 'cout_salarial_auto_realise', valeur: boolean,
+  ): void {
+    const op = this.operation();
+    if (!op) return;
+    this.isSavingReglages.set(true);
+    this.enjeuService.setSuiviReglages(op.id_operation, { [champ]: valeur }).subscribe({
+      next: r => {
+        this.isSavingReglages.set(false);
+        this.operation.set({
+          ...op,
+          declinaison_par_type_cout_realise: r.declinaison_par_type_cout_realise,
+          cout_salarial_auto_realise: r.cout_salarial_auto_realise,
+        });
+      },
+      error: () => {
+        this.isSavingReglages.set(false);
+        this.snack.open(
+          this.translate.instant('plans.suivis.saisie.reglages.error'),
+          this.translate.instant('common.actions.close'), { duration: 5000 },
+        );
+      },
+    });
+  }
 
   /** #735 — fonctionnement / investissement séparés seulement si le mode les ventile. */
   showInvest(): boolean {
@@ -463,6 +516,13 @@ export class SuiviSaisieComponent implements OnInit {
    * exactement les mêmes montants.
    */
   salaireCalcule(): boolean {
+    // #741 — réglage du SUIVI : le coût jour réel diffère souvent du prévu.
+    const op = this.operation();
+    return op ? salaryIsComputedReal(op) : true;
+  }
+
+  /** Coût salarial PRÉVU calculé ou saisi (réglage de la programmation). */
+  salaireCalculePrev(): boolean {
     const op = this.operation();
     return salaryIsComputed(
       op?.ventilation_mode, op?.declinaison_par_type_cout !== false,
@@ -478,7 +538,7 @@ export class SuiviSaisieComponent implements OnInit {
   prevCoutSalarial(year: number, orgId: number, categorie: 'fonctionnement' | 'investissement'): number {
     // #600 — coût salarial saisi (et non calculé) : c'est le montant porté par
     // l'organisme qui fait foi, pas les jours × coût jour.
-    if (!this.salaireCalcule()) {
+    if (!this.salaireCalculePrev()) {
       const oao = this.getOaoForYearOrg(year, orgId) as any;
       const champ = categorie === 'investissement' ? 'cout_salarial_invest' : 'cout_salarial';
       return Number(oao?.[champ]) || 0;
@@ -503,6 +563,8 @@ export class SuiviSaisieComponent implements OnInit {
 
   /** Total fonctionnement prévu d'un organisme/année (salarial + stage + prestataire + autres). */
   prevOrgFonctTotal(year: number, orgId: number): number {
+    // #741 — prévu non détaillé : son enveloppe (le réalisé, lui, l'est).
+    if (!this.prevDetail()) return Number(this.getOaoForYearOrg(year, orgId)?.budget_fonctionnement) || 0;
     return this.prevCoutSalarial(year, orgId, 'fonctionnement')
       + this.prevOrgCost(year, orgId, 'cout_stage')
       + this.prevOrgCost(year, orgId, 'cout_prestataire')
@@ -511,6 +573,7 @@ export class SuiviSaisieComponent implements OnInit {
 
   /** Total investissement prévu d'un organisme/année. */
   prevOrgInvestTotal(year: number, orgId: number): number {
+    if (!this.prevDetail()) return Number(this.getOaoForYearOrg(year, orgId)?.budget_investissement) || 0;
     return this.prevCoutSalarial(year, orgId, 'investissement')
       + this.prevOrgCost(year, orgId, 'cout_prestataire_invest')
       + this.prevOrgCost(year, orgId, 'autre_cout_invest');
@@ -567,7 +630,7 @@ export class SuiviSaisieComponent implements OnInit {
 
   prevGlobalCoutSalarial(year: number, categorie: 'fonctionnement' | 'investissement'): number {
     // #600 — coût salarial saisi : montant porté par l'année (mode sans organisme).
-    if (!this.salaireCalcule()) {
+    if (!this.salaireCalculePrev()) {
       const oa = this.getOaForYear(year) as any;
       const champ = categorie === 'investissement' ? 'cout_salarial_invest' : 'cout_salarial';
       return Number(oa?.[champ]) || 0;
@@ -615,6 +678,8 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   prevGlobalFonctTotal(year: number): number {
+    // #741 — prévu non détaillé : ses totaux (enveloppe, ou budget direct).
+    if (!this.prevDetail()) return this.prevEnveloppe(year).fonct;
     return this.prevGlobalCoutSalarial(year, 'fonctionnement')
       + this.prevGlobalCost(year, 'cout_stage')
       + this.prevGlobalCost(year, 'cout_prestataire')
@@ -622,6 +687,7 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   prevGlobalInvestTotal(year: number): number {
+    if (!this.prevDetail()) return this.prevEnveloppe(year).invest;
     return this.prevGlobalCoutSalarial(year, 'investissement')
       + this.prevGlobalCost(year, 'cout_prestataire_invest')
       + this.prevGlobalCost(year, 'autre_cout_invest');
@@ -629,6 +695,15 @@ export class SuiviSaisieComponent implements OnInit {
 
   prevGlobalTotal(year: number): number {
     return this.prevGlobalFonctTotal(year) + this.prevGlobalInvestTotal(year);
+  }
+
+  /** #741 — totaux prévus d'une année dont la programmation n'est pas détaillée. */
+  private prevEnveloppe(year: number): { fonct: number; invest: number } {
+    const op = this.operation();
+    const oa = this.getOaForYear(year);
+    if (!op || !oa) return { fonct: 0, invest: 0 };
+    const b = yearBudgetPrev(op, oa);
+    return { fonct: b.fonctionnement ?? b.total ?? 0, invest: b.investissement ?? 0 };
   }
 
   /** Valeur brute d'un coût prévisionnel de l'année (pour l'affichage direct). */

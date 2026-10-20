@@ -934,6 +934,10 @@ export interface Operation {
   programmation_globale?: boolean;
   /** #735 — porteur du budget / temps de travail d'une action globale (`annee` nulle). */
   operation_annee_globale?: OperationAnnee | null;
+  /** #741 — réalisé détaillé par type de coût (réglage du suivi, ≥ programmation). */
+  declinaison_par_type_cout_realise?: boolean;
+  /** #741 — coût salarial réalisé calculé (jours × coût jour) ou saisi au suivi. */
+  cout_salarial_auto_realise?: boolean;
   finances?: FinanceOperation[];
   // #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge sinon calcul auto
   niveau_realisation_global_mnemonique?: string | null;

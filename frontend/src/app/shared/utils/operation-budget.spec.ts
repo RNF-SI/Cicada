@@ -9,7 +9,7 @@ import {
   fonctDetailPrev, investDetailPrev, fonctDetailReal, investDetailReal,
   salarialCost, sumJours, yearBudgetPrev, yearBudgetReal,
   yearJoursPrev, yearJoursReal,
-  salaryOptionAvailable, salaryIsComputed, prevAnnees,
+  salaryOptionAvailable, salaryIsComputed, salaryIsComputedReal, prevAnnees,
 } from './operation-budget';
 
 const OP = (mode: string) => ({ ventilation_mode: mode }) as any;
@@ -340,5 +340,43 @@ describe('#735 — programmation globale', () => {
   it('garde les années pour une action annuelle', () => {
     const op: any = { programmation_globale: false, operation_annees: [annuelle], operation_annee_globale: null };
     expect(prevAnnees(op)).toEqual([annuelle]);
+  });
+});
+
+describe('#741 — réglages propres au suivi (réalisé)', () => {
+  const anneeReal = (): any => ({
+    annee: 2027, budget: null, organismes: [],
+    rh_lignes: [{ id_poste: 1, jours: '10.00', categorie_depense: 'fonctionnement', poste_cout_jour: '300.00' }],
+    realisation: {
+      cout_salarial_realise: '2000.00', cout_stage_realise: '500.00',
+      rh_lignes: [{ id_poste: 1, jours: '8.00', categorie_depense: 'fonctionnement', poste_cout_jour: '300.00' }],
+    },
+  });
+
+  it('coût salarial réalisé saisi alors que le prévu est calculé', () => {
+    const op: any = {
+      ventilation_mode: 'by_type_poste', declinaison_par_type_cout: true, cout_salarial_auto: true,
+      declinaison_par_type_cout_realise: true, cout_salarial_auto_realise: false,
+    };
+    expect(fonctDetailPrev(op, anneeReal()).salarial).toBe(3000);
+    expect(fonctDetailReal(op, anneeReal()).salarial).toBe(2000);
+    expect(salaryIsComputedReal(op)).toBe(false);
+  });
+
+  it('réalisé détaillé alors que le prévu ne l\'est pas', () => {
+    const op: any = {
+      ventilation_mode: 'by_type', declinaison_par_type_cout: false, cout_salarial_auto: true,
+      declinaison_par_type_cout_realise: true,
+    };
+    const oa = anneeReal();
+    oa.rh_lignes = [];
+    oa.realisation.rh_lignes = [];
+    expect(yearBudgetReal(op, oa).total).toBe(2500);
+  });
+
+  it('sans réglage du suivi, reprend ceux de la programmation', () => {
+    const op: any = { ventilation_mode: 'by_type_poste', declinaison_par_type_cout: true, cout_salarial_auto: true };
+    expect(fonctDetailReal(op, anneeReal()).salarial).toBe(2400);
+    expect(salaryIsComputedReal(op)).toBe(true);
   });
 });
