@@ -1,7 +1,7 @@
 ---
 description: Traite un lot d'issues « mêmes fichiers » en séquentiel dans une seule session (un commit par issue)
 argument-hint: <numéros d'issues du lot, ex: "534 540 541">
-allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker compose exec:*), Edit, Read, Write, AskUserQuestion
+allowed-tools: Bash(gh:*), Bash(git:*), Bash(docker compose exec:*), Bash(scripts/export-openapi.sh:*), Bash(grep:*), Edit, Read, Write, AskUserQuestion
 ---
 
 Lot à traiter : #$ARGUMENTS
@@ -25,7 +25,7 @@ Procédure :
      `git log --all --oneline --grep="#<n>"` et les commits postérieurs à son
      ouverture sur les fichiers concernés. Une issue déjà faite : AUCUN commit ;
      vérifie le comportement, puis commente « ↳ Déjà fait — commit <sha> » (ce que
-     tu as vérifié et comment) et pose `à tester` (étape 4g).
+     tu as vérifié et comment) et pose `à tester` (étape 4i).
 
 2. CLASSE chaque issue du lot dans un bac (comme /fix-issue) :
    - A = assertion vérifiable (texte/i18n, classe/style, ordre, route, calcul, forme d'API).
@@ -75,16 +75,58 @@ Procédure :
         idempotent, années ancrées sur l'année courante), lance-le
         (`seed_testdata --only=<seeder>`), mets à jour « Test Data Available »
         du CLAUDE.md, et cite ces données dans le « À vérifier » du commentaire.
-   f. Commit ATOMIQUE, un par issue (tests, seed et doc compris) :
+   f. DOCUMENTATION — OBLIGATOIRE dès que la correction change ce qu'un
+      lecteur de la doc voit ou fait. Pour chaque cible, demande-toi si elle
+      décrit encore juste le comportement ; si non, mets-la à jour dans le
+      commit de l'issue :
+      - Notice utilisateur (`documentation/docs/` : `utilisateur/`,
+        `referent/`, `admin-organisme/`, `admin-instance/`) — libellé de
+        bouton ou de menu, écran, parcours, droits, statut, message.
+        `grep -rn "<libellé ou notion>" documentation/docs`. Garde la
+        numérotation des sections et figures ; une figure périmée se signale
+        dans le commentaire (« capture X à refaire »).
+      - API (`documentation/docs/api/`) — endpoint, serializer, paramètre ou
+        permission modifié → `scripts/export-openapi.sh` et committe les JSON
+        (`openapi.json` + `openapi/<domaine>.json`) ; adapte la page d'usage
+        du domaine si besoin.
+      - Docs techniques (`docs/*.md`) et CLAUDE.md — règle métier, endpoint,
+        composant partagé ou convention qui y est décrit.
+      - Nouvelle page → entrée dans `nav:` de `documentation/mkdocs.yml`.
+      - Si `documentation/` a bougé : `docker compose exec docs mkdocs build --strict -d /tmp/site`
+        (lien ou ancre cassé = build de l'image en échec).
+      Rien à changer → note « RAS » et ce que tu as vérifié (récap).
+   g. EXPORTS — OBLIGATOIRE dès que la correction touche une donnée, un
+      calcul, un libellé ou une règle que les exports reprennent (sinon
+      l'écran et le fichier téléchargé divergent en silence) :
+      - Repère les exports concernés :
+        `grep -rln "<champ ou fonction>" backend/apps/plans/services_export*.py backend/apps/plans/export_theme.py`
+        — arborescence (xlsx + présentation), fiches action (xlsx + Word,
+        plan entier et action seule), plan Word, budget / RH prévisionnel et
+        suivi, tableau de bord, suivi des actions, actions, grilles.
+      - Calculs budget/RH : source de vérité partagée
+        (`shared/utils/operation-budget.ts` / `services_export_finance.py`),
+        corrige les deux sans dupliquer dans un module d'export. Fiche action
+        Excel et Word partagent leurs fonctions de données : pas l'un sans
+        l'autre.
+      - Un export qui change de forme doit rester relisible par l'import
+        correspondant (`example-*-xlsx`, `services_import*.py`).
+      - Droits : rester cohérent avec `_can_export_plan()` /
+        `_get_plan_for_export()`.
+      - Tests : `docker compose exec web pytest tests -k export -q` ; ajoute
+        ou adapte une assertion sur la cellule / le paragraphe concerné.
+      - Cite dans « À vérifier » l'export à télécharger et ce qu'il faut y
+        contrôler.
+      Aucun export concerné → note « RAS » et ce que tu as vérifié (récap).
+   h. Commit ATOMIQUE, un par issue (tests, seed, doc et exports compris) :
       `fix(<scope>): <résumé> (#<n>)`.
       Ne regroupe JAMAIS plusieurs issues dans un même commit.
-   g. OBLIGATOIRE — ne passe PAS à l'issue suivante sans ces deux actions, et
+   i. OBLIGATOIRE — ne passe PAS à l'issue suivante sans ces deux actions, et
       vérifie qu'elles ont abouti :
       - commente le résumé sur l'issue, avec une section « À vérifier » (étapes
         concrètes, données du jeu d'essai) : `gh issue comment <n> --body "..."` ;
       - pose le label `à tester` : `gh issue edit <n> --add-label "à tester"`.
       Si une des deux échoue, corrige et relance avant de continuer.
-   h. Ne FERME JAMAIS l'issue — c'est le mainteneur qui valide et ferme.
+   j. Ne FERME JAMAIS l'issue — c'est le mainteneur qui valide et ferme.
 
 5. Pour CHAQUE issue bac C : ne corrige pas avant mes réponses. POSE-MOI d'abord tes questions
    directement dans le terminal (outil AskUserQuestion) au lieu de trancher seul
@@ -99,10 +141,13 @@ Procédure :
 6. À la fin du lot, lance une passe de tests groupée sur les fichiers communs
    touchés (un seul `jest --findRelatedTests` / `pytest` sur l'ensemble) pour
    vérifier qu'aucune correction n'en a cassé une autre du même lot.
+   Si le lot a touché des exports, relance aussi `pytest tests -k export -q` ; si
+   `documentation/` a bougé, relance le build strict de la doc.
 
 7. Termine par un RÉCAP du lot sous forme de tableau :
-   | Issue | Bac | Fichiers | Commit | Test auto (vu en échec ?) | Autres tests impactés | Seed | Commenté (oui/non) | Statut (fait / déjà fait / discussion / manuel) |
-   La colonne « Commenté » doit être `oui` pour toute issue A/B traitée (étape 4g) :
+   | Issue | Bac | Fichiers | Commit | Test auto (vu en échec ?) | Autres tests impactés | Seed | Doc | Exports | Commenté (oui/non) | Statut (fait / déjà fait / discussion / manuel) |
+   Colonnes « Doc » et « Exports » : pages / exports mis à jour, ou « RAS ».
+   La colonne « Commenté » doit être `oui` pour toute issue A/B traitée (étape 4i) :
    une case `non` signale un travail non terminé. Puis liste les points de
    validation manuelle (bac B) et les questions posées (bac C), et ARRÊTE pour que
    je fasse le point avant le lot suivant.
