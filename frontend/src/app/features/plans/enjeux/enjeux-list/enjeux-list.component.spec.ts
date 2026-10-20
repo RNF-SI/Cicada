@@ -897,6 +897,19 @@ describe('EnjeuxListComponent', () => {
       expect(el.querySelector('.oo-content .olt-info-note .saisie-order-line')).toBeTruthy();
     });
 
+    // #729 — dans le détail d'un enjeu, la carte de l'enjeu n'a pas d'œil :
+    // il menait à la page déjà affichée. Seul le chevron de repli reste.
+    it('should not show a view (eye) button on the enjeu detail card', () => {
+      component['selectedEnjeuSlug'].set('protection-zones-humides');
+      component.setActiveTab('detail');
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const actions = el.querySelector('.enjeu-detail-card .card-section-actions');
+      expect(actions).toBeTruthy();
+      expect(actions!.querySelector('.fi-rr-eye')).toBeNull();
+      expect(actions!.querySelector('.fi-rr-angle-small-up, .fi-rr-angle-small-down')).toBeTruthy();
+    });
+
     it('should toggle FCR expanded', () => {
       expect(component.isFcrExpanded(2)).toBe(false);
       component.toggleFcr(2);
