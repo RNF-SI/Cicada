@@ -20,6 +20,7 @@ export { ToDraftChoiceDialogComponent, ToDraftChoiceDialogData, ToDraftChoiceDia
 export { LinkPlanToSiteDialogComponent, LinkPlanToSiteDialogData } from './link-plan-to-site-dialog/link-plan-to-site-dialog.component';
 export { ImportListDialogComponent, ImportListDialogData, ImportListDialogResult, ImportedItem } from './import-list-dialog/import-list-dialog.component';
 export { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from './link-operation-dialog/link-operation-dialog.component';
+export { DeleteFacteurDialogComponent, DeleteFacteurDialogData, DeleteFacteurDialogResult } from './delete-facteur-dialog/delete-facteur-dialog.component';
 export { DeleteOperationDialogComponent, DeleteOperationDialogData, DeleteOperationDialogResult, DeleteOperationDialogMetrique } from './delete-operation-dialog/delete-operation-dialog.component';
 export { ExportFicheActionDialogComponent, ExportFicheActionDialogData, ExportFicheActionDialogResult, FicheActionExportFormat, FicheActionExportSection } from './export-fiche-action-dialog/export-fiche-action-dialog.component';
 export { ShareElementDialogComponent, ShareElementDialogData, ShareElementDialogResult, ShareEnjeuTarget, ShareOoTarget, ShareParentTarget, SharePressionTarget, ShareIndicateurTarget, ShareMetriqueTarget } from './share-element-dialog/share-element-dialog.component';

@@ -4691,7 +4691,18 @@
       "editTitle": "Modifier le facteur d'influence",
       "createSuccess": "Facteur d'influence créé avec succès",
       "updateSuccess": "Facteur d'influence mis à jour avec succès",
-      "deleteSuccess": "Facteur d'influence supprimé avec succès"
+      "deleteSuccess": "Facteur d'influence supprimé avec succès",
+      "deleteDialog": {
+        "title": "Supprimer le facteur d'influence",
+        "subtitle": "Le facteur d'influence « {{libelle}} » est lié à {{count}} enjeux. Que souhaitez-vous faire ?",
+        "unlinkLabel": "Le retirer de l'enjeu « {{enjeu}} » seulement",
+        "unlinkDescription": "Le facteur et ses pressions restent sous les autres enjeux.",
+        "deleteLabel": "Le supprimer de tous les enjeux ({{count}})",
+        "deleteDescription": "Le facteur est supprimé définitivement, avec ses pressions, sous chacun des enjeux.",
+        "confirmUnlink": "Retirer de cet enjeu",
+        "confirmDelete": "Supprimer partout"
+      },
+      "unlinkSuccess": "Facteur d'influence retiré de cet enjeu"
     },
     "pression": {
       "label": "Pression",

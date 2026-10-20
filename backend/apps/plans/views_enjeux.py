@@ -882,12 +882,17 @@ class FacteurInfluenceViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             CorFacteurEnjeu.objects.filter(
                 id_facteur_influence=facteur, id_enjeu_id=enjeu_id
             ).delete()
-            if not facteur.enjeux.exists():
-                facteur.delete()
+            # #730 — Relire en base, jamais `facteur.enjeux` : `get_object()`
+            # l'a préchargé avant le retrait. Le dernier lien retiré, le signal
+            # `delete_orphaned_facteur_influence` a déjà supprimé le facteur.
+            if not CorFacteurEnjeu.objects.filter(id_facteur_influence=facteur).exists():
+                FacteurInfluence.objects.filter(pk=facteur.pk).delete()
                 return Response(status=status.HTTP_204_NO_CONTENT)
 
-        facteur.id_utilisateur_maj = request.user
-        facteur.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+            facteur.id_utilisateur_maj = request.user
+            facteur.save(update_fields=['id_utilisateur_maj', 'date_maj'])
+
+        facteur = self.get_queryset().get(pk=facteur.pk)
         return Response(
             FacteurInfluenceSerializer(facteur, context=self.get_serializer_context()).data,
             status=status.HTTP_200_OK,

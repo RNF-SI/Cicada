@@ -46,7 +46,10 @@ import {
   DuplicateIndicateurTargetRa,
 } from '../../../../shared/components/modals/duplicate-indicateur-dialog/duplicate-indicateur-dialog.component';
 import { LinkOperationDialogComponent, LinkOperationDialogData, LinkOperationDialogResult } from '../../../../shared/components/modals';
-import { DeleteOperationDialogComponent, DeleteOperationDialogResult } from '../../../../shared/components/modals';
+import {
+  DeleteFacteurDialogComponent, DeleteFacteurDialogData, DeleteFacteurDialogResult,
+  DeleteOperationDialogComponent, DeleteOperationDialogResult,
+} from '../../../../shared/components/modals';
 import {
   ShareElementDialogComponent,
   ShareElementDialogData,
@@ -1664,6 +1667,31 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   deleteFacteur(facteur: FacteurInfluence): void {
+    // #730 — Facteur partagé entre plusieurs enjeux (#552) : proposer de
+    // retirer le seul lien avec l'enjeu affiché plutôt que de tout supprimer.
+    const enjeu = this.selectedEnjeu();
+    if (enjeu && this.isFacteurShared(facteur)) {
+      this.dialog.open(DeleteFacteurDialogComponent, {
+        width: '520px', maxWidth: '95vw',
+        data: {
+          libelle: facteur.libelle,
+          enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
+          nbEnjeux: this.facteurEnjeuIds(facteur).length,
+        } as DeleteFacteurDialogData,
+      }).afterClosed().pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((result: DeleteFacteurDialogResult | undefined) => {
+          if (result?.action === 'unlink') {
+            this.runShareCall(
+              this.enjeuService.unlinkFacteurFromEnjeu(facteur.id_facteur_influence, enjeu.id_enjeu),
+              'enjeux.facteurInfluence.unlinkSuccess', 'enjeux.messages.deleteError',
+            );
+          } else if (result?.action === 'delete') {
+            this.performDeleteFacteur(facteur);
+          }
+        });
+      return;
+    }
+
     const dialogRef = this.dialog.open(ConfirmDialogComponent, {
       width: '450px',
       data: {
@@ -1677,19 +1705,24 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
 
     dialogRef.afterClosed().subscribe(confirmed => {
       if (confirmed) {
-        this.enjeuService.deleteFacteurInfluence(facteur.id_facteur_influence).subscribe({
-          next: () => {
-            this.snackBar.open(
-              this.translate.instant('enjeux.facteurInfluence.deleteSuccess'),
-              this.translate.instant('common.actions.close'),
-              { duration: 3000 }
-            );
-            this.loadPlanData(true);
-          },
-          error: () => {
-            this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
-          }
-        });
+        this.performDeleteFacteur(facteur);
+      }
+    });
+  }
+
+  /** Suppression du facteur et de son sous-arbre, sous tous ses enjeux. */
+  private performDeleteFacteur(facteur: FacteurInfluence): void {
+    this.enjeuService.deleteFacteurInfluence(facteur.id_facteur_influence).subscribe({
+      next: () => {
+        this.snackBar.open(
+          this.translate.instant('enjeux.facteurInfluence.deleteSuccess'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+        this.loadPlanData(true);
+      },
+      error: () => {
+        this.errorMessage.set(this.translate.instant('enjeux.messages.deleteError'));
       }
     });
   }

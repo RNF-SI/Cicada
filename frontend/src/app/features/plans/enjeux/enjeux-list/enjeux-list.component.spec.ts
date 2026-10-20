@@ -14,7 +14,7 @@ import { EnjeuxListComponent } from './enjeux-list.component';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
-import { DeleteOperationDialogComponent } from '../../../../shared/components/modals';
+import { DeleteFacteurDialogComponent, DeleteOperationDialogComponent } from '../../../../shared/components/modals';
 import {
   Enjeu, PlanEnjeuxResponse, FacteurInfluence, Pression,
   ObjectifLongTerme, NiveauExigence, Indicateur,
@@ -300,6 +300,7 @@ describe('EnjeuxListComponent', () => {
       createFacteurInfluence: jest.fn().mockReturnValue(of({ id_facteur_influence: 999, id_enjeu: 1, libelle: 'Nouveau', date_ajout: '', date_maj: '' })),
       updateFacteurInfluence: jest.fn().mockReturnValue(of({ id_facteur_influence: 101, id_enjeu: 1, libelle: 'Modifié', date_ajout: '', date_maj: '' })),
       deleteFacteurInfluence: jest.fn().mockReturnValue(of(void 0)),
+      unlinkFacteurFromEnjeu: jest.fn().mockReturnValue(of(void 0)),
       // Pressions
       createPression: jest.fn().mockReturnValue(of({ id_pression: 888, id_facteur_influence: 101, libelle: 'Nouvelle', date_ajout: '', date_maj: '' })),
       updatePression: jest.fn().mockReturnValue(of({ id_pression: 301, id_facteur_influence: 101, libelle: 'Modifiée', date_ajout: '', date_maj: '' })),
@@ -1131,6 +1132,47 @@ describe('EnjeuxListComponent', () => {
       };
       component.deleteFacteur(facteur);
       expect(mockEnjeuService.deleteFacteurInfluence).toHaveBeenCalledWith(101);
+    });
+
+    // #730 — Facteur partagé entre plusieurs enjeux : « Supprimer » propose de
+    // retirer le seul lien avec l'enjeu affiché, ou de supprimer partout.
+    describe('facteur partagé (#730)', () => {
+      const partage: FacteurInfluence = {
+        id_facteur_influence: 101, id_enjeu: 1, enjeu_ids: [1, 2],
+        libelle: 'Urbanisation', date_ajout: '', date_maj: '',
+      };
+
+      function ouvrir(resultat: unknown): void {
+        component['selectedEnjeuSlug'].set('protection-zones-humides');
+        const ref = { afterClosed: () => of(resultat) } as MatDialogRef<any>;
+        mockDialogOpen = jest.spyOn(MatDialog.prototype, 'open').mockReturnValue(ref);
+        component.deleteFacteur(partage);
+      }
+
+      it('ouvre le choix retrait du lien / suppression', () => {
+        ouvrir(undefined);
+        expect(mockDialogOpen.mock.calls[0][0]).toBe(DeleteFacteurDialogComponent);
+        expect(mockDialogOpen.mock.calls[0][1].data).toEqual(
+          expect.objectContaining({ libelle: 'Urbanisation', nbEnjeux: 2 }));
+      });
+
+      it('retire seulement le lien avec l\'enjeu affiché', () => {
+        ouvrir({ action: 'unlink' });
+        expect(mockEnjeuService['unlinkFacteurFromEnjeu']).toHaveBeenCalledWith(101, 1);
+        expect(mockEnjeuService.deleteFacteurInfluence).not.toHaveBeenCalled();
+      });
+
+      it('supprime le facteur partout sur demande', () => {
+        ouvrir({ action: 'delete' });
+        expect(mockEnjeuService.deleteFacteurInfluence).toHaveBeenCalledWith(101);
+        expect(mockEnjeuService['unlinkFacteurFromEnjeu']).not.toHaveBeenCalled();
+      });
+
+      it('ne fait rien si on annule', () => {
+        ouvrir({ action: 'cancel' });
+        expect(mockEnjeuService.deleteFacteurInfluence).not.toHaveBeenCalled();
+        expect(mockEnjeuService['unlinkFacteurFromEnjeu']).not.toHaveBeenCalled();
+      });
     });
 
     it('should not call deleteFacteurInfluence when dialog cancelled', () => {

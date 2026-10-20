@@ -263,3 +263,61 @@ test.describe('Cascade Delete - UI verification', () => {
     await apiDelete(referentPage, `plans/enjeux/${enjeu.id_enjeu}/`);
   });
 });
+
+// =========================================================================
+// #730 — Facteur partagé entre deux enjeux : retirer le lien ou tout supprimer
+// =========================================================================
+test.describe('Facteur partagé — suppression (#730)', () => {
+  async function facteurPartage(page: import('@playwright/test').Page) {
+    const plan = await findPlan(page, 'Camargue');
+    const stamp = Date.now();
+    const e1 = await createEnjeu(page, plan.id_pg, `E2E 730 Enjeu A ${stamp}`);
+    const e2 = await createEnjeu(page, plan.id_pg, `E2E 730 Enjeu B ${stamp}`);
+    const libelle = `E2E 730 Facteur ${stamp}`;
+    const facteur = await createFacteur(page, e1.id_enjeu, libelle);
+    const lien = await apiPost(page, `plans/facteurs-influence/${facteur.id_facteur_influence}/link/`, { enjeu_id: e2.id_enjeu });
+    expect(lien.ok).toBeTruthy();
+    await createPression(page, facteur.id_facteur_influence, 'E2E 730 Pression');
+    return { plan, e1, e2, facteur, libelle };
+  }
+
+  async function supprimerDepuisEnjeuA(page: import('@playwright/test').Page, d: Awaited<ReturnType<typeof facteurPartage>>) {
+    const enjeuxPage = new EnjeuxPage(page);
+    await enjeuxPage.gotoDetail(d.plan.slug, d.e1.slug);
+    await enjeuxPage.waitForData();
+    const carte = enjeuxPage.facteurCards.filter({ hasText: d.libelle });
+    await carte.locator('.facteur-card-actions button:has(i.fi-rr-trash)').click();
+    await expect(page.getByTestId('facteur-unlink-choice')).toContainText(d.e1.libelle);
+  }
+
+  test('retirer le lien garde le facteur sous l\'autre enjeu', async ({ superAdminPage: page }) => {
+    const d = await facteurPartage(page);
+    try {
+      await supprimerDepuisEnjeuA(page, d);
+      await page.getByTestId('facteur-delete-confirm').click();
+
+      await expect(new EnjeuxPage(page).facteurCards.filter({ hasText: d.libelle })).toHaveCount(0);
+      const { ok, data } = await apiGet(page, `plans/facteurs-influence/${d.facteur.id_facteur_influence}/`);
+      expect(ok).toBeTruthy();
+      expect(data.enjeu_ids).toEqual([d.e2.id_enjeu]);
+    } finally {
+      await apiDelete(page, `plans/enjeux/${d.e1.id_enjeu}/`);
+      await apiDelete(page, `plans/enjeux/${d.e2.id_enjeu}/`);
+    }
+  });
+
+  test('« supprimer partout » efface le facteur sous les deux enjeux', async ({ superAdminPage: page }) => {
+    const d = await facteurPartage(page);
+    try {
+      await supprimerDepuisEnjeuA(page, d);
+      await page.getByTestId('facteur-delete-choice').click();
+      await page.getByTestId('facteur-delete-confirm').click();
+
+      await expect(new EnjeuxPage(page).facteurCards.filter({ hasText: d.libelle })).toHaveCount(0);
+      expect(await entityExists(page, `plans/facteurs-influence/${d.facteur.id_facteur_influence}/`)).toBeFalsy();
+    } finally {
+      await apiDelete(page, `plans/enjeux/${d.e1.id_enjeu}/`);
+      await apiDelete(page, `plans/enjeux/${d.e2.id_enjeu}/`);
+    }
+  });
+});
