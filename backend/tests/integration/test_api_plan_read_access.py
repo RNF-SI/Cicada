@@ -4,9 +4,9 @@ un utilisateur lié au plan sans être « référent ».
 
 Un membre du plan (`CorRolePlan`, `referent=False`) doit pouvoir consulter le
 plan et toute son arborescence (enjeux, indicateurs, opérations, RH),
-qu'il soit en brouillon ou validé, sans pouvoir écrire. Les SUIVIS (bilan,
-réalisations) restent réservés aux référents/gestionnaires — cf. #610 et
-`TestPlanSuiviAccess`.
+qu'il soit en brouillon ou validé, sans pouvoir écrire. #740 — il consulte
+aussi les SUIVIS (bilan, réalisations), dont la saisie reste réservée aux
+référents/gestionnaires — cf. `TestPlanSuiviAccess`.
 
 Vérifie aussi le corollaire : le contenu d'un plan validé n'est PAS visible
 d'un utilisateur sans aucun lien avec ce plan.
@@ -188,37 +188,25 @@ class TestPlanContentIsolation:
 @pytest.mark.django_db
 @pytest.mark.integration
 class TestPlanSuiviAccess:
-    """#610 — les suivis (bilan, réalisations) sont réservés aux référents et
-    gestionnaires ; un simple membre lié au plan n'y accède pas."""
+    """#610 / #740 — un membre lié au plan CONSULTE les suivis (bilan,
+    réalisations) ; la saisie reste aux référents et gestionnaires
+    (cf. ``TestSuiviLectureSeuleMembres``). Un tiers n'y accède pas."""
 
-    def test_membre_non_referent_ne_voit_pas_les_realisations(self, plan_read_access_data):
+    @pytest.mark.parametrize('endpoint', ['by-plan', 'bilan', 'bilan-series'])
+    def test_membre_non_referent_lit_les_suivis(self, plan_read_access_data, endpoint):
         plan = plan_read_access_data['plan']
         response = _client(plan_read_access_data['membre']).get(
-            f'/api/plans/realisations/by-plan/{plan.id_pg}/'
+            f'/api/plans/realisations/{endpoint}/{plan.id_pg}/'
         )
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    def test_membre_non_referent_ne_voit_pas_le_bilan(self, plan_read_access_data):
-        plan = plan_read_access_data['plan']
-        response = _client(plan_read_access_data['membre']).get(
-            f'/api/plans/realisations/bilan/{plan.id_pg}/'
-        )
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-    def test_liste_realisations_scopee_hors_suivi_est_vide_pour_le_membre(
-        self, plan_read_access_data
-    ):
-        """La liste reste 200 mais ne fuit aucune réalisation (queryset scopé)."""
-        response = _client(plan_read_access_data['membre']).get('/api/plans/realisations/')
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['results'] == []
 
-    def test_membre_non_referent_ne_voit_pas_les_series_du_bilan(self, plan_read_access_data):
+    @pytest.mark.parametrize('endpoint', ['by-plan', 'bilan', 'bilan-series'])
+    def test_etranger_ne_voit_pas_les_suivis(self, plan_read_access_data, endpoint):
         plan = plan_read_access_data['plan']
-        response = _client(plan_read_access_data['membre']).get(
-            f'/api/plans/realisations/bilan-series/{plan.id_pg}/'
+        response = _client(plan_read_access_data['etranger']).get(
+            f'/api/plans/realisations/{endpoint}/{plan.id_pg}/'
         )
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
 
     def test_referent_voit_les_realisations_et_le_bilan(self, plan_read_access_data):
         plan = plan_read_access_data['plan']

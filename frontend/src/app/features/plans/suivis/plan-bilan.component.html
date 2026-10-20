@@ -45,23 +45,25 @@
               <span>{{ heroSubtitle() | uppercase }}</span>
             </div>
             <h1 class="plan-title">{{ 'plans.suivis.bilan.title' | translate }}</h1>
-            <div class="hero-actions">
-              <button class="btn-hero-primary" [matMenuTriggerFor]="genMenu">
-                <i class="fi fi-rr-download"></i>
-                <span>{{ 'plans.detail.generate' | translate }}</span>
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #genMenu="matMenu">
-                <button mat-menu-item>
-                  <i class="fi fi-rr-file-pdf"></i>
-                  <span>{{ 'plans.suivis.bilan.exportPdf' | translate }}</span>
+            @if (peutExporter()) {
+              <div class="hero-actions">
+                <button class="btn-hero-primary" [matMenuTriggerFor]="genMenu">
+                  <i class="fi fi-rr-download"></i>
+                  <span>{{ 'plans.detail.generate' | translate }}</span>
+                  <i class="fi fi-rr-angle-small-down"></i>
                 </button>
-                <button mat-menu-item>
-                  <i class="fi fi-rr-file-word"></i>
-                  <span>{{ 'plans.suivis.bilan.exportWord' | translate }}</span>
-                </button>
-              </mat-menu>
-            </div>
+                <mat-menu #genMenu="matMenu">
+                  <button mat-menu-item>
+                    <i class="fi fi-rr-file-pdf"></i>
+                    <span>{{ 'plans.suivis.bilan.exportPdf' | translate }}</span>
+                  </button>
+                  <button mat-menu-item>
+                    <i class="fi fi-rr-file-word"></i>
+                    <span>{{ 'plans.suivis.bilan.exportWord' | translate }}</span>
+                  </button>
+                </mat-menu>
+              </div>
+            }
           </div>
         </div>
       </section>
@@ -175,28 +177,30 @@
 
           <!-- #639 — export des résultats (chiffres CSV / graphiques JPG),
                filtres en cours inclus -->
-          <button class="export-link" type="button"
-                  data-testid="bilan-export"
-                  [matMenuTriggerFor]="exportMenu"
-                  [title]="'plans.suivis.bilan.export.tooltip' | translate">
-            <span>{{ 'plans.suivis.bilan.exportResults' | translate }}</span>
-            <i class="fi fi-rr-download"></i>
-          </button>
-          <mat-menu #exportMenu="matMenu">
-            <button mat-menu-item type="button"
-                    data-testid="bilan-export-csv"
-                    (click)="exportResults()">
-              <i class="fi fi-rr-file-excel"></i>
-              <span>{{ 'plans.suivis.bilan.export.csv' | translate }}</span>
+          @if (peutExporter()) {
+            <button class="export-link" type="button"
+                    data-testid="bilan-export"
+                    [matMenuTriggerFor]="exportMenu"
+                    [title]="'plans.suivis.bilan.export.tooltip' | translate">
+              <span>{{ 'plans.suivis.bilan.exportResults' | translate }}</span>
+              <i class="fi fi-rr-download"></i>
             </button>
-            <button mat-menu-item type="button"
-                    data-testid="bilan-export-charts"
-                    (click)="exportCharts()"
-                    [title]="'plans.suivis.bilan.export.chartsTooltip' | translate">
-              <i class="fi fi-rr-picture"></i>
-              <span>{{ 'plans.suivis.bilan.export.charts' | translate }}</span>
-            </button>
-          </mat-menu>
+            <mat-menu #exportMenu="matMenu">
+              <button mat-menu-item type="button"
+                      data-testid="bilan-export-csv"
+                      (click)="exportResults()">
+                <i class="fi fi-rr-file-excel"></i>
+                <span>{{ 'plans.suivis.bilan.export.csv' | translate }}</span>
+              </button>
+              <button mat-menu-item type="button"
+                      data-testid="bilan-export-charts"
+                      (click)="exportCharts()"
+                      [title]="'plans.suivis.bilan.export.chartsTooltip' | translate">
+                <i class="fi fi-rr-picture"></i>
+                <span>{{ 'plans.suivis.bilan.export.charts' | translate }}</span>
+              </button>
+            </mat-menu>
+          }
         </div>
 
         <!-- ================= ONGLET INDICATEURS ================= -->

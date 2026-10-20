@@ -527,3 +527,20 @@ describe('IndicateurSaisieComponent — effacer la saisie (#699)', () => {
     expect(html).toContain('(click)="clearSaisie()"');
   });
 });
+
+// -----------------------------------------------------------------------------
+// #740 — un utilisateur lié au plan consulte le tableau de bord sans saisir.
+// -----------------------------------------------------------------------------
+describe('IndicateurSaisieComponent — lecture seule (#740)', () => {
+  it('pas de saisie sans droit, même sur un plan validé', () => {
+    const c = comp() as any;
+    expect(c.suiviEditable('valide', false)).toBe(false);
+    expect(c.suiviEditable('valide', true)).toBe(true);
+    expect(c.suiviEditable('draft', true)).toBe(false);
+  });
+
+  it('le gabarit affiche le bandeau de consultation', () => {
+    const html = readFileSync(join(__dirname, 'indicateur-saisie.component.html'), 'utf8');
+    expect(html).toContain('plans.suivis.readOnlyBanner.title');
+  });
+});

@@ -501,6 +501,11 @@ export interface AdminPlan {
    *  statut ∈ {valide, modifie, archive} ET pas de brouillon enfant.
    *  (read-only API) */
   can_create_modification?: boolean;
+  /** #740 — volet Suivis : consultation (utilisateurs liés au plan), saisie (référents, gestionnaires). */
+  peut_voir_suivis?: boolean;
+  peut_saisir_suivis?: boolean;
+  /** Exports du plan, dont ceux du volet Suivis : référents et gestionnaires. */
+  peut_exporter?: boolean;
   surface?: number;
   gestion_partagee: boolean;
   ct88: boolean;

@@ -32,10 +32,15 @@ export class PlanSidebarComponent implements OnInit {
    *  reste visible sur TOUTES les pages du PG, pas seulement overview/paramètres/postes.
    *  Une valeur explicite (fournie par la page) court-circuite ce calcul et le fetch. */
   canManage = input<boolean | null>(null);
+  /** #740 — `peut_voir_suivis` du plan, quand la page l'a déjà chargé : évite
+   *  de relire le plan. `null` (défaut) → la sidebar le lit elle-même. */
+  peutVoirSuivis = input<boolean | null>(null);
 
   /** #578 — Référents du plan, chargés à la demande pour évaluer le droit de gestion
    *  quand aucun override n'est fourni et que le rôle seul ne suffit pas. */
   private readonly planReferentIds = signal<number[]>([]);
+  /** #740 — l'API dit si l'utilisateur consulte les suivis (membre du plan, usager d'un de ses sites). */
+  private readonly planPeutVoirSuivis = signal(false);
 
   /** Accès gestion via le rôle seul (aucune donnée du plan requise). */
   private readonly roleCanManage = computed(() =>
@@ -89,11 +94,13 @@ export class PlanSidebarComponent implements OnInit {
     return page === 'bilan' || page === 'suivi-actions' || page === 'tableau-de-bord';
   });
 
-  /** #610 — La section « Suivis » (Bilan, Suivi des actions, Tableau de bord)
-   *  est réservée aux référents du plan et gestionnaires (admin_og, super_admin,
-   *  rédacteur principal) — même audience que « Paramétrage ». Un utilisateur
-   *  simplement lié au plan (non référent) ne doit pas voir les suivis. */
-  canViewSuivis = computed(() => this.effectiveCanManage() && !this.authService.isRedacteur());
+  /** #610 / #740 — La section « Suivis » (Bilan, Suivi des actions, Tableau de
+   *  bord) s'ouvre aux référents et gestionnaires, et en LECTURE SEULE à tout
+   *  utilisateur lié au plan (membre déclaré, rattaché à un de ses sites) —
+   *  `peut_voir_suivis`, calculé par le serveur. Jamais au rédacteur externe. */
+  canViewSuivis = computed(() =>
+    !this.authService.isRedacteur()
+    && (this.effectiveCanManage() || (this.peutVoirSuivis() ?? this.planPeutVoirSuivis())));
 
   /** Les exports extraient l'intégralité du contenu du plan : ils sont réservés
    *  aux référents du plan et gestionnaires (admin_og, super_admin, rédacteur
@@ -130,15 +137,24 @@ export class PlanSidebarComponent implements OnInit {
     // #578 — Récupère les référents du plan pour déterminer le droit de gestion
     // quand aucun override n'est fourni et que le rôle seul ne suffit pas (cas
     // d'un simple utilisateur référent du plan). Évite tout fetch inutile sinon.
+    // #740 — aussi quand la page refuse la gestion (`canManage=false`) : un
+    // utilisateur lié au plan consulte tout de même les suivis.
     effect(() => {
       const planId = this.planId();
-      if (this.canManage() !== null) return; // la page fournit déjà le droit
+      if (this.canManage() === true) return;  // la page fournit déjà le droit
+      if (this.canManage() === false && this.peutVoirSuivis() !== null) return;  // idem (#740)
       if (this.roleCanManage()) return;       // rôle suffisant, référents inutiles
       if (!planId) return;
       untracked(() => {
         this.adminService.getPlan(planId).subscribe({
-          next: p => this.planReferentIds.set((p.referents || []).map(r => r.id_role)),
-          error: () => this.planReferentIds.set([]),
+          next: p => {
+            this.planReferentIds.set((p.referents || []).map(r => r.id_role));
+            this.planPeutVoirSuivis.set(!!p.peut_voir_suivis);
+          },
+          error: () => {
+            this.planReferentIds.set([]);
+            this.planPeutVoirSuivis.set(false);
+          },
         });
       });
     });

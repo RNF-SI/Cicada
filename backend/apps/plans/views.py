@@ -165,11 +165,12 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         extraire les documents.
 
         Aligné sur `can_manage_plan_lifecycle` + référent du plan, c'est-à-dire
-        sur `canManageLifecycle` côté frontend.
+        sur `canManageLifecycle` côté frontend. Règle unique :
+        :func:`apps.plans.access.user_can_export_plan` (aussi exposée sur le plan,
+        `peut_exporter`).
         """
-        if user.can_manage_plan_lifecycle():
-            return True
-        return plan.referents.filter(pk=user.pk).exists()
+        from .access import user_can_export_plan
+        return user_can_export_plan(user, plan)
 
     def _get_plan_for_export(self):
         """Retourne le plan courant après contrôle du droit d'export (403 sinon)."""

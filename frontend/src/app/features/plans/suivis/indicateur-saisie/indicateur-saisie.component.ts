@@ -70,7 +70,14 @@ export class IndicateurSaisieComponent implements OnInit {
   /** #375 — La saisie des résultats (mesures) n'est possible que sur un plan
    *  validé et actif (`valide`/`modifie`). En brouillon (plan non terminé), en
    *  workflow CSRPN ou archivé, les champs sont en lecture seule. */
-  canEnterSuivi = computed<boolean>(() => this.statusAllowsSuivi(this.planStatut()));
+  canEnterSuivi = computed<boolean>(() => this.suiviEditable(this.planStatut(), !this.lectureSeule()));
+  /** #740 — utilisateur lié au plan sans droit de saisie : il consulte les résultats. */
+  lectureSeule = signal(false);
+
+  /** Saisie ouverte : plan validé et actif (#375) ET droit de saisie (#740). */
+  suiviEditable(statut: string | null | undefined, peutSaisir: boolean): boolean {
+    return peutSaisir && this.statusAllowsSuivi(statut);
+  }
 
   /** #375 — statuts (validés et actifs) autorisant la saisie des résultats. */
   statusAllowsSuivi(statut: string | null | undefined): boolean {
@@ -479,6 +486,7 @@ export class IndicateurSaisieComponent implements OnInit {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set((plan as any).statut ?? null);
+        this.lectureSeule.set(plan.peut_saisir_suivis === false);
         const fin = planEndYear(plan);  // #672 — prolongation comprise
         if (plan.annee_debut && fin) {
           this.planYearStart.set(plan.annee_debut);

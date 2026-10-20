@@ -703,7 +703,7 @@ describe('SuiviSaisieComponent — périodicité dérivée du niveau (#609)', ()
     const fb = new FormBuilder();
     c.form = fb.group({ id_niveau_realisation: [null] });
     c.showNiveauError = signal(false);
-    c.planNotValidated = () => false;
+    c.saisieBloquee = () => false;  // #740 — verrou unique des actions (plan non validé OU consultation)
     c.snack = { open: jest.fn() };
     c.translate = { instant: (k: string) => k };
     c.realisationService = { upsert: jest.fn() };
@@ -930,7 +930,7 @@ describe('SuiviSaisieComponent — effacer la saisie (#699)', () => {
       () => c.operation()?.operation_annees?.find((o: any) => o.annee === c.selectedYear()) ?? null,
     );
     c.hasSaisieForYear = computed(() => hasSaisieRealisation(c.currentOperationAnnee()));
-    c.planNotValidated = signal(!!opts.notValidated);
+    c.saisieBloquee = signal(!!opts.notValidated);  // #740 — verrou unique des actions
     c.isSaving = signal(false);
     c.pendingGeomRealisee = signal<any>({ type: 'Point' });
     c.isEditingGeom = signal(true);
@@ -1060,5 +1060,25 @@ describe('SuiviSaisieComponent — réglages propres au suivi (#741)', () => {
     c.setReglage('cout_salarial_auto_realise', false);
     expect(post).toHaveBeenCalledWith(9, { cout_salarial_auto_realise: false });
     expect(c.salaireCalcule()).toBe(false);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #740 — un utilisateur lié au plan consulte le suivi sans pouvoir le saisir.
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — lecture seule (#740)', () => {
+  it('bloque l\'enregistrement sans droit de saisie, même plan validé', () => {
+    const c = comp() as any;
+    c.saisieBloquee = () => true;
+    c.realisationService = { upsert: jest.fn() };
+    expect(() => c.submit()).not.toThrow();
+    expect(c.realisationService.upsert).not.toHaveBeenCalled();
+  });
+
+  it('le gabarit désactive la saisie et affiche le bandeau de consultation', () => {
+    const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    expect(html).toContain('plans.suivis.readOnlyBanner.title');
+    expect(html).not.toMatch(/\[disabled\]="planNotValidated\(\)/);
+    expect(html).toMatch(/\[disabled\]="saisieBloquee\(\)/);
   });
 });

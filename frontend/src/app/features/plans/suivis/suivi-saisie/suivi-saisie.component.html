@@ -116,6 +116,15 @@
             </span>
           </div>
         </div>
+      } @else if (lectureSeule()) {
+        <!-- #740 — utilisateur lié au plan : consultation seule -->
+        <div class="lock-banner" role="status" data-testid="suivi-lecture-seule">
+          <i class="fi fi-rr-eye"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">{{ 'plans.suivis.readOnlyBanner.title' | translate }}</span>
+            <span class="lock-banner-text">{{ 'plans.suivis.readOnlyBanner.text' | translate }}</span>
+          </div>
+        </div>
       }
 
       <!-- ============================================================ -->
@@ -123,7 +132,7 @@
       <!-- ============================================================ -->
       <form [formGroup]="form" class="saisie-form" (ngSubmit)="submit()">
 
-        @if (!planNotValidated()) {
+        @if (!saisieBloquee()) {
           <p class="text-mention">{{ 'plans.suivis.saisie.requiredHint' | translate }}</p>
         }
 
@@ -221,7 +230,7 @@
                         <mat-select class="rh-target-select"
                                     [value]="rhTargetValue(ctrl)"
                                     (valueChange)="setRhTarget(ctrl, $event)"
-                                    [disabled]="planNotValidated()"
+                                    [disabled]="saisieBloquee()"
                                     [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
                           @if (rhMode() === 'organismes') {
                             @for (o of rhOrganismes(); track o.id_organisme) {
@@ -244,7 +253,7 @@
                       <mat-select class="rh-categorie-select"
                                   [value]="$safeNavigationMigration(ctrl.get('categorie_depense')?.value)"
                                   (valueChange)="setRhCategorie(ctrl, $event)"
-                                  [disabled]="planNotValidated()">
+                                  [disabled]="saisieBloquee()">
                         @for (cat of categorieDepenseOptions; track cat) {
                           <mat-option [value]="cat">
                             {{ 'plans.rh.categorieDepense.' + cat | translate }}
@@ -262,7 +271,7 @@
                              formControlName="jours" placeholder="j" />
                     </td>
                     <td class="rh-actions-col">
-                      @if (!planNotValidated()) {
+                      @if (!saisieBloquee()) {
                         <button type="button" class="rh-remove-btn"
                                 (click)="removeRhLigne(li)"
                                 [title]="'common.actions.delete' | translate">
@@ -304,7 +313,7 @@
             </table>
           }
 
-          @if (!planNotValidated()) {
+          @if (!saisieBloquee()) {
             <div class="rh-controls">
               <button type="button" mat-stroked-button class="btn-sm" (click)="addRhLigne()">
                 <i class="fi fi-rr-plus"></i>
@@ -346,7 +355,7 @@
             <app-checkbox
               [checked]="declinaisonRealise()"
               (checkedChange)="setReglage('declinaison_par_type_cout_realise', $event)"
-              [disabled]="planNotValidated() || declinaisonVerrouillee() || isSavingReglages()"
+              [disabled]="saisieBloquee() || declinaisonVerrouillee() || isSavingReglages()"
               [label]="'plans.suivis.saisie.reglages.declinaison' | translate"
               [mention]="(declinaisonVerrouillee()
                 ? 'plans.suivis.saisie.reglages.declinaisonVerrouillee'
@@ -356,7 +365,7 @@
               <app-checkbox
                 [checked]="salaireCalcule()"
                 (checkedChange)="setReglage('cout_salarial_auto_realise', $event)"
-                [disabled]="planNotValidated() || isSavingReglages()"
+                [disabled]="saisieBloquee() || isSavingReglages()"
                 [label]="'plans.suivis.saisie.reglages.coutSalarialAuto' | translate"
                 [mention]="'plans.suivis.saisie.reglages.coutSalarialAutoHint' | translate">
               </app-checkbox>
@@ -1072,7 +1081,7 @@
           </div>
           <!-- #434 — copier l'emprise prévue (emprise de l'action) comme emprise
                réalisée, puis l'ajuster. Visible seulement si une emprise est prévue. -->
-          @if (hasPlannedGeom()) {
+          @if (hasPlannedGeom() && !saisieBloquee()) {
             <div class="emprise-actions">
               <button type="button" mat-stroked-button class="btn-sm copy-planned-emprise"
                       (click)="copyPlannedEmprise()">
@@ -1095,6 +1104,7 @@
           <app-emprise-editor
             [geometry]="realisedGeom()"
             [backgroundGeometry]="plannedGeom()"
+            [disabled]="saisieBloquee()"
             [editing]="isEditingGeom()"
             (editingChange)="isEditingGeom.set($event)"
             (geometryChange)="onGeomRealiseeChange($event)">
@@ -1245,9 +1255,9 @@
         <!-- Bottom action bar -->
         <div class="bottom-actions">
           <button type="button" mat-stroked-button (click)="goBack()" [disabled]="isSaving()">
-            {{ planNotValidated() ? ('common.actions.back' | translate) : ('common.actions.cancel' | translate) }}
+            {{ saisieBloquee() ? ('common.actions.back' | translate) : ('common.actions.cancel' | translate) }}
           </button>
-          @if (!planNotValidated()) {
+          @if (!saisieBloquee()) {
             <button type="submit" mat-flat-button color="primary" [disabled]="isSaving()">
               @if (isSaving()) {
                 <mat-spinner diameter="18"></mat-spinner>

@@ -72,6 +72,15 @@
             </span>
           </div>
         </div>
+      } @else if (lectureSeule()) {
+        <!-- #740 — utilisateur lié au plan : consultation seule -->
+        <div class="lock-banner" role="status" data-testid="suivi-lecture-seule">
+          <i class="fi fi-rr-eye"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">{{ 'plans.suivis.readOnlyBanner.title' | translate }}</span>
+            <span class="lock-banner-text">{{ 'plans.suivis.readOnlyBanner.text' | translate }}</span>
+          </div>
+        </div>
       }
 
       <!-- Content -->
@@ -149,18 +158,20 @@
           </app-search-bar>
 
           <!-- #638 — export Excel du tableau, filtres et onglet courants inclus -->
-          <button class="export-btn" type="button"
-                  data-testid="tdb-export"
-                  (click)="exportTable()"
-                  [disabled]="!hasData() || isExporting()"
-                  [title]="'plans.suivis.tableauDeBord.export.tooltip' | translate">
-            <span>{{ 'plans.suivis.tableauDeBord.export.label' | translate }}</span>
-            @if (isExporting()) {
-              <mat-spinner diameter="16"></mat-spinner>
-            } @else {
-              <i class="fi fi-rr-download"></i>
-            }
-          </button>
+          @if (peutExporter()) {
+            <button class="export-btn" type="button"
+                    data-testid="tdb-export"
+                    (click)="exportTable()"
+                    [disabled]="!hasData() || isExporting()"
+                    [title]="'plans.suivis.tableauDeBord.export.tooltip' | translate">
+              <span>{{ 'plans.suivis.tableauDeBord.export.label' | translate }}</span>
+              @if (isExporting()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              } @else {
+                <i class="fi fi-rr-download"></i>
+              }
+            </button>
+          }
         </div>
 
         <!-- Légende -->

@@ -107,6 +107,10 @@ export class PlanSuiviActionsComponent implements OnInit {
     const s = this.planStatut();
     return !!s && !this.VALIDATED_STATUSES.includes(s);
   });
+  /** #740 — utilisateur lié au plan : consultation seule du suivi. */
+  lectureSeule = signal(false);
+  /** Exports réservés aux référents et gestionnaires (#740). */
+  peutExporter = signal(false);
 
   // Data
   allOperations = signal<FlatOperation[]>([]);
@@ -530,6 +534,8 @@ export class PlanSuiviActionsComponent implements OnInit {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.planStatut.set(plan.statut ?? null);
+          this.lectureSeule.set(plan.peut_saisir_suivis === false);  // #740
+          this.peutExporter.set(plan.peut_exporter === true);
           const fin = planEndYear(plan);  // #672 — prolongation comprise
           if (plan.annee_debut && fin) {
             this.planYearStart.set(plan.annee_debut);

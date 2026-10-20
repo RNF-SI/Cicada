@@ -710,7 +710,7 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
 # =============================================================================
 
 
-def _scope_realisation_queryset(queryset, user, op_path):
+def _scope_realisation_queryset(queryset, user, op_path, lecture=False):
     """
     Scope un queryset de réalisations selon le rôle de l'utilisateur,
     en passant par la chaîne `op_path` qui mène jusqu'à l'Operation.
@@ -727,6 +727,7 @@ def _scope_realisation_queryset(queryset, user, op_path):
         queryset, user,
         tuple(f'{op_path}__{path}' for path in OperationViewSet._PG_PATHS),
         extra=Q(**{f'{op_path}__id_utilisateur_ajout': user}),
+        lecture=lecture,
     )
 
 
@@ -782,8 +783,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
     }
 
     def get_queryset(self):
+        # #740 — lecture ouverte aux utilisateurs liés au plan, écriture bornée
+        # au périmètre de saisie (référents, gestionnaires).
         return _scope_realisation_queryset(
-            self.queryset, self.request.user, 'id_operation_annee__id_operation'
+            self.queryset, self.request.user, 'id_operation_annee__id_operation',
+            lecture=self.request.method in permissions.SAFE_METHODS,
         )
 
     def _plan_realisations(self, plan):
@@ -1004,10 +1008,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         peut pas être MOINS détaillé que la programmation.
         """
         operation = get_object_or_404(Operation, pk=operation_id)
+        lecture = request.method == 'GET'  # #740 — lire les réglages ≠ les modifier
         accessible = _scope_realisation_queryset(
             OperationAnnee.objects.filter(id_operation=operation), request.user, 'id_operation',
+            lecture=lecture,
         ).exists() or _scope_realisation_queryset(
             OperationAnnee.tous.filter(id_operation=operation), request.user, 'id_operation',
+            lecture=lecture,
         ).exists()
         if not accessible:
             return Response({'detail': "Vous n'avez pas accès à cette opération."},
@@ -1051,7 +1058,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
     def by_plan(self, request, plan_id=None):
         """Liste les réalisations d'un plan (toutes opérations × années)."""
         plan = get_object_or_404(PlanGestion, pk=plan_id)
-        assert_suivi_access(request.user, plan)          # #610 — suivi réservé
+        assert_suivi_access(request.user, plan, lecture=True)  # #610/#740 — lecture des suivis
         realisations = self._plan_realisations(plan)
         return Response({
             'plan_id': int(plan_id),
@@ -1176,7 +1183,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         plan = get_object_or_404(_Plan, pk=plan_id)
         # Agrégations calculées hors get_queryset() : contrôle d'accès explicite.
-        assert_suivi_access(request.user, plan)          # #610 — bilan réservé
+        assert_suivi_access(request.user, plan, lecture=True)  # #610/#740 — lecture des suivis
 
         def _compute_score(mesure, m):
             """Retourne 1-5 selon la grille de scores de la métrique, ou 0 si hors plage.
@@ -1307,7 +1314,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         from collections import defaultdict
 
         plan = get_object_or_404(PlanGestion, pk=plan_id)
-        assert_suivi_access(request.user, plan)          # #610 — bilan réservé
+        assert_suivi_access(request.user, plan, lecture=True)  # #610/#740 — lecture des suivis
 
         # Filtres optionnels
         enjeu_id = request.query_params.get('enjeu_id')
@@ -1634,7 +1641,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         plan = get_object_or_404(PlanGestion, pk=plan_id)
         # Agrégations calculées hors get_queryset() : contrôle d'accès explicite.
-        assert_suivi_access(request.user, plan)          # #610 — bilan réservé
+        assert_suivi_access(request.user, plan, lecture=True)  # #610/#740 — lecture des suivis
         enjeu_id = request.query_params.get('enjeu_id')
 
         years = plan.annees_plan()  # #672 — prolongation comprise
@@ -1784,6 +1791,7 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
         return _scope_realisation_queryset(
             self.queryset, self.request.user,
             'id_operation_annee_organisme__id_operation_annee__id_operation',
+            lecture=self.request.method in permissions.SAFE_METHODS,  # #740
         )
 
     @action(detail=False, methods=['post'], url_path='upsert')

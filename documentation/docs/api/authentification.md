@@ -36,7 +36,7 @@ S'y ajoute un **niveau d'accès**, indépendant du rôle : être **référent** 
 ## Règles transverses
 
 - **Verrouillage hors brouillon** : toute écriture sur un plan dont le statut n'est pas `draft`, ou sur l'un de ses éléments (enjeux, objectifs, indicateurs, actions, suivis, fichiers), est refusée avec `403`, quel que soit le rôle. Seules les actions de cycle de vie (`change-status`, `duplicate`, `create-evaluation`, `extend-duration`, `start-revision`…) et la gestion des sites, référents et membres restent possibles.
-- **Lecture seule élargie** : un utilisateur lié à un plan sans en être référent (membre, rattaché à un site du plan, membre d'un organisme rédacteur ou gestionnaire) consulte toute son arborescence en lecture seule.
+- **Lecture seule élargie** : un utilisateur lié à un plan sans en être référent (membre, rattaché à un site du plan, membre d'un organisme rédacteur ou gestionnaire) consulte toute son arborescence en lecture seule. Le membre du plan et l'utilisateur rattaché à l'un de ses sites consultent aussi ses suivis (bilan, réalisations) ; la saisie et les exports restent aux référents et gestionnaires.
 - **Lecture d'exploration** : un plan validé est consultable par tout utilisateur connecté depuis l'exploration des données, sans ses données sensibles (budget, ressources humaines, mesures, réalisations, fichiers, personnes). Les réponses sont alors marquées `acces_exploration: true`.
 - **Exports** : réservés aux référents du plan et aux gestionnaires (administrateur d'organisme, rédacteur général, super administrateur). Les classeurs **exemples** (`example-*-xlsx`) restent ouverts à tout utilisateur authentifié.
 - **Périmètre invisible** : un objet hors périmètre renvoie `404`, pas `403`.

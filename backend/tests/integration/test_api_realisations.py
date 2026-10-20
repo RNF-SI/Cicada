@@ -978,3 +978,73 @@ class TestRealisationNestedInOperation:
         annee_2024 = next((a for a in annees if a['annee'] == 2024), None)
         assert annee_2024 is not None
         assert annee_2024['realisation'] is None
+
+
+# =============================================================================
+# #740 — lecture seule du volet suivi pour les membres du plan
+# =============================================================================
+
+@pytest.mark.django_db
+@pytest.mark.integration
+class TestSuiviLectureSeuleMembres:
+    """#740 — membres déclarés du plan et utilisateurs rattachés à un de ses
+    sites voient tout le volet suivi, sans pouvoir le saisir. Un membre
+    référent d'un AUTRE site (``is_referent()`` vrai) n'écrit pas non plus."""
+
+    @pytest.fixture
+    def lecteurs(self, realisation_test_data):
+        from apps.plans.models import CorRolePlan
+        d = realisation_test_data
+        RealisationOperationAnneeFactory(
+            id_operation_annee=d['op_annee'], id_niveau_realisation=d['niveau_termine'])
+        membre = RoleFactory()
+        CorRolePlan.objects.create(id_role=membre, plan_de_gestion=d['plan'], referent=False)
+        # référent ailleurs : passe IsReferentOrReadOnly, doit être arrêté par le périmètre
+        CorRoleSiteFactory(id_role=membre, id_site=SiteFactory(), referent=True, referent_valid=True)
+        usager_site = RoleFactory()
+        CorRoleSiteFactory(id_role=usager_site, id_site=d['site'], referent=False)
+        return {**d, 'membre': membre, 'usager_site': usager_site}
+
+    @pytest.mark.parametrize('qui', ['membre', 'usager_site'])
+    @pytest.mark.parametrize('endpoint', ['by-plan', 'bilan', 'bilan-series'])
+    def test_lit_le_suivi(self, api_client, lecteurs, qui, endpoint):
+        api_client.force_authenticate(user=lecteurs[qui])
+        response = api_client.get(f"/api/plans/realisations/{endpoint}/{lecteurs['plan'].id_pg}/")
+        assert response.status_code == status.HTTP_200_OK
+
+    @pytest.mark.parametrize('qui', ['membre', 'usager_site'])
+    def test_liste_et_reglages_en_lecture(self, api_client, lecteurs, qui):
+        api_client.force_authenticate(user=lecteurs[qui])
+        response = api_client.get('/api/plans/realisations/')
+        assert len(response.data['results']) == 1
+        op = lecteurs['operation'].pk
+        assert api_client.get(f'/api/plans/realisations/suivi-reglages/{op}/').status_code == 200
+
+    def test_le_membre_ne_saisit_pas(self, api_client, lecteurs):
+        api_client.force_authenticate(user=lecteurs['membre'])
+        realisation = RealisationOperationAnnee.objects.get(id_operation_annee=lecteurs['op_annee'])
+        assert api_client.post('/api/plans/realisations/upsert/', {
+            'id_operation_annee': lecteurs['op_annee'].pk, 'commentaires': 'non',
+        }, format='json').status_code in (403, 404)
+        assert api_client.patch(f'/api/plans/realisations/{realisation.pk}/', {
+            'commentaires': 'non'}, format='json').status_code in (403, 404)
+        assert api_client.post(f"/api/plans/realisations/suivi-reglages/{lecteurs['operation'].pk}/", {
+            'cout_salarial_auto_realise': False}, format='json').status_code == 403
+        realisation.refresh_from_db()
+        assert realisation.commentaires != 'non'
+
+    def test_drapeaux_du_plan(self, api_client, lecteurs):
+        plan = lecteurs['plan']
+        api_client.force_authenticate(user=lecteurs['membre'])
+        data = api_client.get(f'/api/plans/plans/{plan.id_pg}/').data
+        assert (data['peut_voir_suivis'], data['peut_saisir_suivis'], data['peut_exporter']) == (
+            True, False, False)
+        api_client.force_authenticate(user=lecteurs['referent'])
+        data = api_client.get(f'/api/plans/plans/{plan.id_pg}/').data
+        assert (data['peut_voir_suivis'], data['peut_saisir_suivis'], data['peut_exporter']) == (
+            True, True, True)
+
+    def test_rien_pour_un_tiers(self, api_client, lecteurs):
+        api_client.force_authenticate(user=lecteurs['other_user'])
+        response = api_client.get(f"/api/plans/realisations/bilan/{lecteurs['plan'].id_pg}/")
+        assert response.status_code in (403, 404)

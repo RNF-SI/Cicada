@@ -77,6 +77,15 @@
             </span>
           </div>
         </div>
+      } @else if (lectureSeule()) {
+        <!-- #740 — utilisateur lié au plan : consultation seule -->
+        <div class="lock-banner" role="status" data-testid="suivi-lecture-seule">
+          <i class="fi fi-rr-eye"></i>
+          <div class="lock-banner-content">
+            <span class="lock-banner-title">{{ 'plans.suivis.readOnlyBanner.title' | translate }}</span>
+            <span class="lock-banner-text">{{ 'plans.suivis.readOnlyBanner.text' | translate }}</span>
+          </div>
+        </div>
       }
 
       <!-- Content Section -->
@@ -115,18 +124,20 @@
             </button>
           </div>
           <!-- #637 — export Excel du tableau, filtres et onglet courants inclus -->
-          <button class="export-btn" type="button"
-                  data-testid="suivi-actions-export"
-                  (click)="exportTable()"
-                  [disabled]="isExporting()"
-                  [title]="'plans.suivis.actions.export.tooltip' | translate">
-            {{ 'plans.suivis.actions.exportTable' | translate }}
-            @if (isExporting()) {
-              <mat-spinner diameter="16"></mat-spinner>
-            } @else {
-              <i class="fi fi-rr-download"></i>
-            }
-          </button>
+          @if (peutExporter()) {
+            <button class="export-btn" type="button"
+                    data-testid="suivi-actions-export"
+                    (click)="exportTable()"
+                    [disabled]="isExporting()"
+                    [title]="'plans.suivis.actions.export.tooltip' | translate">
+              {{ 'plans.suivis.actions.exportTable' | translate }}
+              @if (isExporting()) {
+                <mat-spinner diameter="16"></mat-spinner>
+              } @else {
+                <i class="fi fi-rr-download"></i>
+              }
+            </button>
+          }
         </div>
 
         <!-- Filtres (kit UI #592) — app-filter-bar + dropdowns partagés -->

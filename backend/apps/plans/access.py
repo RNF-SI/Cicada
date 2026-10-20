@@ -255,8 +255,13 @@ def assert_plan_access(user, plan, exploration=False):
 # membre ou un utilisateur lié par organisme/site n'y accède pas.
 # ---------------------------------------------------------------------------
 
-def suivi_scope_q(user) -> Q:
-    """``Q`` des plans dont ``user`` peut voir les suivis (#610).
+def suivi_scope_q(user, lecture=False) -> Q:
+    """``Q`` des plans dont ``user`` peut saisir les suivis (#610) — ou, avec
+    ``lecture=True``, les consulter (#740).
+
+    Saisie : référents du plan, référents validés d'un de ses sites, admin de
+    l'organisme gestionnaire. Lecture : en plus, tout utilisateur lié au plan —
+    membre déclaré (``CorRolePlan``) ou rattaché à un de ses sites.
 
     Ne doit pas être appelé pour un utilisateur à accès global
     (cf. :func:`has_global_plan_access`)."""
@@ -274,19 +279,25 @@ def suivi_scope_q(user) -> Q:
     if user.is_admin_organisme() and user.id_organisme_id:
         organisme = user.id_organisme
         scope |= Q(sites__site__corogsite__uuid_og=organisme)
+    if lecture:
+        scope |= (
+            Q(pk__in=CorRolePlan.objects.filter(id_role=user).values('plan_de_gestion_id')) |
+            Q(sites__site__corrolesite__id_role=user)
+        )
     return scope
 
 
-def suivi_accessible_plan_ids(user):
-    """IDs des plans dont ``user`` peut voir les suivis (``None`` si accès global)."""
+def suivi_accessible_plan_ids(user, lecture=False):
+    """IDs des plans dont ``user`` peut saisir (ou lire) les suivis (``None`` si accès global)."""
     if has_global_plan_access(user):
         return None
-    return PlanGestion.objects.filter(suivi_scope_q(user)).values('id_pg')
+    return PlanGestion.objects.filter(suivi_scope_q(user, lecture)).values('id_pg')
 
 
-def scope_suivi_by_plan(queryset, user, paths='', extra=None):
-    """Comme :func:`scope_by_plan`, mais borné au périmètre SUIVI (#610)."""
-    plan_ids = suivi_accessible_plan_ids(user)
+def scope_suivi_by_plan(queryset, user, paths='', extra=None, lecture=False):
+    """Comme :func:`scope_by_plan`, mais borné au périmètre SUIVI (#610) ;
+    ``lecture=True`` l'élargit aux utilisateurs liés au plan (#740)."""
+    plan_ids = suivi_accessible_plan_ids(user, lecture)
     if plan_ids is None:
         return queryset
 
@@ -301,16 +312,31 @@ def scope_suivi_by_plan(queryset, user, paths='', extra=None):
     return queryset.filter(scope).distinct()
 
 
-def user_can_access_suivi(user, plan) -> bool:
-    """Vrai si ``user`` peut voir les suivis du plan (#610)."""
+def user_can_access_suivi(user, plan, lecture=False) -> bool:
+    """Vrai si ``user`` peut saisir les suivis du plan (#610) — ou les lire (#740)."""
     if has_global_plan_access(user):
         return True
-    return PlanGestion.objects.filter(pk=plan.pk).filter(suivi_scope_q(user)).exists()
+    return PlanGestion.objects.filter(pk=plan.pk).filter(suivi_scope_q(user, lecture)).exists()
 
 
-def assert_suivi_access(user, plan):
-    """Lève une 403 si ``user`` n'a pas accès aux suivis du plan (#610)."""
-    if not user_can_access_suivi(user, plan):
+def assert_suivi_access(user, plan, lecture=False):
+    """Lève une 403 si ``user`` n'a pas accès aux suivis du plan (#610, #740)."""
+    if not user_can_access_suivi(user, plan, lecture):
         raise PermissionDenied(
-            "Les suivis de ce plan sont réservés à ses référents et gestionnaires."
+            "Les suivis de ce plan sont réservés aux utilisateurs liés au plan."
+            if lecture else
+            "La saisie des suivis de ce plan est réservée à ses référents et gestionnaires."
         )
+
+
+def user_can_export_plan(user, plan) -> bool:
+    """Droit d'exporter le contenu du plan : ses référents et les gestionnaires.
+
+    Les exports extraient l'intégralité du contenu du plan (documents rédigés,
+    classeurs, budget, RH, suivis) : un utilisateur simplement lié au plan le
+    consulte en lecture seule (#610, #740) sans pouvoir l'extraire. Aligné sur
+    ``canManageLifecycle`` côté frontend.
+    """
+    if user.can_manage_plan_lifecycle():
+        return True
+    return plan.referents.filter(pk=user.pk).exists()

@@ -1,6 +1,6 @@
 # 3.6. Consulter les plans de gestion
 
-Le module « **Mes plans de gestion** » permet d'accéder aux plans de gestion auxquels vous avez accès via la liste de la page d'accueil du module. En tant qu'utilisateur, vous consultez les plans **en lecture seule** : vous ne pouvez pas les modifier, mais vous accédez à toute leur richesse (enjeux, objectifs, actions, indicateurs) mais pas à leur suivi.
+Le module « **Mes plans de gestion** » permet d'accéder aux plans de gestion auxquels vous avez accès via la liste de la page d'accueil du module. En tant qu'utilisateur, vous consultez les plans **en lecture seule** : vous ne pouvez pas les modifier, mais vous accédez à toute leur richesse (enjeux, objectifs, actions, indicateurs). Si vous êtes membre du plan ou rattaché à l'un de ses sites, vous consultez aussi tout son suivi (menu « Suivis » : tableau de bord, suivi des actions, bilan), sans pouvoir le saisir ni l'exporter.
 
 !!! tip ""
 

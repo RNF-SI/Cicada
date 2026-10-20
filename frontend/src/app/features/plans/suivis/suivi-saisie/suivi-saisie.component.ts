@@ -111,6 +111,10 @@ export class SuiviSaisieComponent implements OnInit {
     const s = this.planStatut();
     return !!s && !this.VALIDATED_STATUSES.includes(s);
   });
+  /** #740 — utilisateur lié au plan sans droit de saisie : il consulte le suivi. */
+  lectureSeule = signal(false);
+  /** Saisie impossible : plan non validé (#379) ou consultation seule (#740). */
+  saisieBloquee = computed(() => this.planNotValidated() || this.lectureSeule());
 
   // -------- Data --------
   operation = signal<Operation | null>(null);
@@ -968,6 +972,7 @@ export class SuiviSaisieComponent implements OnInit {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);
+        this.lectureSeule.set(plan.peut_saisir_suivis === false);
         this.planYearStart.set(plan.annee_debut ?? null);
         this.planYearEnd.set(planEndYear(plan));  // #672
         // #560 — postes du PG, pour la saisie / ré-attribution du RH réalisé.
@@ -1247,7 +1252,7 @@ export class SuiviSaisieComponent implements OnInit {
    * FormArrays). À rappeler après chaque (ré)hydratation.
    */
   private applyReadOnlyLock(): void {
-    if (this.planNotValidated()) {
+    if (this.saisieBloquee()) {
       this.form.disable({ emitEvent: false });
     }
   }
@@ -1580,7 +1585,7 @@ export class SuiviSaisieComponent implements OnInit {
   clearSaisie(): void {
     const oa = this.currentOperationAnnee();
     const idOa = oa?.id_operation_annee;
-    if (this.planNotValidated() || !oa || !idOa) return;
+    if (this.saisieBloquee() || !oa || !idOa) return;
     const year = this.selectedYear();
     const data: ConfirmDialogData = {
       title: this.translate.instant('plans.suivis.saisie.clear.title', { year }),
@@ -1632,8 +1637,8 @@ export class SuiviSaisieComponent implements OnInit {
   }
 
   submit(quit = false): void {
-    // #379 — interdire toute sauvegarde si le plan n'est pas validé.
-    if (this.planNotValidated()) {
+    // #379 / #740 — ni plan non validé, ni consultation seule.
+    if (this.saisieBloquee()) {
       return;
     }
     // #609 — le niveau de réalisation est obligatoire pour enregistrer.

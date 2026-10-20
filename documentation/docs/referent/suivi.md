@@ -1,6 +1,6 @@
 # 4.9. Le suivi du plan de gestion
 
-Le menu « Suivis » propose trois vues complémentaires : « Tableau de bord », « Suivi des actions » et « Bilan ». Elles sont réservées aux référents du plan, aux rédacteurs généraux et aux administrateurs. **La saisie du suivi n'est possible que lorsque le plan est validé (ou modifié).**
+Le menu « Suivis » propose trois vues complémentaires : « Tableau de bord », « Suivi des actions » et « Bilan ». Les référents du plan, les rédacteurs généraux et les administrateurs les saisissent. Les membres du plan et les utilisateurs rattachés à l'un de ses sites les consultent en lecture seule (un bandeau « Consultation seule » le rappelle), sans boutons d'export ; le rédacteur externe n'y a pas accès. **La saisie du suivi n'est possible que lorsque le plan est validé (ou modifié).**
 
 ## 4.9.1. Le tableau de bord et le suivi des indicateurs état et pression
 

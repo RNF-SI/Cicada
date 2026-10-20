@@ -103,6 +103,8 @@ export class PlanBilanComponent implements OnInit {
   planId = signal<number | null>(null);
   planSlug = signal<string | null>(null);
   planNom = signal<string>('');
+  /** Exports réservés aux référents et gestionnaires (#740 : les autres consultent). */
+  peutExporter = signal(false);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
 
@@ -691,6 +693,7 @@ export class PlanBilanComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
+          this.peutExporter.set(plan.peut_exporter === true);
           this.loadBilan(plan.id_pg);
           // Onglet Indicateurs par défaut (Figma) → précharger les agrégations.
           this.loadBilanIndicateurs();

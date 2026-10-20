@@ -34,7 +34,7 @@ Une action peut être enregistrée sans validation des champs obligatoires (`sta
 | `/api/plans/realisations-organismes/`, `…/upsert/` | Ventilation par organisme du réalisé |
 | `GET …/bilan/{plan_id}/`, `…/bilan-indicateurs/{plan_id}/`, `…/bilan-series/{plan_id}/` | Agrégations du **Bilan de la gestion** : budget et jours prévus / réalisés, taux de réalisation, répartition des scores, séries par année ; filtrables par `?enjeu_id=` et par portée (global, mi-parcours, annuel) |
 
-Le suivi n'est saisissable que sur un plan `valide` ou `modifie`, par ses référents et les gestionnaires. Un rédacteur externe n'y accède jamais.
+Le suivi n'est saisissable que sur un plan `valide` ou `modifie`, par ses référents et les gestionnaires. Les membres du plan et les utilisateurs rattachés à l'un de ses sites le consultent en lecture seule (méthodes `GET`). Le détail du plan l'indique avec `peut_voir_suivis`, `peut_saisir_suivis` et `peut_exporter`. Un rédacteur externe n'y accède jamais.
 
 ## Inventaires et suivis scientifiques
 

@@ -2261,6 +2261,10 @@
       "reassignError": "Erreur lors de la réassignation"
     },
     "suivis": {
+      "readOnlyBanner": {
+        "title": "Consultation seule",
+        "text": "Vous consultez le suivi de ce plan. Sa saisie est réservée aux référents du plan et aux gestionnaires."
+      },
       "notValidatedBanner": {
         "title": "Plan de gestion non validé",
         "text": "Pas de modification possible tant que votre plan de gestion n'est pas validé."

@@ -255,6 +255,42 @@ describe('PlanSidebarComponent', () => {
     });
   });
 
+  describe('#740 — suivis en lecture seule pour un utilisateur lié au plan', () => {
+    it('affiche les suivis à un membre du plan, sans droit de gestion', () => {
+      mockAdminService.getPlan.mockReturnValue(of({ referents: [], peut_voir_suivis: true }));
+      componentRef.setInput('planId', 40);
+      fixture.detectChanges();
+      expect(component.effectiveCanManage()).toBe(false);
+      expect(component.canViewSuivis()).toBe(true);
+      expect(component.canViewExports()).toBe(false);
+    });
+
+    it('même quand la page impose canManage=false', () => {
+      mockAdminService.getPlan.mockReturnValue(of({ referents: [], peut_voir_suivis: true }));
+      componentRef.setInput('canManage', false);
+      componentRef.setInput('planId', 41);
+      fixture.detectChanges();
+      expect(component.canViewSuivis()).toBe(true);
+    });
+
+    it('prend `peutVoirSuivis` de la page sans relire le plan', () => {
+      mockAdminService.getPlan.mockClear();
+      componentRef.setInput('canManage', false);
+      componentRef.setInput('peutVoirSuivis', true);
+      componentRef.setInput('planId', 43);
+      fixture.detectChanges();
+      expect(component.canViewSuivis()).toBe(true);
+      expect(mockAdminService.getPlan).not.toHaveBeenCalled();
+    });
+
+    it('masque les suivis sans lien avec le plan', () => {
+      mockAdminService.getPlan.mockReturnValue(of({ referents: [], peut_voir_suivis: false }));
+      componentRef.setInput('planId', 42);
+      fixture.detectChanges();
+      expect(component.canViewSuivis()).toBe(false);
+    });
+  });
+
   // #583 — La section « Paramétrage » (Paramètres, Postes/RH) est le premier
   // item du menu, au-dessus de « Vue d'ensemble » qui redevient une entrée plate.
   describe('menu order (#583)', () => {
@@ -350,12 +386,12 @@ describe('PlanSidebarComponent', () => {
       expect(mockAdminService.getPlan).not.toHaveBeenCalled();
     });
 
-    it('honours an explicit canManage override (false) without fetching the plan', () => {
-      mockAdminService.getPlan.mockClear();
+    it('honours an explicit canManage override (false)', () => {
+      // #740 — le plan est tout de même lu : un non-gestionnaire lié au plan
+      // consulte les suivis (`peut_voir_suivis`), l'override n'en dit rien.
       componentRef.setInput('canManage', false);
       fixture.detectChanges();
       expect(component.effectiveCanManage()).toBe(false);
-      expect(mockAdminService.getPlan).not.toHaveBeenCalled();
     });
 
     it('grants management to an admin/super admin from role alone (no plan fetch)', () => {

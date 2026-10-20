@@ -153,7 +153,13 @@
           </div>
 
           <!-- #375 — saisie des résultats verrouillée tant que le plan n'est pas validé. -->
-          @if (!canEnterSuivi()) {
+          @if (lectureSeule()) {
+            <!-- #740 — utilisateur lié au plan : consultation seule -->
+            <div class="readonly-banner" data-testid="suivi-lecture-seule">
+              <i class="fi fi-rr-eye"></i>
+              <span><strong>{{ 'plans.suivis.readOnlyBanner.title' | translate }}</strong> — {{ 'plans.suivis.readOnlyBanner.text' | translate }}</span>
+            </div>
+          } @else if (!canEnterSuivi()) {
             <div class="readonly-banner">
               <i class="fi fi-rr-lock"></i>
               <span>{{ 'plans.suivis.indicateur.readonlyNotValidated' | translate }}</span>

@@ -385,6 +385,10 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     is_in_csrpn_workflow = serializers.SerializerMethodField()
     has_draft_child = serializers.SerializerMethodField()
     can_create_modification = serializers.SerializerMethodField()
+    # #740 — volet Suivis : lecture (utilisateurs liés au plan) / saisie (référents, gestionnaires)
+    peut_voir_suivis = serializers.SerializerMethodField()
+    peut_saisir_suivis = serializers.SerializerMethodField()
+    peut_exporter = serializers.SerializerMethodField()
     next_rang_plan_id = serializers.IntegerField(source='next_rang_plan.id_pg', read_only=True, allow_null=True)
     next_rang_plan_nom = serializers.CharField(source='next_rang_plan.nom', read_only=True, allow_null=True)
     next_rang_plan_slug = serializers.SlugField(source='next_rang_plan.slug', read_only=True, allow_null=True)
@@ -417,6 +421,31 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     # Absent : le premier de la liste.
     organisme_redacteur_principal_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     organismes_redacteurs_list = serializers.SerializerMethodField(read_only=True)
+
+    def _suivi_access(self, obj, lecture):
+        from .access import user_can_access_suivi
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user is None or not user.is_authenticated:
+            return False
+        return user_can_access_suivi(user, obj, lecture=lecture)
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_peut_voir_suivis(self, obj):
+        """#740 — l'utilisateur consulte le volet Suivis (bilan, suivi des actions, tableau de bord)."""
+        return self._suivi_access(obj, lecture=True)
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_peut_saisir_suivis(self, obj):
+        """#740 — l'utilisateur saisit les suivis (sinon : lecture seule)."""
+        return self._suivi_access(obj, lecture=False)
+
+    @extend_schema_field(OpenApiTypes.BOOL)
+    def get_peut_exporter(self, obj):
+        """Exports du plan (dont ceux du volet Suivis) : référents et gestionnaires."""
+        from .access import user_can_export_plan
+        user = getattr(self.context.get('request'), 'user', None)
+        return bool(user and user.is_authenticated and user_can_export_plan(user, obj))
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_peut_etre_etendu(self, obj):
@@ -553,6 +582,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'validation_step', 'validation_step_display', 'is_in_csrpn_workflow',
             'date_validation_comite', 'date_arrete_pref', 'numero_arrete_pref',
             'has_draft_child', 'can_create_modification',
+            'peut_voir_suivis', 'peut_saisir_suivis', 'peut_exporter',
             'next_rang_plan_id', 'next_rang_plan_nom', 'next_rang_plan_slug',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_avis_csrpn', 'id_docgestion_fcen',
