@@ -214,24 +214,40 @@
             <div class="summary-cards">
             <div class="summary-card">
               <span class="summary-label">{{ 'plans.suivis.actionGlobal.budgetTotal' | translate }}</span>
-              <div class="summary-value">
-                <span class="summary-prev">{{ budgetTotal().prev | number:'1.0-0':'fr-FR' }} €</span>
-                <span class="summary-real">
-                  {{ 'plans.suivis.actionGlobal.realise' | translate }} :
-                  {{ budgetTotal().real | number:'1.0-0':'fr-FR' }} €
-                </span>
-              </div>
+              <!-- #699 — prévu et réalisé étiquetés, même poids : le prévu seul
+                   en gras se lisait comme du réalisé. -->
+              <dl class="summary-value">
+                <div class="summary-line">
+                  <dt>{{ 'plans.suivis.actionGlobal.prevu' | translate }}</dt>
+                  <dd>{{ budgetTotal().prev | number:'1.0-0':'fr-FR' }} €</dd>
+                </div>
+                <div class="summary-line">
+                  <dt>{{ 'plans.suivis.actionGlobal.realise' | translate }}</dt>
+                  @if (budgetTotal().real != null) {
+                    <dd>{{ budgetTotal().real | number:'1.0-0':'fr-FR' }} €</dd>
+                  } @else {
+                    <dd class="non-saisi">{{ 'plans.suivis.actionGlobal.nonSaisi' | translate }}</dd>
+                  }
+                </div>
+              </dl>
             </div>
 
             <div class="summary-card">
               <span class="summary-label">{{ 'plans.suivis.actionGlobal.rhTotal' | translate }}</span>
-              <div class="summary-value">
-                <span class="summary-prev">{{ etpTotal().prev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
-                <span class="summary-real">
-                  {{ 'plans.suivis.actionGlobal.realise' | translate }} :
-                  {{ etpTotal().real | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
-                </span>
-              </div>
+              <dl class="summary-value">
+                <div class="summary-line">
+                  <dt>{{ 'plans.suivis.actionGlobal.prevu' | translate }}</dt>
+                  <dd>{{ etpTotal().prev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</dd>
+                </div>
+                <div class="summary-line">
+                  <dt>{{ 'plans.suivis.actionGlobal.realise' | translate }}</dt>
+                  @if (etpTotal().real != null) {
+                    <dd>{{ etpTotal().real | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</dd>
+                  } @else {
+                    <dd class="non-saisi">{{ 'plans.suivis.actionGlobal.nonSaisi' | translate }}</dd>
+                  }
+                </div>
+              </dl>
             </div>
             </div>
           </div>
@@ -263,8 +279,11 @@
               <tr>
                 <th>{{ 'plans.suivis.actionGlobal.year' | translate }}</th>
                 <th>{{ 'plans.suivis.actionGlobal.niveau' | translate }}</th>
-                <th>{{ 'plans.suivis.actionGlobal.budgetPrevReal' | translate }}</th>
-                <th>{{ 'plans.suivis.actionGlobal.rhPrevReal' | translate }}</th>
+                <!-- #699 — prévu et réalisé en colonnes distinctes. -->
+                <th class="num">{{ 'plans.suivis.actionGlobal.budgetPrev' | translate }}</th>
+                <th class="num">{{ 'plans.suivis.actionGlobal.budgetReal' | translate }}</th>
+                <th class="num">{{ 'plans.suivis.actionGlobal.rhPrev' | translate }}</th>
+                <th class="num">{{ 'plans.suivis.actionGlobal.rhReal' | translate }}</th>
               </tr>
             </thead>
             <tbody>
@@ -280,17 +299,25 @@
                       <img [src]="getActionIcon(st)" class="action-status-icon" alt="">
                     } @else { — }
                   </td>
-                  <td>
+                  <td class="num">
                     @if (row.budgetPrev == null) { — } @else { {{ row.budgetPrev | number:'1.0-0':'fr-FR' }} € }
-                    <small>/ {{ row.budgetReal | number:'1.0-0':'fr-FR' }} €</small>
                   </td>
-                  <td>
-                    @if (row.etpPrev == null) { — } @else { {{ row.etpPrev | number:'1.0-1':'fr-FR' }} }
-                    <small>/ {{ row.etpReal | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</small>
+                  <td class="num">
+                    @if (row.budgetReal == null) {
+                      <span class="non-saisi">{{ 'plans.suivis.actionGlobal.nonSaisi' | translate }}</span>
+                    } @else { {{ row.budgetReal | number:'1.0-0':'fr-FR' }} € }
+                  </td>
+                  <td class="num">
+                    @if (row.etpPrev == null) { — } @else { {{ row.etpPrev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }} }
+                  </td>
+                  <td class="num">
+                    @if (row.etpReal == null) {
+                      <span class="non-saisi">{{ 'plans.suivis.actionGlobal.nonSaisi' | translate }}</span>
+                    } @else { {{ row.etpReal | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }} }
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="4" class="empty-row">{{ 'plans.suivis.actionGlobal.noYears' | translate }}</td></tr>
+                <tr><td colspan="6" class="empty-row">{{ 'plans.suivis.actionGlobal.noYears' | translate }}</td></tr>
               }
             </tbody>
           </table>

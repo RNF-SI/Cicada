@@ -218,9 +218,15 @@
 .summary-label {
   font-size: 0.8rem; color: $gray-dark; text-transform: uppercase; letter-spacing: 0.5px;
 }
-.summary-value { display: flex; flex-direction: column; gap: 2px; }
-.summary-prev { font-size: 1.3rem; font-weight: 700; color: $black; }
-.summary-real { font-size: 0.85rem; color: $gray-dark; }
+.summary-value { display: flex; flex-direction: column; gap: $spacing-xxs; margin: 0; }
+// #699 — prévu et réalisé au même poids, chacun étiqueté.
+.summary-line {
+  display: flex; align-items: baseline; justify-content: space-between; gap: $spacing-md;
+  dt { font-size: 0.85rem; color: $gray-dark; }
+  dd { margin: 0; font-size: 1.15rem; font-weight: 700; color: $black; }
+  dd.non-saisi { font-size: 0.85rem; font-weight: 400; color: $gray-dark; }
+}
+.non-saisi { font-size: 0.85rem; font-weight: 400; font-style: italic; color: $gray-dark; }
 .summary-empty { color: $gray; }
 
 .table-wrapper { overflow-x: auto; }
@@ -238,14 +244,15 @@
     text-align: left;
     padding: $spacing-sm $spacing-md;
     font-size: 0.85rem;
+    &.num { text-align: right; }
   }
   tbody td {
     padding: $spacing-sm $spacing-md;
     border-bottom: 1px solid $primary-bg-subtle;
     font-size: $font-size-base;
     color: $black;
-    small { color: $gray-dark; }
   }
+  .num { text-align: right; white-space: nowrap; }
   .year-cell a { color: $primary-color; font-weight: 600; text-decoration: underline; }
   .empty-row { text-align: center; color: $gray; }
 }

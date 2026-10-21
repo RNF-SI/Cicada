@@ -139,3 +139,56 @@ describe('ActionGlobalComponent — budget et temps de travail (#616)', () => {
     expect(row.etpPrev).toBe(4);
   });
 });
+
+// ===========================================================================
+// #699 — après « Effacer la saisie », l'année gardait son prévu en gras et un
+// réalisé à 0 : on lisait le prévu comme du réalisé. Une année sans suivi
+// affiche « non saisi » (null), distinct d'un réalisé saisi à 0.
+// ===========================================================================
+describe('ActionGlobalComponent — prévu / réalisé non confondus (#699)', () => {
+  function action(realisee: boolean): Operation {
+    return {
+      id_operation: 44, libelle: 'Action', ventilation_mode: 'none',
+      declinaison_par_type_cout: false,
+      operation_annees: [
+        {
+          annee: 2026, periodicite: true, budget: '1000.00', etp: null, periodicite_mensuelle: {},
+          rh_lignes: [{ id_poste: 1, jours: '5.00', finance: true, categorie_depense: 'fonctionnement', poste_cout_jour: '0.00' }],
+          realisation: realisee ? { budget_realise: '0.00', rh_lignes: [] } : null,
+          organismes: [{ id_organisme: 1, realisation: null }],
+        },
+        {
+          annee: 2027, periodicite: true, budget: '2000.00', etp: null, periodicite_mensuelle: {},
+          rh_lignes: [{ id_poste: 1, jours: '3.00', finance: true, categorie_depense: 'fonctionnement', poste_cout_jour: '0.00' }],
+          realisation: null,
+        },
+      ],
+    } as unknown as Operation;
+  }
+
+  it('année effacée : réalisé « non saisi » (null), prévu conservé', () => {
+    const c = setup({ navigate: jest.fn() });
+    c.operation.set(action(false));
+
+    const [r2026, r2027] = c.yearRows();
+    expect(r2026.budgetPrev).toBe(1000);
+    expect(r2026.budgetReal).toBeNull();
+    expect(r2026.etpPrev).toBe(5);
+    expect(r2026.etpReal).toBeNull();
+    expect(r2027.budgetReal).toBeNull();
+    // Aucun suivi saisi sur la période : le total réalisé n'est pas « 0 ».
+    expect(c.budgetTotal()).toEqual({ prev: 3000, real: null });
+    expect(c.etpTotal()).toEqual({ prev: 8, real: null });
+  });
+
+  it('un réalisé saisi à 0 reste 0, distinct de « non saisi »', () => {
+    const c = setup({ navigate: jest.fn() });
+    c.operation.set(action(true));
+
+    const [r2026, r2027] = c.yearRows();
+    expect(r2026.budgetReal).toBe(0);
+    expect(r2026.etpReal).toBe(0);
+    expect(r2027.budgetReal).toBeNull();
+    expect(c.budgetTotal()).toEqual({ prev: 3000, real: 0 });
+  });
+});

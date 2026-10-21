@@ -14,7 +14,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Operation, OperationAnnee, Mesure } from '../../../../core/models/enjeu.model';
 import {
-  ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear
+  ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear, hasSaisieRealisation,
 } from '../action-status.util';
 import { computeMetriqueScore, computeCombinedScore, scoreLevelName } from '../metrique-seuils.util';
 import {
@@ -26,9 +26,16 @@ interface YearRow {
   status: ActionStatus | null;
   /** `null` : action programmée globalement, pas de prévu annuel (#735). */
   budgetPrev: number | null;
-  budgetReal: number;
+  /** `null` : aucun suivi saisi pour l'année (« non saisi », distinct de 0 — #699). */
+  budgetReal: number | null;
   etpPrev: number | null;
-  etpReal: number;
+  etpReal: number | null;
+}
+
+/** Somme des réalisés saisis ; `null` si aucune année n'a de suivi (#699). */
+function sumSaisis(values: (number | null)[]): number | null {
+  const saisis = values.filter((v): v is number => v != null);
+  return saisis.length ? saisis.reduce((a, b) => a + b, 0) : null;
 }
 
 interface ResponseIndicator {
@@ -182,17 +189,22 @@ export class ActionGlobalComponent implements OnInit {
     const globale = !!op.programmation_globale;
     return [...(op.operation_annees || [])]
       .sort((a, b) => a.annee - b.annee)
-      .map(oa => ({
+      .map(oa => {
+        const saisi = hasSaisieRealisation(oa);
+        return {
         annee: oa.annee,
         status: getActionStatusForYear(op, oa.annee),
         // #616 — budget et temps de travail DÉRIVÉS de ce qui est réellement
         // saisi (détail des coûts, lignes RH), sinon les modes « + type de
         // poste » et les suivis n'apparaissaient jamais dans les totaux.
         budgetPrev: globale ? null : yearBudgetPrev(op, oa).total ?? 0,
-        budgetReal: yearBudgetReal(op, oa).total ?? 0,
+        // #699 — année sans suivi (jamais saisie ou effacée) : « non saisi »,
+        // pour ne pas lire un 0 à côté du prévu comme une réalisation.
+        budgetReal: saisi ? yearBudgetReal(op, oa).total ?? 0 : null,
         etpPrev: globale ? null : yearJoursPrev(oa, true) ?? 0,
-        etpReal: yearJoursReal(oa) ?? 0,
-      }));
+        etpReal: saisi ? yearJoursReal(oa) ?? 0 : null,
+        };
+      });
   });
 
   // #735 — le prévu se lit sur les lignes qui le portent (`prevAnnees`) : la
@@ -202,7 +214,7 @@ export class ActionGlobalComponent implements OnInit {
     const rows = this.yearRows();
     return {
       prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearBudgetPrev(op, oa).total ?? 0), 0) : 0,
-      real: rows.reduce((s, r) => s + r.budgetReal, 0),
+      real: sumSaisis(rows.map(r => r.budgetReal)),
     };
   });
 
@@ -211,7 +223,7 @@ export class ActionGlobalComponent implements OnInit {
     const rows = this.yearRows();
     return {
       prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearJoursPrev(oa, true) ?? 0), 0) : 0,
-      real: rows.reduce((s, r) => s + r.etpReal, 0),
+      real: sumSaisis(rows.map(r => r.etpReal)),
     };
   });
 
