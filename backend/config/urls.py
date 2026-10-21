@@ -20,7 +20,7 @@ def health_check(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/health/', health_check, name='health_check'),
-    # Schéma OpenAPI + Swagger UI (authentifiés). La documentation statique
+    # Schéma OpenAPI + Swagger UI, ouverts sans connexion (#750). La documentation statique
     # servie sous /aide/ embarque une copie du schéma (documentation/docs/api/).
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

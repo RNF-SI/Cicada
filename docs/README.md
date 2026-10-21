@@ -103,7 +103,7 @@ Point d'entrée : **[Infrastructure](../documentation/docs/administration/infras
 - **Projet GitHub** : https://github.com/RNF-SI/Cicada
 - **Issues** : https://github.com/RNF-SI/Cicada/issues
 - **Admin Django** : http://localhost:8000/admin/
-- **API Swagger** : http://localhost:8000/api/schema/swagger/ *(à venir)*
+- **API Swagger** : http://localhost:8000/api/docs/ (schéma : http://localhost:8000/api/schema/)
 
 ---
 

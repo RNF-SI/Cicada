@@ -317,11 +317,15 @@ SPECTACULAR_SETTINGS = {
         'drf_spectacular.hooks.postprocess_schema_enums',
         'config.spectacular.resume_depuis_description',
     ],
-    'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAuthenticated'],
+    # #750 — Swagger UI (/api/docs/) et le schéma s'ouvrent sans connexion : le
+    # navigateur n'envoie jamais le JWT de l'application à cette page, qui
+    # répondait toujours 401. Le schéma est déjà public dans /aide/api/ ; les
+    # appels, eux, restent protégés (jeton saisi dans « Authorize »).
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
     'COMPONENT_SPLIT_REQUEST': True,
     'SCHEMA_PATH_PREFIX': r'/api/',
     'SCHEMA_PATH_PREFIX_TRIM': False,
-    'SWAGGER_UI_SETTINGS': {'docExpansion': 'list', 'filter': True},
+    'SWAGGER_UI_SETTINGS': {'docExpansion': 'list', 'filter': True, 'persistAuthorization': True},
     # Plusieurs modèles ont un champ `statut` avec des choix différents : sans
     # nom explicite, drf-spectacular génère `Statut9e9Enum` / `Statut35dEnum`.
     'ENUM_NAME_OVERRIDES': {
