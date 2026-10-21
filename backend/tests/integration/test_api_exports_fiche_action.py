@@ -369,35 +369,42 @@ class TestExportFicheActionProgrammationMensuelle:
         assert ws.cell(debut + 2, 1).value != 'Périodicité'
 
     @pytest.mark.parametrize('n_annees, attendu', [
-        (1, 12), (2, 12), (3, 12), (4, 12), (5, 60), (6, 12), (10, 60), (12, 12),
+        (1, 12), (2, 12), (5, 12), (10, 12), (11, 12), (12, 12), (13, 13), (20, 20),
     ])
     def test_colonnes_de_donnees(self, n_annees, attendu):
-        """#721 — ppcm(nb années, 12) : années et mois tombent juste."""
+        """#721 (retour 21/10) — une colonne par année ou par mois : max(n, 12),
+        et non plus ppcm(n, 12) (132 colonnes pour un plan de 11 ans)."""
         assert fiche._data_columns(n_annees) == attendu
 
     def test_plan_de_5_ans_douze_mois_sur_une_ligne(self):
-        """#721 — retour de recette : Janv → Déc sur une seule ligne, sous le
-        même bandeau que les 5 années du bloc budgétaire."""
+        """#721 — Janv → Déc sur une seule ligne ; une colonne par année et par
+        mois, sans fusion : la feuille garde un nombre de colonnes raisonnable."""
         ws = self._export(2024, 2028, annee={'3': True, '4': True, '5': True})
         debut = next(r for r in range(1, ws.max_row + 1)
                      if ws.cell(r, 1).value == 'Programmation mensuelle')
 
-        en_tete = [ws.cell(debut, c).value for c in range(4, ws.max_column + 1)]
-        assert [v for v in en_tete if v] == MOIS
-        coches = [ws.cell(debut + 1, c).value for c in range(4, ws.max_column + 1)]
+        assert ws.max_column == 3 + 12
+        assert [ws.cell(debut, c).value for c in range(4, 16)] == MOIS
+        coches = [ws.cell(debut + 1, c).value for c in range(4, 16)]
         assert coches.count('x') == 3
         assert ws.cell(debut + 2, 1).value != 'Périodicité'
 
-        # Les années occupent toute la largeur des 12 mois.
         prog = next(r for r in range(1, ws.max_row + 1)
                     if ws.cell(r, 1).value == 'Programmation annuelle')
-        annees = [(ws.cell(prog, c).value, c) for c in range(4, ws.max_column + 1)
-                  if ws.cell(prog, c).value]
-        assert [a for a, _ in annees] == [2024, 2025, 2026, 2027, 2028]
-        fusions = {(m.min_row, m.min_col): m.max_col for m in ws.merged_cells.ranges}
-        assert fusions[(prog, annees[-1][1])] == ws.max_column
-        assert fusions[(debut, max(c for c in range(4, ws.max_column + 1)
-                                   if ws.cell(debut, c).value))] == ws.max_column
+        assert [ws.cell(prog, c).value for c in range(4, 9)] == [2024, 2025, 2026, 2027, 2028]
+        # Ni années ni mois ne fusionnent de colonnes : seule la place laissée
+        # libre à droite des 5 années forme une case vide.
+        fusions = {(m.min_row, m.min_col, m.max_col) for m in ws.merged_cells.ranges
+                   if m.min_col >= 4 and m.min_row in (prog, debut, debut + 1)}
+        assert fusions == {(prog, 9, 15)}
+
+    def test_plan_de_11_ans_douze_colonnes(self):
+        """#721 — retour de recette : un plan 2023-2033 produisait 132 colonnes."""
+        ws = self._export(2023, 2033, annee={'6': True})
+        assert ws.max_column == 3 + 12
+        prog = next(r for r in range(1, ws.max_row + 1)
+                    if ws.cell(r, 1).value == 'Programmation annuelle')
+        assert [ws.cell(prog, c).value for c in range(4, 15)] == list(range(2023, 2034))
 
     def test_impression_tient_en_largeur(self):
         ws = self._export(2024, 2028)

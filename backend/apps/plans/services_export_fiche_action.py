@@ -566,25 +566,23 @@ def _cadre(op):
 class _Writer:
     def __init__(self, ws, ncols):
         self.ws = ws
-        # Nb total de colonnes : 3 colonnes de libellé + une grille de données
-        # fine (cf. `_data_columns`), où années et mois fusionnent chacun leur
-        # part de colonnes.
+        # Nb total de colonnes : 3 colonnes de libellé + la zone de données
+        # (cf. `_data_columns`) : une colonne par année, une par mois.
         self.ncols = ncols
         self.r = 1
 
     def span(self, i, n):
-        """Colonnes (début, fin) de la i-ème des n cases égales de la zone de
-        données (colonnes 4..ncols) — une année parmi n, ou un mois parmi 12."""
-        size = (self.ncols - 3) // n
-        start = 4 + i * size
-        return start, start + size - 1
+        """Colonnes (début, fin) de la i-ème des n cases de la zone de données
+        (colonnes 4..ncols) — une année ou un mois occupe une colonne (#721)."""
+        return 4 + i, 4 + i
 
     def put(self, i, n, value):
-        """Écrit `value` dans la i-ème des n cases de la zone de données,
-        fusionnée sur sa part de colonnes ; rend la cellule maîtresse."""
-        c1, c2 = self.span(i, n)
-        if c2 > c1:
-            self.ws.merge_cells(start_row=self.r, start_column=c1, end_row=self.r, end_column=c2)
+        """Écrit `value` dans la i-ème des n cases de la zone de données ;
+        les colonnes restées vides à droite sont fusionnées en une case."""
+        c1, _ = self.span(i, n)
+        if i == n - 1 and c1 < self.ncols:
+            self.ws.merge_cells(start_row=self.r, start_column=c1 + 1,
+                                end_row=self.r, end_column=self.ncols)
         return self.ws.cell(self.r, c1, value)
 
     def section(self, text):
@@ -803,16 +801,14 @@ def _data_columns(n_years):
     """Nombre de colonnes de la zone de données.
 
     #721 — les années (bloc budgétaire) et les 12 mois (programmation
-    mensuelle) doivent chacun tenir sur une seule ligne, alignés sur la même
-    largeur. La zone compte donc ppcm(nb années, 12) colonnes étroites : une
-    année en fusionne `D / nb années`, un mois `D / 12`."""
-    return math.lcm(max(n_years, 1), 12)
+    mensuelle) tiennent chacun sur une seule ligne, une colonne par année et
+    par mois : max(nb années, 12). (Le ppcm de la première version produisait
+    132 colonnes étroites pour un plan de 11 ans.)"""
+    return max(n_years, 12)
 
 
-# Largeur (en caractères) d'une année, et minimum d'un mois — « Avril » doit
-# rester lisible même pour un plan court (#721).
-_YEAR_WIDTH = 11
-_MONTH_MIN_WIDTH = 6
+# Largeur (en caractères) d'une colonne d'année ou de mois.
+_COL_WIDTH = 11
 
 
 def _render_action(ws, op, years, *, is_cs, code_local=""):
@@ -826,9 +822,8 @@ def _render_action(ws, op, years, *, is_cs, code_local=""):
     ws.column_dimensions["A"].width = 30
     ws.column_dimensions["B"].width = 16
     ws.column_dimensions["C"].width = 16
-    total = max(_YEAR_WIDTH * len(years), _MONTH_MIN_WIDTH * 12)
     for i in range(n_data):
-        ws.column_dimensions[get_column_letter(4 + i)].width = round(total / n_data, 2)
+        ws.column_dimensions[get_column_letter(4 + i)].width = _COL_WIDTH
     # #721 — l'impression tient en largeur de page (hauteur libre).
     ws.sheet_properties.pageSetUpPr.fitToPage = True
     ws.page_setup.fitToWidth = 1
