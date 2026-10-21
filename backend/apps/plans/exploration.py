@@ -63,6 +63,8 @@ CLES_SENSIBLES = frozenset({
     'realisation', 'realisations',
     'niveau_realisation_global_mnemonique', 'niveau_realisation_global_label',
     'niveau_realisation_global_manuel', 'niveau_realisation_global_commentaire',
+    # Réglages du suivi (#741, #752)
+    'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
 })
 
 CLE_ACCES = 'acces_exploration'
