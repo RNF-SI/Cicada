@@ -395,6 +395,10 @@ jobs:
         working-directory: ./documentation
         run: mkdocs build --strict
 
+      # #744 — Swagger UI s'affiche en iframe : l'Apache du conteneur doit l'autoriser sous /aide/
+      - name: Check documentation frame headers
+        run: sh scripts/check-doc-frame-headers.sh documentation/site
+
   build:
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-tests, typecheck]

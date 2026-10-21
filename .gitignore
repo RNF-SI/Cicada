@@ -109,6 +109,7 @@ scripts/*
 !scripts/sync-version.sh
 !scripts/generate-sbom.sh
 !scripts/export-openapi.sh
+!scripts/check-doc-frame-headers.sh
 
 # Packages Debian
 cicada_*.deb
