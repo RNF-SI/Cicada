@@ -25,6 +25,10 @@ if [ ! -d "$DEB_DIR" ]; then
     exit 1
 fi
 
+# Le code Python du paquet ne se teste nulle part ailleurs : pas de paquet
+# sans ces vérifications (0.1.56 à 0.1.58 livrées avec un installateur cassé).
+"$SCRIPT_DIR/check-installer.sh"
+
 # Créer le répertoire de build
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"

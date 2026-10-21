@@ -67,6 +67,8 @@ VERSION=0.1.13 TRACKING_API_URL="https://tracking.cicada.reserves-naturelles.org
 
 Le fichier généré est `packaging/build/cicada_0.1.13_amd64.deb`.
 
+`build-deb.sh` lance d'abord `packaging/check-installer.sh` (pyflakes sur le code Python du paquet, puis déroulé de l'installateur web pour chaque configuration du formulaire) et refuse de construire le paquet en cas d'échec. La même vérification tourne en CI (job `installer-check`). Elle existe parce que les versions 0.1.56 à 0.1.58 ont été livrées avec un installateur qui plantait au clic sur « Installer ».
+
 ## 4. Publier sur le dépôt APT
 
 Sur le serveur qui héberge le dépôt APT (`apt.cicada.reserves-naturelles.org`), en root.

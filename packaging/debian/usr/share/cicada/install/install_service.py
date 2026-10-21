@@ -165,7 +165,7 @@ class InstallService:
             self.update_status('in_progress', 'Enregistrement de l\'instance (optionnel)...')
             try:
                 self.register_instance(data)
-            except Exception as e:
+            except Exception:
                 # Ne jamais bloquer l'installation si l'API est indisponible
                 # L'enregistrement pourra se faire plus tard via le heartbeat
                 pass
@@ -264,6 +264,12 @@ class InstallService:
         db_host = data.get('db_host', 'db')
         db_port = data.get('db_port', 5432)
         db_type = data.get('db_type', 'docker')
+
+        try:
+            frontend_port = int(data.get('frontend_port', 80))
+        except (TypeError, ValueError):
+            frontend_port = 80
+        use_traefik = data.get('use_traefik') in (True, 'true', '1')
 
         site_url, direct_url = public_urls(data)
         # L'accès direct par le port reste autorisé : c'est par lui que l'on
