@@ -208,8 +208,11 @@
                 <tr>
                   <th class="rh-target-col">{{ 'plans.suivis.saisie.rh.target' | translate }}</th>
                   <!-- #615 — catégorie de dépense (menu déroulant), comme dans la
-                       saisie de l'action, à la place de la case « Financé ». -->
+                       saisie de l'action, à la place de la case « Financé ».
+                       #735 — seulement si le mode ventile par type de budget. -->
+                  @if (showRhCategorie()) {
                   <th class="rh-categorie-col">{{ 'plans.rh.colCategorie' | translate }}</th>
+                  }
                   @if (!isGlobale()) {
                     <th class="rh-num-col">{{ 'plans.suivis.saisie.rh.prevu' | translate }}</th>
                   }
@@ -249,6 +252,7 @@
                     </td>
                     <!-- #615 — la nature de la dépense se choisit dans un menu
                          déroulant ; « financé » en est dérivé pour les sous-totaux. -->
+                    @if (showRhCategorie()) {
                     <td class="rh-categorie-col">
                       <mat-select class="rh-categorie-select"
                                   [value]="$safeNavigationMigration(ctrl.get('categorie_depense')?.value)"
@@ -261,6 +265,7 @@
                         }
                       </mat-select>
                     </td>
+                    }
                     @if (!isGlobale()) {
                       <td class="rh-num-col rh-plan-cell">
                         {{ formatNumber($safeNavigationMigration(ctrl.get('plan_jours')?.value), ' j') }}
@@ -336,17 +341,30 @@
           <!-- #735 — action programmée globalement : pas de prévu par année, un
                seul rappel du prévu de la période face au réalisé cumulé. -->
           @if (prevuPeriode(); as p) {
-            <div class="info-block prevu-periode" data-testid="prevu-periode">
-              <p class="text-bold">{{ 'plans.suivis.saisie.globale.title' | translate:{ periode: periodeLabel() } }}</p>
-              <p>
-                {{ 'plans.suivis.saisie.globale.prevu' | translate:{ budget: formatNumber(p.budget, ' €'), jours: formatNumber(p.jours, ' j') } }}
-                @if (p.invest) {
-                  ({{ 'plans.suivis.saisie.globale.split' | translate:{ fonct: formatNumber(p.fonct, ' €'), invest: formatNumber(p.invest, ' €') } }})
-                }
+            <!-- #735 (retour 21/10) — deux tuiles côte à côte (prévu de la
+                 période / réalisé cumulé), libellé au-dessus du montant :
+                 lisible sans remise à la ligne au milieu d'une valeur. -->
+            <section class="prevu-periode" data-testid="prevu-periode">
+              <div class="prevu-periode__tiles">
+                <div class="prevu-periode__tile">
+                  <span class="prevu-periode__label">{{ 'plans.suivis.saisie.globale.prevuLabel' | translate:{ periode: periodeLabel() } }}</span>
+                  <span class="prevu-periode__value">{{ formatNumber(p.budget, ' €') }}</span>
+                  <span class="prevu-periode__sub">{{ formatNumber(p.jours, ' j') }}</span>
+                  @if (showInvest() && p.invest) {
+                    <span class="prevu-periode__sub">{{ 'plans.suivis.saisie.globale.split' | translate:{ fonct: formatNumber(p.fonct, ' €'), invest: formatNumber(p.invest, ' €') } }}</span>
+                  }
+                </div>
+                <div class="prevu-periode__tile">
+                  <span class="prevu-periode__label">{{ 'plans.suivis.saisie.globale.realiseLabel' | translate }}</span>
+                  <span class="prevu-periode__value">{{ formatNumber(realiseCumule().budget, ' €') }}</span>
+                  <span class="prevu-periode__sub">{{ formatNumber(realiseCumule().jours, ' j') }}</span>
+                </div>
+              </div>
+              <p class="text-mention prevu-periode__hint">
+                <i class="fi fi-rr-info" aria-hidden="true"></i>
+                {{ 'plans.suivis.saisie.globale.hint' | translate }}
               </p>
-              <p>{{ 'plans.suivis.saisie.globale.realise' | translate:{ budget: formatNumber(realiseCumule().budget, ' €'), jours: formatNumber(realiseCumule().jours, ' j') } }}</p>
-              <p class="text-mention">{{ 'plans.suivis.saisie.globale.hint' | translate }}</p>
-            </div>
+            </section>
           }
 
           <!-- #741 — réglages du tableau budgétaire propres au suivi : valables

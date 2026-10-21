@@ -244,8 +244,10 @@
               <thead>
                 <tr>
                   <th>{{ 'plans.suivis.actions.fiche.coutComposant' | translate }}</th>
-                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
-                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
+                  @if (showTypeBudget()) {
+                    <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
+                    <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
+                  }
                   <th class="num">{{ 'plans.suivis.actions.fiche.budget' | translate }}</th>
                 </tr>
               </thead>
@@ -253,8 +255,10 @@
                 @for (row of coutDetail().rows; track row.key) {
                   <tr>
                     <td>{{ 'plans.suivis.actions.fiche.' + row.key | translate }}</td>
-                    <td class="num">{{ row.fonct | number:'1.0-2' }} €</td>
-                    <td class="num">{{ row.invest | number:'1.0-2' }} €</td>
+                    @if (showTypeBudget()) {
+                      <td class="num">{{ row.fonct | number:'1.0-2' }} €</td>
+                      <td class="num">{{ row.invest | number:'1.0-2' }} €</td>
+                    }
                     <td class="num">{{ row.fonct + row.invest | number:'1.0-2' }} €</td>
                   </tr>
                 }
@@ -262,8 +266,10 @@
               <tfoot>
                 <tr>
                   <td>{{ 'plans.suivis.actions.fiche.total' | translate }}</td>
-                  <td class="num">{{ coutDetail().totalFonct | number:'1.0-2' }} €</td>
-                  <td class="num">{{ coutDetail().totalInvest | number:'1.0-2' }} €</td>
+                  @if (showTypeBudget()) {
+                    <td class="num">{{ coutDetail().totalFonct | number:'1.0-2' }} €</td>
+                    <td class="num">{{ coutDetail().totalInvest | number:'1.0-2' }} €</td>
+                  }
                   <td class="num">{{ coutDetail().totalFonct + coutDetail().totalInvest | number:'1.0-2' }} €</td>
                 </tr>
               </tfoot>
@@ -277,8 +283,10 @@
               <thead>
                 <tr>
                   <th>{{ 'plans.suivis.actions.fiche.organisme' | translate }}</th>
-                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
-                  <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
+                  @if (showTypeBudget()) {
+                    <th class="num">{{ 'plans.suivis.actions.fiche.budgetFonctionnement' | translate }}</th>
+                    <th class="num">{{ 'plans.suivis.actions.fiche.budgetInvestissement' | translate }}</th>
+                  }
                   <th class="num">{{ 'plans.suivis.actions.fiche.budget' | translate }}</th>
                 </tr>
               </thead>
@@ -286,8 +294,10 @@
                 @for (o of organismeBreakdown(); track o.nom) {
                   <tr>
                     <td>{{ o.nom }}</td>
-                    <td class="num">{{ o.fonctionnement | number:'1.0-2' }} €</td>
-                    <td class="num">{{ o.investissement | number:'1.0-2' }} €</td>
+                    @if (showTypeBudget()) {
+                      <td class="num">{{ o.fonctionnement | number:'1.0-2' }} €</td>
+                      <td class="num">{{ o.investissement | number:'1.0-2' }} €</td>
+                    }
                     <td class="num">{{ o.budget | number:'1.0-2' }} €</td>
                   </tr>
                 }
@@ -303,7 +313,9 @@
               <thead>
                 <tr>
                   <th>{{ 'plans.suivis.actions.fiche.rhCible' | translate }}</th>
-                  <th>{{ 'enjeux.operations.rh.colCategorie' | translate }}</th>
+                  @if (showTypeBudget()) {
+                    <th>{{ 'enjeux.operations.rh.colCategorie' | translate }}</th>
+                  }
                   <th class="num">{{ 'plans.suivis.actions.fiche.jours' | translate }}</th>
                 </tr>
               </thead>
@@ -316,23 +328,25 @@
                         <span class="fiche-sublabel">{{ r.organisme }}</span>
                       }
                     </td>
-                    <td>{{ 'plans.rh.categorieDepense.' + r.categorie | translate }}</td>
+                    @if (showTypeBudget()) {
+                      <td>{{ 'plans.rh.categorieDepense.' + r.categorie | translate }}</td>
+                    }
                     <td class="num">{{ r.jours | number:'1.0-2' }}</td>
                   </tr>
                 }
               </tbody>
               <tfoot>
                 <tr>
-                  <td colspan="2">{{ 'plans.suivis.actions.fiche.total' | translate }}</td>
+                  <td [attr.colspan]="showTypeBudget() ? 2 : 1">{{ 'plans.suivis.actions.fiche.total' | translate }}</td>
                   <td class="num">{{ totalJours() != null ? (totalJours() | number:'1.0-2') : '—' }}</td>
                 </tr>
                 @if (hasRhNonFinance()) {
                   <tr>
-                    <td colspan="2">{{ 'plans.rh.finance' | translate }}</td>
+                    <td [attr.colspan]="showTypeBudget() ? 2 : 1">{{ 'plans.rh.finance' | translate }}</td>
                     <td class="num">{{ totalJoursFinance() | number:'1.0-2' }}</td>
                   </tr>
                   <tr>
-                    <td colspan="2">{{ 'plans.rh.nonFinance' | translate }}</td>
+                    <td [attr.colspan]="showTypeBudget() ? 2 : 1">{{ 'plans.rh.nonFinance' | translate }}</td>
                     <td class="num">{{ totalJoursNonFinance() | number:'1.0-2' }}</td>
                   </tr>
                 }

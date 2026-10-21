@@ -8,7 +8,7 @@ import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { Subject, of, throwError } from 'rxjs';
 import { FormBuilder, FormControl, FormGroup, Validators } from '@angular/forms';
-import { salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
+import { rhModeFor, salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
 import {
   OperationFormComponent,
   buildResponseTypeOptions,
@@ -79,11 +79,10 @@ function createComponentInstance(): OperationFormComponent {
     const m = (comp as any).ventilationMode();
     return m === 'by_type_poste' || m === 'by_org_type_poste';
   });
-  (comp as any).rhMode = computed(() => {
-    if ((comp as any).isPosteVentilation() || (comp as any).declinaisonParPoste()) return 'postes';
-    const mode = (comp as any).ventilationMode();
-    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
-  });
+  (comp as any).rhMode = computed(() => rhModeFor(
+    (comp as any).ventilationMode(), (comp as any).declinaisonParTypeCout(),
+    (comp as any).declinaisonParPoste(),
+  ));
   (comp as any).directTotalMode = computed(() => (comp as any).ventilationMode() === 'none');
   (comp as any).selectedSiteIdsVersion = signal(0);
   (comp as any).planSites = signal([
@@ -421,11 +420,13 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(comp.getOrgInvestTotal(0, 100)).toBe(450);
     });
 
-    it('#600 — l\'option « coût salarial automatique » n\'existe que par type de poste', () => {
-      comp.onModeToggle('by_type');
-      expect((comp as any).showCoutSalarialOption()).toBe(false);
-      comp.onModeToggle('by_org_type');
-      expect((comp as any).showCoutSalarialOption()).toBe(false);
+    it('#735 (retour 21/10) — l\'option « coût salarial automatique » vaut pour tous les modes détaillés', () => {
+      // Détailler les coûts décline le temps par poste : il y a un coût jour.
+      for (const mode of ['none', 'by_org', 'by_type', 'by_org_type']) {
+        comp.onModeToggle(mode);
+        expect((comp as any).showCoutSalarialOption()).toBe(true);
+        expect((comp as any).rhMode()).toBe('postes');
+      }
 
       comp.onModeToggle('by_type_poste');
       expect((comp as any).showCoutSalarialOption()).toBe(true);
@@ -437,21 +438,31 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect((comp as any).showCoutSalarialOption()).toBe(false);
     });
 
-    it('#600 — par type de budget SANS type de poste : coût salarial toujours saisi', () => {
-      comp.onModeToggle('by_type');
+    it('#735 (retour 21/10) — sans ventilation, coûts détaillés : temps par poste et coût salarial calculé', () => {
+      comp.onModeToggle('none');
       comp.postes.set([{ id_poste: 5, id_pg: 1, id_organisme: 100, cout_jour: 300, nombre: 1 } as any]);
       comp.rhLines = [{
         id_poste: 5, id_organisme: null, finance: true,
         categorie_depense: 'fonctionnement', jours: { 0: 10 }, derived: true,
       }];
+      expect((comp as any).coutSalarialCalcule()).toBe(true);
+      expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(3000);
 
-      // La case reste cochée (valeur par défaut) mais ne s'applique pas :
-      // sans poste décliné, les 10 j × 300 € ne valorisent rien.
-      expect((comp as any).coutSalarialAuto()).toBe(true);
-      expect((comp as any).coutSalarialCalcule()).toBe(false);
-
+      // Décochée : saisi à la main.
+      (comp as any).coutSalarialAuto.set(false);
       comp.updateTypeCoutSalarial(0, '1 200');
       expect(comp.getTypeCoutSalarial(0, 'fonctionnement')).toBe(1200);
+    });
+
+    it('#735 (retour 21/10) — cocher la déclinaison réaligne le tableau de temps sur les postes', () => {
+      (comp as any).declinaisonParTypeCout.set(false);
+      comp.onModeToggle('by_org');
+      expect((comp as any).rhMode()).toBe('organismes');
+      comp.setRhJours(0, 0, '6');
+      comp.onDeclinaisonTypeCoutToggle(true);
+      expect((comp as any).rhMode()).toBe('postes');
+      // Les temps saisis par organisme ne sont pas perdus (lignes héritées).
+      expect(comp.rhLines.some(l => l.id_organisme === 100)).toBe(true);
     });
 
     it('coût salarial manuel : idem sans déclinaison par organisme', () => {
@@ -501,6 +512,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     // `declinaison_par_poste` rechargé du serveur bloquait le tableau RH sur
     // les postes quel que soit le nouveau mode choisi.
     it('libère la déclinaison par poste quand on quitte un mode « + type de poste »', () => {
+      // #735 — sans déclinaison par type de coût (cochée, elle déclinerait le
+      // temps par poste dans tous les modes).
+      (comp as any).declinaisonParTypeCout.set(false);
       comp.onModeToggle('by_type_poste');
       expect((comp as any).declinaisonParPoste()).toBe(true);
       expect(comp.rhMode()).toBe('postes');
@@ -515,6 +529,7 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
 
     it('réaligne une déclinaison héritée du serveur sur le mode choisi', () => {
       // État rechargé : declinaison_par_poste=true mais mode sans poste.
+      (comp as any).declinaisonParTypeCout.set(false);
       (comp as any).declinaisonParPoste.set(true);
       (comp as any).ventilationMode.set('by_type_poste');
       expect(comp.rhMode()).toBe('postes');
@@ -1366,6 +1381,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     beforeEach(() => {
       comp.rhLines = [];
       (comp as any).declinaisonParPoste.set(false);
+      // #735 — coûts non détaillés : le temps n'est décliné par poste que par
+      // la case dédiée (sinon global ou par organisme).
+      (comp as any).declinaisonParTypeCout.set(false);
       (comp as any).ventilationMode.set('none');
       (comp as any).postes.set([
         { id_poste: 1, libelle: 'Conservateur', organisme_nom: 'RNF', finance_par_defaut: true },

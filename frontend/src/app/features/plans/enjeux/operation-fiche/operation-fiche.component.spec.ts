@@ -126,10 +126,10 @@ describe('OperationFicheComponent — grilles/blocs des indicateurs (#516)', () 
 });
 
 describe('OperationFicheComponent — programmation détaillée (#556)', () => {
-  function operationWithAnnees(annees: any[]): Operation {
+  function operationWithAnnees(annees: any[], extra: Record<string, unknown> = {}): Operation {
     return {
       id_operation: 42, libelle: 'Action test',
-      metriques: [], operation_annees: annees, finances: [],
+      metriques: [], operation_annees: annees, finances: [], ...extra,
     } as unknown as Operation;
   }
 
@@ -147,7 +147,8 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
         budget_fonctionnement: 200, budget_investissement: 50,
         rh_lignes: [{ id_poste: 1, poste_libelle: 'Garde', jours: 2, finance: true }],
       },
-    ]));
+      // #735 — la distinction n'existe que si le mode ventile par type de budget.
+    ], { ventilation_mode: 'by_type', declinaison_par_type_cout: false }));
     const c = fixture.componentInstance;
     expect(c.hasBudgetTypes()).toBe(true);
     const row = c.programmation()[0];
@@ -168,7 +169,7 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
         annee: 2024, periodicite: true,
         budget_fonctionnement: '200.00', budget_investissement: '50.00',
       },
-    ]));
+    ], { ventilation_mode: 'by_type', declinaison_par_type_cout: false }));
     const c = fixture.componentInstance;
     const row = c.programmation()[0];
     expect(row.fonctionnement).toBe(200);
@@ -195,7 +196,9 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
           poste_cout_jour: '300.00',
         }],
       },
-    ]));
+      // #735 — coûts non détaillés : sinon le temps (par poste) porterait un
+      // coût salarial calculé qui entrerait dans le budget.
+    ], { ventilation_mode: 'none', declinaison_par_type_cout: false }));
     const c = fixture.componentInstance;
     // mode « totaux directs » : le salarial n'est pas un mode « par poste »,
     // mais il est valorisé (4 × 300 = 1200) et affiché dans le détail…
@@ -769,5 +772,53 @@ describe('OperationFicheComponent — rédacteur externe (#700)', () => {
     expect(el.textContent).not.toContain('plans.suivis.actions.fiche.voirSuivi');
     // La saisie reste possible.
     expect(el.textContent).toContain('common.actions.edit');
+  });
+});
+
+describe('OperationFicheComponent — #735 (retour 21/10) sans type de budget', () => {
+  function op(mode: string, annees: any[], extra: Record<string, unknown> = {}): Operation {
+    return {
+      id_operation: 7, libelle: 'Action', metriques: [], finances: [],
+      ventilation_mode: mode, declinaison_par_type_cout: true, cout_salarial_auto: false,
+      operation_annees: annees, ...extra,
+    } as unknown as Operation;
+  }
+  const annee = (over: Record<string, unknown> = {}) => ({
+    annee: 2026, periodicite: true, cout_salarial: '1000.00', cout_stage: '200.00',
+    organismes: [],
+    rh_lignes: [{ id_poste: 5, poste_libelle: 'Garde', poste_cout_jour: '300.00', jours: 4,
+      finance: true, categorie_depense: 'fonctionnement' }],
+    ...over,
+  });
+
+  it('« Pas de ventilation » : ni fonctionnement / investissement, ni catégorie du temps de travail', () => {
+    const fixture = setup(op('none', [annee()]));
+    const c = fixture.componentInstance;
+    expect(c.showTypeBudget()).toBe(false);
+    expect(c.hasBudgetTypes()).toBe(false);
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).not.toContain('plans.suivis.actions.fiche.budgetFonctionnement');
+    expect(text).not.toContain('plans.suivis.actions.fiche.budgetInvestissement');
+    expect(text).not.toContain('enjeux.operations.rh.colCategorie');
+    expect(text).not.toContain('plans.rh.categorieDepense.fonctionnement');
+    // Le détail des coûts reste, en une seule colonne.
+    expect(text).toContain('plans.suivis.actions.fiche.coutDetailTitle');
+  });
+
+  it('« Par organisme » : répartition par organisme sans fonctionnement / investissement', () => {
+    const fixture = setup(op('by_org', [annee({
+      cout_salarial: null, cout_stage: null,
+      organismes: [{ id_organisme: 1, organisme_nom: 'RNF', cout_salarial: '800.00', autre_cout: '100.00' }],
+    })]));
+    const text: string = fixture.nativeElement.textContent;
+    expect(text).toContain('plans.suivis.actions.fiche.repartitionOrganismes');
+    expect(text).not.toContain('plans.suivis.actions.fiche.budgetFonctionnement');
+  });
+
+  it('« Par type de budget » garde la distinction', () => {
+    const fixture = setup(op('by_type', [annee({ budget_fonctionnement: '100.00', budget_investissement: '50.00' })],
+      { declinaison_par_type_cout: false }));
+    expect(fixture.componentInstance.showTypeBudget()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('plans.suivis.actions.fiche.budgetInvestissement');
   });
 });

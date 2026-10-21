@@ -928,6 +928,14 @@ class Operation(models.Model):
         ov = self.realisation_globale_override
         if ov is not None and ov.cout_salarial_auto_realise is not None:
             return ov.cout_salarial_auto_realise
+        # #735 — programmation sans temps par poste (coûts non détaillés, hors
+        # modes « + type de poste ») : sa case est sans objet, et le temps n'y
+        # a pas de coût jour. Le réalisé détaillé au seul suivi part donc en
+        # coût salarial saisi, sauf choix contraire au suivi.
+        if not (self.declinaison_par_type_cout
+                or self.declinaison_par_poste
+                or self.ventilation_mode in self.VENTILATION_POSTE_MODES):
+            return False
         return self.cout_salarial_auto
 
     def get_niveau_realisation_global_commentaire(self):

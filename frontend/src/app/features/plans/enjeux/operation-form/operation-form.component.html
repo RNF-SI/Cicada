@@ -812,7 +812,9 @@
                                 @if (rhMode() === 'global') {
                                   <!-- Temps total, sans cible (#580). -->
                                   <span class="rh-line-label">{{ 'enjeux.operations.rh.globalRowLabel' | translate }}</span>
-                                } @else if (line.derived) {
+                                } @else if (line.derived || (rhMode() === 'postes' && line.id_poste == null && line.id_organisme != null)) {
+                                  <!-- #735 — ligne de référence, ou temps saisi par organisme
+                                       avant le passage aux coûts détaillés : cible fixe. -->
                                   <!-- Ligne de référence : la cible est fixe. -->
                                   <span class="rh-line-label">{{ rhLineLabel(line) }}</span>
                                   @if (rhMode() === 'postes' && rhLineSubLabel(line)) {
@@ -928,7 +930,7 @@
                     <div class="budget-options">
                       <app-checkbox
                         [checked]="declinaisonParTypeCout()"
-                        (checkedChange)="declinaisonParTypeCout.set($event)"
+                        (checkedChange)="onDeclinaisonTypeCoutToggle($event)"
                         [disabled]="isReadOnly()"
                         [label]="'enjeux.operations.budgetOptions.declinaisonTypeCout' | translate"
                         [mention]="(showInvest()

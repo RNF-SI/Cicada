@@ -59,12 +59,14 @@ Pour chaque année, vous pouvez renseigner :
 - **Les opérateurs et financeurs** effectifs de l'année ;
 - **Le temps de travail réalisé** (saisi avant le budget, car il calcule le coût salarial), puis le **budget réalisé**. Deux cases, au-dessus du tableau du budget, règlent sa saisie pour **toutes les années de l'action**, indépendamment de la programmation :
     - « **Déclinaison par type de coût** » : détaille le réalisé en coût salarial, stage, prestataire et autres coûts, même si l'action a été programmée en totaux (le prévu n'est alors rappelé qu'en totaux). Si la programmation est déclinée par type de coût, la case est cochée et ne peut pas être décochée ;
-    - « **Saisie automatique du coût salarial** » (modes « + type de poste ») : décochée, le coût salarial réalisé se saisit à la main, même si la programmation le calculait — le coût jour réel diffère souvent du prévu ;
+    - « **Saisie automatique du coût salarial** » (dès que le réalisé est décliné par type de coût) : décochée, le coût salarial réalisé se saisit à la main, même si la programmation le calculait — le coût jour réel diffère souvent du prévu ;
 - Un commentaire, l'emprise réalisée (le bouton « Copier l'emprise prévue » reprend l'emprise programmée) et les valeurs des indicateurs de réponse.
 
 Les onglets d'années couvrent toute la durée du plan : saisir une année non prévue enregistre une action réalisée non prévue.
 
-Pour une action **programmée globalement sur sa période** (voir [§ 4.8.1](actions.md#481-la-saisie-dune-action-de-gestion)), le réalisé se saisit toujours année par année, mais le tableau ne rappelle pas de prévu par année : un encadré au-dessus du tableau donne le budget et le temps de travail prévus pour la période, face au réalisé enregistré toutes années confondues. Dans les onglets Budget et RH du suivi des actions, son prévu ne compte que dans la colonne du total du plan.
+Pour une action **programmée globalement sur sa période** (voir [§ 4.8.1](actions.md#481-la-saisie-dune-action-de-gestion)), le réalisé se saisit toujours année par année, mais le tableau ne rappelle pas de prévu par année : deux encadrés au-dessus du tableau donnent le budget et le temps de travail prévus pour la période, face au réalisé enregistré toutes années confondues.
+
+Comme à la saisie de l'action, la catégorie de dépense du temps réalisé (fonctionnement, investissement, bénévolat partenariat) n'est demandée que si le mode de ventilation inclut le type de budget. Dans les onglets Budget et RH du suivi des actions, son prévu ne compte que dans la colonne du total du plan.
 
 La page globale d'une action récapitule sa réalisation, son budget et son temps de travail année par année. Le bouton « Ajuster manuellement la réalisation » permet de forcer la réalisation globale et d'ajouter un commentaire global.
 
@@ -83,7 +85,7 @@ La page globale d'une action récapitule sa réalisation, son budget et son temp
 Le « **Bilan de la gestion** » **synthétise les résultats du suivi du plan de gestion**, selon trois temporalités : Global, Mi-parcours (première moitié du plan) ou Annuel (une année choisie), et peut être filtré par enjeu / FCR. Les différents graphiques ou chiffres clefs sont générés automatiquement en fonction des éléments de suivi saisis (suivi des indicateurs via le tableau de bord et suivi des actions de gestion).
 
 - **Onglet Indicateurs** : répartition des scores, évaluation des indicateurs, évolution de la moyenne (avec minimum, maximum et écart-type) et graphique radar par enjeu.
-- **Onglet Actions** : budget prévisionnel et réel (fonctionnement, investissement), jours de RH, taux de réalisation, niveau de réalisation par catégorie d'action, par enjeu et par année.
+- **Onglet Actions** : budget prévisionnel et réel (détaillé en fonctionnement et investissement si au moins une action du plan ventile par type de budget), jours de RH, taux de réalisation, niveau de réalisation par catégorie d'action, par enjeu et par année.
 - « **Exporter les résultats** » : les résultats chiffrés (fichier CSV, lisible dans Excel) ou les graphiques (image JPG), selon les filtres en cours.
 
 <figure markdown="span">

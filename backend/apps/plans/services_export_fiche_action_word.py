@@ -39,7 +39,7 @@ from docx.shared import Cm, Pt, RGBColor
 from . import export_theme
 from . import services_export_fiche_action as fiche
 from .services_export_finance import (
-    build_action_finance, poste_entry_factory, with_global_year, year_label,
+    GLOBAL_YEAR, build_action_finance, poste_entry_factory, year_label,
 )
 
 _txt = fiche._txt
@@ -239,8 +239,9 @@ def _write_multiline(cell, value):
 # ---------------------------------------------------------------------------
 
 def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
-    # #735 — colonne « période » pour une action programmée globalement.
-    years = with_global_year(years, [op])
+    # #735 — une action programmée globalement n'a pas de colonne « période »
+    # dans la programmation annuelle : son volet financier a la sienne.
+    years = [y for y in years if y is not GLOBAL_YEAR]
     prio = op.id_priorite.label if op.id_priorite_id else ""
     d.title(_txt(op.libelle), prio)
 
@@ -315,45 +316,19 @@ def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
     org_names: dict = {}
     af = build_action_finance(op, org_names, defaultdict(poste_entry_factory))
 
-    def line(label, cell_for, attr, fmt=_euro, style=None):
-        return (label, [fmt(getattr(cell_for(y), attr)) for y in years], style)
-
-    def cost_rows(title, cell_for):
-        return [
-            (title, [], "banner"),
-            line("Travail prévisionnel (jours) — fonctionnement", cell_for, "j_fonct", _jours),
-            line("Coût salarial — fonctionnement", cell_for, "sal_fonct"),
-            line("Coût prestataire — fonctionnement", cell_for, "prest_fonct"),
-            line("Autres coûts de fonctionnement", cell_for, "autre_fonct"),
-            line("Total Budget de fonctionnement (€)", cell_for, "tot_fonct", style="total"),
-            line("Travail prévisionnel (jours) — investissement", cell_for, "j_invest", _jours),
-            line("Coût salarial — investissement", cell_for, "sal_invest"),
-            line("Coût prestataire — investissement", cell_for, "prest_invest"),
-            line("Autres coûts d'investissement", cell_for, "autre_invest"),
-            line("Total Budget d'investissement (€)", cell_for, "tot_invest", style="total"),
-            line("Budget total (€)", cell_for, "tot", style="total"),
-        ]
-
+    # #735 — mêmes lignes que la fiche Excel (`fiche.finance_rows`), selon le
+    # paramétrage de l'action ; une seule colonne « Période … » en global.
+    cols, col_labels = fiche.finance_columns(af, years, annees)
+    fmt = {"jours": _jours, "total_jours": _jours, "euro": _euro, "total": _euro}
     finance = []
-    # #607 Q3 : ventilation par organisme uniquement si le mode le prévoit.
-    if af.is_org_ventilated:
-        real_orgs = [oid for oid in af.org_ids() if oid != 0]
-        for idx, oid in enumerate(real_orgs, 1):
-            finance += cost_rows(f"Organisme gestionnaire {idx} — {org_names.get(oid, '')}",
-                                 lambda y, oid=oid: af.cell(oid, y))
-        if len(real_orgs) > 1:
-            total = af.year_total
-            finance += [
-                ("TOTAL", [], "banner"),
-                line("Travail prévisionnel (jours)", total, "jours", _jours, "total"),
-                line("Budget de fonctionnement (€)", total, "tot_fonct", style="total"),
-                line("Budget d'investissement (€)", total, "tot_invest", style="total"),
-                line("Budget total (€)", total, "tot", style="total"),
-            ]
-    else:
-        finance += cost_rows("Budget de l'opération", af.year_total)
-    finance.append(line("Jours bénévoles / partenaires", af.year_total, "j_benevole", _jours))
-    d.grid(["Budget prévisionnel"] + [str(year_label(y)) for y in years], finance, first_width=Cm(8))
+    for label, values, style in fiche.finance_rows(af, org_names, cols):
+        if style == "banner":
+            finance.append((label, [], "banner"))
+            continue
+        finance.append((label, [fmt[style](v) for v in values],
+                        "total" if style.startswith("total") else None))
+    titre = "Budget et temps de travail prévus" if af.is_global else "Budget prévisionnel"
+    d.grid([titre] + [str(c) for c in col_labels], finance, first_width=Cm(8))
 
     # Programmation mensuelle (mois programmé sur au moins une année)
     month_flags = fiche._monthly_flags(op, annees)

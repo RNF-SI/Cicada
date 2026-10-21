@@ -50,7 +50,7 @@ import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLeve
 import { hasSaisieRealisation } from '../action-status.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
 import {
-  hasTypeBudget, salaryIsComputed, salaryIsComputedReal, salaryOptionAvailable, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+  hasTypeBudget, rhModeFor, salaryIsComputed, salaryIsComputedReal, salaryOptionAvailable, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
 } from '../../../../shared/utils/operation-budget';
 import { planEndYear } from '../../../../shared/utils/plan-periode';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
@@ -230,12 +230,24 @@ export class SuiviSaisieComponent implements OnInit {
    * ses postes si elle est déclinée, sinon les organismes de la ventilation
    * budgétaire, sinon un temps total sans cible (#580 — mode global).
    */
-  rhMode = computed<'postes' | 'organismes' | 'global'>(() => {
+  rhMode = computed<'postes' | 'organismes' | 'global'>(() => this.computeRhMode());
+
+  /** #735 (retour 21/10) — même règle que la fiche action (`rhModeFor`) : temps
+   *  décliné par poste dès que les coûts sont détaillés, dans tous les modes. */
+  computeRhMode(): 'postes' | 'organismes' | 'global' {
     const op = this.operation();
-    if (op?.declinaison_par_poste) return 'postes';
-    const mode = op?.ventilation_mode;
-    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
-  });
+    return rhModeFor(
+      op?.ventilation_mode, op?.declinaison_par_type_cout !== false && !!op,
+      !!op?.declinaison_par_poste,
+    );
+  }
+
+  /** #735 (retour 21/10) — la catégorie (fonctionnement / investissement /
+   *  bénévolat) du temps réalisé n'est demandée que si le mode ventile par type
+   *  de budget, comme à la saisie de l'action. */
+  showRhCategorie(): boolean {
+    return this.showInvest();
+  }
 
   // ---- #735 — action programmée GLOBALEMENT sur sa période ------------------
 

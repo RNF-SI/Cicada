@@ -120,7 +120,10 @@ describe('ActionGlobalComponent — budget et temps de travail (#616)', () => {
   it('conserve le mode « totaux directs » (budget saisi tel quel)', () => {
     const c = setup({ navigate: jest.fn() });
     c.operation.set({
+      // #735 — « totaux directs » = coûts non détaillés (sinon le temps par
+      // poste porterait un coût salarial calculé).
       id_operation: 43, libelle: 'Action directe', ventilation_mode: 'none',
+      declinaison_par_type_cout: false,
       operation_annees: [{
         annee: 2027, periodicite: true, budget: '1500.00', etp: null,
         periodicite_mensuelle: {},

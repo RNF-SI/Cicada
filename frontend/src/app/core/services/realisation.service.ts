@@ -89,6 +89,8 @@ export interface BilanResponse {
   by_categorie_action: BilanCategorie[];
   by_enjeu: BilanEnjeu[];
   budget: {
+    /** #735 — une action du plan ventile-t-elle par type de budget ? */
+    par_type?: boolean;
     fonctionnement: BilanBudgetPair;
     investissement: BilanBudgetPair;
     total: BilanBudgetPair;

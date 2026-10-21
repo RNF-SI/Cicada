@@ -43,7 +43,7 @@ from openpyxl.utils import get_column_letter
 from . import export_theme
 from .metrique_seuils import intervalle_palier
 from .services_export_finance import (
-    build_action_finance, poste_entry_factory, with_global_year, year_label,
+    GLOBAL_YEAR, build_action_finance, poste_entry_factory, year_label,
 )
 
 # ---------------------------------------------------------------------------
@@ -560,6 +560,111 @@ def _cadre(op):
 
 
 # ---------------------------------------------------------------------------
+# Volet financier — données communes aux fiches Excel et Word (#735)
+# ---------------------------------------------------------------------------
+
+def finance_columns(af, years, annees):
+    """Colonnes du volet budget / temps de travail : ``(clés, libellés)``.
+
+    #735 — une action programmée globalement n'a qu'une colonne, la période
+    (années programmées, à défaut toutes les années de la fiche) : pas de
+    colonnes d'années vides."""
+    if not af.is_global:
+        return list(years), [year_label(y) for y in years]
+    programmees = sorted(y for y, oa in annees.items()
+                         if y is not None and getattr(oa, "periodicite", False))
+    ys = programmees or [y for y in years if y is not None]
+    if not ys:
+        periode = "Période"
+    elif ys[0] == ys[-1]:
+        periode = f"Période {ys[0]}"
+    else:
+        periode = f"Période {ys[0]}–{ys[-1]}"
+    return [GLOBAL_YEAR], [periode]
+
+
+def _cost_lines(af, cell_for):
+    """Lignes d'un bloc de coûts, selon le paramétrage de l'action (#735) :
+    ``[(libellé, attribut ou fonction(CostCell), style)]``, style ∈
+    {"jours", "euro", "total"}.
+
+    - sans type de budget : aucune distinction fonctionnement / investissement ;
+    - sans déclinaison par type de coût : enveloppes / total seuls ;
+    - le stage, compté dans « autres coûts » par le moteur, est détaillé."""
+    def autres_fonct(c):
+        return c.autre_fonct - c.stage_fonct
+
+    if not af.has_type_budget:
+        lines = [("Travail prévisionnel (jours)", lambda c: c.jours, "jours")]
+        if af.has_cost_detail:
+            lines += [
+                ("Coût salarial", lambda c: c.sal_fonct + c.sal_invest, "euro"),
+                ("Coût stage", lambda c: c.stage_fonct, "euro"),
+                ("Coût prestataire", lambda c: c.prest_fonct + c.prest_invest, "euro"),
+                ("Autres coûts", lambda c: autres_fonct(c) + c.autre_invest, "euro"),
+            ]
+        return lines + [("Budget total (€)", lambda c: c.tot, "total")]
+
+    if not af.has_cost_detail:
+        return [
+            ("Travail prévisionnel (jours) — fonctionnement", lambda c: c.j_fonct, "jours"),
+            ("Total Budget de fonctionnement (€)", lambda c: c.tot_fonct, "total"),
+            ("Travail prévisionnel (jours) — investissement", lambda c: c.j_invest, "jours"),
+            ("Total Budget d'investissement (€)", lambda c: c.tot_invest, "total"),
+            ("Budget total (€)", lambda c: c.tot, "total"),
+        ]
+    return [
+        ("Travail prévisionnel (jours) — fonctionnement", lambda c: c.j_fonct, "jours"),
+        ("Coût salarial — fonctionnement", lambda c: c.sal_fonct, "euro"),
+        ("Coût stage — fonctionnement", lambda c: c.stage_fonct, "euro"),
+        ("Coût prestataire — fonctionnement", lambda c: c.prest_fonct, "euro"),
+        ("Autres coûts de fonctionnement", autres_fonct, "euro"),
+        ("Total Budget de fonctionnement (€)", lambda c: c.tot_fonct, "total"),
+        ("Travail prévisionnel (jours) — investissement", lambda c: c.j_invest, "jours"),
+        ("Coût salarial — investissement", lambda c: c.sal_invest, "euro"),
+        ("Coût prestataire — investissement", lambda c: c.prest_invest, "euro"),
+        ("Autres coûts d'investissement", lambda c: c.autre_invest, "euro"),
+        ("Total Budget d'investissement (€)", lambda c: c.tot_invest, "total"),
+        ("Budget total (€)", lambda c: c.tot, "total"),
+    ]
+
+
+def finance_rows(af, org_names, cols):
+    """Lignes du volet financier prévisionnel d'une fiche action, communes à
+    l'Excel et au Word : ``[(libellé, [valeurs par colonne] | None, style)]``,
+    style ∈ {"banner", "jours", "euro", "total", "total_jours"} — ``None``
+    pour un bandeau."""
+    rows = []
+
+    def block(cell_for):
+        for label, get, style in _cost_lines(af, cell_for):
+            rows.append((label, [get(cell_for(y)) for y in cols], style))
+
+    # #607 Q3 : ventilation par organisme uniquement si le mode le prévoit.
+    if af.is_org_ventilated:
+        real_orgs = [oid for oid in af.org_ids() if oid != 0]
+        for idx, oid in enumerate(real_orgs, 1):
+            rows.append((f"Organisme gestionnaire {idx} — {org_names.get(oid, '')}", None, "banner"))
+            block(lambda y, oid=oid: af.cell(oid, y))
+        if len(real_orgs) > 1:
+            rows.append(("TOTAL", None, "banner"))
+            total = [af.year_total(y) for y in cols]
+            rows.append(("Travail prévisionnel (jours)", [c.jours for c in total], "total_jours"))
+            if af.has_type_budget:
+                rows.append(("Budget de fonctionnement (€)", [c.tot_fonct for c in total], "total"))
+                rows.append(("Budget d'investissement (€)", [c.tot_invest for c in total], "total"))
+            rows.append(("Budget total (€)", [c.tot for c in total], "total"))
+    else:
+        rows.append(("Budget de l'opération", None, "banner"))
+        block(af.year_total)
+
+    benevoles = [af.year_total(y).j_benevole for y in cols]
+    if any(benevoles):
+        rows.append(("Jours bénévoles / partenaires", benevoles, "jours"))
+    return rows
+
+
+# ---------------------------------------------------------------------------
 # Rendu d'une fiche
 # ---------------------------------------------------------------------------
 
@@ -578,9 +683,13 @@ class _Writer:
 
     def put(self, i, n, value):
         """Écrit `value` dans la i-ème des n cases de la zone de données ;
-        les colonnes restées vides à droite sont fusionnées en une case."""
+        les colonnes restées vides à droite sont fusionnées en une case. Une
+        case unique (période d'une action globale, #735) couvre toute la zone."""
         c1, _ = self.span(i, n)
-        if i == n - 1 and c1 < self.ncols:
+        if n == 1 and c1 < self.ncols:
+            self.ws.merge_cells(start_row=self.r, start_column=c1,
+                                end_row=self.r, end_column=self.ncols)
+        elif i == n - 1 and c1 < self.ncols:
             self.ws.merge_cells(start_row=self.r, start_column=c1 + 1,
                                 end_row=self.r, end_column=self.ncols)
         return self.ws.cell(self.r, c1, value)
@@ -623,15 +732,16 @@ class _Writer:
                 ws.row_dimensions[self.r].height or 15, 15 * nlines)
         self.r += 1
 
-    def year_header(self, label, years):
+    def year_header(self, label, years, labels=None):
         ws = self.ws
         ws.merge_cells(start_row=self.r, start_column=1, end_row=self.r, end_column=3)
         lc = ws.cell(self.r, 1, label)
         lc.fill = PatternFill("solid", fgColor=_LABEL_FILL)
         lc.font = _F_LABEL
         lc.alignment = _AL_L
-        for i, y in enumerate(years):
-            c = self.put(i, len(years), year_label(y))
+        labels = labels or [year_label(y) for y in years]
+        for i, text in enumerate(labels):
+            c = self.put(i, len(labels), text)
             c.fill = PatternFill("solid", fgColor=_YEARHDR_FILL)
             c.font = _F_YEAR
             c.alignment = _AL_C
@@ -812,9 +922,9 @@ _COL_WIDTH = 11
 
 
 def _render_action(ws, op, years, *, is_cs, code_local=""):
-    # #735 — action programmée globalement : son budget tient dans une colonne
-    # « période » à droite des années.
-    years = with_global_year(years, [op])
+    # #735 — une action programmée globalement n'a pas de colonne « période »
+    # dans l'en-tête annuel : son volet financier a son propre en-tête.
+    years = [y for y in years if y is not GLOBAL_YEAR]
     n_data = _data_columns(len(years))
     ncols = 3 + n_data
     w = _Writer(ws, ncols)
@@ -923,44 +1033,22 @@ def _render_action(ws, op, years, *, is_cs, code_local=""):
     org_names: dict = {}
     af = build_action_finance(op, org_names, defaultdict(poste_entry_factory))
 
-    def cost_block(title, cell_for, *, org_ventilated):
-        """Rend un bloc fonctionnement/investissement/total pour un organisme
-        (ou pour l'opération entière si non ventilée)."""
-        w.org_banner(title)
-        # Fonctionnement
-        w.cost_row("Travail prévisionnel (jours) — fonctionnement", {y: cell_for(y).j_fonct for y in years}, years, fmt=_jours)
-        w.cost_row("Coût salarial — fonctionnement", {y: cell_for(y).sal_fonct for y in years}, years)
-        w.cost_row("Coût prestataire — fonctionnement", {y: cell_for(y).prest_fonct for y in years}, years)
-        w.cost_row("Autres coûts de fonctionnement", {y: cell_for(y).autre_fonct for y in years}, years)
-        w.cost_row("Total Budget de fonctionnement (€)", {y: cell_for(y).tot_fonct for y in years}, years, fill=_TOTAL_FILL, font=_F_TOTAL, label_font=_F_TOTAL)
-        # Investissement
-        w.cost_row("Travail prévisionnel (jours) — investissement", {y: cell_for(y).j_invest for y in years}, years, fmt=_jours)
-        w.cost_row("Coût salarial — investissement", {y: cell_for(y).sal_invest for y in years}, years)
-        w.cost_row("Coût prestataire — investissement", {y: cell_for(y).prest_invest for y in years}, years)
-        w.cost_row("Autres coûts d'investissement", {y: cell_for(y).autre_invest for y in years}, years)
-        w.cost_row("Total Budget d'investissement (€)", {y: cell_for(y).tot_invest for y in years}, years, fill=_TOTAL_FILL, font=_F_TOTAL, label_font=_F_TOTAL)
-        w.cost_row("Budget total (€)", {y: cell_for(y).tot for y in years}, years, fill=_TOTAL_FILL, font=_F_TOTAL, label_font=_F_TOTAL)
-
-    # #607 Q3 : ventilation par organisme uniquement si le mode le prévoit.
-    if af.is_org_ventilated:
-        real_orgs = [oid for oid in af.org_ids() if oid != 0]
-        for idx, oid in enumerate(real_orgs, 1):
-            cost_block(
-                f"Organisme gestionnaire {idx} — {org_names.get(oid, '')}",
-                lambda y, oid=oid: af.cell(oid, y),
-                org_ventilated=True,
-            )
-        # TOTAL tous organismes
-        if len(real_orgs) > 1:
-            w.org_banner("TOTAL")
-            w.cost_row("Travail prévisionnel (jours)", {y: af.year_total(y).jours for y in years}, years, fmt=_jours, fill=_TOTAL_FILL, font=_F_TOTAL, label_font=_F_TOTAL)
-            w.cost_row("Budget de fonctionnement (€)", {y: af.year_total(y).tot_fonct for y in years}, years, fill=_TOTAL_FILL, font=_F_TOTAL, label_font=_F_TOTAL)
-            w.cost_row("Budget d'investissement (€)", {y: af.year_total(y).tot_invest for y in years}, years, fill=_TOTAL_FILL, font=_F_TOTAL, label_font=_F_TOTAL)
-            w.cost_row("Budget total (€)", {y: af.year_total(y).tot for y in years}, years, fill=_TOTAL_FILL, font=_F_TOTAL, label_font=_F_TOTAL)
-    else:
-        cost_block("Budget de l'opération", lambda y: af.year_total(y), org_ventilated=False)
-
-    w.cost_row("Jours bénévoles / partenaires", {y: af.year_total(y).j_benevole for y in years}, years, fmt=_jours)
+    # #735 — volet financier adapté au paramétrage de l'action (données
+    # partagées avec la fiche Word : `finance_rows`).
+    cols, col_labels = finance_columns(af, years, annees)
+    if af.is_global:
+        w.year_header("Budget et temps de travail prévus", cols, col_labels)
+    formats = {"jours": (_jours, _SUBLABEL_FILL, _F_SUBLABEL, None),
+               "euro": (_euro, _SUBLABEL_FILL, _F_SUBLABEL, None),
+               "total": (_euro, _TOTAL_FILL, _F_TOTAL, _F_TOTAL),
+               "total_jours": (_jours, _TOTAL_FILL, _F_TOTAL, _F_TOTAL)}
+    for label, values, style in finance_rows(af, org_names, cols):
+        if style == "banner":
+            w.org_banner(label)
+            continue
+        fmt, fill, font, label_font = formats[style]
+        w.cost_row(label, dict(zip(cols, values)), cols, fmt=fmt, fill=fill,
+                   font=font, label_font=label_font)
 
     # Programmation mensuelle (agrégée : mois programmé sur au moins une année)
     w.blank()

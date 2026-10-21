@@ -145,19 +145,26 @@ class TestExportsProgrammationGlobale:
         assert '15 000' in periode and '5 000' in periode
 
     def test_fiche_action_colonne_periode(self, action_globale):
+        """#735 (retour 21/10) — la fiche n'a plus de colonne « Période (global) »
+        à côté des années vides : une seule case « Période 2028–2029 »."""
         from apps.plans.services_export_fiche_action import build_fiche_action_workbook
         wb = load_workbook(io.BytesIO(build_fiche_action_workbook(action_globale['plan'])))
         ws = wb[wb.sheetnames[0]]
+        lignes = {ws.cell(r, 1).value: ws.cell(r, 4).value for r in range(1, ws.max_row + 1)}
         flat = [ws.cell(r, c).value for r in range(1, ws.max_row + 1)
                 for c in range(1, ws.max_column + 1)]
-        assert GLOBAL_YEAR_LABEL in flat
+        assert GLOBAL_YEAR_LABEL not in flat
+        assert lignes['Budget et temps de travail prévus'] == 'Période 2028–2029'
+        assert lignes['Total Budget de fonctionnement (€)'] == '15 000 €'
+        assert lignes["Total Budget d'investissement (€)"] == '5 000 €'
 
     def test_fiche_action_word(self, action_globale):
         from docx import Document
         from apps.plans.services_export_fiche_action_word import build_fiche_action_docx
         doc = Document(io.BytesIO(build_fiche_action_docx(action_globale['plan'])))
         cells = [c.text for t in doc.tables for row in t.rows for c in row.cells]
-        assert GLOBAL_YEAR_LABEL in cells
+        assert 'Période 2028–2029' in cells
+        assert GLOBAL_YEAR_LABEL not in cells
 
     def test_copie_d_action_copie_la_ligne_globale(self, action_globale):
         from apps.plans.element_copy import ElementCopyService

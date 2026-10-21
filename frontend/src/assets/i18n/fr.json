@@ -2589,6 +2589,8 @@
           "prevu": "Prévu : {{budget}} · {{jours}}",
           "split": "fonctionnement {{fonct}}, investissement {{invest}}",
           "realise": "Réalisé enregistré, toutes années confondues : {{budget}} · {{jours}}",
+          "prevuLabel": "Prévu sur la période {{periode}}",
+          "realiseLabel": "Réalisé enregistré, toutes années confondues",
           "hint": "L'action est programmée globalement : le prévu n'est pas réparti par année. Le réalisé se saisit année par année."
         },
         "subtitle": "Remplir le suivi d'une action",
@@ -4412,8 +4414,8 @@
         "title": "Temps de travail",
         "declinaisonLabel": "Déclinaison par poste",
         "declinaisonMention": "Détaille le temps de travail poste par poste, à partir des postes du plan de gestion.",
-        "declinaisonHint": "Le temps de travail se décline par poste dès que le mode de ventilation choisi contient « type de poste ».",
-        "hintGlobal": "Indiquez le nombre de jours prévus par année. Cochez « Déclinaison par poste » pour le détailler poste par poste, ou choisissez la catégorie « Bénévolat partenariat » pour valoriser du temps partenaire / bénévole (bénévoles, écovolontaires…).",
+        "declinaisonHint": "Le temps de travail se décline par poste dès que le mode de ventilation contient « type de poste » ou que la case « Déclinaison par type de coût » est cochée.",
+        "hintGlobal": "Indiquez le nombre de jours prévus. Cochez « Déclinaison par type de coût » (sous le tableau) pour le détailler poste par poste.",
         "hintPostes": "Ajoutez chaque poste concerné avec « Ajouter une ligne », puis indiquez le nombre de jours prévus par année. Une seule ligne suffit pour un groupe de bénévoles ou de partenaires.",
         "hintOrganismes": "Un organisme par ligne, repris de la ventilation du budget. Indiquez le nombre de jours prévus par année.",
         "colPoste": "Poste",
@@ -4457,8 +4459,8 @@
       },
       "budgetOptions": {
         "declinaisonTypeCout": "Déclinaison par type de coût",
-        "declinaisonTypeCoutHint": "Détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts. Décochée, seuls les budgets de fonctionnement et d'investissement sont saisis à la main.",
-        "declinaisonTypeCoutHintTotal": "Détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts. Décochée, seul le budget total est saisi à la main.",
+        "declinaisonTypeCoutHint": "Détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts, et le temps de travail poste par poste. Décochée, seuls les budgets de fonctionnement et d'investissement sont saisis à la main.",
+        "declinaisonTypeCoutHintTotal": "Détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts, et le temps de travail poste par poste. Décochée, seul le budget total est saisi à la main.",
         "coutSalarialAuto": "Saisie automatique du coût salarial",
         "coutSalarialAutoHint": "Calcule le coût salarial à partir des jours saisis et du coût jour des postes. Décochée, le coût salarial est saisi à la main.",
         "postesLink": "Gérer les postes et les coûts jour"

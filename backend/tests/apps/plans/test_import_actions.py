@@ -978,7 +978,8 @@ _MODE_CASES = {
         [_row(3, organisme="O1", cout_salarial="1000", autre_cout="50",
               autre_cout_commentaire="Carburant"),
          _row(4, organisme="O2", cout_prestataire_invest="400")],
-        [_row(3, organisme="O2", jours="2")],
+        # #735 — coûts détaillés : le temps se décline par poste.
+        [_row(3, poste="Q1", jours="2")],
     ),
     "by_type_poste": (
         {},
@@ -1044,12 +1045,14 @@ def test_aller_retour_par_mode(mode):
 @pytest.mark.parametrize(
     "mode, detail, auto, computed, layout",
     [
-        # Sans type de budget : rien à détailler, valeur historique « calculé ».
-        ("none", True, False, True, "total"),
-        ("by_org", True, False, True, "total"),
-        # Type de budget sans poste : détail → coût salarial toujours saisi.
-        ("by_type", True, True, False, "detail"),
-        ("by_org_type", True, True, False, "detail"),
+        # #735 (retour 21/10) — coûts détaillés : temps par poste dans tous
+        # les modes, donc le choix du gestionnaire (calculé ou saisi).
+        ("none", True, False, False, "total"),
+        ("by_org", True, True, True, "total"),
+        ("by_type", True, True, True, "detail"),
+        ("by_org_type", True, False, False, "detail"),
+        # Coûts non détaillés : valeur historique « calculé ».
+        ("none", False, False, True, "total"),
         ("by_type", False, False, True, "enveloppes"),
         # « + type de poste » : le choix du gestionnaire.
         ("by_type_poste", True, True, True, "detail"),
@@ -1142,7 +1145,9 @@ def test_mode_explicite_prime_sur_la_deduction():
     plan, ind = _plan_with_indicateur(user)
     poste = _add_poste(plan)
     parsed = {
-        "actions": [_action("by_type")],
+        # #735 — coûts non détaillés : le temps n'y est pas décliné par poste
+        # (détaillés, il le serait dans tous les modes).
+        "actions": [_action("by_type", declinaison_par_type_cout="Non")],
         "indicateurs": {"I1": ind.id_indicateur},
         "postes": {"Q1": poste.id_poste},
         "rh": [_row(3, poste="Q1", jours="2")],

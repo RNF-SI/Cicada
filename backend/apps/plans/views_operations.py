@@ -1579,6 +1579,15 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
         budget_total_prev = budget_previsionnel_fonct + budget_previsionnel_invest
         budget_total_real = budget_realise_fonct + budget_realise_invest
+        # #735 — fonctionnement / investissement ne s'affichent que si une
+        # action du plan ventile par type de budget (ventilation la plus
+        # détaillée du plan) ; sinon seul le total a un sens.
+        from .access import plan_operation_ids
+        from .services_export_finance import TYPE_VENTILATION_MODES
+        budget_par_type = Operation.objects.filter(
+            pk__in=plan_operation_ids(plan),
+            ventilation_mode__in=TYPE_VENTILATION_MODES,
+        ).exists()
 
         return Response({
             'plan_id': int(plan_id),
@@ -1589,6 +1598,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'by_categorie_action': by_categorie_list,
             'by_enjeu': by_enjeu_list,
             'budget': {
+                'par_type': budget_par_type,
                 'fonctionnement': {
                     'previsionnel': float(budget_previsionnel_fonct),
                     'realise': float(budget_realise_fonct),

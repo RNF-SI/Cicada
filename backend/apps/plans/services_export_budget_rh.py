@@ -374,8 +374,20 @@ def _poste_cout_jour(pf, label):
 # ---------------------------------------------------------------------------
 
 def _org_sheets(pf):
-    """Organismes à exporter (exclut « Non ventilé » vide) dans un ordre stable."""
-    return pf.org_ids()
+    """Organismes ayant leur onglet, dans un ordre stable.
+
+    #735 — seulement si au moins une action ventile par organisme : sinon le
+    seul onglet TOTAL dit tout (un onglet « Non ventilé » ou par organisme du
+    poste n'apporterait rien que le gestionnaire ait saisi)."""
+    return pf.org_ids() if pf.is_org_ventilated else []
+
+
+def _total_sheet_name(pf, name="TOTAL"):
+    return name if pf.is_org_ventilated else "TOTAL"
+
+
+def _total_subtitle(pf):
+    return "TOTAL (tous organismes)" if pf.is_org_ventilated else "TOTAL"
 
 
 def build_rh_previsionnel_workbook(plan) -> bytes:
@@ -406,7 +418,7 @@ def build_rh_previsionnel_workbook(plan) -> bytes:
 
     # TOTAL tous organismes
     m = _ActionMatrix(wb.create_sheet(_title("TOTAL", used)), pf.years, suivi=False, fmt=_fmt_jours)
-    m.head(title, "RESSOURCES HUMAINES — PRÉVISIONNEL (jours) — TOTAL")
+    m.head(title, f"RESSOURCES HUMAINES — PRÉVISIONNEL (jours) — {_total_subtitle(pf)}")
     all_rows = []
     for af in pf.actions:
         prev = {y: af.year_total(y).jours for y in pf.years}
@@ -416,8 +428,9 @@ def build_rh_previsionnel_workbook(plan) -> bytes:
     m.total("TOTAL jours prévus", _sum_years(all_rows, pf.years))
     m.freeze()
 
-    # Par type de poste
-    _rh_par_poste_sheet(wb, pf, used, suivi=False)
+    # Par type de poste — #735 : seulement si une action décline son temps par poste.
+    if pf.par_poste:
+        _rh_par_poste_sheet(wb, pf, used, suivi=False)
 
     return _save(wb)
 
@@ -446,7 +459,7 @@ def build_rh_suivi_workbook(plan) -> bytes:
         m.freeze()
 
     m = _ActionMatrix(wb.create_sheet(_title("TOTAL", used)), pf.years, suivi=True, fmt=_fmt_jours)
-    m.head(title, "RESSOURCES HUMAINES — SUIVI (jours) — TOTAL")
+    m.head(title, f"RESSOURCES HUMAINES — SUIVI (jours) — {_total_subtitle(pf)}")
     pr, rr = [], []
     for af in pf.actions:
         prev = {y: af.year_total(y).jours for y in pf.years}
@@ -457,14 +470,15 @@ def build_rh_suivi_workbook(plan) -> bytes:
     m.total("TOTAL", _sum_years(pr, pf.years), _sum_years(rr, pf.years))
     m.freeze()
 
-    _rh_par_poste_sheet(wb, pf, used, suivi=True)
+    if pf.par_poste:
+        _rh_par_poste_sheet(wb, pf, used, suivi=True)
     return _save(wb)
 
 
 def _rh_par_poste_sheet(wb, pf, used, *, suivi):
     label = "Total par poste" if suivi else "RH par type de poste"
     m = _LabelMatrix(wb.create_sheet(_title(label, used)), pf.years, suivi=suivi, fmt=_fmt_jours)
-    m.head(_plan_title(pf.plan), f"RESSOURCES HUMAINES — {'SUIVI' if suivi else 'PRÉVISIONNEL'} (jours) — TOTAL (tous organismes)")
+    m.head(_plan_title(pf.plan), f"RESSOURCES HUMAINES — {'SUIVI' if suivi else 'PRÉVISIONNEL'} (jours) — {_total_subtitle(pf)}")
     for lab in _poste_labels(pf):
         prev = _poste_year(pf, lab, "prev")
         real = _poste_year(pf, lab, "real") if suivi else None
@@ -474,117 +488,79 @@ def _rh_par_poste_sheet(wb, pf, used, *, suivi):
     m.freeze()
 
 
-def build_budget_previsionnel_workbook(plan) -> bytes:
+def _budget_sections(pf):
+    """Sections d'une matrice budget : (libellé, attr. prévu, attr. réalisé).
+
+    #735 — fonctionnement / investissement seulement si une action du plan
+    ventile par type de budget ; sinon une seule section « Budget »."""
+    if pf.has_type_budget:
+        return [("Fonctionnement", "tot_fonct", "rtot_fonct"),
+                ("Investissement", "tot_invest", "rtot_invest")]
+    return [("Budget", "tot", "rtot")]
+
+
+def _budget_matrix(m, pf, cell_for, name, *, suivi):
+    """Remplit une matrice budget (un organisme ou le total) ; False si vide."""
+    blocks = []
+    for label, a_prev, a_real in _budget_sections(pf):
+        rows = []
+        for af in pf.actions:
+            prev = {y: getattr(cell_for(af, y), a_prev) for y in pf.years}
+            real = {y: getattr(cell_for(af, y), a_real) for y in pf.years} if suivi else None
+            if sum(prev.values()) or (real and sum(real.values())):
+                rows.append((af, prev, real))
+        blocks.append((label, rows))
+    if not any(rows for _, rows in blocks):
+        return False
+    for label, rows in blocks:
+        m.section(label)
+        for af, prev, real in rows:
+            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, prev, real)
+        suffix = f" {name}" if name else ""
+        m.total(f"TOTAL — {label}{suffix}",
+                _sum_years([p for _, p, _ in rows], pf.years),
+                _sum_years([r for _, _, r in rows], pf.years) if suivi else None)
+    return True
+
+
+def _build_budget_workbook(plan, *, suivi) -> bytes:
     _appliquer_couleur_instance()
     pf = build_plan_finance(plan)
     wb = Workbook(); wb.remove(wb.active); used = set()
     title = _plan_title(plan)
-
-    def sheet_for(oid, name):
-        rows_f, rows_i = [], []
-        for af in pf.actions:
-            f = {y: af.cell(oid, y).tot_fonct for y in pf.years}
-            i = {y: af.cell(oid, y).tot_invest for y in pf.years}
-            if sum(f.values()) != 0:
-                rows_f.append((af, f))
-            if sum(i.values()) != 0:
-                rows_i.append((af, i))
-        if not rows_f and not rows_i:
-            return
-        m = _ActionMatrix(wb.create_sheet(_title(f"Budget Prév. — {name}", used)), pf.years, suivi=False, fmt=_fmt_euro)
-        m.head(title, f"BUDGET PRÉVISIONNEL (€) — {name}")
-        m.section("Fonctionnement")
-        for af, f in rows_f:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, f)
-        m.total(f"TOTAL — Fonctionnement {name}", _sum_years([f for _, f in rows_f], pf.years))
-        m.section("Investissement")
-        for af, i in rows_i:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, i)
-        m.total(f"TOTAL — Investissement {name}", _sum_years([i for _, i in rows_i], pf.years))
-        m.freeze()
+    kind = "SUIVI" if suivi else "PRÉVISIONNEL"
+    prefix = "Budget Suivi" if suivi else "Budget Prév."
 
     for oid in _org_sheets(pf):
-        sheet_for(oid, pf.org_names.get(oid, "Non ventilé"))
+        name = pf.org_names.get(oid, "Non ventilé")
+        ws = wb.create_sheet(_title(f"{prefix} — {name}", used))
+        m = _ActionMatrix(ws, pf.years, suivi=suivi, fmt=_fmt_euro)
+        m.head(title, f"BUDGET {kind} (€) — {name}")
+        if _budget_matrix(m, pf, lambda af, y, oid=oid: af.cell(oid, y), name, suivi=suivi):
+            m.freeze()
+        else:
+            wb.remove(ws)
+            used.discard(ws.title.lower())
 
-    # TOTAL OG (tous organismes)
-    m = _ActionMatrix(wb.create_sheet(_title("TOTAL OG", used)), pf.years, suivi=False, fmt=_fmt_euro)
-    m.head(title, "BUDGET PRÉVISIONNEL (€) — TOTAL (tous organismes)")
-    m.section("Fonctionnement")
-    rf = []
-    for af in pf.actions:
-        f = {y: af.year_total(y).tot_fonct for y in pf.years}
-        if sum(f.values()) != 0:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, f); rf.append(f)
-    m.total("TOTAL — Fonctionnement", _sum_years(rf, pf.years))
-    m.section("Investissement")
-    ri = []
-    for af in pf.actions:
-        i = {y: af.year_total(y).tot_invest for y in pf.years}
-        if sum(i.values()) != 0:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, i); ri.append(i)
-    m.total("TOTAL — Investissement", _sum_years(ri, pf.years))
+    total_name = _total_sheet_name(pf, "TOTAL" if suivi else "TOTAL OG")
+    m = _ActionMatrix(wb.create_sheet(_title(total_name, used)), pf.years, suivi=suivi, fmt=_fmt_euro)
+    m.head(title, f"BUDGET {kind} (€) — {_total_subtitle(pf)}")
+    _budget_matrix(m, pf, lambda af, y: af.year_total(y), "", suivi=suivi)
     m.freeze()
 
-    _budget_par_poste_sheet(wb, pf, used, suivi=False)
+    # #735 — synthèse par poste de dépense : seulement si une action détaille
+    # ses types de coût (sinon elle ne ferait que répéter le TOTAL).
+    if pf.has_cost_detail:
+        _budget_par_poste_sheet(wb, pf, used, suivi=suivi)
     return _save(wb)
+
+
+def build_budget_previsionnel_workbook(plan) -> bytes:
+    return _build_budget_workbook(plan, suivi=False)
 
 
 def build_budget_suivi_workbook(plan) -> bytes:
-    _appliquer_couleur_instance()
-    pf = build_plan_finance(plan)
-    wb = Workbook(); wb.remove(wb.active); used = set()
-    title = _plan_title(plan)
-
-    def sheet_for(oid, name):
-        rf, ri = [], []
-        for af in pf.actions:
-            fp = {y: af.cell(oid, y).tot_fonct for y in pf.years}
-            fr = {y: af.cell(oid, y).rtot_fonct for y in pf.years}
-            ip = {y: af.cell(oid, y).tot_invest for y in pf.years}
-            ir = {y: af.cell(oid, y).rtot_invest for y in pf.years}
-            if sum(fp.values()) or sum(fr.values()):
-                rf.append((af, fp, fr))
-            if sum(ip.values()) or sum(ir.values()):
-                ri.append((af, ip, ir))
-        if not rf and not ri:
-            return
-        m = _ActionMatrix(wb.create_sheet(_title(f"Budget Suivi — {name}", used)), pf.years, suivi=True, fmt=_fmt_euro)
-        m.head(title, f"BUDGET SUIVI (€) — {name}")
-        m.section("Fonctionnement")
-        for af, fp, fr in rf:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, fp, fr)
-        m.total(f"TOTAL — Fonctionnement {name}", _sum_years([x for _, x, _ in rf], pf.years), _sum_years([x for _, _, x in rf], pf.years))
-        m.section("Investissement")
-        for af, ip, ir in ri:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, ip, ir)
-        m.total(f"TOTAL — Investissement {name}", _sum_years([x for _, x, _ in ri], pf.years), _sum_years([x for _, _, x in ri], pf.years))
-        m.freeze()
-
-    for oid in _org_sheets(pf):
-        sheet_for(oid, pf.org_names.get(oid, "Non ventilé"))
-
-    m = _ActionMatrix(wb.create_sheet(_title("TOTAL", used)), pf.years, suivi=True, fmt=_fmt_euro)
-    m.head(title, "BUDGET SUIVI (€) — TOTAL (tous organismes)")
-    m.section("Fonctionnement")
-    fp_all, fr_all = [], []
-    for af in pf.actions:
-        fp = {y: af.year_total(y).tot_fonct for y in pf.years}
-        fr = {y: af.year_total(y).rtot_fonct for y in pf.years}
-        if sum(fp.values()) or sum(fr.values()):
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, fp, fr); fp_all.append(fp); fr_all.append(fr)
-    m.total("TOTAL — Fonctionnement", _sum_years(fp_all, pf.years), _sum_years(fr_all, pf.years))
-    m.section("Investissement")
-    ip_all, ir_all = [], []
-    for af in pf.actions:
-        ip = {y: af.year_total(y).tot_invest for y in pf.years}
-        ir = {y: af.year_total(y).rtot_invest for y in pf.years}
-        if sum(ip.values()) or sum(ir.values()):
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, ip, ir); ip_all.append(ip); ir_all.append(ir)
-    m.total("TOTAL — Investissement", _sum_years(ip_all, pf.years), _sum_years(ir_all, pf.years))
-    m.freeze()
-
-    _budget_par_poste_sheet(wb, pf, used, suivi=True)
-    return _save(wb)
+    return _build_budget_workbook(plan, suivi=True)
 
 
 def _plan_cost_by_year(pf, attr):
@@ -606,6 +582,13 @@ def _plan_cost_by_year_sum(pf, *attrs):
     return out
 
 
+def _plan_cost_by_year_diff(pf, attr, minus):
+    """{année: Σ attr − Σ minus} (« autres coûts » hors stage, #735)."""
+    a = _plan_cost_by_year(pf, attr)
+    b = _plan_cost_by_year(pf, minus)
+    return {y: a[y] - b[y] for y in pf.years}
+
+
 def _budget_par_poste_sheet(wb, pf, used, *, suivi):
     name = "Total par type de dépense" if suivi else "TOTAL par poste de dépense"
     m = _LabelMatrix(wb.create_sheet(_title(name, used)), pf.years, suivi=suivi,
@@ -613,66 +596,78 @@ def _budget_par_poste_sheet(wb, pf, used, *, suivi):
     m.head(_plan_title(pf.plan), f"BUDGET {'SUIVI' if suivi else 'PRÉVISIONNEL'} (€) — par poste de dépense")
     salaried = [l for l in _poste_labels(pf) if l not in ("Bénévoles", "Partenaires")]
 
-    def poste_prev_real(lab, key_prev, key_real):
-        prev = _poste_year(pf, lab, key_prev)
-        real = _poste_year(pf, lab, key_real) if suivi else None
-        return prev, real
+    def cost(*attrs):
+        return _plan_cost_by_year_sum(pf, *attrs)
 
-    def _nonzero(prev, real):
-        return sum(prev.values()) != 0 or (real and sum(real.values()) != 0)
+    def poste_rows(keys_prev, keys_real):
+        """Coût salarial par type de poste (seulement si temps par poste)."""
+        if not pf.par_poste:
+            return
+        for lab in salaried:
+            prev = _sum_years([_poste_year(pf, lab, k) for k in keys_prev], pf.years)
+            real = (_sum_years([_poste_year(pf, lab, k) for k in keys_real], pf.years)
+                    if suivi else None)
+            if sum(prev.values()) != 0 or (real and sum(real.values()) != 0):
+                m.row(lab, prev, real, cout=_poste_cout_jour(pf, lab))
 
-    # Fonctionnement - salarial
-    m.section("Fonctionnement — Coût salarial",
-              _plan_cost_by_year(pf, "sal_fonct"),
-              _plan_cost_by_year(pf, "rsal_fonct") if suivi else None)
-    for lab in salaried:
-        prev, real = poste_prev_real(lab, "salf_prev", "salf_real")
-        if _nonzero(prev, real):
-            m.row(lab, prev, real, cout=_poste_cout_jour(pf, lab))
-    # Fonctionnement - autres
-    m.section("Fonctionnement — autres coûts",
-              _plan_cost_by_year_sum(pf, "prest_fonct", "autre_fonct"),
-              _plan_cost_by_year_sum(pf, "rprest_fonct", "rautre_fonct") if suivi else None)
-    m.row("Prestataire", _plan_cost_by_year(pf, "prest_fonct"),
-          _plan_cost_by_year_real(pf, "rprest_fonct") if suivi else None, cout="/")
-    m.row("Autres coûts de fonctionnement", _plan_cost_by_year(pf, "autre_fonct"),
-          _plan_cost_by_year_real(pf, "rautre_fonct") if suivi else None, cout="/")
-    # #618 — sous-total du bloc fonctionnement (salarial + autres coûts)
-    m.row("TOTAL Fonctionnement", _plan_cost_by_year(pf, "tot_fonct"),
-          _plan_cost_by_year_real(pf, "rtot_fonct") if suivi else None,
-          cout="", total_style=True)
-    # Investissement - salarial
-    m.section("Investissement — Coût salarial",
-              _plan_cost_by_year(pf, "sal_invest"),
-              _plan_cost_by_year(pf, "rsal_invest") if suivi else None)
-    for lab in salaried:
-        prev, real = poste_prev_real(lab, "sali_prev", "sali_real")
-        if _nonzero(prev, real):
-            m.row(lab, prev, real, cout=_poste_cout_jour(pf, lab))
-    # Investissement - autres
-    m.section("Investissement — autres coûts",
-              _plan_cost_by_year_sum(pf, "prest_invest", "autre_invest"),
-              _plan_cost_by_year_sum(pf, "rprest_invest", "rautre_invest") if suivi else None)
-    m.row("Prestataire", _plan_cost_by_year(pf, "prest_invest"),
-          _plan_cost_by_year_real(pf, "rprest_invest") if suivi else None, cout="/")
-    m.row("Autres coûts d'investissement", _plan_cost_by_year(pf, "autre_invest"),
-          _plan_cost_by_year_real(pf, "rautre_invest") if suivi else None, cout="/")
-    # #618 — sous-total du bloc investissement (salarial + autres coûts)
-    m.row("TOTAL Investissement", _plan_cost_by_year(pf, "tot_invest"),
-          _plan_cost_by_year_real(pf, "rtot_invest") if suivi else None,
-          cout="", total_style=True)
+    if pf.has_type_budget:
+        # Fonctionnement - salarial
+        m.section("Fonctionnement — Coût salarial",
+                  cost("sal_fonct"), cost("rsal_fonct") if suivi else None)
+        poste_rows(["salf_prev"], ["salf_real"])
+        # Fonctionnement - autres (#735 : le stage y est détaillé)
+        m.section("Fonctionnement — autres coûts",
+                  cost("prest_fonct", "autre_fonct"),
+                  cost("rprest_fonct", "rautre_fonct") if suivi else None)
+        m.row("Prestataire", cost("prest_fonct"),
+              cost("rprest_fonct") if suivi else None, cout="/")
+        m.row("Coût stage", cost("stage_fonct"),
+              cost("rstage_fonct") if suivi else None, cout="/")
+        m.row("Autres coûts de fonctionnement",
+              _plan_cost_by_year_diff(pf, "autre_fonct", "stage_fonct"),
+              _plan_cost_by_year_diff(pf, "rautre_fonct", "rstage_fonct") if suivi else None,
+              cout="/")
+        # #618 — sous-total du bloc fonctionnement (salarial + autres coûts)
+        m.row("TOTAL Fonctionnement", cost("tot_fonct"),
+              cost("rtot_fonct") if suivi else None, cout="", total_style=True)
+        # Investissement - salarial
+        m.section("Investissement — Coût salarial",
+                  cost("sal_invest"), cost("rsal_invest") if suivi else None)
+        poste_rows(["sali_prev"], ["sali_real"])
+        # Investissement - autres
+        m.section("Investissement — autres coûts",
+                  cost("prest_invest", "autre_invest"),
+                  cost("rprest_invest", "rautre_invest") if suivi else None)
+        m.row("Prestataire", cost("prest_invest"),
+              cost("rprest_invest") if suivi else None, cout="/")
+        m.row("Autres coûts d'investissement", cost("autre_invest"),
+              cost("rautre_invest") if suivi else None, cout="/")
+        # #618 — sous-total du bloc investissement (salarial + autres coûts)
+        m.row("TOTAL Investissement", cost("tot_invest"),
+              cost("rtot_invest") if suivi else None, cout="", total_style=True)
+    else:
+        # #735 — sans type de budget : types de coût seuls, sans
+        # fonctionnement / investissement.
+        m.section("Coût salarial", cost("sal_fonct", "sal_invest"),
+                  cost("rsal_fonct", "rsal_invest") if suivi else None)
+        poste_rows(["salf_prev", "sali_prev"], ["salf_real", "sali_real"])
+        m.section("Autres coûts",
+                  cost("prest_fonct", "prest_invest", "autre_fonct", "autre_invest"),
+                  cost("rprest_fonct", "rprest_invest", "rautre_fonct", "rautre_invest")
+                  if suivi else None)
+        m.row("Coût stage", cost("stage_fonct"),
+              cost("rstage_fonct") if suivi else None, cout="/")
+        m.row("Prestataire", cost("prest_fonct", "prest_invest"),
+              cost("rprest_fonct", "rprest_invest") if suivi else None, cout="/")
+        autres = _plan_cost_by_year_diff(pf, "autre_fonct", "stage_fonct")
+        autres = {y: autres[y] + v for y, v in cost("autre_invest").items()}
+        rautres = None
+        if suivi:
+            rautres = _plan_cost_by_year_diff(pf, "rautre_fonct", "rstage_fonct")
+            rautres = {y: rautres[y] + v for y, v in cost("rautre_invest").items()}
+        m.row("Autres coûts", autres, rautres, cout="/")
     # TOTAL
-    tot_prev = {y: _ZERO for y in pf.years}
-    for af in pf.actions:
-        for y in pf.years:
-            tot_prev[y] += af.year_total(y).tot
-    tot_real = None
-    if suivi:
-        tot_real = {y: _ZERO for y in pf.years}
-        for af in pf.actions:
-            for y in pf.years:
-                tot_real[y] += af.year_total(y).rtot
-    m.row("TOTAL", tot_prev, tot_real, cout="", total_style=True)
+    m.row("TOTAL", cost("tot"), cost("rtot") if suivi else None, cout="", total_style=True)
     m.freeze()
 
 

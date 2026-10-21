@@ -57,7 +57,7 @@ import {
 import { serializeTaxonRefs, parseTaxonRefs } from '../../../../shared/utils/taxon-ref.utils';
 import { parseSuiviHabitats, serializeSuiviHabitats } from '../../../../shared/utils/suivi-habitats.utils';
 import { protocolesDepuisAction } from '../../../../shared/utils/suivi-protocoles.utils';
-import { salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
+import { rhModeFor, salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import {
   blankMetriqueFormData,
@@ -818,14 +818,12 @@ export class OperationFormComponent implements OnInit {
    *                   gestionnaire doit pouvoir saisir le temps total même sans
    *                   déclinaison ni ventilation par organisme).
    */
-  rhMode = computed<'postes' | 'organismes' | 'global'>(() => {
-    // #600 — les modes « + type de poste » déclinent le temps de travail par
-    // poste (remplacent l'ancienne case). `declinaisonParPoste` reste lu pour
-    // les données déjà enregistrées.
-    if (this.isPosteVentilation() || this.declinaisonParPoste()) return 'postes';
-    const mode = this.ventilationMode();
-    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
-  });
+  rhMode = computed<'postes' | 'organismes' | 'global'>(() =>
+    // #600 — les modes « + type de poste » déclinent le temps par poste ;
+    // #735 (retour 21/10) — la déclinaison par type de coût aussi, dans tous
+    // les modes. `declinaisonParPoste` reste lu pour les données enregistrées.
+    rhModeFor(this.ventilationMode(), this.declinaisonParTypeCout(), this.declinaisonParPoste()),
+  );
 
   rhLines: Array<{
     id_poste: number | null;
@@ -1716,6 +1714,10 @@ export class OperationFormComponent implements OnInit {
     // année. `syncRhLines()` remettra ensuite ces lignes dans l'ordre des
     // postes / organismes de référence.
     this.declinaisonParPoste.set(!!op.declinaison_par_poste);
+    // #735 — le tableau RH dépend du mode ET de la déclinaison par type de
+    // coût : les restaurer avant de réaligner les lignes (`syncRhLines`).
+    this.ventilationMode.set((op.ventilation_mode || 'none') as VentilationMode);
+    this.declinaisonParTypeCout.set(op.declinaison_par_type_cout !== false);
     if (budgetSources.length > 0) {
       this.rhLines = [];
       const rhMap = new Map<string, (typeof this.rhLines)[number]>();
@@ -2224,7 +2226,8 @@ export class OperationFormComponent implements OnInit {
     const mode = this.budgetMode();
     payload.ventilation_mode = this.ventilationMode();
     // #600 — la déclinaison par poste est désormais portée par le mode.
-    payload.declinaison_par_poste = this.isPosteVentilation();
+    // #735 — persisté tel qu'affiché (modes « + type de poste » ou coûts détaillés).
+    payload.declinaison_par_poste = this.rhMode() === 'postes';
     // #600 (retour 08/2026) — réglages du tableau budgétaire.
     payload.declinaison_par_type_cout = this.declinaisonParTypeCout();
     payload.cout_salarial_auto = this.coutSalarialCalcule();
@@ -3474,10 +3477,15 @@ export class OperationFormComponent implements OnInit {
     // via « Ajouter une ligne ». On conserve les lignes déjà présentes (chargées
     // du serveur ou ajoutées), toutes éditables / supprimables. Les lignes
     // héritées d'un autre mode (ciblant un organisme) sont écartées.
+    // #735 — les temps saisis par organisme (action passée aux coûts
+    // détaillés) sont conservés et affichés sous leur organisme : les écarter
+    // effacerait du temps déjà programmé à l'enregistrement suivant.
     if (mode === 'postes') {
+      const saisie = (l: (typeof this.rhLines)[number]) =>
+        Object.values(l.jours).some(v => v != null && v !== 0);
       this.rhLines = this.rhLines
-        .filter(l => l.id_organisme == null)
-        .map(l => ({ ...l, id_organisme: null, derived: false }));
+        .filter(l => l.id_organisme == null || saisie(l))
+        .map(l => ({ ...l, derived: false }));
       return;
     }
 
@@ -3503,6 +3511,13 @@ export class OperationFormComponent implements OnInit {
     // Lots supplémentaires sur une cible déjà listée (ou cible disparue).
     for (const l of rest) rows.push({ ...l, derived: false });
     this.rhLines = rows;
+  }
+
+  /** #735 — cocher / décocher la déclinaison par type de coût change aussi les
+   *  lignes du tableau de temps de travail (postes ↔ organismes / global). */
+  onDeclinaisonTypeCoutToggle(value: boolean): void {
+    this.declinaisonParTypeCout.set(value);
+    this.syncRhLines();
   }
 
   /** Bascule « Déclinaison par poste » : le tableau RH change de lignes. */

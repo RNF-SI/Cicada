@@ -292,6 +292,8 @@
                     </tr>
                   </thead>
                   <tbody>
+                    <!-- #735 — seulement si une action du plan ventile par type de budget. -->
+                    @if (b.budget.par_type !== false) {
                     <tr>
                       <td>{{ 'plans.suivis.bilan.summary.fonctionnement' | translate }}</td>
                       <td>{{ b.budget.fonctionnement.previsionnel | number:'1.0-0':'fr-FR' }} €</td>
@@ -302,6 +304,7 @@
                       <td>{{ b.budget.investissement.previsionnel | number:'1.0-0':'fr-FR' }} €</td>
                       <td>{{ b.budget.investissement.realise | number:'1.0-0':'fr-FR' }} €</td>
                     </tr>
+                    }
                     <tr class="total-row">
                       <td>{{ 'plans.suivis.bilan.summary.total' | translate }}</td>
                       <td>{{ b.budget.total.previsionnel | number:'1.0-0':'fr-FR' }} €</td>

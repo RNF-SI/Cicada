@@ -33,8 +33,29 @@ ORG_VENTILATION_MODES = {"by_org", "by_org_type", "by_org_type_poste"}
 TYPE_VENTILATION_MODES = {
     "by_type", "by_org_type", "by_type_poste", "by_org_type_poste",
 }
-# Modes déclinant le temps par poste : eux seuls calculent le coût salarial.
+# Modes déclinant le temps par poste quelle que soit la déclinaison par type de
+# coût (#600).
 POSTE_VENTILATION_MODES = {"by_type_poste", "by_org_type_poste"}
+
+
+def temps_par_poste(op) -> bool:
+    """Le temps de travail de l'action est-il décliné par poste ?
+
+    Modes « + type de poste », ancienne case « déclinaison par poste », et —
+    #735 (retour 21/10) — tout mode dont la case « déclinaison par type de
+    coût » est cochée : détailler le coût salarial suppose de savoir qui
+    travaille. Pendant de ``tempsParPoste()`` (``operation-budget.ts``)."""
+    return (
+        op.ventilation_mode in POSTE_VENTILATION_MODES
+        or bool(getattr(op, "declinaison_par_poste", False))
+        or bool(getattr(op, "declinaison_par_type_cout", False))
+    )
+
+
+def has_type_budget(op) -> bool:
+    """#735 — le mode sépare-t-il fonctionnement et investissement ? Sinon,
+    aucun écran ni export ne fait la distinction (budget comme temps)."""
+    return op.ventilation_mode in TYPE_VENTILATION_MODES
 
 _ZERO = Decimal(0)
 
@@ -85,6 +106,9 @@ class CostCell:
     prest_fonct: Decimal = _ZERO
     prest_invest: Decimal = _ZERO
     autre_fonct: Decimal = _ZERO      # autre_cout + cout_stage + budget_fonctionnement
+    # Part « stage » de `autre_fonct` (#735 : la fiche action la détaille) ;
+    # information seule, déjà comptée dans `autre_fonct`.
+    stage_fonct: Decimal = _ZERO
     autre_invest: Decimal = _ZERO     # autre_cout_invest + budget_investissement
     # Réalisé — jours
     rj_fonct: Decimal = _ZERO
@@ -97,6 +121,7 @@ class CostCell:
     rprest_invest: Decimal = _ZERO
     rautre_fonct: Decimal = _ZERO
     rautre_invest: Decimal = _ZERO
+    rstage_fonct: Decimal = _ZERO
 
     # --- Totaux prévisionnels ---
     @property
@@ -136,10 +161,10 @@ class CostCell:
         for f in (
             "j_fonct", "j_invest", "j_benevole",
             "sal_fonct", "sal_invest", "prest_fonct", "prest_invest",
-            "autre_fonct", "autre_invest",
+            "autre_fonct", "autre_invest", "stage_fonct",
             "rj_fonct", "rj_invest", "rj_benevole",
             "rsal_fonct", "rsal_invest", "rprest_fonct", "rprest_invest",
-            "rautre_fonct", "rautre_invest",
+            "rautre_fonct", "rautre_invest", "rstage_fonct",
         ):
             setattr(self, f, getattr(self, f) + getattr(other, f))
 
@@ -154,6 +179,12 @@ class ActionFinance:
     libelle: str = ""
     is_cs: bool = False
     is_org_ventilated: bool = False
+    # #735 — paramétrage de l'action, pour adapter les exports à ce que le
+    # gestionnaire a réellement saisi.
+    has_type_budget: bool = False
+    has_cost_detail: bool = False
+    par_poste: bool = False
+    is_global: bool = False
     cells: dict = field(default_factory=lambda: defaultdict(CostCell))
 
     def org_ids(self) -> list:
@@ -193,7 +224,7 @@ def poste_entry_factory():
 
 def _org_of_rh_line(op, line):
     poste = line.id_poste
-    if op.declinaison_par_poste and poste and poste.id_organisme_id:
+    if temps_par_poste(op) and poste and poste.id_organisme_id:
         return poste.id_organisme
     return line.id_organisme
 
@@ -258,6 +289,10 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
 
     af = ActionFinance(op=op)
     af.is_org_ventilated = op.ventilation_mode in ORG_VENTILATION_MODES
+    af.has_type_budget = has_type_budget(op)
+    af.has_cost_detail = bool(getattr(op, "declinaison_par_type_cout", True))
+    af.par_poste = temps_par_poste(op)
+    af.is_global = bool(getattr(op, "programmation_globale", False))
 
     # #600 — le coût salarial n'entre dans le budget que si l'action détaille
     # ses types de coût ; il est calculé (jours × coût jour) en saisie
@@ -266,22 +301,15 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     # #735 — la case vaut désormais pour tous les modes (« aucune » et « par
     # organisme » compris).
     has_cost_detail = getattr(op, "declinaison_par_type_cout", True)
-    # Seul un temps décliné par poste a un coût jour à multiplier (modes
-    # « + type de poste », ou déclinaison par poste antérieure à #600).
-    auto_salary = (
-        has_cost_detail
-        and (op.ventilation_mode in POSTE_VENTILATION_MODES or op.declinaison_par_poste)
-        and getattr(op, "cout_salarial_auto", True)
-    )
+    # #735 (retour 21/10) — détailler les coûts décline le temps par poste
+    # (`temps_par_poste`) dans tous les modes : le coût salarial se calcule
+    # (jours × coût jour) dès que la case « calculé automatiquement » le dit.
+    auto_salary = has_cost_detail and getattr(op, "cout_salarial_auto", True)
     manual_salary = has_cost_detail and not auto_salary
     # #741 — le suivi a ses propres réglages : réalisé détaillé même si le prévu
     # ne l'est pas, coût salarial réalisé calculé ou saisi indépendamment.
     real_detail = op.get_declinaison_par_type_cout_realise()
-    auto_salary_real = (
-        real_detail
-        and (op.ventilation_mode in POSTE_VENTILATION_MODES or op.declinaison_par_poste)
-        and op.get_cout_salarial_auto_realise()
-    )
+    auto_salary_real = real_detail and op.get_cout_salarial_auto_realise()
     manual_salary_real = real_detail and not auto_salary_real
 
     def cell(oid, year):
@@ -382,6 +410,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         c.prest_fonct += _d(line.cout_prestataire)
         c.prest_invest += _d(line.cout_prestataire_invest)
         c.autre_fonct += _d(line.autre_cout) + _d(line.cout_stage) + _d(line.budget_fonctionnement)
+        c.stage_fonct += _d(line.cout_stage)
         c.autre_invest += _d(line.autre_cout_invest) + _d(line.budget_investissement)
         real = getattr(line, "realisation", None)
         if real:
@@ -391,6 +420,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             c.rprest_fonct += _d(real.cout_prestataire_realise)
             c.rprest_invest += _d(real.cout_prestataire_invest_realise)
             c.rautre_fonct += _d(real.autre_cout_realise) + _d(real.cout_stage_realise) + _d(real.budget_fonctionnement_realise)
+            c.rstage_fonct += _d(real.cout_stage_realise)
             c.rautre_invest += _d(real.autre_cout_invest_realise) + _d(real.budget_investissement_realise)
 
     # --- Modes sans ventilation par organisme : budgets portés par l'année ---
@@ -418,6 +448,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
             c.prest_fonct += _d(oa.cout_prestataire)
             c.prest_invest += _d(oa.cout_prestataire_invest)
             c.autre_fonct += fonct + _d(oa.autre_cout) + _d(oa.cout_stage)
+            c.stage_fonct += _d(oa.cout_stage)
             c.autre_invest += invest + _d(oa.autre_cout_invest)
             if (c.prest_fonct or c.prest_invest or c.autre_fonct or c.autre_invest
                     or c.sal_fonct or c.sal_invest):
@@ -437,6 +468,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
                 c.rprest_fonct += _d(real.cout_prestataire_realise)
                 c.rprest_invest += _d(real.cout_prestataire_invest_realise)
                 c.rautre_fonct += rf + _d(real.autre_cout_realise) + _d(real.cout_stage_realise)
+                c.rstage_fonct += _d(real.cout_stage_realise)
                 c.rautre_invest += _d(real.budget_investissement_realise) + _d(real.autre_cout_invest_realise)
 
     return af
@@ -492,6 +524,24 @@ class PlanFinance:
     actions: list
     org_names: dict
     poste_jours: dict         # (org_id, label, year) -> {'prev','real'}
+
+    # #735 — ventilation la plus détaillée des actions du plan : les exports
+    # budget / RH n'affichent une dimension que si au moins une action la saisit.
+    @property
+    def is_org_ventilated(self) -> bool:
+        return any(af.is_org_ventilated for af in self.actions)
+
+    @property
+    def has_type_budget(self) -> bool:
+        return any(af.has_type_budget for af in self.actions)
+
+    @property
+    def has_cost_detail(self) -> bool:
+        return any(af.has_cost_detail for af in self.actions)
+
+    @property
+    def par_poste(self) -> bool:
+        return any(af.par_poste for af in self.actions)
 
     def org_ids(self) -> list:
         ids = set()

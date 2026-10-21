@@ -939,11 +939,48 @@ textarea.full-width {
 }
 
 // #735 — rappel du prévu de la période (action programmée globalement).
+// #735 (retour 21/10) — rappel d'une action programmée globalement : deux
+// tuiles (prévu de la période / réalisé cumulé), libellé au-dessus du montant.
 .prevu-periode {
   margin-bottom: $spacing-md;
 
-  p {
-    margin: 0 0 $spacing-xxs;
+  &__tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: $spacing-sm;
+  }
+
+  &__tile {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xxs;
+    padding: $spacing-sm $spacing-md;
+    background-color: $beige;
+    border-left: 4px solid $primary-color;
+    border-radius: $border-radius-sm;
+  }
+
+  &__label {
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+
+  &__value {
+    font-size: $font-size-h4;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    white-space: nowrap;
+  }
+
+  &__sub {
+    color: $black;
+  }
+
+  &__hint {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xxs;
+    margin: $spacing-xs 0 0;
   }
 }
 

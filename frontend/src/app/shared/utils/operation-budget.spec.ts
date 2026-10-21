@@ -9,7 +9,7 @@ import {
   fonctDetailPrev, investDetailPrev, fonctDetailReal, investDetailReal,
   salarialCost, sumJours, yearBudgetPrev, yearBudgetReal,
   yearJoursPrev, yearJoursReal,
-  salaryOptionAvailable, salaryIsComputed, salaryIsComputedReal, prevAnnees,
+  salaryOptionAvailable, salaryIsComputed, salaryIsComputedReal, prevAnnees, tempsParPoste, rhModeFor,
 } from './operation-budget';
 
 const OP = (mode: string) => ({ ventilation_mode: mode }) as any;
@@ -264,34 +264,23 @@ describe('jours prévus / réalisés (#616)', () => {
 // ===========================================================================
 
 describe('coût salarial : calculé ou saisi', () => {
-  it('ne propose l\'option que pour les deux modes « + type de poste »', () => {
-    expect(salaryOptionAvailable('by_type_poste', true)).toBe(true);
-    expect(salaryOptionAvailable('by_org_type_poste', true)).toBe(true);
-
-    // Les autres modes ne déclinent pas le temps par poste : rien à calculer.
-    expect(salaryOptionAvailable('by_type', true)).toBe(false);
-    expect(salaryOptionAvailable('by_org_type', true)).toBe(false);
-    expect(salaryOptionAvailable('by_org', true)).toBe(false);
-    expect(salaryOptionAvailable('none', true)).toBe(false);
-
-    // Sans détail des coûts, il n'y a même pas de ligne « coût salarial ».
-    expect(salaryOptionAvailable('by_type_poste', false)).toBe(false);
-    expect(salaryOptionAvailable('by_org_type_poste', false)).toBe(false);
+  it('#735 (retour 21/10) — propose l\'option dans tous les modes dès que les coûts sont détaillés', () => {
+    // Détailler les coûts décline le temps par poste : il y a un coût jour à
+    // multiplier, quel que soit le mode de ventilation.
+    for (const mode of ['none', 'by_org', 'by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste']) {
+      expect(salaryOptionAvailable(mode, true)).toBe(true);
+      // Sans détail des coûts, il n'y a même pas de ligne « coût salarial ».
+      expect(salaryOptionAvailable(mode, false)).toBe(false);
+    }
   });
 
-  it('suit le choix du gestionnaire dans les modes par type de poste', () => {
+  it('suit le choix du gestionnaire dès que les coûts sont détaillés', () => {
     expect(salaryIsComputed('by_type_poste', true, true)).toBe(true);
     expect(salaryIsComputed('by_type_poste', true, false)).toBe(false);
-    expect(salaryIsComputed('by_org_type_poste', true, false)).toBe(false);
-  });
-
-  it('impose la saisie manuelle dans les autres modes détaillés par type de coût', () => {
-    // Sans poste, aucun coût jour : la valeur calculée serait figée à 0.
-    expect(salaryIsComputed('by_type', true, true)).toBe(false);
-    expect(salaryIsComputed('by_org_type', true, true)).toBe(false);
-    // #735 — « aucune » et « par organisme » détaillent aussi leurs coûts.
-    expect(salaryIsComputed('none', true, true)).toBe(false);
-    expect(salaryIsComputed('by_org', true, true)).toBe(false);
+    expect(salaryIsComputed('none', true, true)).toBe(true);
+    expect(salaryIsComputed('none', true, false)).toBe(false);
+    expect(salaryIsComputed('by_org', true, false)).toBe(false);
+    expect(salaryIsComputed('by_type', true, true)).toBe(true);
   });
 
   it('laisse les modes sans détail des coûts en calcul (comportement historique)', () => {
@@ -301,6 +290,37 @@ describe('coût salarial : calculé ou saisi', () => {
     expect(salaryIsComputed('by_org', false, true)).toBe(true);
     expect(salaryIsComputed('by_type', false, true)).toBe(true);
     expect(salaryIsComputed('by_org_type_poste', false, true)).toBe(true);
+  });
+});
+
+describe('#735 (retour 21/10) — temps par poste dès la déclinaison par type de coût', () => {
+  it('décline le temps par poste dans tous les modes détaillés', () => {
+    expect(tempsParPoste({ ventilation_mode: 'none', declinaison_par_type_cout: true } as any)).toBe(true);
+    expect(tempsParPoste({ ventilation_mode: 'by_org', declinaison_par_type_cout: true } as any)).toBe(true);
+    expect(tempsParPoste({ ventilation_mode: 'by_type', declinaison_par_type_cout: true } as any)).toBe(true);
+    expect(tempsParPoste({ ventilation_mode: 'none', declinaison_par_type_cout: false } as any)).toBe(false);
+    expect(tempsParPoste({ ventilation_mode: 'by_type_poste', declinaison_par_type_cout: false } as any)).toBe(true);
+  });
+
+  it('lignes du tableau de temps de travail : postes dès que la déclinaison est cochée', () => {
+    expect(rhModeFor('none', true, false)).toBe('postes');
+    expect(rhModeFor('by_org', true, false)).toBe('postes');
+    expect(rhModeFor('by_org_type', true, false)).toBe('postes');
+    expect(rhModeFor('none', false, false)).toBe('global');
+    expect(rhModeFor('by_org', false, false)).toBe('organismes');
+    expect(rhModeFor('by_org_type', false, false)).toBe('organismes');
+    expect(rhModeFor('by_type_poste', false, false)).toBe('postes');
+  });
+
+  it('calcule le coût salarial en mode « aucune ventilation » (jours × coût jour)', () => {
+    const op = { ventilation_mode: 'none', declinaison_par_type_cout: true, cout_salarial_auto: true } as any;
+    const oa: any = {
+      annee: 2027, budget: null, organismes: [], cout_stage: '200.00',
+      rh_lignes: [{ id_poste: 1, jours: '10.00', categorie_depense: 'fonctionnement', poste_cout_jour: '300.00' }],
+    };
+    expect(fonctDetailPrev(op, oa).salarial).toBe(3000);
+    // Pas de type de budget : rien côté investissement, un seul total.
+    expect(yearBudgetPrev(op, oa)).toEqual({ fonctionnement: null, investissement: null, total: 3200 });
   });
 });
 
@@ -364,9 +384,11 @@ describe('#741 — réglages propres au suivi (réalisé)', () => {
   });
 
   it('réalisé détaillé alors que le prévu ne l\'est pas', () => {
+    // #735 — hors mode « + type de poste », la migration 0134 fige ce réglage
+    // en coût salarial saisi (il l'était implicitement jusque-là).
     const op: any = {
       ventilation_mode: 'by_type', declinaison_par_type_cout: false, cout_salarial_auto: true,
-      declinaison_par_type_cout_realise: true,
+      declinaison_par_type_cout_realise: true, cout_salarial_auto_realise: false,
     };
     const oa = anneeReal();
     oa.rh_lignes = [];

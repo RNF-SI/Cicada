@@ -481,6 +481,20 @@ class TestRealisationBilanEndpoint:
         assert response.data['rh']['previsionnel'] == 0
         assert response.data['rh']['realise'] == 0
 
+    def test_bilan_par_type_suit_la_ventilation_la_plus_detaillee(
+        self, api_client, realisation_test_data,
+    ):
+        """#735 — fonctionnement / investissement au Bilan seulement si une
+        action du plan ventile par type de budget."""
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        url = f'/api/plans/realisations/bilan/{realisation_test_data["plan"].pk}/'
+        assert api_client.get(url).data['budget']['par_type'] is False
+
+        op = realisation_test_data['operation']
+        op.ventilation_mode = 'by_org_type'
+        op.save(update_fields=['ventilation_mode'])
+        assert api_client.get(url).data['budget']['par_type'] is True
+
     def test_bilan_counts_by_niveau(self, api_client, realisation_test_data):
         """1 réalisation TERMINE → taux_realisation.termine = 1, total = 1."""
         RealisationOperationAnneeFactory(

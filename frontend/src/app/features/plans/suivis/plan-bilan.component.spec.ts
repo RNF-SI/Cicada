@@ -344,3 +344,12 @@ describe('PlanBilanComponent — portée du bilan', () => {
   });
 
 });
+
+describe('PlanBilanComponent — #735 budget sans type de budget', () => {
+  it('ne montre fonctionnement / investissement que si une action ventile par type de budget', () => {
+    const { readFileSync } = require('fs');
+    const { join } = require('path');
+    const html: string = readFileSync(join(__dirname, 'plan-bilan.component.html'), 'utf8');
+    expect(html).toMatch(/@if \(b\.budget\.par_type !== false\) \{\s*<tr>\s*<td>\{\{ 'plans\.suivis\.bilan\.summary\.fonctionnement'/);
+  });
+});

@@ -8,7 +8,7 @@ import { AuthService } from '../../../../core/services/auth.service';
 import { MetriqueRef, Operation, Protocole } from '../../../../core/models/enjeu.model';
 import { CategorieDepense } from '../../../../core/models/rh.model';
 import {
-  fonctDetailPrev, investDetailPrev, prevAnnees, salarialCost, yearBudgetPrev, yearJoursPrev,
+  fonctDetailPrev, hasTypeBudget, investDetailPrev, prevAnnees, salarialCost, yearBudgetPrev, yearJoursPrev,
 } from '../../../../shared/utils/operation-budget';
 import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-map-edit/leaflet-map-edit.component';
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
@@ -252,6 +252,13 @@ export class OperationFicheComponent implements OnInit {
 
   /** Vrai si au moins un composant de coût est renseigné (#613). */
   readonly hasCoutDetail = computed(() => this.coutDetail().rows.length > 0);
+
+  /**
+   * #735 (retour 21/10) — la fiche ne distingue fonctionnement et
+   * investissement (budget comme temps de travail) que si le mode de
+   * ventilation de l'action le fait.
+   */
+  readonly showTypeBudget = computed(() => hasTypeBudget(this.operation()?.ventilation_mode));
 
   /** Vrai si au moins une année distingue fonctionnement / investissement (#556). */
   readonly hasBudgetTypes = computed(() =>

@@ -1082,3 +1082,45 @@ describe('SuiviSaisieComponent — lecture seule (#740)', () => {
     expect(html).toMatch(/\[disabled\]="saisieBloquee\(\)/);
   });
 });
+
+// -----------------------------------------------------------------------------
+// #735 (retour 21/10) — sans type de budget, aucune catégorisation du temps
+// réalisé ; temps décliné par poste dès que les coûts sont détaillés.
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — #735 sans type de budget', () => {
+  const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+
+  function instance(op: any): any {
+    const c: any = comp();
+    c.operation = signal({ operation_annees: [], ...op });
+    return c;
+  }
+
+  it('ne demande la catégorie du temps réalisé que si le mode ventile par type de budget', () => {
+    for (const mode of ['none', 'by_org']) {
+      expect(instance({ ventilation_mode: mode }).showRhCategorie()).toBe(false);
+    }
+    for (const mode of ['by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste']) {
+      expect(instance({ ventilation_mode: mode }).showRhCategorie()).toBe(true);
+    }
+    // Colonne et menu déroulant conditionnés dans le gabarit.
+    expect(html).toMatch(/@if \(showRhCategorie\(\)\) \{\s*<th class="rh-categorie-col">/);
+    expect(html).toMatch(/@if \(showRhCategorie\(\)\) \{\s*<td class="rh-categorie-col">/);
+  });
+
+  it('décline le temps réalisé par poste dès que les coûts sont détaillés', () => {
+    expect(instance({ ventilation_mode: 'none', declinaison_par_type_cout: true }).computeRhMode()).toBe('postes');
+    expect(instance({ ventilation_mode: 'by_org', declinaison_par_type_cout: true }).computeRhMode()).toBe('postes');
+    expect(instance({ ventilation_mode: 'by_org', declinaison_par_type_cout: false }).computeRhMode()).toBe('organismes');
+    expect(instance({ ventilation_mode: 'none', declinaison_par_type_cout: false }).computeRhMode()).toBe('global');
+  });
+
+  it('propose le coût salarial réalisé calculé dans tous les modes détaillés', () => {
+    expect(instance({ ventilation_mode: 'none', declinaison_par_type_cout: true }).showSalaireRealiseOption()).toBe(true);
+  });
+
+  it('rappel du prévu de la période : deux tuiles prévu / réalisé, sans fonctionnement hors type de budget', () => {
+    expect(html).toContain('class="prevu-periode__tile"');
+    expect(html).toMatch(/@if \(showInvest\(\) && p\.invest\)/);
+  });
+});

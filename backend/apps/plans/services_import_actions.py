@@ -270,9 +270,10 @@ def _parse_categorie(value):
 
 
 def _salary_option_available(mode, detail) -> bool:
-    """La case « saisie automatique du coût salarial » n'existe que dans les
-    modes « + type de poste » avec détail des coûts (``salaryOptionAvailable``)."""
-    return mode in _POSTE_MODES and detail
+    """La case « saisie automatique du coût salarial » existe dès que les coûts
+    sont détaillés (``salaryOptionAvailable`` — #735 : le temps est alors
+    décliné par poste, quel que soit le mode)."""
+    return bool(detail)
 
 
 def _salary_is_computed(mode, detail, auto) -> bool:
@@ -281,7 +282,7 @@ def _salary_is_computed(mode, detail, auto) -> bool:
     valeur que la fiche action enregistre dans ``cout_salarial_auto``."""
     if _salary_option_available(mode, detail):
         return auto
-    return not (mode in TYPE_VENTILATION_MODES and detail)
+    return True
 
 
 def _budget_layout(mode, detail) -> str:
@@ -293,9 +294,11 @@ def _budget_layout(mode, detail) -> str:
     return "detail" if detail else "enveloppes"
 
 
-def _rh_target(mode) -> str:
-    """Cible des lignes de temps de travail (``rhMode()`` du front)."""
-    if mode in _POSTE_MODES:
+def _rh_target(mode, detail=False) -> str:
+    """Cible des lignes de temps de travail (``rhModeFor()`` du front) : par
+    poste dans les modes « + type de poste » et dès que les coûts sont
+    détaillés (#735)."""
+    if mode in _POSTE_MODES or detail:
         return "poste"
     if mode in _RH_ORG_MODES:
         return "organisme"
@@ -1698,7 +1701,7 @@ def _mode_phrase(settings) -> str:
             if settings["detail"]
             else " sans déclinaison par type de coût"
         )
-        if settings["detail"] and mode in _POSTE_MODES and settings["salary_computed"]:
+        if settings["detail"] and settings["salary_computed"]:
             phrase += " et coût salarial calculé"
     return phrase
 
@@ -2048,7 +2051,7 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
         if settings is None:
             continue
         mode = settings["mode"]
-        target = _rh_target(mode)
+        target = _rh_target(mode, settings["detail"])
         if _check_target("RH", row, "poste", target == "poste", settings, "Poste"):
             _check_ref(
                 "RH", row, "poste", poste_ref, plan_poste_ids, "Poste", "Postes"
@@ -2180,7 +2183,7 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
             description=_cell_str(row.get("description")) or None,
             # #600 — paramétrage budgétaire, enregistré comme par la fiche action.
             ventilation_mode=settings["mode"],
-            declinaison_par_poste=settings["mode"] in _POSTE_MODES,
+            declinaison_par_poste=_rh_target(settings["mode"], settings["detail"]) == "poste",
             declinaison_par_type_cout=settings["detail"],
             cout_salarial_auto=settings["salary_computed"],
             statut="draft",
@@ -2254,7 +2257,7 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         annee = _as_int(row.get("annee"))
         if code not in op_by_code or annee is None:
             continue
-        target = _rh_target(settings_by_code[code]["mode"])
+        target = _rh_target(settings_by_code[code]["mode"], settings_by_code[code]["detail"])
         poste = (
             postes_by_id.get(poste_ref.get(_cell_str(row.get("poste"))))
             if target == "poste"
@@ -2290,7 +2293,7 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         op = op_by_code[code]
         oa = annee_index[(code, annee)]
         rh_lines = rh_by_year.get((code, annee), [])
-        if _rh_target(op.ventilation_mode) == "organisme":
+        if _rh_target(op.ventilation_mode, op.declinaison_par_type_cout) == "organisme":
             # Temps de chaque organisme reporté sur sa ligne de ventilation
             # (créée si l'organisme n'a que du temps, sans budget).
             for rh in rh_lines:
