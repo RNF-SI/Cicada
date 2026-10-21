@@ -19,10 +19,11 @@ budget, ni RH, ni données empiriques.
 
 from django.conf import settings
 from django.db.models import Count, Prefetch
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
@@ -33,6 +34,7 @@ from .federation import (
     FORMAT_VERSION, HasFederationToken, _bandeau_du_plan, codes_de_la_page,
     document_publie,
 )
+from .documents import acces_autorise, servir, trouver_document
 from .fiche import construire_fiche
 from .filters import (
     annoter_correspondances, filtrer_contenus, filtrer_plans, liste,
@@ -393,3 +395,44 @@ class InstancesExplorationView(APIView):
                 'derniere_publication': None,
             }],
         })
+
+
+class DocumentPublicView(APIView):
+    """
+    Un document d'un plan explorable, servi par son adresse publique (#747).
+
+    C'est le lien que porte la fiche publiée sur le hub : le lecteur arrive
+    d'une autre instance, sans compte ici. L'authentification reste lue — sans
+    partage, un utilisateur connecté de cette instance ouvre encore les
+    documents de ses plans depuis l'exploration locale.
+    """
+
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        operation_id='public_documents_retrieve',
+        summary="Télécharger un document d'un plan explorable",
+        description=(
+            "Document d'un plan de gestion validé, modifié ou archivé (document du "
+            "plan ou document numérique d'un enjeu), désigné par son identifiant "
+            "public tiré au sort — jamais par sa clé en base. **Sans connexion** "
+            "tant que la structure partage ses plans (`federation_partage`) ; "
+            "sinon réservé aux utilisateurs connectés de l'instance. PDF et images "
+            "s'ouvrent dans le navigateur, les autres formats se téléchargent."
+        ),
+        parameters=[OpenApiParameter(
+            'uuid', OpenApiTypes.UUID, OpenApiParameter.PATH,
+            description="Identifiant public du document (`url` des `documents` de la fiche).",
+        )],
+        responses={
+            (200, 'application/octet-stream'): OpenApiTypes.BINARY,
+            404: schema.REPONSE_404,
+        },
+        tags=[schema.TAG_EXPLORATION],
+    )
+    def get(self, request, uuid):
+        # Même réponse qu'une adresse inconnue : un refus distinct dirait que
+        # le document existe.
+        if not acces_autorise(request.user):
+            raise Http404
+        return servir(*trouver_document(uuid))

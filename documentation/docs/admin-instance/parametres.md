@@ -22,10 +22,11 @@ Consulter la version installée et la dernière version disponible, et déclench
 **Le partage avec l'exploration nationale est un engagement à l'échelle de l'instance**. Lorsque la case est cochée :
 
 - Les plans validés de l'instance sont publiés chaque nuit vers l'exploration nationale : enjeux, facteurs, pressions, objectifs, indicateurs, actions avec leur période, suivis et protocoles ;
+- **Les documents de ces plans** (documents du plan et des enjeux) deviennent consultables **sans connexion** par leur lien : l'exploration nationale n'en garde que l'adresse, le fichier reste sur votre instance. L'adresse repose sur un identifiant tiré au sort, impossible à deviner, mais quiconque la connaît peut ouvrir le document ;
 - Ne sont pas partagés pour le moment : budget et financements, ressources humaines, mesures et réalisations. Si les besoins en bancarisation évoluent, les administrateurs d'instance et d'organisme seront interrogés afin d'autoriser ou non le partage d'autres données ;
 - En contrepartie, les utilisateurs de l'instance explorent les plans de toutes les structures participantes.
 
-Lorsque la case est décochée, l'exploration porte uniquement sur les plans de l'instance. Décocher la case retire immédiatement vos plans de l'exploration nationale (une confirmation est demandée). Vos utilisateurs n'explorent alors plus que les plans de l'instance. Recocher republie les plans.
+Lorsque la case est décochée, l'exploration porte uniquement sur les plans de l'instance. Décocher la case retire immédiatement vos plans de l'exploration nationale (une confirmation est demandée) et coupe l'accès sans connexion à leurs documents : seuls les utilisateurs connectés de l'instance les ouvrent encore depuis l'exploration. Vos utilisateurs n'explorent alors plus que les plans de l'instance. Recocher republie les plans.
 
 <figure markdown="span">
 ![Paramètres de l'instance](../assets/figures/fig64.webp){ loading=lazy }

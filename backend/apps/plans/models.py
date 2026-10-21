@@ -896,6 +896,17 @@ class CorPgFichier(models.Model):
         related_name='fichiers',
         verbose_name=_("Plan de gestion")
     )
+    # #747 — Adresse publique du document (`/api/public/documents/<uuid>/`),
+    # recopiée dans la fiche publiée sur le hub. Tirée au sort : quiconque
+    # connaît l'adresse peut télécharger le document, elle ne doit donc pas se
+    # deviner à partir de la clé en base.
+    uuid_public = models.UUIDField(
+        _("Identifiant public"),
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        help_text=_("Identifiant non devinable de l'adresse publique du document.")
+    )
 
     # Informations sur le fichier
     nom_fichier = models.CharField(

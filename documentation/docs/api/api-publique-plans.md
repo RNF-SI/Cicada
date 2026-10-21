@@ -22,6 +22,9 @@ Elle est **fermée par défaut**. Un super administrateur l'ouvre depuis les par
 | `GET /api/public/plans/` | Liste paginée des plans (hors brouillons) |
 | `GET /api/public/plans/{uuid}/` | Détail des métadonnées d'un plan |
 
+!!! note "Documents des plans explorables"
+    `GET /api/public/documents/{uuid}/` sert les documents des plans partagés avec l'exploration (#747). Il ne dépend pas de l'interrupteur de cette API mais du partage avec l'exploration nationale — voir [Exploration](exploration.md#documents-des-plans).
+
 ## Identifier un plan de façon stable
 
 Chaque plan porte un identifiant **`uuid_plan`**, stable dans le temps et entre instances, et une référence lisible `cicada:<instance>:<uuid>`. Ni l'identifiant numérique interne ni le *slug* ne conviennent à une application tierce : le premier est une séquence locale à l'instance, le second suit le nom du plan et change avec lui.

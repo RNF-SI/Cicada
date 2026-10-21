@@ -1,11 +1,13 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { ActivatedRoute, RouterModule } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import {
   FicheAction,
+  FicheDocument,
   FicheEnjeu,
   FicheIndicateur,
   FicheMetrique,
@@ -24,6 +26,9 @@ import {
   ExplorationActionModaleComponent,
 } from './action-modale/exploration-action-modale.component';
 import { SurlignerDirective } from '../../../shared/directives/surligner.directive';
+import {
+  descriptionDocument, documentEnLigne, documentLocal, lienDocument,
+} from './fiche-documents';
 
 /**
  * Fiche publique d'un plan de gestion, en lecture seule.
@@ -60,6 +65,8 @@ export class ExplorationFicheComponent {
   private readonly exploration = inject(ExplorationService);
   private readonly route = inject(ActivatedRoute);
   private readonly dialog = inject(MatDialog);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly translate = inject(TranslateService);
 
   readonly plan = signal<FichePlan | null>(null);
   readonly chargement = signal(true);
@@ -82,6 +89,52 @@ export class ExplorationFicheComponent {
   protected lienSource(plan: FichePlan): string {
     const racine = (plan.url_instance ?? '').replace(/\/+$/, '');
     return `${racine}/exploration/plans/${plan.slug}`;
+  }
+
+  protected readonly lienDocument = lienDocument;
+  protected readonly descriptionDocument = descriptionDocument;
+
+  /**
+   * #747 — Ouvre un document de la fiche dans un nouvel onglet.
+   *
+   * Un instantané du hub suit simplement son lien : l'instance d'origine sert
+   * le document sans connexion. Un document de cette instance, lu en direct,
+   * passe par la session — sans partage, l'adresse publique n'est ouverte
+   * qu'aux utilisateurs connectés, et un lien n'emporterait pas le jeton.
+   */
+  protected ouvrirDocument(plan: FichePlan, document: FicheDocument, event: Event): void {
+    if (!documentLocal(plan, document)) {
+      return;
+    }
+    event.preventDefault();
+    // PDF et images s'affichent dans un nouvel onglet, ouvert avant la
+    // requête : ouvert après, il serait bloqué comme fenêtre surgissante faute
+    // de geste de l'utilisateur. Les autres formats se téléchargent sous leur
+    // nom d'origine.
+    const enLigne = documentEnLigne(document);
+    const onglet = enLigne ? window.open('', '_blank') : null;
+    this.exploration.documentLocal(document.id_document).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        if (onglet) {
+          onglet.location.href = url;
+        } else {
+          const lien = window.document.createElement('a');
+          lien.href = url;
+          lien.download = document.nom_fichier;
+          lien.click();
+        }
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: () => {
+        onglet?.close();
+        this.snackBar.open(
+          this.translate.instant('exploration.fiche.documentErreur'),
+          this.translate.instant('common.actions.close'),
+          { duration: 4000 },
+        );
+      },
+    });
   }
 
   /** Objet mis en évidence, sous la forme `type:id`. */
@@ -150,6 +203,9 @@ export class ExplorationFicheComponent {
     }
     if (plan.actions.length) {
       ancres.push({ id: 'actions', label: 'exploration.fiche.actions' });
+    }
+    if (plan.documents?.length) {
+      ancres.push({ id: 'documents', label: 'exploration.fiche.documents' });
     }
     return ancres;
   });

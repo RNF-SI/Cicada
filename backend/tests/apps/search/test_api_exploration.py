@@ -1064,12 +1064,15 @@ class TestFicheActionDetaillee:
         """
         Garde-fou anti N+1 : suivi, protocoles, sites et indicateurs de réponse
         sont préchargés. Sans ça, chaque action ajouterait ses propres requêtes.
+
+        Plafond relevé de 25 à 27 par #747 : documents du plan et des enjeux,
+        deux requêtes fixes quel que soit le nombre d'actions.
         """
         plan = jeu_de_donnees['plans']['ouest']
         _action_avec_suivi(plan)
         index_plan(plan)
 
-        with django_assert_max_num_queries(25):
+        with django_assert_max_num_queries(27):
             client_connecte.get(url_fiche(plan))
 
         for indice in range(5):
@@ -1077,7 +1080,7 @@ class TestFicheActionDetaillee:
             action.libelle = f'Comptage {indice}'
             action.save()
 
-        with django_assert_max_num_queries(25):
+        with django_assert_max_num_queries(27):
             reponse = client_connecte.get(url_fiche(plan))
         assert len(reponse.data['actions']) == 6
 

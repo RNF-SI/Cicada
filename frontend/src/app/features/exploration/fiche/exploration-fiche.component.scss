@@ -548,3 +548,63 @@ app-accordion.cible-enjeu {
     gap: $spacing-xxs;
   }
 }
+
+// #747 — Documents du plan et des enjeux
+.fiche-documents {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.fiche-document {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  background: $white;
+}
+
+.fiche-document-icone {
+  color: $primary-color;
+  margin-top: 2px;
+}
+
+.fiche-document-corps {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+  min-width: 0;
+}
+
+.fiche-document-titre {
+  font-weight: 700;
+  color: $black;
+  overflow-wrap: anywhere;
+
+  &.link-default {
+    color: $primary-color;
+  }
+
+  .fi {
+    font-size: 0.75em;
+    margin-left: $spacing-xxs;
+  }
+}
+
+.fiche-document-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xxs $spacing-sm;
+  color: $gray-dark;
+  font-size: $font-size-small;
+
+  span + span::before {
+    content: '·';
+    margin-right: $spacing-sm;
+  }
+}

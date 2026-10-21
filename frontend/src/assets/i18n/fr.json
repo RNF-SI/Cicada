@@ -3884,7 +3884,7 @@
       "periode": "Période",
       "introuvable": "Ce plan de gestion n'existe pas, ou n'est pas encore validé — seuls les plans validés sont explorables.",
       "sansContenu": "Ce plan de gestion n'a pas de contenu structuré dans CICADA : ni enjeu, ni objectif, ni action n'y a été saisi. Seules ses informations générales sont donc consultables ici.",
-      "lectureSeule": "Consultation en lecture seule. Cette fiche présente la structure du plan de gestion : enjeux, objectifs, indicateurs et actions programmées. Le budget, les moyens humains, les mesures d'indicateurs et le suivi des réalisations relèvent de la gestion interne de l'organisme et ne sont pas partagés.",
+      "lectureSeule": "Consultation en lecture seule. Cette fiche présente la structure du plan de gestion : enjeux, objectifs, indicateurs, actions programmées et documents. Le budget, les moyens humains, les mesures d'indicateurs et le suivi des réalisations relèvent de la gestion interne de l'organisme et ne sont pas partagés.",
       "typeAction": "Type d'action",
       "typeActionPrecis": "Type d'action détaillé",
       "operateurs": "Opérateurs",
@@ -3933,6 +3933,11 @@
       "provenance": "Fiche publiée par {{structure}} le {{date}}. Elle reflète l'état du plan à cette date.",
       "voirSource": "Voir chez la structure",
       "provenanceDirecte": "Fiche de {{structure}}, lue en direct dans cette instance.",
+      "documents": "Documents",
+      "documentPapier": "Document papier, non numérisé",
+      "documentIndisponible": "Adresse du document inconnue : il n'est consultable que chez la structure d'origine.",
+      "ouvrirDocument": "Ouvrir le document (nouvel onglet)",
+      "documentErreur": "Le document n'a pas pu être ouvert.",
       "autreStructure": "Ce plan appartient à une autre structure (« {{structure}} »). Votre instance explore uniquement ses propres plans : sa fiche n'est consultable que depuis l'exploration nationale."
     },
     "portee": {

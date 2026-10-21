@@ -41,8 +41,8 @@ CICADA tolère les fautes de frappe : si aucun résultat ne correspond exactemen
 Un clic sur un résultat ouvre les écrans habituels de CICADA (la fiche action, l'arborescence du plan dépliée sur l'élément trouvé, ou la page du plan) et non plus une fiche à part. Le mot cherché y reste surligné.
 
 - Si vous avez déjà accès au plan (référent, membre, plan de votre site…), vous le consultez comme d'habitude, avec vos droits.
-- Sinon, vous le consultez en lecture seule, avec le bandeau « Consultation via l'exploration des données ». Le budget, les moyens humains, les mesures d'indicateurs, le suivi des réalisations, les documents et les personnes ne sont jamais affichés ; les menus Suivis, Exports et Paramétrage sont masqués.
-- Pour un plan d'une autre structure (exploration nationale), vous voyez l'instantané publié par celle-ci : le bandeau indique qui l'a publié et à quelle date, l'instantané reflétant l'état du plan à ce moment-là.
+- Sinon, vous le consultez en lecture seule, avec le bandeau « Consultation via l'exploration des données ». Le budget, les moyens humains, les mesures d'indicateurs, le suivi des réalisations et les personnes ne sont jamais affichés ; les menus Suivis, Exports et Paramétrage sont masqués. **Les documents du plan** (arrêté, avis, version signée…) sont en revanche consultables : un clic les ouvre (PDF, images) ou les télécharge.
+- Pour un plan d'une autre structure (exploration nationale), vous voyez l'instantané publié par celle-ci : le bandeau indique qui l'a publié et à quelle date, l'instantané reflétant l'état du plan à ce moment-là. Sa section « **Documents** » (et celle de chaque enjeu qui en porte) liste les documents du plan : un clic ouvre le document directement chez la structure d'origine, dans un nouvel onglet, sans compte sur son instance. Seule l'adresse des documents est publiée, pas les fichiers eux-mêmes.
 
 Le fil d'Ariane (« Exploration des données › structure d'origine › plan ») et les boutons « Retour à l'exploration » ramènent à votre recherche en cours (mot-clé, filtres, page), même plusieurs écrans plus loin.
 

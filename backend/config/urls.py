@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from apps.search.urls import federation_urlpatterns
+from apps.search.views import DocumentPublicView
 
 
 def health_check(request):
@@ -38,6 +39,9 @@ urlpatterns = [
     # #696 / #698 — raccordement de l'instance au hub (super admin).
     path('api/federation/', include(federation_urlpatterns)),
     # #645 — API ouverte des métadonnées des plans (GED tierce type DOCenCEN).
+    # #747 — documents des plans explorables, par leur adresse publique.
+    path('api/public/documents/<uuid:uuid>/', DocumentPublicView.as_view(),
+         name='public-document'),
     path('api/public/', include('apps.plans.urls_public')),
     path('api/campanule/', include('apps.campanule.urls')),
     path('admin/system/', include('apps.system.urls')),

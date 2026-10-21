@@ -751,8 +751,8 @@
             </app-plan-version-timeline>
           </div>
 
-          <!-- Documents — #683 : non partagés en lecture d'exploration. -->
-          @if (!accesExploration()) {
+          <!-- Documents — #747 : partagés en lecture d'exploration (titre,
+               type, taille), ouverts par leur adresse publique. -->
           <div class="section-card compact">
             <app-section-title
               [title]="'plans.detail.sections.documents' | translate"
@@ -798,7 +798,6 @@
               }
             </div>
           </div>
-          }
         </div>
       </div>
     </section>

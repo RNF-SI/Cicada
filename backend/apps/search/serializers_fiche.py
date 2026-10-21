@@ -23,6 +23,10 @@ Périmètre exclu, et la liste est exhaustive :
   annuelles (``RealisationOperationAnnee``) ;
 - traçabilité interne : auteurs et dates de modification.
 
+Les **documents** (#747) sortent par leur adresse seulement : titre, type,
+format et lien vers l'instance d'origine, qui sert le fichier. Ni l'auteur ni
+l'utilisateur qui l'a déposé.
+
 Le test `TestFichePubliqueCloisonnement` vérifie ces exclusions champ par champ.
 """
 
@@ -521,6 +525,53 @@ class FacteurInfluencePublicSerializer(serializers.Serializer):
     pressions = PressionPubliqueSerializer(many=True, source='pressions_pub')
 
 
+class DocumentPublicSerializer(serializers.Serializer):
+    """
+    Un document du plan ou d'un enjeu (#747), désigné par son adresse publique.
+
+    `url` est nulle pour un document papier d'enjeu : il n'y a pas de fichier.
+    """
+
+    id_document = serializers.UUIDField(source='uuid_public')
+    titre = serializers.SerializerMethodField()
+    nom_fichier = serializers.CharField(allow_blank=True)
+    type_fichier = serializers.SerializerMethodField()
+    support = serializers.SerializerMethodField()
+    extension = serializers.CharField(allow_null=True, allow_blank=True)
+    taille_fichier = serializers.IntegerField(allow_null=True)
+    date_document = serializers.SerializerMethodField()
+    description = serializers.CharField(allow_null=True, allow_blank=True)
+    url = serializers.SerializerMethodField()
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_titre(self, fichier):
+        return fichier.titre or fichier.nom_fichier
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_type_fichier(self, fichier):
+        """Libellé du type pour un document du plan ; nul pour un enjeu."""
+        if hasattr(fichier, 'get_type_fichier_display'):
+            return str(fichier.get_type_fichier_display())
+        return None
+
+    @extend_schema_field(OpenApiTypes.STR)
+    def get_support(self, fichier):
+        return getattr(fichier, 'support', 'numerique')
+
+    @extend_schema_field(OpenApiTypes.DATE)
+    def get_date_document(self, fichier):
+        date = getattr(fichier, 'date_document', None)
+        return date.isoformat() if date else None
+
+    @extend_schema_field(OpenApiTypes.URI)
+    def get_url(self, fichier):
+        from .documents import url_document
+
+        if self.get_support(fichier) != 'numerique' or not fichier.chemin_fichier:
+            return None
+        return url_document(fichier.uuid_public)
+
+
 class EnjeuPublicSerializer(serializers.Serializer):
     id_enjeu = serializers.IntegerField()
     libelle = serializers.CharField()
@@ -535,6 +586,7 @@ class EnjeuPublicSerializer(serializers.Serializer):
     facteurs = FacteurInfluencePublicSerializer(many=True, source='facteurs_pub')
     objectifs_long_terme = ObjectifLongTermePublicSerializer(many=True, source='olt_pub')
     objectifs_operationnels = ObjectifOperationnelPublicSerializer(many=True, source='oo_pub')
+    documents = DocumentPublicSerializer(many=True, source='documents_pub')
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_categorie(self, enjeu):
@@ -574,6 +626,7 @@ class FichePubliqueSerializer(serializers.Serializer):
     gestionnaire_principal = serializers.SerializerMethodField()
     enjeux = EnjeuPublicSerializer(many=True, source='enjeux_pub')
     actions = ActionPubliqueSerializer(many=True, source='actions_pub')
+    documents = DocumentPublicSerializer(many=True, source='documents_pub')
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_type_document(self, plan):

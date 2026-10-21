@@ -87,6 +87,24 @@ export interface FicheFacteur {
   pressions: FichePression[];
 }
 
+/**
+ * #747 — Document du plan ou d'un enjeu. Le hub n'en garde que l'adresse :
+ * `url` pointe vers l'instance d'origine, qui sert le fichier sans connexion.
+ * Nulle pour un document papier (aucun fichier).
+ */
+export interface FicheDocument {
+  id_document: string;
+  titre: string;
+  nom_fichier: string;
+  type_fichier: string | null;
+  support: 'numerique' | 'papier';
+  extension: string | null;
+  taille_fichier: number | null;
+  date_document: string | null;
+  description: string | null;
+  url: string | null;
+}
+
 export interface FicheEnjeu {
   id_enjeu: number;
   libelle: string;
@@ -101,6 +119,8 @@ export interface FicheEnjeu {
   facteurs: FicheFacteur[];
   objectifs_long_terme: FicheObjectifLongTerme[];
   objectifs_operationnels: FicheObjectifOperationnel[];
+  /** #747 — absent d'un instantané déposé avant la publication des documents. */
+  documents?: FicheDocument[];
 }
 
 /** Métrique suivie par une action, dans le cadre de celle-ci. */
@@ -212,6 +232,8 @@ export interface FichePlan {
   gestionnaire_principal: string | null;
   enjeux: FicheEnjeu[];
   actions: FicheAction[];
+  /** #747 — absent d'un instantané déposé avant la publication des documents. */
+  documents?: FicheDocument[];
 
   /**
    * #636 / #692 — Provenance, toujours renseignée : ajoutée par le hub à côté

@@ -106,6 +106,15 @@ export class ExplorationService {
     return this.http.get<FichePlan>(`${this.urlPlans}${slug}/`);
   }
 
+  /**
+   * #747 — Document d'un plan de cette instance, lu avec la session : sans
+   * partage, l'adresse publique n'est ouverte qu'aux utilisateurs connectés,
+   * et un simple lien n'emporterait pas le jeton.
+   */
+  documentLocal(idDocument: string): Observable<Blob> {
+    return this.http.get(`/api/public/documents/${idDocument}/`, { responseType: 'blob' });
+  }
+
   /** Arbre régions → départements du filtre « zone géographique ». */
   zones(): Observable<ZoneRegion[]> {
     this.zones$ ??= this.http

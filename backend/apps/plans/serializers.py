@@ -95,7 +95,7 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
     class Meta:
         model = CorPgFichier
         fields = [
-            'id', 'plan_de_gestion', 'nom_fichier', 'chemin_fichier', 'fichier', 'url',
+            'id', 'uuid_public', 'plan_de_gestion', 'nom_fichier', 'chemin_fichier', 'fichier', 'url',
             'type_fichier', 'titre', 'description', 'auteur', 'public',
             'ordre_affichage', 'taille_fichier', 'file_size_human', 'extension',
             'is_image', 'is_document', 'date_upload', 'date_document'

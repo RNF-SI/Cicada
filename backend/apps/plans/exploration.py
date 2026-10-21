@@ -6,7 +6,8 @@ distincte des écrans du plan. Les utilisateurs veulent arriver sur ce qu'ils
 connaissent : la page du plan, son arborescence, sa fiche action. Pour un plan
 validé — le seul explorable — ces écrans doivent donc s'ouvrir à tout
 utilisateur connecté, **mais sans les données sensibles** : mesures,
-réalisations, budget, RH, fichiers, personnes. C'est le même périmètre que la
+réalisations, budget, RH, personnes (les documents sortent par leur adresse
+publique depuis #747). C'est le même périmètre que la
 fiche publique (cf. ``apps/search/serializers_fiche.py``), servi cette fois
 par l'API normale.
 
@@ -49,8 +50,10 @@ CLES_SENSIBLES = frozenset({
     'utilisateur_ajout', 'utilisateur_maj',
     'referents', 'membres', 'referents_ids',
     'redacteur_nom', 'redacteurs', 'relecteurs', 'autres_contributeurs',
-    # Fichiers et commentaires internes
-    'fichiers', 'documents', 'nb_fichiers', 'commentaire',
+    # Commentaires internes. Les documents sortent depuis #747 (titre, type,
+    # adresse publique) — mais ni leur auteur, ni leur chemin sur le serveur,
+    # ni leur date de dépôt.
+    'commentaire', 'auteur', 'chemin_fichier', 'date_upload',
     # Mesures et évaluations d'indicateurs
     'mesures', 'nb_mesures', 'score_overrides', 'global_score_override',
     'annual_mesures',

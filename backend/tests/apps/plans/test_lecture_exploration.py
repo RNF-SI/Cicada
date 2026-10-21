@@ -19,7 +19,7 @@ from tests.factories.enjeux import (
     NiveauExigenceFactory, NomenclatureTypeIndicateurFactory,
     ObjectifLongTermeFactory, OperationAnneeFactory, OperationFactory,
 )
-from tests.factories.plans import PlanGestionFactory
+from tests.factories.plans import CorPgFichierFactory, PlanGestionFactory
 from tests.factories.users import RoleFactory
 
 
@@ -88,6 +88,18 @@ class TestEcransReelsOuverts:
         assert reponse.data['acces_exploration'] is True
         assert reponse.data['nom'] == plan_valide.nom
         assert not cles(reponse.data) & CLES_SENSIBLES
+
+    def test_la_page_du_plan_montre_ses_documents(self, etranger, plan_valide):
+        """#747 — les documents sortent dans l'exploration, par leur adresse publique."""
+        fichier = CorPgFichierFactory(
+            plan_de_gestion=plan_valide, titre='Arrêté', auteur='Préfecture',
+        )
+        reponse = etranger.get(f'/api/plans/plans/by-slug/{plan_valide.slug}/')
+        documents = reponse.data['fichiers']
+        assert [d['titre'] for d in documents] == ['Arrêté']
+        assert documents[0]['uuid_public'] == str(fichier.uuid_public)
+        assert 'auteur' not in documents[0]
+        assert 'chemin_fichier' not in documents[0]
 
     def test_le_detail_du_plan_souvre_aussi(self, etranger, plan_valide):
         reponse = etranger.get(f'/api/plans/plans/{plan_valide.pk}/')
@@ -208,7 +220,9 @@ class TestCloisonnementParFragments:
         'poste', 'salaire', 'jours', 'ventilation',
         'mesure', 'realisation', 'realise',
         'utilisateur', 'createur', 'referent', 'membre',
-        'fichier', 'document',
+        # #747 — les documents sortent (titre, type, adresse publique), mais
+        # ni leur auteur, ni leur chemin sur le serveur, ni leur date de dépôt.
+        'auteur', 'chemin', 'upload',
     ]
 
     #: Faux positifs connus : ces noms contiennent un fragment mais ne portent

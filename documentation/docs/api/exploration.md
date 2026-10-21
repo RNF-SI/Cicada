@@ -29,7 +29,19 @@ Paramètres communs : `q` (mot-clé, fautes de frappe tolérées), `type` (type 
 | `POST /api/federation/raccordement/verifier/` | Teste la liaison avec le hub |
 | `POST /api/federation/raccordement/adhesion/`, `…/confirmation/`, `…/contact/` | Demande d'adhésion (qui vaut consentement au partage), saisie du code reçu, contact du gestionnaire du hub |
 
-La publication elle-même (lot, pages, bascule) est faite par l'instance vers l'API du hub chaque nuit, ou à la demande par la commande `push_federation` ; elle n'est pas exposée ici. Ce qui sort : enjeux, facteurs, pressions, objectifs, indicateurs, actions avec période, suivis, protocoles. Ce qui ne sort jamais : budget, financements, ressources humaines, mesures, réalisations, auteurs, dates.
+La publication elle-même (lot, pages, bascule) est faite par l'instance vers l'API du hub chaque nuit, ou à la demande par la commande `push_federation` ; elle n'est pas exposée ici. Ce qui sort : enjeux, facteurs, pressions, objectifs, indicateurs, actions avec période, suivis, protocoles, et l'**adresse** des documents du plan et des enjeux (`documents` de la fiche : titre, type, format, taille, `url`). Ce qui ne sort jamais : budget, financements, ressources humaines, mesures, réalisations, auteurs, dates, et les fichiers eux-mêmes.
+
+## Documents des plans
+
+Le hub ne stocke pas les fichiers : chaque document de la fiche porte une `url` absolue vers l'instance d'origine (`CICADA_PUBLIC_URL` + `/api/public/documents/{uuid}/`), qui le sert elle-même.
+
+| Endpoint | Rôle |
+|----------|------|
+| `GET /api/public/documents/{uuid}/` | Le document (PDF et images en ligne, autres formats en téléchargement) |
+
+- `uuid` est l'identifiant public du document (`uuid_public`), tiré au sort — jamais sa clé en base.
+- **Sans connexion** tant que la structure partage ses plans (`federation_partage`) ; décoché, réservé aux utilisateurs connectés de l'instance (exploration locale). Une adresse inconnue, un document papier, un plan en brouillon ou un accès refusé répondent tous `404`.
+- `CICADA_PUBLIC_URL` doit être renseignée pour que l'adresse soit joignable depuis une autre instance ; à défaut, elle est relative et l'interface la rattache à `url_instance`.
 
 ## Référence interactive
 

@@ -300,6 +300,20 @@ Ne sortent jamais de cet endpoint :
 | Ressources humaines | `Poste`, `Fonction`, `OperationAnneeRH` |
 | Données empiriques | mesures d'indicateurs (`Mesure`), réalisations annuelles |
 | Traçabilité interne | auteurs, dates de création et de modification |
+| Fichiers | le fichier lui-même : seule son **adresse** sort (ci-dessous) |
+
+**Documents (#747).** La fiche liste les documents du plan (`documents`) et
+ceux de chaque enjeu (`enjeux[].documents`) : titre, type, format, taille, date
+du document et `url`. Le hub ne copie pas les fichiers : `url` pointe vers
+`GET /api/public/documents/<uuid_public>/` de l'instance d'origine (absolue dès
+que `CICADA_PUBLIC_URL` est renseignée), qui sert le fichier **sans connexion**
+tant que `federation_partage` est coché — décocher le partage coupe l'accès
+anonyme ; les utilisateurs connectés de l'instance gardent l'accès à leurs
+propres documents (exploration locale). `uuid_public` (`CorPgFichier`,
+`CorEnjeuFichier`) est tiré au sort : l'adresse ne se déduit pas de la clé en
+base. Brouillon, document papier, adresse inconnue ou accès refusé : `404`
+indistinct. Code : `apps/search/documents.py`, vue `DocumentPublicView` ;
+tests : `tests/apps/search/test_documents_publics.py`.
 
 `TestFichePubliqueCloisonnement` parcourt récursivement la charge utile et
 échoue si un nom de champ contient l'un des fragments interdits (`budget`,
@@ -326,10 +340,12 @@ la **lecture d'exploration** de `apps/plans/exploration.py` : le périmètre de
 lecture (#610) est élargi aux plans validés sur les seules actions de lecture
 d'un objet ou « par parent », et la réponse est **élaguée** de ses clés
 sensibles (`CLES_SENSIBLES` : mesures, réalisations, budget, RH, financement,
-fichiers, personnes) quand le lecteur n'est là que par l'exploration. Elle
+personnes, et des documents leur auteur, leur chemin et leur date de dépôt)
+quand le lecteur n'est là que par l'exploration. Elle
 porte alors `acces_exploration: true`, ce qui fait masquer côté interface les
-entrées Suivis / Exports / Paramétrage, les sections Utilisateurs et Documents
-du plan, et Programmation / Réalisation de la fiche action. Les listes « à
+entrées Suivis / Exports / Paramétrage, la section Utilisateurs du plan, et
+Programmation / Réalisation de la fiche action. Les documents du plan restent
+affichés (#747) et s'ouvrent par leur adresse publique (`uuid_public`). Les listes « à
 plat » et les ViewSets de suivi ne sont pas touchés ; les écritures restent
 soumises aux permissions habituelles. Verrouillé par
 `tests/apps/plans/test_lecture_exploration.py`.

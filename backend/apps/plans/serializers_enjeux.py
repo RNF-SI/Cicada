@@ -129,7 +129,7 @@ class CorEnjeuFichierSerializer(serializers.ModelSerializer):
     class Meta:
         model = CorEnjeuFichier
         fields = [
-            'id', 'id_enjeu', 'support', 'nom_fichier', 'fichier', 'url',
+            'id', 'uuid_public', 'id_enjeu', 'support', 'nom_fichier', 'fichier', 'url',
             'titre', 'description', 'taille_fichier', 'file_size_human',
             'extension', 'ordre_affichage', 'date_upload',
         ]

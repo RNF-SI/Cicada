@@ -52,10 +52,19 @@ def _indicateurs_prefetch(chemin):
 
 
 def _charger_enjeux(plan):
+    from apps.plans.models_enjeux import CorEnjeuFichier
+
     enjeux = list(
         Enjeu.objects.filter(id_pg=plan)
         .select_related('id_categorie')
-        .prefetch_related('taxons', 'habitats')
+        .prefetch_related(
+            'taxons', 'habitats',
+            # #747 — documents de l'enjeu (géologique), par leur adresse.
+            Prefetch(
+                'fichiers', queryset=CorEnjeuFichier.objects.all(),
+                to_attr='documents_pub',
+            ),
+        )
         # Priorité 1 d'abord ; les enjeux sans priorité (FCR) en dernier.
         .order_by('rang', 'libelle')
     )
@@ -240,5 +249,7 @@ def construire_fiche(plan):
     _rattacher_objectifs_operationnels(plan, enjeux_par_id)
 
     plan.enjeux_pub = enjeux
+    # #747 — tous les documents du plan : le hub n'en garde que l'adresse.
+    plan.documents_pub = list(plan.fichiers.all())
     plan.actions_pub = _charger_actions(plan)
     return plan

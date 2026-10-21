@@ -1,6 +1,8 @@
 """
 Modèles pour les Enjeux, FCR (Facteurs Clés de Réussite) et Responsabilités.
 """
+import uuid
+
 from django.contrib.gis.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils.text import slugify
@@ -1451,6 +1453,14 @@ class CorEnjeuFichier(models.Model):
         related_name='fichiers',
         db_column='id_enjeu',
         verbose_name=_("Enjeu")
+    )
+    # #747 — Adresse publique du document, comme `CorPgFichier.uuid_public`.
+    uuid_public = models.UUIDField(
+        _("Identifiant public"),
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        help_text=_("Identifiant non devinable de l'adresse publique du document.")
     )
     support = models.CharField(
         _("Support"),

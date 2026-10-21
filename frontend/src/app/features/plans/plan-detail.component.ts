@@ -16,6 +16,7 @@ import { TagComponent } from '../../shared/components/tag/tag.component';
 import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { AdminService } from '../../core/services/admin.service';
+import { ExplorationService } from '../../core/services/exploration.service';
 import { AuthService } from '../../core/services/auth.service';
 import { EnjeuService } from '../../core/services/enjeu.service';
 import { ValidationService } from '../../core/services/validation.service';
@@ -152,6 +153,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     return this.explorationRetour.lienRetour(this.motCleSurligne());
   }
   private readonly adminService = inject(AdminService);
+  private readonly explorationService = inject(ExplorationService);
   readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
   private readonly validationService = inject(ValidationService);
@@ -1345,7 +1347,12 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   }
 
   downloadFichier(fichier: PlanFichier): void {
-    this.adminService.downloadFichierBlob(fichier.id).subscribe({
+    // #747 — un lecteur d'exploration n'est pas dans le périmètre du plan :
+    // il passe par l'adresse publique du document, comme la fiche publiée.
+    const telechargement = this.accesExploration()
+      ? this.explorationService.documentLocal(fichier.uuid_public)
+      : this.adminService.downloadFichierBlob(fichier.id);
+    telechargement.subscribe({
       next: (blob) => {
         // Check if the response is a text error (not a real file)
         if (blob.type === 'text/plain' && blob.size < 500) {

@@ -305,6 +305,8 @@ export type FichierType = 'document' | 'annexe' | 'carte' | 'photo' | 'rapport' 
  */
 export interface PlanFichier {
   id: number;
+  /** #747 — identifiant de l'adresse publique (`/api/public/documents/<uuid>/`). */
+  uuid_public: string;
   nom_fichier: string;
   chemin_fichier: string;
   url: string | null;

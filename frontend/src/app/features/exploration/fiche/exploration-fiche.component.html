@@ -348,6 +348,17 @@
                     }
                   </ul>
                 }
+
+                <!-- #747 — Documents de l'enjeu -->
+                @if (enjeu.documents?.length) {
+                  <h3 class="fiche-sous-titre">
+                    {{ 'exploration.fiche.documents' | translate }}
+                  </h3>
+                  <ng-container
+                    [ngTemplateOutlet]="listeDocuments"
+                    [ngTemplateOutletContext]="{ $implicit: enjeu.documents, plan: p }">
+                  </ng-container>
+                }
               </div>
             </app-accordion>
           }
@@ -405,6 +416,20 @@
         </section>
       }
 
+      <!-- #747 — Documents du plan. Le hub n'en garde que l'adresse : le
+           fichier est servi par la structure d'origine, sans connexion. -->
+      @if (p.documents?.length) {
+        <section id="documents" class="fiche-section" data-testid="fiche-documents">
+          <h2 class="fiche-section-titre">
+            {{ 'exploration.fiche.documents' | translate }}
+          </h2>
+          <ng-container
+            [ngTemplateOutlet]="listeDocuments"
+            [ngTemplateOutletContext]="{ $implicit: p.documents, plan: p }">
+          </ng-container>
+        </section>
+      }
+
       <!-- Un plan validé peut n'avoir aucun contenu structuré dans CICADA : la
            fiche s'arrêtait alors sur une page blanche sous les compteurs à zéro,
            sans dire pourquoi (#634). -->
@@ -439,6 +464,51 @@
   de lecture et aux actions qui les servent — l'arborescence s'arrêtait aux
   indicateurs, ce qui coupait la fiche là où commence le concret (#634).
 -->
+<ng-template #listeDocuments let-documents let-plan="plan">
+  <ul class="fiche-documents">
+    @for (doc of documents; track doc.id_document) {
+      <li class="fiche-document">
+        <i class="fi fi-rr-document fiche-document-icone" aria-hidden="true"></i>
+        <div class="fiche-document-corps">
+          @if (lienDocument(plan, doc); as lien) {
+            <a
+              class="link-default fiche-document-titre"
+              [href]="lien"
+              target="_blank"
+              rel="noopener noreferrer"
+              [attr.aria-label]="doc.titre + ' — ' + ('exploration.fiche.ouvrirDocument' | translate)"
+              (click)="ouvrirDocument(plan, doc, $event)">
+              {{ doc.titre }}
+              <i class="fi fi-rr-arrow-up-right-from-square" aria-hidden="true"></i>
+            </a>
+          } @else {
+            <span class="fiche-document-titre">{{ doc.titre }}</span>
+          }
+          <span class="fiche-document-meta">
+            @if (doc.type_fichier) {
+              <span>{{ doc.type_fichier }}</span>
+            }
+            @if (doc.support === 'papier') {
+              <span>{{ 'exploration.fiche.documentPapier' | translate }}</span>
+            } @else if (!lienDocument(plan, doc)) {
+              <span>{{ 'exploration.fiche.documentIndisponible' | translate }}</span>
+            }
+            @if (descriptionDocument(doc)) {
+              <span>{{ descriptionDocument(doc) }}</span>
+            }
+            @if (doc.date_document) {
+              <span>{{ doc.date_document | date: 'dd/MM/yyyy' }}</span>
+            }
+          </span>
+          @if (doc.description) {
+            <p class="fiche-texte">{{ doc.description }}</p>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+</ng-template>
+
 <ng-template #brancheIndicateur let-ind>
   <ul class="fiche-arbre">
     <li
