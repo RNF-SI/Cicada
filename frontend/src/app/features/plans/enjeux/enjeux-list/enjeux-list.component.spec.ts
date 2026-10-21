@@ -1846,6 +1846,21 @@ describe('EnjeuxListComponent', () => {
       metriques: [{ id_metrique: 901, id_indicateur: 801, nom_metrique: 'Métrique test', date_ajout: '', date_maj: '' }],
     };
 
+    // #734 — la colonne « Indéterminé » ne doit pas dépendre des options de
+    // nomenclature, chargées seulement à l'ouverture d'un formulaire : au retour
+    // de l'enregistrement d'une action, elles sont vides et le « Oui » disparaissait.
+    it('isMetriqueIndetermine lit le type renvoyé par l\'API sans options chargées (#734)', () => {
+      component.typeMetriqueOptions.set([]);
+      expect(component.isMetriqueIndetermine({ type_metrique: 42, type_metrique_mnemonique: 'INDETERMINE' })).toBe(true);
+      expect(component.isMetriqueIndetermine({ type_metrique: 43, type_metrique_mnemonique: 'NUMERIQUE' })).toBe(false);
+    });
+
+    it('isMetriqueIndetermine retombe sur la nomenclature sans mnémonique (#734)', () => {
+      component.typeMetriqueOptions.set([{ id_nomenclature: 42, mnemonique: 'INDETERMINE', label: 'Indéterminé' }]);
+      expect(component.isMetriqueIndetermine({ type_metrique: 42 })).toBe(true);
+      expect(component.isMetriqueIndetermine({ type_metrique: null })).toBe(false);
+    });
+
     it('should toggle indicateur expanded state', () => {
       expect(component.isIndicateurExpanded(801)).toBe(false);
       component.toggleIndicateur(801);

@@ -3024,6 +3024,17 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * #734 — Marqueur « Indéterminé » du tableau des métriques. Lit d'abord le
+   * mnémonique renvoyé par l'API : les options de nomenclature ne sont chargées
+   * qu'à l'ouverture d'un formulaire, et au retour de l'enregistrement d'une
+   * action elles sont vides (le « Oui » disparaissait jusqu'à la prochaine édition).
+   */
+  isMetriqueIndetermine(met: { type_metrique?: number | null; type_metrique_mnemonique?: string | null }): boolean {
+    const mnemonique = met.type_metrique_mnemonique || this.getMetriqueTypeMnemonique(met.type_metrique);
+    return mnemonique === 'INDETERMINE';
+  }
+
+  /**
    * #400 — Résout le type d'une métrique pour construire le payload, de façon
    * robuste à une course de chargement. `getMetriqueTypeMnemonique` dépend des
    * options de nomenclature chargées en asynchrone : si l'utilisateur enregistre

@@ -1167,7 +1167,7 @@
                                                           <td>{{ met.etat_reference || '-' }}</td>
                                                           <!-- #208 : marqueur pour les métriques de type indéterminé. -->
                                                           <td class="indetermine-cell">
-                                                            @if (getMetriqueTypeMnemonique(met.type_metrique) === 'INDETERMINE') {
+                                                            @if (isMetriqueIndetermine(met)) {
                                                               <span class="indetermine-marker">
                                                                 <i class="fi fi-rr-check"></i>
                                                                 <span>{{ 'common.yes' | translate }}</span>
@@ -2056,7 +2056,7 @@
                                                   <td>{{ met.etat_reference || '-' }}</td>
                                                   <!-- #208 : marqueur pour les métriques de type indéterminé. -->
                                                   <td class="indetermine-cell">
-                                                    @if (getMetriqueTypeMnemonique(met.type_metrique) === 'INDETERMINE') {
+                                                    @if (isMetriqueIndetermine(met)) {
                                                       <span class="indetermine-marker">
                                                         <i class="fi fi-rr-check"></i>
                                                         <span>{{ 'common.yes' | translate }}</span>
