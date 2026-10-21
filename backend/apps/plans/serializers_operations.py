@@ -1124,7 +1124,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'declinaison_par_type_cout', 'cout_salarial_auto',
             'programmation_globale', 'operation_annee_globale',
             'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
-            'geom', 'geom_geojson',
+            'geom', 'geom_geojson', 'emprise_suit_sites',
             'id_indicateur',
             'metriques', 'metrique_ids',
             'site_ids', 'nb_sites', 'enjeu_slug',
@@ -1560,7 +1560,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             # #600 (retour 08/2026) — réglages du tableau de programmation.
             'declinaison_par_type_cout', 'cout_salarial_auto',
             'programmation_globale', 'operation_annee_globale',
-            'geom_geojson',
+            'geom_geojson', 'emprise_suit_sites',
             'metrique_ids', 'site_ids',
             'operation_annees', 'finances'
         ]

@@ -54,6 +54,8 @@ function createComponentInstance(): OperationFormComponent {
   // #735 — saisie globale sur la période (annuelle par défaut).
   (comp as any).programmationGlobale = signal(false);
   (comp as any).globalColumn = [];
+  // #733 — buildPayload envoie la case « emprise = sites ».
+  (comp as any).useSiteEmprise = signal(false);
   // #600 (retour 08/2026) — la case « coût salarial automatique » et l'état
   // effectif « calculé / saisi » viennent de `shared/utils/operation-budget`.
   (comp as any).showCoutSalarialOption = computed(() => salaryOptionAvailable(
@@ -1846,5 +1848,48 @@ describe('OperationFormComponent — programmation globale sur la période (#735
     expect(payload.programmation_globale).toBe(false);
     expect(payload.operation_annee_globale).toBeNull();
     expect(payload.operation_annees[0].budget_fonctionnement).toBe(1000);
+  });
+});
+
+describe('OperationFormComponent — emprise identique à celle des sites (#733)', () => {
+  const DESSIN = { type: 'Polygon', coordinates: [[[6, 45], [6.1, 45], [6.1, 45.1], [6, 45]]] };
+  const SITE = { type: 'Polygon', coordinates: [[[7, 46], [7.1, 46], [7.1, 46.1], [7, 46]]] };
+
+  function makeComp(serverGeom: any = null, empriseSuitSites = false): OperationFormComponent {
+    const comp = createComponentInstance();
+    (comp as any).planSites = signal([{ id_site: 1, nom_site: 'Site A', slug: 'site-a', organismes: [] }]);
+    (comp as any).adminService = { getSiteGeoJSON: () => of({ geometry: SITE }) };
+    (comp as any).existingOperation = signal({ geom_geojson: serverGeom, emprise_suit_sites: empriseSuitSites });
+    (comp as any).pendingEmprise = signal(undefined);
+    (comp as any).empriseGeom = computed(() => {
+      const pending = (comp as any).pendingEmprise();
+      if (pending !== undefined) return pending;
+      return (comp as any).existingOperation()?.geom_geojson ?? null;
+    });
+    (comp as any).useSiteEmprise = signal(empriseSuitSites);
+    (comp as any).isComputingSiteEmprise = signal(false);
+    return comp;
+  }
+
+  it('cocher reprend les sites, décocher rétablit l\'emprise dessinée avant', () => {
+    const c = makeComp(DESSIN);
+    c.toggleUseSiteEmprise(true);
+    expect((c as any).empriseGeom()).toEqual({ type: 'MultiPolygon', coordinates: [SITE.coordinates] });
+    c.toggleUseSiteEmprise(false);
+    expect((c as any).empriseGeom()).toEqual(DESSIN);
+  });
+
+  it('décocher sans emprise antérieure retire les contours des sites', () => {
+    const c = makeComp(null);
+    c.toggleUseSiteEmprise(true);
+    c.toggleUseSiteEmprise(false);
+    expect((c as any).empriseGeom()).toBeNull();
+  });
+
+  it('action enregistrée « emprise = sites » : décocher vide la carte', () => {
+    const c = makeComp({ type: 'MultiPolygon', coordinates: [SITE.coordinates] }, true);
+    c.toggleUseSiteEmprise(false);
+    expect((c as any).empriseGeom()).toBeNull();
+    expect((c as any).pendingEmprise()).toBeNull();
   });
 });

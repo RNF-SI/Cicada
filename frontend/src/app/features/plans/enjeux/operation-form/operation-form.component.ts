@@ -249,6 +249,10 @@ export class OperationFormComponent implements OnInit {
    *  Quand coché, l'emprise est calculée depuis les sites sélectionnés et le
    *  dessin manuel est désactivé. */
   useSiteEmprise = signal(false);
+  /** #733 — emprise en cours au moment de cocher la case, rétablie au décochage
+   *  (`geom` undefined = valeur serveur). null = aucune emprise antérieure connue
+   *  (case relue cochée) : décocher vide alors la carte. */
+  private empriseAvantSites: { geom: any } | null = null;
   isComputingSiteEmprise = signal(false);
 
   /** #410 — nombre de sites cochés (réactif via selectedSiteIdsVersion). */
@@ -1179,6 +1183,7 @@ export class OperationFormComponent implements OnInit {
     this.selectedSiteIdsVersion.update(v => v + 1);
     this.pendingEmprise.set(undefined);
     this.useSiteEmprise.set(false);
+    this.empriseAvantSites = null;
     this.ventilationMode.set('none');
     this.declinaisonParPoste.set(false);
     // #600 — réglages du tableau budgétaire : cochés par défaut.
@@ -1648,6 +1653,8 @@ export class OperationFormComponent implements OnInit {
       }
       this.selectedSiteIdsVersion.update(v => v + 1);
     }
+    // #733 — la case « emprise = sites » est mémorisée avec l'action.
+    this.useSiteEmprise.set(!!op.emprise_suit_sites);
 
     // #735 — programmation globale : le budget et le temps de travail viennent
     // de la ligne globale, rangée dans la colonne « période » (index 0).
@@ -2459,6 +2466,7 @@ export class OperationFormComponent implements OnInit {
     if (pendingEmprise !== undefined) {
       payload.geom_geojson = pendingEmprise;
     }
+    payload.emprise_suit_sites = this.useSiteEmprise();
 
     return payload;
   }
@@ -3387,9 +3395,14 @@ export class OperationFormComponent implements OnInit {
   toggleUseSiteEmprise(checked: boolean): void {
     this.useSiteEmprise.set(checked);
     if (checked) {
+      this.empriseAvantSites = { geom: this.pendingEmprise() };
       this.computeSiteEmprise();
+      return;
     }
-    // Décoché : on conserve l'emprise calculée comme point de départ éditable.
+    // #733 — décoché : les contours des sites disparaissent, l'emprise d'avant
+    // (dessinée ou importée) est rétablie, à l'écran comme à l'enregistrement.
+    this.pendingEmprise.set(this.empriseAvantSites ? this.empriseAvantSites.geom : null);
+    this.empriseAvantSites = null;
   }
 
   /**
@@ -3407,13 +3420,16 @@ export class OperationFormComponent implements OnInit {
     this.isComputingSiteEmprise.set(true);
     forkJoin(slugs.map(slug => this.adminService.getSiteGeoJSON(slug))).subscribe({
       next: (features) => {
+        this.isComputingSiteEmprise.set(false);
+        // #733 — décochée pendant le calcul : ne pas réimposer les contours.
+        if (!this.useSiteEmprise()) return;
         const geoms = features.map(f => (f as any)?.geometry).filter(Boolean);
         this.pendingEmprise.set(this.combineSiteGeometries(geoms));
-        this.isComputingSiteEmprise.set(false);
       },
       error: () => {
         this.isComputingSiteEmprise.set(false);
         this.useSiteEmprise.set(false);
+        this.empriseAvantSites = null;
         this.snackBar.open(
           this.translate.instant('enjeux.operations.empriseSitesError'),
           this.translate.instant('common.actions.close'),

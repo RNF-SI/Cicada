@@ -779,6 +779,21 @@ class TestOperationUpdateEndpoint:
         }, format='json')
         assert response.status_code == status.HTTP_200_OK
 
+    def test_emprise_suit_sites_memorisee(self, api_client, operation_test_data):
+        """#733 — « l'emprise de l'action correspond à l'emprise du/des site(s) »
+        est mémorisée : rouverte, l'action garde la case cochée."""
+        api_client.force_authenticate(user=operation_test_data['super_admin'])
+        op_id = operation_test_data['op1'].id_operation
+        response = api_client.get(f'/api/plans/operations/{op_id}/')
+        assert response.data['emprise_suit_sites'] is False
+
+        response = api_client.patch(f'/api/plans/operations/{op_id}/', {
+            'emprise_suit_sites': True,
+        }, format='json')
+        assert response.status_code == status.HTTP_200_OK
+        response = api_client.get(f'/api/plans/operations/{op_id}/')
+        assert response.data['emprise_suit_sites'] is True
+
     def test_update_metrique_ids_preserves_response_indicator(self, api_client, operation_test_data):
         """#398 — la (re)synchro de `metrique_ids` au save ne touche QUE les liens
         vers des métriques État/Pression. Un indicateur de réponse (lié à l'action

@@ -9,7 +9,7 @@ Une action se saisit via son formulaire dédié (bouton « Ajouter une action »
 - L'intitulé (s'il reste vide, il est rempli automatiquement avec le type d'action GestRef à l'enregistrement), les métriques associées et la priorité ;
 - Pour une action d'inventaire ou de suivi : les détails de l'inventaire ou du suivi (objectif, cible, taxons ou habitats rattachés), le protocole et la bancarisation de la donnée ;
 - La programmation : sites concernés, années, temps de travail, budget et mois prévus ; opérateurs, partenaires et financeurs ;
-- La localisation (emprise spatiale) — une case permet de reprendre l'emprise du ou des sites
+- La localisation (emprise spatiale) — une case permet de reprendre l'emprise du ou des sites ; elle reste cochée à la réouverture de l'action, et la décocher retire les contours des sites pour revenir à l'emprise dessinée ou importée auparavant (carte vide s'il n'y en avait pas) ;
 - Les indicateurs de réponse : un intitulé (obligatoire), puis soit une métrique simple avec une valeur cible, soit une grille de scoring à 5 niveaux (case « Utiliser une grille de scoring »), construite comme celle des métriques des indicateurs état et pression ([§ 4.7](indicateurs-metriques.md)).
 
 Pour les actions de suivis, il est demandé de préciser si le protocole est standardisé ou non :

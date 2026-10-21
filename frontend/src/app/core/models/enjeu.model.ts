@@ -915,6 +915,8 @@ export interface Operation {
   cout_salarial_auto?: boolean;
   geom?: GeoJSONGeometry | string;
   geom_geojson?: GeoJSONGeometry | null;
+  /** #733 — l'emprise reprend celle du/des site(s) de l'action. */
+  emprise_suit_sites?: boolean;
   // #367 — rattachement direct à un indicateur (action sans métrique préalable)
   id_indicateur?: number | null;
   // M2M to Metriques
@@ -958,6 +960,8 @@ export interface OperationCreatePayload {
   statut?: OperationStatut;
   /** Emprise spatiale en GeoJSON (#342). null = effacement. */
   geom_geojson?: any | null;
+  /** #733 — l'emprise reprend celle du/des site(s) de l'action. */
+  emprise_suit_sites?: boolean;
   id_priorite?: number;
   id_type_action?: number;
   // #367 — rattachement direct à un indicateur (action sans métrique préalable)

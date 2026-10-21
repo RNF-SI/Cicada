@@ -663,6 +663,14 @@ class Operation(models.Model):
         blank=True,
         help_text=_("Emprise géographique de l'opération")
     )
+    # #733 — l'emprise reprend celle du/des site(s) de l'action (#410) : mémorisé
+    # pour que la case reste cochée à la réouverture. `geom` porte toujours
+    # l'union des sites calculée à l'enregistrement.
+    emprise_suit_sites = models.BooleanField(
+        _("Emprise identique à celle du/des site(s)"),
+        default=False,
+        help_text=_("L'emprise de l'action reprend celle du ou des sites sélectionnés.")
+    )
 
     # #367 / #227 — Rattachement direct à un indicateur (état ou pression).
     # Permet de créer une action « dans l'indicateur » sans métrique préalable.
