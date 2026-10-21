@@ -67,6 +67,7 @@ describe('AdminSettingsComponent', () => {
     matomo_url: '',
     matomo_site_id: '',
     inscription_url_externe: '',
+    taille_max_document_mo: 20,
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -628,6 +629,34 @@ describe('AdminSettingsComponent', () => {
       tick();
       expect(component.inscriptionError()).toBe('Saisissez une URL valide.');
     }));
+  });
+
+  describe('Taille maximale d\'un document (#745)', () => {
+    const lastFormData = (): FormData =>
+      (mockSettingsService.updateSettings as jest.Mock).mock.calls.at(-1)[0];
+
+    it('reprend la limite de l\'instance', () => {
+      configSignal.set({ ...mockConfig, taille_max_document_mo: 50 });
+      fixture.detectChanges();
+      expect(component.tailleMaxDocument()).toBe(50);
+    });
+
+    it('enregistre la limite', fakeAsync(() => {
+      fixture.detectChanges();
+      component.tailleMaxDocument.set(100);
+      component.saveTailleMaxDocument();
+      tick();
+      expect(lastFormData().get('taille_max_document_mo')).toBe('100');
+    }));
+
+    it.each([0, 1025, 2.5, null])('refuse %p sans appeler le serveur', (valeur) => {
+      fixture.detectChanges();
+      (mockSettingsService.updateSettings as jest.Mock).mockClear();
+      component.tailleMaxDocument.set(valeur);
+      component.saveTailleMaxDocument();
+      expect(mockSettingsService.updateSettings).not.toHaveBeenCalled();
+      expect(component.tailleMaxError()).toBeTruthy();
+    });
   });
 
   // =============================================================================

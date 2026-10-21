@@ -62,6 +62,9 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             'matomo_url',
             'matomo_site_id',
             'inscription_url_externe',
+            # #745 — Taille max d'un document déposé dans un plan (public : la
+            # modale de dépôt prévient avant d'envoyer).
+            'taille_max_document_mo',
             'updated_at',
             'updated_by',
             'updated_by_name',
@@ -134,6 +137,7 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
             'matomo_url',
             'matomo_site_id',
             'inscription_url_externe',
+            'taille_max_document_mo',
         ]
         extra_kwargs = {
             'matomo_url': {'validators': [URLValidator(schemes=['http', 'https'])]},

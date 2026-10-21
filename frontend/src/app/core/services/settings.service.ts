@@ -53,6 +53,8 @@ export interface SiteConfiguration {
    * remplace l'inscription locale ; vide = formulaire de CICADA.
    */
   inscription_url_externe: string;
+  /** #745 — Taille maximale (Mo) d'un document déposé dans un plan. */
+  taille_max_document_mo: number;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;
@@ -181,6 +183,7 @@ export class SettingsService {
           matomo_url: '',
           matomo_site_id: '',
           inscription_url_externe: '',
+          taille_max_document_mo: 20,
           updated_at: '',
           updated_by: null,
           updated_by_name: null

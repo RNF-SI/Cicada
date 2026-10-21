@@ -8,6 +8,7 @@ from django.contrib.gis.serializers.geojson import Serializer as GeoJSONSerializ
 from django.core.files.uploadedfile import InMemoryUploadedFile, TemporaryUploadedFile
 from django.utils.translation import gettext_lazy as _
 
+from apps.core.models import SiteConfiguration
 from .models import PlanGestion, CorSitePg, CorPgFichier, CorRolePlan
 from apps.users.serializers import RoleBasicSerializer, SiteBasicSerializer
 
@@ -139,6 +140,10 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
             return f"/media/plans/{obj.plan_de_gestion.id_pg}/{obj.nom_fichier}"
         return None
     
+    def validate_fichier(self, value):
+        """#745 — Taille maximale réglée par l'administrateur de l'instance."""
+        return SiteConfiguration.verifier_taille_document(value)
+
     def create(self, validated_data):
         """Créer un fichier avec upload."""
         fichier = validated_data.pop('fichier', None)

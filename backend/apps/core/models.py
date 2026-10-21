@@ -1,7 +1,7 @@
 """
 Modèles de base partagés par toute l'application.
 """
-from django.core.validators import RegexValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -485,6 +485,20 @@ class SiteConfiguration(models.Model):
             "dans CICADA (formulaire de demande de compte)."
         )
     )
+    # #745 — Taille maximale d'un document déposé dans un plan (documents du
+    # plan et d'un enjeu), réglée par l'administrateur de l'instance selon la
+    # place dont il dispose. Plafonnée à 1 Go : au-delà, le proxy Apache
+    # (LimitRequestBody par défaut) refuserait la requête avant Django.
+    TAILLE_MAX_DOCUMENT_PLAFOND_MO = 1024
+    taille_max_document_mo = models.PositiveIntegerField(
+        _("Taille maximale d'un document (Mo)"),
+        default=20,
+        validators=[MinValueValidator(1), MaxValueValidator(TAILLE_MAX_DOCUMENT_PLAFOND_MO)],
+        help_text=_(
+            "Taille maximale, en mégaoctets, d'un fichier déposé dans un plan "
+            "de gestion (documents du plan et des enjeux)."
+        )
+    )
     updated_at = models.DateTimeField(
         _('Mis à jour le'),
         auto_now=True
@@ -516,6 +530,18 @@ class SiteConfiguration(models.Model):
         """Force l'utilisation de l'ID 1 pour le pattern singleton."""
         self.pk = 1
         super().save(*args, **kwargs)
+
+    @classmethod
+    def verifier_taille_document(cls, fichier):
+        """#745 — Refuse un document plus lourd que la limite de l'instance."""
+        from rest_framework import serializers
+
+        limite_mo = cls.get_instance().taille_max_document_mo
+        if fichier is not None and fichier.size > limite_mo * 1024 * 1024:
+            raise serializers.ValidationError(_(
+                "Le fichier dépasse la taille maximale autorisée (%(limite)s Mo)."
+            ) % {'limite': limite_mo})
+        return fichier
 
 
 class ActivityLog(models.Model):

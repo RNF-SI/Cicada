@@ -9,6 +9,7 @@
         {{ 'plans.detail.documents.upload.selectFile' | translate }}
       </button>
       <span class="drag-hint">{{ 'plans.detail.documents.upload.dragDrop' | translate }}</span>
+      <span class="drag-hint" data-testid="upload-taille-max">{{ 'plans.detail.documents.upload.maxSize' | translate:{ max: tailleMaxMo() } }}</span>
       <input #fileInput type="file" hidden (change)="onFileSelected($event)">
     </div>
   } @else {

@@ -399,6 +399,33 @@
           </div>
         </section>
 
+        <!-- #745 — Taille maximale d'un document déposé dans un plan. -->
+        <section class="settings-section" data-testid="settings-documents">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-document"></i>
+              {{ 'admin.settings.documents.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.documents.description' | translate }}</p>
+          </div>
+
+          <app-form-field
+            [label]="'admin.settings.documents.tailleMax' | translate"
+            [helpText]="'admin.settings.documents.tailleMaxHint' | translate"
+            [error]="tailleMaxError()"
+            suffix="Mo">
+            <input type="number" min="1" max="1024" step="1" [ngModel]="tailleMaxDocument()"
+                   (ngModelChange)="tailleMaxDocument.set($event)" [disabled]="isSaving()"
+                   data-testid="settings-taille-max-document" />
+          </app-form-field>
+
+          <div class="banner-actions">
+            <button mat-flat-button color="primary" (click)="saveTailleMaxDocument()" [disabled]="isSaving()">
+              <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+            </button>
+          </div>
+        </section>
+
         <!-- #670 — Mesure d'audience Matomo, réglée par instance. -->
         <section class="settings-section">
           <div class="section-header">

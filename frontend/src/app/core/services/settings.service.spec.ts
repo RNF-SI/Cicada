@@ -19,6 +19,7 @@ describe('SettingsService', () => {
     enable_docgestion_fcen: false,
     federation_partage: false,
     inscription_url_externe: '',
+    taille_max_document_mo: 20,
     api_publique_plans: false,
     matomo_enabled: false,
     matomo_url: '',
@@ -200,6 +201,7 @@ describe('SettingsService', () => {
         matomo_url: '',
         matomo_site_id: '',
         inscription_url_externe: '',
+        taille_max_document_mo: 20,
         updated_at: '',
         updated_by: null,
         updated_by_name: null

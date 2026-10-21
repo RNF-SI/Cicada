@@ -17,7 +17,7 @@ from .models_enjeux import (
     CorResponsabiliteTaxon, CorResponsabiliteHabitat, CorResponsabiliteGeologie,
     CorResponsabiliteEnjeu
 )
-from apps.core.models import Nomenclature
+from apps.core.models import Nomenclature, SiteConfiguration
 
 
 def _prefetched_count(obj, attr):
@@ -162,6 +162,10 @@ class CorEnjeuFichierSerializer(serializers.ModelSerializer):
                 {'fichier': _("Un fichier est requis pour un document numérique.")}
             )
         return attrs
+
+    def validate_fichier(self, value):
+        """#745 — Taille maximale réglée par l'administrateur de l'instance."""
+        return SiteConfiguration.verifier_taille_document(value)
 
     def create(self, validated_data):
         fichier = validated_data.pop('fichier', None)

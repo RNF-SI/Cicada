@@ -17,6 +17,7 @@ describe('MatomoService (#670)', () => {
     matomo_url: 'https://matomo.example.org/',
     matomo_site_id: '12',
     inscription_url_externe: '',
+    taille_max_document_mo: 20,
     ...overrides,
   }) as SiteConfiguration;
 

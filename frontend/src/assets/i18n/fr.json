@@ -1080,6 +1080,13 @@
           "locale": "L'inscription se fait de nouveau dans CICADA."
         }
       },
+      "documents": {
+        "title": "Documents des plans de gestion",
+        "description": "Taille maximale d'un fichier déposé dans un plan de gestion (documents du plan et des enjeux). Ajustez-la selon la place disponible sur le serveur.",
+        "tailleMax": "Taille maximale d'un document (Mo)",
+        "tailleMaxHint": "Entre 1 et 1024 Mo. 20 Mo par défaut.",
+        "invalide": "Saisissez un nombre entier entre 1 et 1024."
+      },
       "suppression": {
         "image": {
           "titre": "Rétablir l'image d'accueil par défaut ?",
@@ -2224,7 +2231,9 @@
           "public": "Document public",
           "publicHint": "Le document sera accessible sans authentification",
           "uploading": "Upload en cours...",
-          "send": "Envoyer"
+          "send": "Envoyer",
+          "maxSize": "Taille maximale : {{max}} Mo",
+          "tooLarge": "Ce fichier dépasse la taille maximale autorisée sur cette instance ({{max}} Mo)."
         }
       },
       "sidebar": {

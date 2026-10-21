@@ -97,6 +97,9 @@ export class AdminSettingsComponent implements OnInit {
   /** #724 — Inscription confiée à une plateforme externe (vide = formulaire local). */
   readonly inscriptionUrl = signal<string>('');
   readonly inscriptionError = signal<string | null>(null);
+  /** #745 — Taille maximale (Mo) d'un document déposé dans un plan. */
+  readonly tailleMaxDocument = signal<number | null>(20);
+  readonly tailleMaxError = signal<string | null>(null);
 
   // #448 — Personnalisation : couleur du bandeau + logo structure.
   // Bandeau blanc par défaut (comportement historique).
@@ -156,6 +159,8 @@ export class AdminSettingsComponent implements OnInit {
       this.matomoSiteId.set(config?.matomo_site_id ?? '');
       // #724 — Plateforme d'inscription externe.
       this.inscriptionUrl.set(config?.inscription_url_externe ?? '');
+      // #745 — Taille maximale d'un document.
+      this.tailleMaxDocument.set(config?.taille_max_document_mo ?? 20);
     });
   }
 
@@ -544,6 +549,36 @@ export class AdminSettingsComponent implements OnInit {
           ? Object.values(err.error).flat().find(message => typeof message === 'string')
           : undefined;
         this.inscriptionError.set(detail || this.translate.instant('admin.settings.messages.error'));
+      },
+    });
+  }
+
+  /** #745 — Enregistre la taille maximale d'un document déposé dans un plan. */
+  saveTailleMaxDocument(): void {
+    const valeur = Number(this.tailleMaxDocument());
+    if (!Number.isInteger(valeur) || valeur < 1 || valeur > 1024) {
+      this.tailleMaxError.set(this.translate.instant('admin.settings.documents.invalide'));
+      return;
+    }
+    this.tailleMaxError.set(null);
+    this.isSaving.set(true);
+    const formData = new FormData();
+    formData.append('taille_max_document_mo', String(valeur));
+    this.settingsService.updateSettings(formData).subscribe({
+      next: () => {
+        this.isSaving.set(false);
+        this.snackBar.open(
+          this.translate.instant('admin.settings.messages.saved'),
+          this.translate.instant('common.actions.close'),
+          { duration: 3000 }
+        );
+      },
+      error: (err: { error?: Record<string, string[] | string> }) => {
+        this.isSaving.set(false);
+        const detail = err?.error
+          ? Object.values(err.error).flat().find(message => typeof message === 'string')
+          : undefined;
+        this.tailleMaxError.set(detail || this.translate.instant('admin.settings.messages.error'));
       },
     });
   }

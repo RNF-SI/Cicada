@@ -1,4 +1,4 @@
-import { Component, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 import { FormsModule } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
@@ -11,6 +11,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { AdminService } from '../../../../core/services/admin.service';
+import { SettingsService } from '../../../../core/services/settings.service';
 import { FichierType } from '../../../../core/models/admin.model';
 import { FormFieldComponent } from '../../form-field/form-field.component';
 
@@ -43,6 +44,10 @@ export class UploadDocumentModalComponent {
   private readonly data: UploadDocumentDialogData = inject(MAT_DIALOG_DATA);
   private readonly adminService = inject(AdminService);
   private readonly translate = inject(TranslateService);
+  private readonly settingsService = inject(SettingsService);
+
+  /** #745 — Taille maximale d'un document, réglée par l'administrateur de l'instance. */
+  readonly tailleMaxMo = computed(() => this.settingsService.config()?.taille_max_document_mo ?? 20);
 
   selectedFile = signal<File | null>(null);
   uploading = signal(false);
@@ -66,7 +71,17 @@ export class UploadDocumentModalComponent {
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files.length > 0) {
-      this.selectedFile.set(input.files[0]);
+      const file = input.files[0];
+      // #745 — Prévenir avant l'envoi plutôt qu'après un long téléversement
+      // refusé par le serveur (qui contrôle de toute façon).
+      if (file.size > this.tailleMaxMo() * 1024 * 1024) {
+        this.selectedFile.set(null);
+        this.errorMessage.set(this.translate.instant(
+          'plans.detail.documents.upload.tooLarge', { max: this.tailleMaxMo() }));
+        input.value = '';
+        return;
+      }
+      this.selectedFile.set(file);
       this.errorMessage.set(null);
     }
   }
