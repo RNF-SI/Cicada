@@ -152,14 +152,15 @@
                 <div id="db_existing_fields" class="hidden">
                     <div class="info-box">
                         <p><strong>Étape 1</strong> — indiquez l'adresse du serveur PostgreSQL <strong>telle que ce
-                            serveur la joint</strong> (pas « localhost »).</p>
+                            serveur la joint</strong>, ou <strong>« localhost »</strong> si PostgreSQL est installé
+                            directement sur ce serveur.</p>
                     </div>
                 </div>
                 <div id="db_connection_fields">
                     <div class="form-group">
                         <label for="db_host">Hôte PostgreSQL *</label>
                         <input type="text" id="db_host" name="db_host" value="db">
-                        <small class="form-help">Pour instance existante : adresse IP ou hostname</small>
+                        <small class="form-help">Une seule adresse IP ou un seul nom d'hôte, « localhost » pour ce serveur</small>
                     </div>
                     <div class="form-group">
                         <label for="db_port">Port PostgreSQL *</label>
@@ -192,14 +193,14 @@
 
             <div id="db_existing_steps" class="hidden">
                 <div class="info-box">
-                    <p><strong>Étape 2</strong> — sur le <strong>serveur de base</strong>, en root, lancez :</p>
+                    <p id="prepare_db_where"><strong>Étape 2</strong> — sur le <strong>serveur de base</strong>, en root, lancez :</p>
                 </div>
                 <div class="code-box">
                     <code id="prepare_db_command">Indiquez d'abord l'hôte PostgreSQL ci-dessus.</code>
                     <button type="button" class="btn-icon" onclick="copyText('prepare_db_command', this)" title="Copier">&#128203;</button>
                 </div>
                 <small class="form-help">Le script crée le compte, la base, PostGIS et les schémas, et autorise
-                    ce serveur (<span id="prepare_db_client">—</span>) à s'y connecter. Il ne redémarre pas
+                    <span id="prepare_db_client_label">ce serveur</span> (<span id="prepare_db_client">—</span>) à s'y connecter. Il ne redémarre pas
                     PostgreSQL et ne touche à aucune autre base. Si le serveur de base ne peut pas joindre
                     celui-ci, voir le guide d'installation (préparation sans accès réseau).</small>
                 <div class="info-box">

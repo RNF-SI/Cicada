@@ -424,20 +424,37 @@ async function updatePrepareCommand() {
         return;
     }
     let clientIp = null;
+    let local = false;
     try {
         const r = await fetch('/api/db-client-ip?host=' + encodeURIComponent(host));
-        clientIp = (await r.json()).client_ip;
+        const info = await r.json();
+        clientIp = info.client_ip;
+        local = info.local;
     } catch (e) { /* réseau : on garde l'adresse de la page */ }
-    // Adresse par laquelle ce serveur joint la base : c'est elle que le serveur
-    // de base doit autoriser, et a priori elle par laquelle il nous joint.
-    const self = clientIp || window.location.hostname;
-    const options = ['--client ' + (clientIp || '<ip-de-ce-serveur>')];
+    const options = [];
     const port = document.getElementById('db_port').value.trim();
     const name = document.getElementById('db_name').value.trim();
     const user = document.getElementById('db_user').value.trim();
     if (port && port !== '5432') options.push('--port ' + port);
     if (name && name !== 'cicada') options.push('--db-name ' + name);
     if (user && user !== 'cicada_user') options.push('--db-user ' + user);
+    const where = document.getElementById('prepare_db_where');
+    const clientLabel = document.getElementById('prepare_db_client_label');
+    if (local) {
+        // PostgreSQL sur ce serveur : le paquet cicada y a déjà installé le
+        // script (et son init.sql), qui autorise les conteneurs Docker.
+        where.innerHTML = '<strong>Étape 2</strong> — sur <strong>ce serveur</strong>, lancez :';
+        code.textContent = 'sudo cicada-prepare-db --docker-local' + (options.length ? ' ' + options.join(' ') : '');
+        clientLabel.textContent = 'les conteneurs de CICADA';
+        clientSpan.textContent = clientIp;
+        return;
+    }
+    where.innerHTML = '<strong>Étape 2</strong> — sur le <strong>serveur de base</strong>, en root, lancez :';
+    clientLabel.textContent = 'ce serveur';
+    // Adresse par laquelle ce serveur joint la base : c'est elle que le serveur
+    // de base doit autoriser, et a priori elle par laquelle il nous joint.
+    const self = clientIp || window.location.hostname;
+    options.unshift('--client ' + (clientIp || '<ip-de-ce-serveur>'));
     code.textContent = 'curl -fsSL http://' + self + ':' + (window.location.port || '4567')
         + '/prepare-db.sh | sudo bash -s -- ' + options.join(' ');
     clientSpan.textContent = clientIp || 'adresse inconnue : vérifiez l\'hôte';

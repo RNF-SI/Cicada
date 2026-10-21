@@ -36,7 +36,11 @@ def prepare_db_script():
 def db_client_ip():
     """Adresse de cette machine vue depuis le serveur de base indiqué."""
     host = (request.args.get('host') or '').strip()
-    return jsonify({'client_ip': install_service.client_ip_for(host) if host else None})
+    return jsonify({
+        'client_ip': install_service.client_ip_for(host) if host else None,
+        # PostgreSQL installé sur ce serveur : préparation par --docker-local
+        'local': install_service.is_local_db(host),
+    })
 
 
 @app.route('/api/test-db', methods=['POST'])

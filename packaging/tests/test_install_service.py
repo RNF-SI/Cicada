@@ -110,3 +110,72 @@ def test_champs_requis_manquants(service):
 
     assert result['success'] is False
     assert result['errors']
+
+
+# --- PostgreSQL installé sur le serveur CICADA lui-même (hors Docker) ---------
+
+def test_base_locale_jointe_par_host_docker_internal(service, tmp_path):
+    result = service.run_installation({
+        **BASE, 'frontend_port': '8080', 'db_type': 'existing', 'db_host': 'localhost',
+        'db_name': 'cicada', 'db_user': 'cicada_admin',
+    })
+
+    assert result['success'] is True, result
+    assert read_env(tmp_path)['POSTGRES_HOST'] == 'host.docker.internal'
+
+
+def test_base_distante_gardee_telle_quelle(service, tmp_path):
+    service.run_installation({**BASE, **CONFIGURATIONS['base_existante']})
+
+    assert read_env(tmp_path)['POSTGRES_HOST'] == '10.0.0.5'
+
+
+@pytest.fixture
+def connexions(monkeypatch):
+    """psycopg.connect simulé : enregistre l'hôte visé, échoue comme pg_hba.conf."""
+    import psycopg
+    hotes = []
+
+    def connect(**kwargs):
+        hotes.append(kwargs['host'])
+        raise psycopg.OperationalError(
+            f'connection failed: FATAL: no pg_hba.conf entry for host "{kwargs["host"]}"')
+
+    monkeypatch.setattr(psycopg, 'connect', connect)
+    return hotes
+
+
+def test_test_de_connexion_locale_passe_par_le_pont_docker(monkeypatch, connexions):
+    svc = install_service.InstallService()
+    monkeypatch.setattr(svc, 'docker_gateway', lambda: '172.17.0.1')
+
+    checks = svc.test_database({'db_host': 'localhost', 'db_name': 'cicada',
+                                'db_user': 'cicada_admin', 'db_password': 'x'})
+
+    assert connexions == ['172.17.0.1']
+    assert '--docker-local' in checks[0]['detail']
+
+
+def test_liste_d_adresses_refusee(connexions):
+    checks = install_service.InstallService().test_database({
+        'db_host': '162.19.89.37, 172.17.0.1, 2001:41d0:306:2c25::',
+        'db_name': 'cicada', 'db_user': 'cicada_admin', 'db_password': 'x'})
+
+    assert checks[0]['label'] == 'Indiquez une seule adresse'
+    assert connexions == []
+
+
+def test_commande_de_preparation_locale():
+    svc = install_service.InstallService()
+
+    assert svc.is_local_db('localhost')
+    assert svc.client_ip_for('127.0.0.1') == svc.DOCKER_NETWORKS
+    assert not svc.is_local_db('10.0.0.5')
+
+
+def test_conteneurs_de_l_application_joignent_l_hote():
+    import yaml
+    compose = yaml.safe_load((INSTALL_DIR.parent / 'docker-compose.yml').read_text())
+
+    for service_name in ('web', 'celery-worker', 'celery-beat'):
+        assert 'host.docker.internal:host-gateway' in compose['services'][service_name]['extra_hosts']

@@ -20,6 +20,15 @@ Cette note décrit les étapes pour publier une nouvelle version : images Docker
 
 Le tag se pose **sur `develop`**, qui est la branche de référence des releases : c’est de là que sont sorties toutes les versions depuis la 0.1.31. **Avant de poser le tag, tout `develop` doit être sur `main`** : `main` porte la dernière version publiée, son arbre doit être celui du tag.
 
+**Avant le tag, rejouer en local ce que le tag va construire.** Les commits poussés directement sur `develop` n'ont vu aucune CI (elle ne tourne que sur les PR et les tags) : une erreur n'apparaît qu'une fois le tag posé, quand l'image ou le paquet ne se construit pas. C'est arrivé à la 0.1.59 (bundle initial au-delà du budget de 1 Mo : l'image frontend n'a pas été publiée).
+
+```bash
+docker compose exec frontend npm run build:prod     # budgets compris, comme l'image
+docker compose exec frontend npx tsc --noEmit       # inclut les specs E2E, comme le job typecheck
+docker compose exec web python manage.py makemigrations --check --dry-run
+packaging/check-installer.sh                         # installateur web du .deb
+```
+
 ```bash
 git checkout develop
 git pull

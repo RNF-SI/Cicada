@@ -24,6 +24,10 @@ services:
   web:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
     container_name: cicada_prod_web
+    # PostgreSQL installé sur ce serveur (hors Docker) : joint par ce nom,
+    # « localhost » désignant le conteneur. Sans effet sinon.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
@@ -118,6 +122,10 @@ services:
   celery-worker:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
     container_name: cicada_prod_celery_worker
+    # PostgreSQL installé sur ce serveur (hors Docker) : joint par ce nom,
+    # « localhost » désignant le conteneur. Sans effet sinon.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY}
@@ -182,6 +190,10 @@ services:
   celery-beat:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
     container_name: cicada_prod_celery_beat
+    # PostgreSQL installé sur ce serveur (hors Docker) : joint par ce nom,
+    # « localhost » désignant le conteneur. Sans effet sinon.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY}

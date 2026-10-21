@@ -264,6 +264,8 @@ class InstallService:
         db_host = data.get('db_host', 'db')
         db_port = data.get('db_port', 5432)
         db_type = data.get('db_type', 'docker')
+        if db_type == 'existing':
+            db_host = self.container_db_host(db_host.strip())
 
         try:
             frontend_port = int(data.get('frontend_port', 80))
@@ -601,6 +603,7 @@ class InstallService:
             error_msg = (
                 f"{headline}\n"
                 + (f"Cause probable : {cause}\n" if cause else "")
+                + (self._local_db_hint(env_file) if cause else "")
                 + f"\nÉtat des conteneurs:\n{ps_output}\n\n"
                 f"Logs du conteneur web (diagnostic):\n{web_logs[-6000:]}"
             )
@@ -649,11 +652,40 @@ class InstallService:
                    'fichiers', 'ccd_commons', 'ccd_notifications', 'taxonomie',
                    'ref_habitats', 'ref_inpg', 'ref_campanule')
     LOCAL_NAMES = ('localhost', '127.0.0.1', '::1', 'localhost.localdomain')
+    # Nom par lequel les conteneurs joignent ce serveur (extra_hosts:
+    # host-gateway dans docker-compose.yml) : c'est lui qu'on écrit dans
+    # POSTGRES_HOST quand PostgreSQL est installé sur ce serveur-ci. Vu d'un
+    # conteneur, « localhost » désigne le conteneur.
+    HOST_ALIAS = 'host.docker.internal'
+    # Réseaux d'où se connectent les conteneurs (plages par défaut de Docker)
+    DOCKER_NETWORKS = '172.16.0.0/12'
+
+    def is_local_db(self, host):
+        """PostgreSQL installé sur ce serveur (et non dans Docker ni ailleurs) ?"""
+        host = (host or '').strip()
+        return bool(host) and (host == self.HOST_ALIAS or self._is_this_machine(host))
+
+    def docker_gateway(self):
+        """Adresse de ce serveur sur le pont Docker : celle que désigne
+        host.docker.internal pour les conteneurs (host-gateway)."""
+        try:
+            out = subprocess.run(['ip', '-4', '-o', 'addr', 'show', 'docker0'],
+                                 capture_output=True, text=True, timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            out = ''
+        match = re.search(r'\binet (\d+\.\d+\.\d+\.\d+)/', out)
+        return match.group(1) if match else '172.17.0.1'
+
+    def container_db_host(self, host):
+        """Hôte PostgreSQL tel que les conteneurs doivent le joindre."""
+        return self.HOST_ALIAS if self.is_local_db(host) else host
 
     def client_ip_for(self, host):
         """Adresse avec laquelle cette machine (donc CICADA) joint `host` : c'est
         elle que le serveur de base doit autoriser dans pg_hba.conf."""
         import socket
+        if self.is_local_db(host):
+            return self.DOCKER_NETWORKS
         try:
             target = socket.gethostbyname(host)
             out = subprocess.run(['ip', '-4', 'route', 'get', target],
@@ -695,16 +727,20 @@ class InstallService:
 
         if not host:
             return [{'status': 'error', 'label': "Indiquez l'adresse du serveur PostgreSQL", 'detail': ''}]
-        if self._is_this_machine(host):
-            return [{
-                'status': 'error',
-                'label': f"« {host} » désigne ce serveur-ci, pas un serveur de base séparé",
-                'detail': ("Vu de l'application (qui tourne dans un conteneur Docker), « localhost » "
-                           "désigne le conteneur lui-même. Si PostgreSQL est dans un autre conteneur "
-                           "ou une autre VM, indiquez SON adresse IP. Si PostgreSQL est installé "
-                           "directement sur ce serveur, ce cas n'est pas encore pris en charge par "
-                           "le formulaire : utilisez plutôt la base dans Docker."),
-            }]
+        if re.search(r'[,\s]', host):
+            # Les versions précédentes de cicada-prepare-db affichaient toutes les
+            # adresses du serveur : la liste collée telle quelle passait le test
+            # (psycopg accepte plusieurs hôtes), mais pas le démarrage de l'application.
+            return [{'status': 'error', 'label': 'Indiquez une seule adresse',
+                     'detail': ("Une seule adresse IP ou un seul nom d'hôte. Si PostgreSQL est installé "
+                                "sur ce serveur-ci, indiquez « localhost ».")}]
+
+        local = self.is_local_db(host)
+        # PostgreSQL sur ce serveur : les conteneurs le joignent par le pont
+        # Docker. Le test passe par la même adresse, donc par les mêmes
+        # listen_addresses et pg_hba.conf (seul un pare-feu local filtrant les
+        # interfaces Docker échappe au test).
+        target = self.docker_gateway() if local else host
 
         try:
             import psycopg
@@ -714,18 +750,25 @@ class InstallService:
 
         client_ip = self.client_ip_for(host)
         try:
-            conn = psycopg.connect(host=host, port=port, dbname=name, user=user,
+            conn = psycopg.connect(host=target, port=port, dbname=name, user=user,
                                    password=password, connect_timeout=8)
         except psycopg.OperationalError as e:
             msg = str(e).strip().splitlines()[-1] if str(e).strip() else str(e)
             low = msg.lower()
-            if 'pg_hba.conf' in low:
+            if 'pg_hba.conf' in low and local:
+                hint = ("PostgreSQL refuse les conteneurs Docker de ce serveur. "
+                        "Lancez la commande ci-dessus (sudo cicada-prepare-db --docker-local).")
+            elif 'pg_hba.conf' in low:
                 hint = (f"Le serveur de base refuse cette machine ({client_ip or '?'}). "
                         "Lancez cicada-prepare-db avec --client sur le serveur de base (commande ci-dessus).")
             elif 'password authentication failed' in low:
                 hint = "Mot de passe refusé : utilisez celui affiché par cicada-prepare-db."
             elif 'does not exist' in low:
                 hint = "Base ou compte inexistant : lancez cicada-prepare-db sur le serveur de base."
+            elif ('connection refused' in low or 'timeout' in low or 'timed out' in low) and local:
+                hint = (f"PostgreSQL n'écoute pas sur l'interface Docker de ce serveur ({target}). "
+                        "Mettez listen_addresses = '*' dans postgresql.conf, redémarrez PostgreSQL, "
+                        "puis relancez sudo cicada-prepare-db --docker-local.")
             elif 'connection refused' in low or 'timeout' in low or 'timed out' in low:
                 hint = ("Serveur injoignable sur ce port : vérifiez l'adresse, le pare-feu, et que "
                         "PostgreSQL écoute sur le réseau (listen_addresses).")
@@ -734,8 +777,13 @@ class InstallService:
             return [{'status': 'error', 'label': 'Connexion impossible', 'detail': f'{msg}\n{hint}'.strip()}]
 
         with conn:
-            checks.append({'status': 'ok', 'label': f'Connexion à {name} sur {host}:{port} réussie',
-                           'detail': f'depuis {client_ip}' if client_ip else ''})
+            if local:
+                checks.append({'status': 'ok', 'label': f'Connexion à {name} sur ce serveur (port {port}) réussie',
+                               'detail': (f"PostgreSQL est installé sur ce serveur : CICADA le joindra par "
+                                          f"{self.HOST_ALIAS} ({target}).")})
+            else:
+                checks.append({'status': 'ok', 'label': f'Connexion à {name} sur {host}:{port} réussie',
+                               'detail': f'depuis {client_ip}' if client_ip else ''})
             version = conn.execute(
                 "select extversion from pg_extension where extname = 'postgis'").fetchone()
             if version:
@@ -798,7 +846,23 @@ class InstallService:
                 # Retirer le préfixe « conteneur | » ajouté par `docker compose logs`
                 line = line.split(' | ', 1)[-1]
                 return line.split('OperationalError:', 1)[-1].strip()[:400]
+            if "PostgreSQL n'est pas encore disponible" in line:
+                # Boucle d'attente de l'entrypoint : le port n'est même pas joignable
+                return "le conteneur web n'arrive pas à joindre le port de PostgreSQL"
         return ''
+
+    def _local_db_hint(self, env_file):
+        """Conseil propre au PostgreSQL installé sur ce serveur : ce que le test
+        de connexion du formulaire ne pouvait pas voir, le pare-feu local."""
+        try:
+            local = f"POSTGRES_HOST={self.HOST_ALIAS}" in Path(env_file).read_text().splitlines()
+        except OSError:
+            return ''
+        if not local:
+            return ''
+        return ("PostgreSQL est installé sur ce serveur : si un pare-feu y tourne, il doit laisser "
+                f"passer le port de PostgreSQL depuis les conteneurs ({self.DOCKER_NETWORKS}), par "
+                f"exemple : sudo ufw allow from {self.DOCKER_NETWORKS} to any port 5432 proto tcp\n")
 
     def _build_final_url(self, data):
         """URL vers laquelle rediriger à la fin de l'installation.

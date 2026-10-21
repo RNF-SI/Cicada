@@ -35,7 +35,7 @@ CICADA tourne entièrement dans des conteneurs Docker ; Docker est installé ave
 | Choix | Options | Comment trancher |
 |---|---|---|
 | **Qui publie le site sur Internet ?** | **Traefik** (fourni par CICADA) ou **votre Apache/Nginx** | Si un Apache ou un Nginx tourne déjà sur le serveur (il occupe les ports 80 et 443), c'est lui : Traefik ne pourrait pas démarrer. Sinon, Traefik, qui gère seul le HTTPS. |
-| **Où est la base de données ?** | **Dans Docker**, sur ce serveur, ou sur un **serveur PostgreSQL existant** | Dans Docker : rien à préparer, c'est le plus simple. Serveur existant : une commande à lancer en root **sur le serveur de base** (voir [§ 3.3](#33-base-de-données-postgresql)). PostgreSQL installé directement sur le serveur CICADA n'est pas pris en charge : utilisez la base dans Docker. |
+| **Où est la base de données ?** | **Dans Docker**, sur ce serveur, ou sur un **serveur PostgreSQL existant** | Dans Docker : rien à préparer, c'est le plus simple. Serveur existant : une commande à lancer en root **sur le serveur de base** (voir [§ 3.3](#33-base-de-données-postgresql)), y compris quand ce PostgreSQL est installé sur le serveur CICADA lui-même. |
 | **Comment les utilisateurs se connectent ?** | **Comptes CICADA** (e-mail + mot de passe) ou **comptes GeoNature/UsersHub** | Un seul mode par instance. GeoNature/UsersHub demande GeoNature **2.17.0 minimum** (voir [§ 3.7](#37-mode-de-connexion)). |
 
 ### Installer CICADA sur un serveur qui héberge déjà GeoNature
@@ -141,7 +141,7 @@ Le champ **« Port backend »** peut être laissé à `8000` : l'application n'e
 
 *Prérequis sur le serveur de base* : PostgreSQL 15 ou plus avec le paquet PostGIS correspondant (ex. `postgresql-17-postgis-3`), à l'écoute du réseau (`listen_addresses` ne doit pas valoir `localhost`). Si ce n'est pas le cas, il faudra le modifier puis **redémarrer** PostgreSQL, ce qui coupe brièvement les autres applications : le script de préparation le détecte et s'arrête avant de rien changer, à vous de choisir le moment.
 
-1. Saisissez l'**adresse du serveur de base telle que le serveur CICADA la joint**. Jamais `localhost` ni une adresse de la machine elle-même : vu de l'application, qui tourne dans un conteneur, `localhost` désigne le conteneur. Changez port, nom de base ou utilisateur si besoin.
+1. Saisissez l'**adresse du serveur de base telle que le serveur CICADA la joint** (une seule adresse), ou `localhost` si PostgreSQL est installé sur le serveur CICADA lui-même (voir [ci-dessous](#postgresql-sur-le-serveur-cicada)). Changez port, nom de base ou utilisateur si besoin.
 2. Le formulaire affiche une commande à lancer **en root sur le serveur de base**, par exemple :
 
    ```bash
@@ -156,6 +156,22 @@ Le champ **« Port backend »** peut être laissé à `8000` : l'application n'e
 
    Il peut être relancé sans risque ; le mot de passe d'un compte existant n'est alors **pas** changé (`--password` pour le redéfinir). Si vous avez changé port, nom de base ou utilisateur, la commande affichée en tient déjà compte. Aide : `bash prepare-db.sh --help`.
 3. Reportez le **mot de passe affiché** dans le formulaire et cliquez sur **« Tester la connexion »**. Le test vérifie la connexion depuis le serveur CICADA, PostGIS et les schémas, et dit quoi corriger en cas d'échec. **L'installation ne démarre pas tant qu'il n'est pas vert.**
+
+#### PostgreSQL installé sur le serveur CICADA lui-même {#postgresql-sur-le-serveur-cicada}
+
+Cas courant sur un serveur qui héberge déjà GeoNature. Vu de l'application, qui tourne dans un conteneur, `localhost` désigne le conteneur : l'installateur écrit donc `POSTGRES_HOST=host.docker.internal`, nom par lequel les conteneurs joignent le serveur (pont Docker).
+
+1. Hôte : `localhost`.
+2. Sur ce même serveur, lancez la commande affichée :
+
+   ```bash
+   sudo cicada-prepare-db --docker-local
+   ```
+
+   Elle autorise les réseaux Docker (`172.16.0.0/12`) et les adresses du serveur lui-même (`samehost`, pour les vérifications faites depuis le serveur) au lieu d’une adresse de serveur distant, et vérifie que PostgreSQL écoute sur l'interface Docker. Si `listen_addresses` vaut `localhost`, mettez `listen_addresses = '*'` dans `postgresql.conf` et redémarrez PostgreSQL (coupure brève des autres applications), puis relancez la commande.
+3. Mot de passe affiché, « Tester la connexion », installation : comme ci-dessus.
+
+Si un **pare-feu** tourne sur le serveur (ufw, nftables…), il doit laisser passer le port de PostgreSQL depuis les conteneurs, par exemple `sudo ufw allow from 172.16.0.0/12 to any port 5432 proto tcp`. Le script le signale pour ufw ; c'est le seul point que le test du formulaire ne peut pas vérifier.
 
 *Le serveur de base ne joint pas le serveur CICADA* (pare-feu) : téléchargez le script depuis un poste qui voit l'installateur (`http://<serveur-cicada>:4567/prepare-db.sh`), copiez-le sur le serveur de base et lancez `sudo bash prepare-db.sh --client <ip-du-serveur-cicada>`.
 

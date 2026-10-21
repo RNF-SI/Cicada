@@ -20,7 +20,7 @@ if [ -z "$PY" ]; then
     trap 'rm -rf "$VENV"' EXIT
     python3 -m venv "$VENV"
     "$VENV/bin/pip" install --quiet --disable-pip-version-check \
-        pyflakes pytest -r debian/usr/share/cicada/install/requirements.txt
+        pyflakes pytest pyyaml -r debian/usr/share/cicada/install/requirements.txt
     PY="$VENV/bin/python"
 fi
 
