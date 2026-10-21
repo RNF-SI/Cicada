@@ -3,7 +3,10 @@ Modèles de base partagés par toute l'application.
 """
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
+
+from apps.core.cgu import cgu_par_defaut
 
 
 class Nomenclature(models.Model):
@@ -484,6 +487,20 @@ class SiteConfiguration(models.Model):
             "Adresse de la plateforme où créer un compte. Vide = inscription "
             "dans CICADA (formulaire de demande de compte)."
         )
+    )
+    # #746 — Conditions générales d'utilisation propres à l'instance (Markdown).
+    # Toute modification du texte publie une nouvelle version (`cgu_version`) :
+    # un utilisateur qui n'a pas accepté la version en vigueur doit le faire
+    # avant de continuer (`Role.doit_accepter_cgu()`).
+    cgu_texte = models.TextField(
+        _("Conditions générales d'utilisation"),
+        default=cgu_par_defaut,
+        help_text=_("Texte des CGU, au format Markdown, que chaque utilisateur doit accepter.")
+    )
+    cgu_version = models.DateTimeField(
+        _("Version des CGU"),
+        default=timezone.now,
+        help_text=_("Date de publication de la version en vigueur des CGU.")
     )
     # #745 — Taille maximale d'un document déposé dans un plan (documents du
     # plan et d'un enjeu), réglée par l'administrateur de l'instance selon la

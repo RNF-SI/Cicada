@@ -106,8 +106,11 @@ export class AuthService {
       // This avoids unnecessary API calls on every page load/new window
       const lastVerified = localStorage.getItem(TOKEN_TIMESTAMP_KEY);
       const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
+      // #746 — Un profil mis en cache avant l'arrivée des CGU ne dit pas s'il
+      // faut les accepter : on le relit sans attendre.
+      const cguInconnues = user.cgu_a_accepter === undefined;
 
-      if (!lastVerified || parseInt(lastVerified, 10) < thirtyMinutesAgo) {
+      if (cguInconnues || !lastVerified || parseInt(lastVerified, 10) < thirtyMinutesAgo) {
         // #364 — Vérification de fond NON destructive : un échec transitoire
         // (token d'accès expiré + course de rotation, hoquet backend pendant un
         // déploiement, blip réseau) ne doit pas déconnecter ni rediriger vers
@@ -531,6 +534,27 @@ export class AuthService {
     localStorage.removeItem(IMPERSONATION_KEY);
     localStorage.removeItem(ORIGINAL_TOKENS_KEY);
     localStorage.removeItem(ORIGINAL_USER_KEY);
+  }
+
+  // ==================== CGU (#746) ====================
+
+  /**
+   * Accepte la version des CGU lue (`cgu_version` des paramètres). Refusé en
+   * 409 si le texte a changé entre-temps.
+   */
+  accepterCgu(version: string): Observable<{ cgu_a_accepter: boolean; cgu_acceptees_le: string }> {
+    return this.http.post<{ cgu_a_accepter: boolean; cgu_acceptees_le: string }>(
+      `${this.apiUrl}/cgu/accepter/`, { version },
+    ).pipe(
+      tap(reponse => {
+        const user = this.currentUserSignal();
+        if (user) {
+          const majour = { ...user, ...reponse };
+          this.currentUserSignal.set(majour);
+          this.storeUser(majour);
+        }
+      }),
+    );
   }
 
   // ==================== RGPD - ACCOUNT DELETION ====================

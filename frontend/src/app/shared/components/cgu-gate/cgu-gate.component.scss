@@ -1,0 +1,58 @@
+@import 'variables';
+
+.cgu-gate-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-md;
+  background: rgba($black, 0.6);
+}
+
+.cgu-gate {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  background: $white;
+  border-radius: $border-radius-sm;
+  box-shadow: 0 8px 32px rgba($black, 0.3);
+
+  &__header {
+    padding: $spacing-lg $spacing-lg $spacing-sm;
+
+    p {
+      margin: 0;
+      color: $primary-color;
+    }
+  }
+
+  &__texte {
+    flex: 1;
+    overflow-y: auto;
+    padding: $spacing-sm $spacing-lg;
+    border-top: 1px solid $gray-light;
+    border-bottom: 1px solid $gray-light;
+
+    &:focus-visible {
+      outline: 2px solid $primary-color;
+      outline-offset: -2px;
+    }
+  }
+
+  &__footer {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+    padding: $spacing-md $spacing-lg $spacing-lg;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: $spacing-sm;
+  }
+}

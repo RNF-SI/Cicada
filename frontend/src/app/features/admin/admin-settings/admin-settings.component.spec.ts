@@ -68,6 +68,8 @@ describe('AdminSettingsComponent', () => {
     matomo_site_id: '',
     inscription_url_externe: '',
     taille_max_document_mo: 20,
+    cgu_texte: '# CGU',
+    cgu_version: '2026-10-21T10:00:00Z',
     updated_at: '2024-01-15T10:30:00Z',
     updated_by: 1,
     updated_by_name: 'Admin User'
@@ -629,6 +631,45 @@ describe('AdminSettingsComponent', () => {
       tick();
       expect(component.inscriptionError()).toBe('Saisissez une URL valide.');
     }));
+  });
+
+  describe('CGU (#746)', () => {
+    const lastFormData = (): FormData =>
+      (mockSettingsService.updateSettings as jest.Mock).mock.calls.at(-1)[0];
+
+    it('reprend le texte de l\'instance', () => {
+      configSignal.set({ ...mockConfig, cgu_texte: '# Mes CGU' });
+      fixture.detectChanges();
+      expect(component.cguTexte()).toBe('# Mes CGU');
+    });
+
+    it('publie une nouvelle version après confirmation', fakeAsync(() => {
+      fixture.detectChanges();
+      jest.spyOn(component['dialog'], 'open').mockReturnValue({ afterClosed: () => of(true) } as never);
+      component.cguTexte.set('# V2');
+      component.saveCgu();
+      tick();
+      expect(lastFormData().get('cgu_texte')).toBe('# V2');
+    }));
+
+    it('n\'envoie rien si la confirmation est annulée', fakeAsync(() => {
+      fixture.detectChanges();
+      (mockSettingsService.updateSettings as jest.Mock).mockClear();
+      jest.spyOn(component['dialog'], 'open').mockReturnValue({ afterClosed: () => of(false) } as never);
+      component.cguTexte.set('# V2');
+      component.saveCgu();
+      tick();
+      expect(mockSettingsService.updateSettings).not.toHaveBeenCalled();
+    }));
+
+    it('refuse un texte vide sans appeler le serveur', () => {
+      fixture.detectChanges();
+      (mockSettingsService.updateSettings as jest.Mock).mockClear();
+      component.cguTexte.set('   ');
+      component.saveCgu();
+      expect(mockSettingsService.updateSettings).not.toHaveBeenCalled();
+      expect(component.cguError()).toBeTruthy();
+    });
   });
 
   describe('Taille maximale d\'un document (#745)', () => {

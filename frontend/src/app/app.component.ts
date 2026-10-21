@@ -6,11 +6,12 @@ import { TranslationService } from './core/services/translation.service';
 import { SettingsService } from './core/services/settings.service';
 import { MatomoService } from './core/services/matomo.service';
 import { ExplorationRetourService } from './core/services/exploration-retour.service';
+import { CguGateComponent } from './shared/components/cgu-gate/cgu-gate.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, CguGateComponent],
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './app.component.scss'

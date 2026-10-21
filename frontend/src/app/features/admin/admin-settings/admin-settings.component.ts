@@ -1,6 +1,7 @@
 import { Component, inject, OnInit, signal, effect, computed, viewChild, ChangeDetectionStrategy } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { map } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
@@ -31,6 +32,8 @@ import { ExplorationService } from '../../../core/services/exploration.service';
   selector: 'app-admin-settings',
   standalone: true,
   imports: [
+    DatePipe,
+    RouterLink,
     FormsModule,
     MatButtonModule,
     MatCardModule,
@@ -100,6 +103,9 @@ export class AdminSettingsComponent implements OnInit {
   /** #745 — Taille maximale (Mo) d'un document déposé dans un plan. */
   readonly tailleMaxDocument = signal<number | null>(20);
   readonly tailleMaxError = signal<string | null>(null);
+  /** #746 — Conditions générales d'utilisation (Markdown). */
+  readonly cguTexte = signal<string>('');
+  readonly cguError = signal<string | null>(null);
 
   // #448 — Personnalisation : couleur du bandeau + logo structure.
   // Bandeau blanc par défaut (comportement historique).
@@ -161,6 +167,8 @@ export class AdminSettingsComponent implements OnInit {
       this.inscriptionUrl.set(config?.inscription_url_externe ?? '');
       // #745 — Taille maximale d'un document.
       this.tailleMaxDocument.set(config?.taille_max_document_mo ?? 20);
+      // #746 — CGU de l'instance.
+      this.cguTexte.set(config?.cgu_texte ?? '');
     });
   }
 
@@ -551,6 +559,55 @@ export class AdminSettingsComponent implements OnInit {
         this.inscriptionError.set(detail || this.translate.instant('admin.settings.messages.error'));
       },
     });
+  }
+
+  /**
+   * #746 — Publie le texte des CGU. Toute modification en fait une nouvelle
+   * version, que chaque utilisateur devra accepter : d'où la confirmation.
+   */
+  saveCgu(): void {
+    const texte = this.cguTexte();
+    if (!texte.trim()) {
+      this.cguError.set(this.translate.instant('admin.settings.cgu.vide'));
+      return;
+    }
+    this.cguError.set(null);
+    const data: ConfirmDialogData = {
+      title: this.translate.instant('admin.settings.cgu.confirmTitre'),
+      message: this.translate.instant('admin.settings.cgu.confirmMessage'),
+      confirmText: this.translate.instant('admin.settings.cgu.confirmer'),
+      cancelText: this.translate.instant('common.actions.cancel'),
+    };
+    this.dialog
+      .open<ConfirmDialogComponent, ConfirmDialogData, boolean>(ConfirmDialogComponent, {
+        width: '600px',
+        maxWidth: '95vw',
+        data,
+      })
+      .afterClosed()
+      .subscribe(confirme => {
+        if (!confirme) return;
+        this.isSaving.set(true);
+        const formData = new FormData();
+        formData.append('cgu_texte', texte);
+        this.settingsService.updateSettings(formData).subscribe({
+          next: () => {
+            this.isSaving.set(false);
+            this.snackBar.open(
+              this.translate.instant('admin.settings.cgu.publiees'),
+              this.translate.instant('common.actions.close'),
+              { duration: 3000 }
+            );
+          },
+          error: (err: { error?: Record<string, string[] | string> }) => {
+            this.isSaving.set(false);
+            const detail = err?.error
+              ? Object.values(err.error).flat().find(message => typeof message === 'string')
+              : undefined;
+            this.cguError.set(detail || this.translate.instant('admin.settings.messages.error'));
+          },
+        });
+      });
   }
 
   /** #745 — Enregistre la taille maximale d'un document déposé dans un plan. */

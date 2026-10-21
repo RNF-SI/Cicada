@@ -1,0 +1,12 @@
+@import 'variables';
+
+.cgu-page {
+  display: flex;
+  justify-content: center;
+  padding: $spacing-lg $spacing-md;
+
+  &__contenu {
+    width: 100%;
+    max-width: 900px;
+  }
+}

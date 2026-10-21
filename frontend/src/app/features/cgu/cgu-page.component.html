@@ -1,0 +1,13 @@
+@if (isAuthenticated()) {
+  <app-header></app-header>
+}
+<main class="cgu-page">
+  <article class="cgu-page__contenu">
+    @if (config()?.cgu_version) {
+      <p class="text-mention" data-testid="cgu-version">
+        {{ 'cgu.page.version' | translate:{ date: (config()!.cgu_version | date:'dd/MM/yyyy') } }}
+      </p>
+    }
+    <div class="cgu-texte" [innerHTML]="html()" data-testid="cgu-page-texte"></div>
+  </article>
+</main>

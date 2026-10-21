@@ -128,6 +128,8 @@ def reponse_connexion(user):
             'is_staff': user.is_staff,
             'is_active': user.active,
             'is_referent': user.is_referent(),
+            # #746 — le frontend demande l'acceptation des CGU avant de continuer.
+            'cgu_a_accepter': user.doit_accepter_cgu(),
             'organisme': {
                 'id_organisme': user.id_organisme.id_organisme,
                 'nom_organisme': user.id_organisme.nom_organisme,
@@ -199,6 +201,8 @@ class ProfilConnexionSchema(serializers.Serializer):
     is_staff = serializers.BooleanField()
     is_active = serializers.BooleanField()
     is_referent = serializers.BooleanField()
+    cgu_a_accepter = serializers.BooleanField(
+        required=False, help_text="#746 — Vrai si l'utilisateur doit accepter la version en vigueur des CGU")
     organisme = OrganismeConnexionSchema(allow_null=True)
 
 
@@ -224,19 +228,24 @@ class UserInfoSerializer(serializers.ModelSerializer):
     is_active = serializers.BooleanField(source='active', read_only=True)
     is_referent = serializers.SerializerMethodField()
     organisme = serializers.SerializerMethodField()
+    cgu_a_accepter = serializers.SerializerMethodField()
 
     class Meta:
         model = Role
         fields = [
             'id', 'email', 'nom_role', 'prenom_role', 'identifiant',
             'niveau_role', 'is_staff', 'is_active', 'is_referent', 'organisme',
-            'date_insert', 'last_login'
+            'date_insert', 'last_login', 'cgu_a_accepter', 'cgu_acceptees_le'
         ]
-        read_only_fields = ['id', 'date_insert', 'last_login']
+        read_only_fields = ['id', 'date_insert', 'last_login', 'cgu_acceptees_le']
 
     def get_is_referent(self, obj) -> bool:
         """Retourne True si l'utilisateur est referent d'au moins un site ou plan."""
         return obj.is_referent()
+
+    def get_cgu_a_accepter(self, obj) -> bool:
+        """#746 — Vrai tant que la version en vigueur des CGU n'est pas acceptée."""
+        return obj.doit_accepter_cgu()
 
     @extend_schema_field(OrganismeProfilSchema(allow_null=True))
     def get_organisme(self, obj):

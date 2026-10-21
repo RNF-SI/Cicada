@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from drf_spectacular.types import OpenApiTypes
@@ -444,6 +445,54 @@ def user_info_view(request):
 
 @extend_schema(
     tags=['auth'],
+    summary="Accepter les conditions générales d'utilisation",
+    description=(
+        "#746 — Enregistre l'acceptation, par l'utilisateur connecté, de la version en vigueur des CGU "
+        "de l'instance. `version` est la `cgu_version` lue sur `/api/settings/` : si le texte a changé "
+        "depuis, la requête est refusée (409) et la nouvelle version doit être relue. Refusé pendant une "
+        "impersonation : l'administrateur ne peut pas accepter à la place de l'utilisateur."
+    ),
+    request=inline_serializer(name='AcceptationCgu', fields={'version': serializers.DateTimeField()}),
+    responses={
+        200: inline_serializer(name='CguAcceptees', fields={
+            'cgu_a_accepter': serializers.BooleanField(),
+            'cgu_acceptees_le': serializers.DateTimeField(),
+        }),
+        400: OpenApiResponse(response=DetailSchema, description="Version absente ou illisible."),
+        401: REPONSE_401,
+        403: REPONSE_403,
+        409: OpenApiResponse(response=DetailSchema, description="Les CGU ont changé : relire la nouvelle version."),
+    },
+)
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def accepter_cgu_view(request):
+    """#746 — POST /api/auth/cgu/accepter/ : l'utilisateur accepte les CGU en vigueur."""
+    from apps.core.models import SiteConfiguration
+
+    if request.auth is not None and request.auth.get('is_impersonating'):
+        return Response(
+            {'detail': _("Seul l'utilisateur peut accepter les conditions générales d'utilisation.")},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    try:
+        version = serializers.DateTimeField().to_internal_value(request.data.get('version') or '')
+    except serializers.ValidationError:
+        return Response({'detail': _("Version des CGU manquante ou illisible.")},
+                        status=status.HTTP_400_BAD_REQUEST)
+    if version != SiteConfiguration.get_instance().cgu_version:
+        return Response(
+            {'detail': _("Les conditions générales d'utilisation ont été modifiées : relisez la nouvelle version.")},
+            status=status.HTTP_409_CONFLICT,
+        )
+    user = request.user
+    user.cgu_acceptees_le = timezone.now()
+    user.save(update_fields=['cgu_acceptees_le'])
+    return Response({'cgu_a_accepter': False, 'cgu_acceptees_le': user.cgu_acceptees_le})
+
+
+@extend_schema(
+    tags=['auth'],
     summary="État de l'API d'authentification",
     description="Sonde publique, sans authentification : répond `ok` si l'application est démarrée.",
     auth=[],
@@ -725,6 +774,7 @@ def stop_impersonation_view(request):
             'is_staff': original_admin.is_staff,
             'is_active': original_admin.active,
             'is_referent': original_admin.is_referent(),
+            'cgu_a_accepter': original_admin.doit_accepter_cgu(),
             'organisme': {
                 'id_organisme': original_admin.id_organisme.id_organisme,
                 'nom_organisme': original_admin.id_organisme.nom_organisme,

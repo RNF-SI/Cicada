@@ -18,6 +18,8 @@ describe('MatomoService (#670)', () => {
     matomo_site_id: '12',
     inscription_url_externe: '',
     taille_max_document_mo: 20,
+    cgu_texte: '# CGU',
+    cgu_version: '2026-10-21T10:00:00Z',
     ...overrides,
   }) as SiteConfiguration;
 

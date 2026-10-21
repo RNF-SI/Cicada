@@ -19,6 +19,9 @@ export interface User {
   deletion_requested_at?: string | null;
   is_anonymized?: boolean;
   anonymized_at?: string | null;
+  /** #746 — Vrai tant que la version en vigueur des CGU n'est pas acceptée. */
+  cgu_a_accepter?: boolean;
+  cgu_acceptees_le?: string | null;
 }
 
 export interface Organisme {

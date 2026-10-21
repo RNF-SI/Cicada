@@ -35,7 +35,7 @@ class UsersSeeder(BaseSeeder):
     - referent.vercors@test.fr (referent)
     - user.rnf@test.fr (utilisateur)
     - user.cen@test.fr (utilisateur)
-    - test@example.com (utilisateur) - Pour tests email
+    - test@example.com (utilisateur) - Pour tests email ; CGU jamais acceptées (#746)
     - redacteur.principal@test.fr (redacteur_principal) - Accès global plans
     - redacteur.externe@test.fr (redacteur) - Bureau d'étude, #718
 
@@ -166,7 +166,10 @@ class UsersSeeder(BaseSeeder):
                 'id_organisme': organismes[0],  # RNF
                 'groups': ['Utilisateurs'],
                 'sites_referent': [sites[0]],  # Camargue - pour tester notifications site
-                'active': True
+                'active': True,
+                # #746 — seul compte de test qui n'a pas accepté les CGU : la
+                # modale d'acceptation s'ouvre à sa connexion.
+                'cgu_non_acceptees': True,
             },
             # Rédacteur principal (accès global plans)
             {
@@ -332,6 +335,10 @@ class UsersSeeder(BaseSeeder):
             is_active = user_data.pop('active', True)
             is_pending = user_data.pop('pending_validation', False)
             deletion_days_ago = user_data.pop('deletion_requested_days_ago', None)
+            # #746 — Les comptes de test ont accepté les CGU (sinon la modale
+            # bloquerait chaque parcours, E2E compris), sauf celui qui sert à
+            # la recette de l'acceptation.
+            cgu_acceptees_le = None if user_data.pop('cgu_non_acceptees', False) else timezone.now()
 
             # Calculer la date de demande de suppression
             deletion_requested_at = None
@@ -351,6 +358,7 @@ class UsersSeeder(BaseSeeder):
                     'active': is_active,
                     'pending_validation': is_pending,
                     'deletion_requested_at': deletion_requested_at,
+                    'cgu_acceptees_le': cgu_acceptees_le,
                 }
             )
 

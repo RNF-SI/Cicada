@@ -4,6 +4,7 @@ Serializers pour les modeles du core.
 from urllib.parse import quote
 
 from django.core.validators import URLValidator
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -65,6 +66,9 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
             # #745 — Taille max d'un document déposé dans un plan (public : la
             # modale de dépôt prévient avant d'envoyer).
             'taille_max_document_mo',
+            # #746 — CGU (publiques : page /cgu et modale d'acceptation).
+            'cgu_texte',
+            'cgu_version',
             'updated_at',
             'updated_by',
             'updated_by_name',
@@ -138,11 +142,25 @@ class SiteConfigurationUpdateSerializer(serializers.ModelSerializer):
             'matomo_site_id',
             'inscription_url_externe',
             'taille_max_document_mo',
+            'cgu_texte',
         ]
         extra_kwargs = {
             'matomo_url': {'validators': [URLValidator(schemes=['http', 'https'])]},
             'inscription_url_externe': {'validators': [URLValidator(schemes=['http', 'https'])]},
         }
+
+    def validate_cgu_texte(self, value: str) -> str:
+        """#746 — Des CGU vides ne pourraient pas être acceptées."""
+        if not value.strip():
+            raise serializers.ValidationError(_("Le texte des CGU ne peut pas être vide."))
+        return value
+
+    def update(self, instance, validated_data):
+        """#746 — Modifier le texte des CGU en publie une nouvelle version."""
+        texte = validated_data.get('cgu_texte')
+        if texte is not None and texte.strip() != instance.cgu_texte.strip():
+            validated_data['cgu_version'] = timezone.now()
+        return super().update(instance, validated_data)
 
     def validate_matomo_url(self, value: str) -> str:
         """Sans « / » final : le frontend compose <url>/matomo.js."""

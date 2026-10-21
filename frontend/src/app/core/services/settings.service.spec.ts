@@ -20,6 +20,8 @@ describe('SettingsService', () => {
     federation_partage: false,
     inscription_url_externe: '',
     taille_max_document_mo: 20,
+    cgu_texte: '# CGU',
+    cgu_version: '2026-10-21T10:00:00Z',
     api_publique_plans: false,
     matomo_enabled: false,
     matomo_url: '',
@@ -202,6 +204,8 @@ describe('SettingsService', () => {
         matomo_site_id: '',
         inscription_url_externe: '',
         taille_max_document_mo: 20,
+        cgu_texte: '',
+        cgu_version: '',
         updated_at: '',
         updated_by: null,
         updated_by_name: null

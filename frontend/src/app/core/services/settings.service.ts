@@ -55,6 +55,10 @@ export interface SiteConfiguration {
   inscription_url_externe: string;
   /** #745 — Taille maximale (Mo) d'un document déposé dans un plan. */
   taille_max_document_mo: number;
+  /** #746 — Conditions générales d'utilisation de l'instance (Markdown). */
+  cgu_texte: string;
+  /** #746 — Date de publication de la version en vigueur des CGU. */
+  cgu_version: string;
   updated_at: string;
   updated_by: number | null;
   updated_by_name: string | null;
@@ -184,6 +188,8 @@ export class SettingsService {
           matomo_site_id: '',
           inscription_url_externe: '',
           taille_max_document_mo: 20,
+          cgu_texte: '',
+          cgu_version: '',
           updated_at: '',
           updated_by: null,
           updated_by_name: null

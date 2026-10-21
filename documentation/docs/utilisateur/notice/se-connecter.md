@@ -9,6 +9,9 @@ Rendez-vous sur la page d'accueil de CICADA et cliquez sur « Se connecter ». S
 <figcaption>Figure 2 : Page de connexion</figcaption>
 </figure>
 
+!!! tip "Conditions générales d'utilisation"
+    À votre première connexion, puis à chaque nouvelle version, une fenêtre affiche les conditions générales d'utilisation (CGU) de l'instance. Lisez-les, cochez « J'ai lu et j'accepte les conditions générales d'utilisation » puis cliquez sur « Valider » pour continuer ; « Se déconnecter » ferme la session sans les accepter. Les CGU restent consultables à tout moment par le lien « Conditions générales d'utilisation » en pied de page de l'accueil. Elles précisent notamment que les données des plans de gestion saisies dans l'instance sont transmises à une base de centralisation qui les expose publiquement.
+
 ## 3.1.2. Créer un compte
 
 Si vous n'avez pas encore de compte, cliquez sur « Créer un compte » depuis l'accueil. Remplissez le formulaire : prénom, nom, e-mail, identifiant, organisme de rattachement, mot de passe. Une zone vous permet de préciser de manière optionnelle le motif de votre demande (Figure 3).

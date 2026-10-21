@@ -1,0 +1,37 @@
+@if (visible()) {
+  <div class="cgu-gate-backdrop">
+    <!-- Le titre vient du texte des CGU lui-même : pas de second titre ici. -->
+    <div class="cgu-gate" role="dialog" aria-modal="true" [attr.aria-label]="'cgu.gate.titre' | translate"
+         aria-describedby="cgu-gate-intro" data-testid="cgu-gate" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+      <header class="cgu-gate__header">
+        <p id="cgu-gate-intro" class="text-bold">{{ 'cgu.gate.intro' | translate }}</p>
+      </header>
+
+      <div class="cgu-gate__texte cgu-texte" tabindex="0" [innerHTML]="html()" data-testid="cgu-gate-texte"></div>
+
+      <footer class="cgu-gate__footer">
+        <app-checkbox
+          [checked]="coche()"
+          (checkedChange)="coche.set($event)"
+          [disabled]="envoi()"
+          [label]="'cgu.gate.case' | translate"
+          data-testid="cgu-gate-case"
+        ></app-checkbox>
+
+        @if (erreur()) {
+          <p class="text-error" role="alert">{{ erreur() }}</p>
+        }
+
+        <div class="cgu-gate__actions">
+          <button mat-stroked-button type="button" (click)="deconnecter()" [disabled]="envoi()">
+            {{ 'cgu.gate.deconnecter' | translate }}
+          </button>
+          <button mat-flat-button color="primary" type="button" data-testid="cgu-gate-valider"
+                  (click)="accepter()" [disabled]="!coche() || envoi()">
+            {{ 'cgu.gate.valider' | translate }}
+          </button>
+        </div>
+      </footer>
+    </div>
+  </div>
+}

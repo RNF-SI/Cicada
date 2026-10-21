@@ -12,6 +12,7 @@ from .views import (
     PasswordResetConfirmView,
     logout_view,
     user_info_view,
+    accepter_cgu_view,
     health_check_view,
     start_impersonation_view,
     stop_impersonation_view,
@@ -43,6 +44,8 @@ urlpatterns = [
 
     # Informations utilisateur
     path('me/', user_info_view, name='user_info'),
+    # #746 — Acceptation des conditions générales d'utilisation
+    path('cgu/accepter/', accepter_cgu_view, name='accepter_cgu'),
 
     # Impersonation (super_admin uniquement)
     path('impersonate/<int:user_id>/', start_impersonation_view, name='start_impersonation'),

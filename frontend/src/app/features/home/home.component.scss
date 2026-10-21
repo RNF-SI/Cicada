@@ -623,6 +623,12 @@ $corner-size: 94px;
     color: $white;
     font-size: $font-size-small;
   }
+
+  // #746 — Lien vers les CGU (fond primaire : texte blanc uniquement).
+  &__cgu {
+    color: $white;
+    text-decoration: underline;
+  }
 }
 
 @media (max-width: 768px) {

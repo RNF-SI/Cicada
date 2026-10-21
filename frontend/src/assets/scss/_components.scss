@@ -986,3 +986,16 @@ mark.surlignage-recherche {
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba($black, 0.08);
 }
+
+// #746 — Texte Markdown des CGU (rendu par renderMarkdown, hors encapsulation).
+.cgu-texte {
+  color: $black;
+  line-height: 1.6;
+
+  h1 { font-size: 1.5rem; color: $primary-color; margin: $spacing-md 0 $spacing-sm; }
+  h2 { font-size: 1.2rem; color: $primary-color; margin: $spacing-lg 0 $spacing-xs; }
+  h3 { font-size: 1.05rem; margin: $spacing-md 0 $spacing-xs; }
+  p, ul, ol { margin: 0 0 $spacing-sm; }
+  ul, ol { padding-left: $spacing-lg; }
+  a { color: $primary-color; text-decoration: underline; }
+}

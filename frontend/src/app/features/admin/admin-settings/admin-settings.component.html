@@ -399,6 +399,39 @@
           </div>
         </section>
 
+        <!-- #746 — Conditions générales d'utilisation propres à l'instance. -->
+        <section class="settings-section" data-testid="settings-cgu">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fi fi-rr-memo-circle-check"></i>
+              {{ 'admin.settings.cgu.title' | translate }}
+            </h2>
+            <p class="section-description">{{ 'admin.settings.cgu.description' | translate }}</p>
+          </div>
+
+          @if (config()?.cgu_version) {
+            <p class="text-mention">
+              {{ 'admin.settings.cgu.versionEnVigueur' | translate:{ date: (config()!.cgu_version | date:'dd/MM/yyyy HH:mm') } }}
+              <a routerLink="/cgu" target="_blank" class="link-default">{{ 'admin.settings.cgu.voir' | translate }}</a>
+            </p>
+          }
+
+          <app-form-field
+            [label]="'admin.settings.cgu.texte' | translate"
+            [helpText]="'admin.settings.cgu.texteHint' | translate"
+            [error]="cguError()"
+            [required]="true">
+            <textarea rows="16" [ngModel]="cguTexte()" (ngModelChange)="cguTexte.set($event)"
+                      [disabled]="isSaving()" data-testid="settings-cgu-texte"></textarea>
+          </app-form-field>
+
+          <div class="banner-actions">
+            <button mat-flat-button color="primary" (click)="saveCgu()" [disabled]="isSaving()">
+              <i class="fi fi-rr-check"></i> {{ 'common.actions.save' | translate }}
+            </button>
+          </div>
+        </section>
+
         <!-- #745 — Taille maximale d'un document déposé dans un plan. -->
         <section class="settings-section" data-testid="settings-documents">
           <div class="section-header">

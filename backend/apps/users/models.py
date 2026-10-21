@@ -141,6 +141,11 @@ class Role(AbstractUser):
     usershub_id_role = models.IntegerField(
         _("Identifiant UsersHub"), null=True, blank=True, unique=True
     )
+    # #746 — Date d'acceptation des CGU de l'instance (null = jamais acceptées).
+    cgu_acceptees_le = models.DateTimeField(
+        _("CGU acceptées le"), null=True, blank=True,
+        help_text=_("Date à laquelle l'utilisateur a accepté les conditions générales d'utilisation")
+    )
     date_insert = models.DateTimeField(auto_now_add=True)
     date_update = models.DateTimeField(auto_now=True)
     
@@ -289,6 +294,13 @@ class Role(AbstractUser):
         if ids is None:
             return True
         return site.id_site in ids
+
+    def doit_accepter_cgu(self) -> bool:
+        """#746 — Vrai tant que la version en vigueur des CGU n'est pas acceptée."""
+        from apps.core.models import SiteConfiguration
+
+        version = SiteConfiguration.get_instance().cgu_version
+        return self.cgu_acceptees_le is None or self.cgu_acceptees_le < version
 
     def request_deletion(self):
         """

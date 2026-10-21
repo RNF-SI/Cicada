@@ -1097,6 +1097,19 @@
           "message": "Le logo actuel sera supprimé définitivement du serveur : pour le retrouver, il faudra le déposer de nouveau."
         },
         "confirmer": "Supprimer"
+      },
+      "cgu": {
+        "title": "Conditions générales d'utilisation",
+        "description": "Texte que chaque utilisateur doit accepter à sa connexion, consultable par tous sur la page « Conditions générales d'utilisation ». Rédigé au format Markdown : # Titre, ## Sous-titre, - liste, **gras**, *italique*, [lien](https://…).",
+        "texte": "Texte des CGU (Markdown)",
+        "texteHint": "Toute modification du texte publie une nouvelle version : chaque utilisateur devra l'accepter de nouveau à sa prochaine connexion.",
+        "versionEnVigueur": "Version en vigueur depuis le {{date}}.",
+        "voir": "Voir la page publique",
+        "vide": "Le texte des CGU ne peut pas être vide.",
+        "confirmTitre": "Publier une nouvelle version des CGU ?",
+        "confirmMessage": "Tous les utilisateurs devront accepter la nouvelle version avant de continuer à utiliser CICADA.",
+        "confirmer": "Publier",
+        "publiees": "Nouvelle version des CGU publiée."
       }
     },
     "update": {
@@ -5152,5 +5165,20 @@
     "viewOnInpn": "Voir sur l'INPN",
     "searchTaxon": "Rechercher un taxon",
     "searchHabitat": "Rechercher un habitat"
+  },
+  "cgu": {
+    "lien": "Conditions générales d'utilisation",
+    "gate": {
+      "titre": "Conditions générales d'utilisation",
+      "intro": "Pour continuer à utiliser CICADA, lisez et acceptez les conditions générales d'utilisation de cette instance.",
+      "case": "J'ai lu et j'accepte les conditions générales d'utilisation",
+      "valider": "Valider",
+      "deconnecter": "Se déconnecter",
+      "modifiees": "Les conditions générales d'utilisation viennent d'être modifiées : lisez la nouvelle version avant de l'accepter.",
+      "erreur": "L'acceptation n'a pas pu être enregistrée. Réessayez."
+    },
+    "page": {
+      "version": "Version en vigueur depuis le {{date}}"
+    }
   }
 }

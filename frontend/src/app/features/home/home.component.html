@@ -182,7 +182,10 @@
       <app-partners-band></app-partners-band>
       <div class="home-footer__separator"></div>
       <app-eu-funding-notice></app-eu-funding-notice>
-      <p class="home-footer__copyright">{{ 'home.partners.copyright' | translate:{ annee: anneeCourante } }}</p>
+      <p class="home-footer__copyright">
+        {{ 'home.partners.copyright' | translate:{ annee: anneeCourante } }}
+        · <a routerLink="/cgu" class="home-footer__cgu" data-testid="footer-cgu">{{ 'cgu.lien' | translate }}</a>
+      </p>
     </div>
   </footer>
 </main>

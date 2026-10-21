@@ -14,6 +14,12 @@ export const routes: Routes = [
     loadChildren: () => import('./features/home/home.routes').then(m => m.HOME_ROUTES)
   },
   {
+    // #746 — Conditions générales d'utilisation, publiques.
+    path: 'cgu',
+    title: "Conditions générales d'utilisation · CICADA",
+    loadComponent: () => import('./features/cgu/cgu-page.component').then(m => m.CguPageComponent)
+  },
+  {
     path: 'auth',
     title: 'Connexion · CICADA',
     loadChildren: () => import('./features/auth/auth.routes').then(m => m.AUTH_ROUTES)

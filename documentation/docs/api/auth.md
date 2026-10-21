@@ -9,7 +9,8 @@ Connexion, rafraîchissement, inscription, mot de passe et impersonation. Les r�
 | `GET /api/auth/mode/` | public | `cicada` ou `geonature` : le seul mode de connexion de l'instance |
 | `POST /api/auth/refresh/` | public | Nouveau jeton d'accès (le compte doit toujours être actif) |
 | `POST /api/auth/logout/` | authentifié | Révoque le jeton de rafraîchissement |
-| `GET /api/auth/me/` | authentifié | Profil de l'utilisateur connecté |
+| `GET /api/auth/me/` | authentifié | Profil de l'utilisateur connecté (dont `cgu_a_accepter`) |
+| `POST /api/auth/cgu/accepter/` | authentifié (hors impersonation) | Accepte la version des CGU en vigueur (`version` = `cgu_version` de `/api/settings/`) ; 409 si elles ont changé |
 | `POST /api/auth/register/` | public | Demande d'inscription (organisme existant ou à créer) |
 | `GET /api/auth/registration-status/` | public | Statut d'une inscription par e-mail |
 | `POST /api/auth/password-reset/`, `…/confirm/` | public | Réinitialisation du mot de passe |
