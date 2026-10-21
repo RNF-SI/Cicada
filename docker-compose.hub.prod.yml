@@ -8,7 +8,7 @@
 #   docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod up -d
 #
 # Le hub n'écoute que sur la boucle locale ; c'est Apache qui l'expose en HTTPS
-# (vhost documenté dans docs/DEPLOIEMENT_HUB.md).
+# (vhost documenté dans documentation/docs/administration/hub.md).
 
 # Nom de projet FIGÉ — même raison qu'en développement : sans lui, Compose le
 # déduit du dossier et le service `db` peut écraser celui d'un autre stack

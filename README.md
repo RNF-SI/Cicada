@@ -191,7 +191,7 @@ L'API REST complète est disponible :
 - **[API_PLANS_GUIDE.md](docs/API_PLANS_GUIDE.md)** - Guide API Plans de Gestion
 - **[API_USERS_GUIDE.md](docs/API_USERS_GUIDE.md)** - Guide API Utilisateurs
 - **[API_ORGANISMES_SITES_GUIDE.md](docs/API_ORGANISMES_SITES_GUIDE.md)** - Guide API Organismes/Sites
-- **[NOMENCLATURES.md](docs/NOMENCLATURES.md)** - Référentiels et nomenclatures
+- **[NOMENCLATURES.md](documentation/docs/administration/referentiels.md)** - Référentiels et nomenclatures
 
 Test avec curl :
 ```bash
@@ -205,10 +205,10 @@ curl -X POST http://localhost:8000/api/auth/login/ \
 - **[📚 Index Documentation](docs/README.md)** - Index complet de toute la documentation
 - **[Présentation du projet (PDF)](docs/Présentation_projet_CICADA_VF.pdf)** - Présentation générale du projet CICADA
 - **[Guide Développeur](docs/GUIDE_DEVELOPPEUR.md)** - Commandes, permissions, logs, i18n, styles
-- **[Configuration Email](docs/EMAIL_CONFIGURATION.md)** - Mailpit (dev), SMTP (prod), notifications
+- **[Configuration Email](documentation/docs/administration/email.md)** - Mailpit (dev), SMTP (prod), notifications
 - **[Tests](docs/TESTING.md)** - Guide des tests (pytest, Jest)
 - **[Release Pipeline](docs/RELEASE_PIPELINE.md)** - Conventional commits, versioning, Docker, deploiement
-- **[Infrastructure](docs/INFRASTRUCTURE.md)** - Les serveurs et leurs liens (instance, base, dépôt APT, API de suivi, hub), cycle d'une release
+- **[Infrastructure](documentation/docs/administration/infrastructure.md)** - Les serveurs et leurs liens (instance, base, dépôt APT, API de suivi, hub), cycle d'une release
 - **[CLAUDE.md](CLAUDE.md)** - Référence technique pour Claude Code
 
 ## Installation en production
@@ -225,8 +225,8 @@ curl -fsSL https://apt.cicada.reserves-naturelles.org/install.sh | sudo bash
 #  à lancer sur ce serveur)
 ```
 
-**[Guide d'installation complet](docs/INSTALLATION_GUIDE.md)** - Prérequis, configuration Apache/Nginx, base externe, mise à jour
-**[Infrastructure](docs/INFRASTRUCTURE.md)** - Vue d'ensemble des serveurs (dépôt APT, API de suivi, hub) et de leurs liens
+**[Guide d'installation complet](documentation/docs/administration/installation.md)** - Prérequis, configuration Apache/Nginx, base externe, mise à jour
+**[Infrastructure](documentation/docs/administration/infrastructure.md)** - Vue d'ensemble des serveurs (dépôt APT, API de suivi, hub) et de leurs liens
 
 ## Technologies
 

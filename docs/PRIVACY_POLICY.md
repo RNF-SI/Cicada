@@ -120,7 +120,7 @@ Chaque instance peut activer une mesure d'audience **Matomo** (Administration > 
 - **Ce qui n'est jamais transmis** : identifiant, nom ou adresse email de l'utilisateur.
 - **À la charge de la structure** : anonymiser les adresses IP dans son serveur Matomo et mentionner la mesure d'audience dans les mentions légales de son instance.
 
-Détails de configuration : [MESURE_AUDIENCE.md](MESURE_AUDIENCE.md).
+Détails de configuration : [MESURE_AUDIENCE.md](../documentation/docs/administration/mesure-audience.md).
 
 ## Modifications de la politique
 

@@ -515,7 +515,7 @@ Ces tuiles ne s'affichent qu'en portée **Global / Mi-parcours** (masquées en A
 
 ## Documentation utilisateur, administrateur et API (`documentation/`)
 
-Site statique **MkDocs Material** dans [`documentation/`](documentation/README.md), habillé à la charte (`docs/stylesheets/cicada.css`, valeurs de `_variables.scss`). Trois onglets : **Guide utilisateur** (la notice d'utilisation, reprise à l'identique de la notice PDF — texte, tableaux, encadrés, 64 figures en WebP 300 dpi dans `docs/assets/figures/`), **Administration technique** (squelette, à alimenter depuis `docs/*.md`), **API** (pages rédigées + référence générée).
+Site statique **MkDocs Material** dans [`documentation/`](documentation/README.md), habillé à la charte (`docs/stylesheets/cicada.css`, valeurs de `_variables.scss`). Trois onglets : **Guide utilisateur** (la notice d'utilisation, reprise à l'identique de la notice PDF — texte, tableaux, encadrés, 64 figures en WebP 300 dpi dans `docs/assets/figures/`), **Administration technique** (guides d'exploitation : installation, infrastructure, releases, référentiels, emails, connexion GeoNature, Matomo, hub — `documentation/docs/administration/`, source unique depuis #743 ; `docs/` garde un renvoi et les guides développeur), **API** (pages rédigées + référence générée).
 
 - **Servie par chaque instance sous `/aide/`** : construite dans le stage `docs` de `frontend/Dockerfile` et copiée dans `htdocs/aide/` de l'Apache du conteneur frontend. Aucun réglage de vhost : le `ProxyPass /` existant suffit. Le routage Angular exclut `/aide/` (`httpd.conf` + `.htaccess`). Lien « Aide » dans l'en-tête (`header.help`).
 - ⚠ **Le contexte de build de l'image frontend est la racine du dépôt** (`context: .`, `file: frontend/Dockerfile`), pour embarquer `documentation/`. Les exclusions sont dans `frontend/Dockerfile.dockerignore` (BuildKit), pas dans le `.dockerignore` racine.
@@ -550,7 +550,7 @@ docker compose exec web python manage.py seed_testdata
 - Celery worker + beat (tâches asynchrones)
 - Mailpit (capture des emails en dev)
 
-**Pour accélérer le démarrage en dev/tests**, ajouter `TAXREF_IMPORT_OPTS=--lite` dans `.env` (~8k taxons au lieu de ~700k). Voir [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md).
+**Pour accélérer le démarrage en dev/tests**, ajouter `TAXREF_IMPORT_OPTS=--lite` dans `.env` (~8k taxons au lieu de ~700k). Voir [documentation/docs/administration/referentiels.md](documentation/docs/administration/referentiels.md).
 
 **⚠️ Conflit de ports :** Si un service tourne déjà sur votre machine, modifiez le port externe correspondant dans `.env` :
 ```bash
@@ -592,7 +592,7 @@ docker compose exec web python manage.py import_nomenclatures                 # 
 docker compose exec web python manage.py import_nomenclatures --force         # Upsert (ajouter + mettre à jour)
 docker compose exec web python manage.py import_nomenclatures --force --prune # Upsert + supprimer les obsolètes
 
-# Import référentiels INPN (voir docs/NOMENCLATURES.md pour le détail)
+# Import référentiels INPN (voir documentation/docs/administration/referentiels.md pour le détail)
 docker compose exec web python manage.py import_habref                 # HabRef (auto au démarrage)
 docker compose exec web python manage.py import_taxref                 # TaxRef v18 complet (~700k taxons)
 docker compose exec web python manage.py import_taxref --lite          # TaxRef allégé (~8k taxons, pour dev/tests)
@@ -756,7 +756,7 @@ backend/tests/
 
 #### Tests d'intégration email (Mailpit)
 
-> **Documentation complète** : Voir [`docs/EMAIL_CONFIGURATION.md`](docs/EMAIL_CONFIGURATION.md)
+> **Documentation complète** : Voir [`documentation/docs/administration/email.md`](documentation/docs/administration/email.md)
 
 En développement, **Mailpit** capture tous les emails (interface web : http://localhost:8025).
 
@@ -1013,19 +1013,19 @@ The backend follows a modular architecture with distinct Django apps:
 - **taxonomy**: Référentiel taxonomique TaxRef (INPN) — schemas `taxonomie`, autocomplete trigramme, import via COPY
 - **habitats**: Référentiel des habitats HabRef (INPN) — schema `ref_habitats`, autocomplete, correspondances
 - **campanule**: Catalogue des protocoles CAMPanule (INPN/PatriNat) — schema `ref_campanule`, protocoles/méthodes/techniques, autocomplete. **Côté UI on parle de « protocole standardisé » (plus de « Campanule »).** Inclut aussi les 5 protocoles standardisés **MhéO** (#565, zones humides) chargés dans les mêmes tables via `data_mheo.py` (codes `>= 900000`, cf. `MHEO_BASE`)
-- **geo**: Découpage administratif (régions/départements) — schema `ref_geo`, structure GeoNature (`bib_areas_types` + `l_areas`), rattachement des sites calculé par intersection PostGIS (`cor_site_area`). Voir [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md#découpage-administratif-ref_geo)
+- **geo**: Découpage administratif (régions/départements) — schema `ref_geo`, structure GeoNature (`bib_areas_types` + `l_areas`), rattachement des sites calculé par intersection PostGIS (`cor_site_area`). Voir [documentation/docs/administration/referentiels.md](documentation/docs/administration/referentiels.md#découpage-administratif-ref_geo)
 - **search**: Index de recherche du contenu des plans — schema `ccd_search`, table dénormalisée + `tsvector`/`pg_trgm`. Alimente l'**exploration des données**. Voir [docs/RECHERCHE.md](docs/RECHERCHE.md). Porte aussi la **publication vers le hub fédéré** (`push.py`, `relay.py`, commande `push_federation`) — voir « Exploration fédérée » ci-dessous
 - **api**: Public API endpoints with token auth *(à venir)*
   - **API publique des métadonnées des plans (#645)** : `/api/public/plans/` — ouverte (sans authentification), en lecture seule, destinée à une application tierce de gestion documentaire (DOCenCEN côté CEN). Servie par **l'instance** et non par le hub (#636), qui ne stocke ni rédacteurs ni dates de validation. Coupée par défaut : interrupteur `SiteConfiguration.api_publique_plans` dans `/administration/parametres`. Chaque plan porte un identifiant stable `PlanGestion.uuid_plan` et une référence `cicada:<instance>:<uuid>` (ni `id_pg` ni `slug` ne conviennent : séquence locale pour l'un, suit le nom pour l'autre). **Métadonnées uniquement** — le contenu, le budget, les RH et le suivi n'y passent jamais ; les brouillons non plus. Voir [docs/API_PUBLIQUE_PLANS.md](docs/API_PUBLIQUE_PLANS.md).
 - **core**: Shared utilities, base models (nomenclatures), common middleware
-  - See [docs/NOMENCLATURES.md](docs/NOMENCLATURES.md) for reference data management (nomenclatures, TaxRef, HabRef, CAMPanule)
-  - **Mesure d'audience Matomo (#670)** : réglée **par instance** dans `/administration/parametres` (`SiteConfiguration.matomo_enabled` / `matomo_url` / `matomo_site_id`, désactivée par défaut, aucune variable d'environnement). Frontend : `MatomoService` (traceur **sans cookie**, page vue à chaque `NavigationEnd`, jamais de `setUserId`) et `matomoInterceptor`, qui déduit les événements métier des réponses HTTP réussies (`matomoTrackingFor()` : exports, création/statut/versions de plan, validations, recherche d'exploration). Voir [docs/MESURE_AUDIENCE.md](docs/MESURE_AUDIENCE.md).
+  - See [documentation/docs/administration/referentiels.md](documentation/docs/administration/referentiels.md) for reference data management (nomenclatures, TaxRef, HabRef, CAMPanule)
+  - **Mesure d'audience Matomo (#670)** : réglée **par instance** dans `/administration/parametres` (`SiteConfiguration.matomo_enabled` / `matomo_url` / `matomo_site_id`, désactivée par défaut, aucune variable d'environnement). Frontend : `MatomoService` (traceur **sans cookie**, page vue à chaque `NavigationEnd`, jamais de `setUserId`) et `matomoInterceptor`, qui déduit les événements métier des réponses HTTP réussies (`matomoTrackingFor()` : exports, création/statut/versions de plan, validations, recherche d'exploration). Voir [documentation/docs/administration/mesure-audience.md](documentation/docs/administration/mesure-audience.md).
 
 ### Exploration fédérée — le hub multi-instances (#636)
 
 CICADA est déployé en **plusieurs instances** (RNF, un CEN, une DREAL…), chacune avec sa propre base. L'exploration des données doit pourtant être transverse. Un **hub** — projet Django distinct, dans [`hub/`](hub/README.md), **back API seul sans interface** — agrège l'index de toutes les instances et sert la recherche.
 
-> **Documentation complète** : [docs/MULTI_INSTANCE_LOCAL.md](docs/MULTI_INSTANCE_LOCAL.md) (topologie, banc d'essai, limites) et [hub/README.md](hub/README.md) (API du hub), et [docs/DEPLOIEMENT_HUB.md](docs/DEPLOIEMENT_HUB.md) (mise en production du hub : image, compose, vhost Apache, enrôlement d'une instance).
+> **Documentation complète** : [docs/MULTI_INSTANCE_LOCAL.md](docs/MULTI_INSTANCE_LOCAL.md) (topologie, banc d'essai, limites) et [hub/README.md](hub/README.md) (API du hub), et [documentation/docs/administration/hub.md](documentation/docs/administration/hub.md) (mise en production du hub : image, compose, vhost Apache, enrôlement d'une instance).
 
 ```
    CICADA RNF  ──① dépôt de l'état complet──►  ┌───────┐
@@ -1169,7 +1169,7 @@ docker exec cicada_web python manage.py push_federation [--dry-run] [--sans-fich
 
 **Régulation et relance (#701)** : le hub refuse d'ouvrir un lot au-delà de `HUB_LOTS_CONCURRENTS_MAX` dépôts en cours (**429** + `Retry-After`) ; un lot ouvert depuis plus de `HUB_LOT_DUREE_MAX_MINUTES` est tenu pour expiré. Côté instance, `push_federation` lève `HubIndisponible` (429, 5xx, réseau — pas un 4xx de refus) et la tâche se relance (`RELANCES_MAX` = 6, délai `Retry-After` sinon `delai_relance()` : 5 min → 1 h), chaque tentative consignée en `PublicationHub` origine `relance`. Supervision : diagnostic `publication_en_retard` (> 48 h sans succès, `raccordement._diagnostic`) et `en_retard` dans `GET /api/federation/instances/` du hub.
 
-**Mise en production du hub** : [docs/DEPLOIEMENT_HUB.md](docs/DEPLOIEMENT_HUB.md) — image `ghcr.io/rnf-si/cicada-hub`, `docker-compose.hub.prod.yml`, vhost Apache, enrôlement d'une instance.
+**Mise en production du hub** : [documentation/docs/administration/hub.md](documentation/docs/administration/hub.md) — image `ghcr.io/rnf-si/cicada-hub`, `docker-compose.hub.prod.yml`, vhost Apache, enrôlement d'une instance.
 
 **Tests de banc** (`tests/federation/bench.py`, hors CI — ils demandent trois stacks Docker) : ils s'exécutent contre les briques **réellement lancées**, parce que tous les bugs de la fédération étaient des bugs de **couture** qu'aucune suite unitaire n'a vus. Trois familles :
 
@@ -1321,8 +1321,8 @@ OPTIONS = {
 4. **Testing**: Voir section "Testing" pour les détails. CI/CD via GitHub Actions.
 5. **Security**: Input validation, output escaping, rate limiting
 6. **Performance**: Redis caching for frequent queries, lazy loading for Angular modules
-7. **Déploiement production** : Voir [docs/RELEASE_PROCEDURE.md](docs/RELEASE_PROCEDURE.md) pour la procédure complète (tag, build .deb, publication APT, déploiement serveur, pièges courants). Voir [docs/INSTALLATION_GUIDE.md](docs/INSTALLATION_GUIDE.md) pour l'installation initiale et l'import des référentiels (TaxRef, HabRef, nomenclatures) sur base PostgreSQL externe.
-8. **Infrastructure (qui parle à qui)** : [docs/INFRASTRUCTURE.md](docs/INFRASTRUCTURE.md) — schéma des liens entre instance, serveur de bases, serveur de suivi (dépôt APT + API de suivi), hub et GHCR, cycle d'une release, commandes de vérification. Reproduite en local par `packaging/vm-bench/` (scénario `a-z`, `labo.sh`) : y rejouer toute modification d'un de ces liens avant la production.
+7. **Déploiement production** : Voir [documentation/docs/administration/releases.md](documentation/docs/administration/releases.md) pour la procédure complète (tag, build .deb, publication APT, déploiement serveur, pièges courants). Voir [documentation/docs/administration/installation.md](documentation/docs/administration/installation.md) pour l'installation initiale et l'import des référentiels (TaxRef, HabRef, nomenclatures) sur base PostgreSQL externe.
+8. **Infrastructure (qui parle à qui)** : [documentation/docs/administration/infrastructure.md](documentation/docs/administration/infrastructure.md) — schéma des liens entre instance, serveur de bases, serveur de suivi (dépôt APT + API de suivi), hub et GHCR, cycle d'une release, commandes de vérification. Reproduite en local par `packaging/vm-bench/` (scénario `a-z`, `labo.sh`) : y rejouer toute modification d'un de ces liens avant la production.
 
 ## Django Administration Interface
 

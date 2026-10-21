@@ -5,7 +5,7 @@
 # Sourcé par guest/run-scenario.sh (VM CICADA) et guest/db-side.sh (VM base).
 #
 # Reprend external-db-remote (topologie RNF) et raccorde l'instance à un hub
-# déployé selon docs/DEPLOIEMENT_HUB.md sur une 3e VM. Les jetons délivrés par
+# déployé selon documentation/docs/administration/hub.md sur une 3e VM. Les jetons délivrés par
 # enroler_instance sont saisis dans la section « Exploration fédérée » du
 # formulaire, relais activé (l'exploration de l'instance est servie par le hub).
 

@@ -204,9 +204,9 @@ ne sont montés depuis CICADA qu'en développement) :
 docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod up -d
 ```
 
-Voir [docs/DEPLOIEMENT_HUB.md](../docs/DEPLOIEMENT_HUB.md) — vhost Apache,
+Voir [documentation/docs/administration/hub.md](../documentation/docs/administration/hub.md) — vhost Apache,
 enrôlement d'une instance, montée de version, recette. Place du hub parmi les
-autres serveurs : [docs/INFRASTRUCTURE.md](../docs/INFRASTRUCTURE.md).
+autres serveurs : [documentation/docs/administration/infrastructure.md](../documentation/docs/administration/infrastructure.md).
 
 ## Tests
 

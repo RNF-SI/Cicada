@@ -183,7 +183,7 @@ build_db_base() {
 }
 
 # --- VM « hub » (scénarios marqués « # HUB_VM: oui ») ---
-# Déployée comme le décrit docs/DEPLOIEMENT_HUB.md : image GHCR, compose de
+# Déployée comme le décrit documentation/docs/administration/hub.md : image GHCR, compose de
 # production, Apache devant, enroler_instance.
 build_hub_base() {
     local hubvm="ccd-hub-$OS" version

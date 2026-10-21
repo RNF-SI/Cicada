@@ -1,5 +1,5 @@
 # Hub de production avec sa base sur un serveur PostgreSQL existant
-# (docs/DEPLOIEMENT_HUB.md, « Variante : base sur un serveur PostgreSQL »).
+# (documentation/docs/administration/hub.md, « Variante : base sur un serveur PostgreSQL »).
 #
 # Toujours combiné au compose de production, jamais seul :
 #   docker compose -f docker-compose.hub.prod.yml -f docker-compose.hub.extdb.yml \

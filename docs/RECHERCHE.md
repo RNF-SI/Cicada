@@ -382,7 +382,7 @@ idempotente.
 
 | Facette de la maquette | Source |
 |---|---|
-| Zone géographique | `area_ids` — départements **et** régions, cf. [NOMENCLATURES.md § Découpage administratif](NOMENCLATURES.md) |
+| Zone géographique | `area_ids` — départements **et** régions, cf. [NOMENCLATURES.md § Découpage administratif](../documentation/docs/administration/referentiels.md) |
 | Organismes gestionnaires | `organisme_ids` — gestionnaires des sites du plan (`cor_ep_og`) |
 | Types d'aires protégées | `type_site_codes` — nomenclature `Espace naturel` (RNN, RNR, PNR, ENS…) |
 | Enjeux : écologiques / socio-économiques | `sous_type` d'une ligne `enjeu` (`ecologique` / `socioeco`) |

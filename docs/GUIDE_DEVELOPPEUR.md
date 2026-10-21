@@ -65,7 +65,7 @@ Pour accélérer en dev/tests, ajoutez dans `.env` :
 TAXREF_IMPORT_OPTS=--lite    # ~8k taxons au lieu de ~700k
 ```
 
-Voir [NOMENCLATURES.md](NOMENCLATURES.md) pour le détail des référentiels.
+Voir [NOMENCLATURES.md](../documentation/docs/administration/referentiels.md) pour le détail des référentiels.
 
 ### Backend Django
 
@@ -322,5 +322,5 @@ Pour une modification de 2 champs (libelle + description), c'est excessif.
 | [API_USERS_GUIDE.md](API_USERS_GUIDE.md) | API Utilisateurs |
 | [API_PLANS_GUIDE.md](API_PLANS_GUIDE.md) | API Plans de gestion |
 | [API_ORGANISMES_SITES_GUIDE.md](API_ORGANISMES_SITES_GUIDE.md) | API Organismes et Sites |
-| [NOMENCLATURES.md](NOMENCLATURES.md) | Référentiels de données |
+| [NOMENCLATURES.md](../documentation/docs/administration/referentiels.md) | Référentiels de données |
 | [TESTING.md](TESTING.md) | Guide des tests |

@@ -8,7 +8,7 @@
 #
 # Crée <dir>/conf/distributions (distribution « stable », composant « main »,
 # amd64, signée par la clé) et publie la clé publique dans
-# <dir>/cicada-repo-key.gpg, l'URL que donne docs/INSTALLATION_GUIDE.md.
+# <dir>/cicada-repo-key.gpg, l'URL que donne documentation/docs/administration/installation.md.
 # Idempotent. Ne configure pas Apache : voir le vhost proposé en fin de script.
 # =============================================================================
 set -euo pipefail

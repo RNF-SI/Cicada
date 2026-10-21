@@ -142,6 +142,14 @@ nav:
           - Paramètres de l'instance et mise à jour: admin-instance/parametres.md
   - Administration technique:
       - administration/index.md
+      - Installation: administration/installation.md
+      - Infrastructure: administration/infrastructure.md
+      - Releases et mises à jour: administration/releases.md
+      - Référentiels et nomenclatures: administration/referentiels.md
+      - Envoi des emails: administration/email.md
+      - Connexion par GeoNature: administration/connexion-geonature.md
+      - Mesure d'audience: administration/mesure-audience.md
+      - Hub d'exploration fédérée: administration/hub.md
   - API:
       - api/index.md
       - Prise en main: api/prise-en-main.md

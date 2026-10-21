@@ -1,5 +1,5 @@
 #!/bin/bash
-# Socle de la VM « hub » : ce que docs/DEPLOIEMENT_HUB.md demande au serveur
+# Socle de la VM « hub » : ce que documentation/docs/administration/hub.md demande au serveur
 # (Docker, Apache + modules proxy) et les images de la version, pré-tirées.
 # Les fichiers de déploiement du dépôt sont copiés dans /opt/cicada-hub par
 # bench.sh, comme le `git clone` du guide.

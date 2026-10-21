@@ -16,7 +16,7 @@ Index de la documentation pour CICADA - Application web de gestion des plans de 
 
 | Guide | Description |
 |-------|-------------|
-| **[Nomenclatures](NOMENCLATURES.md)** | Gestion des nomenclatures et référentiels pour plans de gestion |
+| **[Nomenclatures](../documentation/docs/administration/referentiels.md)** | Gestion des nomenclatures et référentiels pour plans de gestion |
 
 ### Authentification
 
@@ -53,20 +53,20 @@ curl -X GET http://localhost:8000/api/plans/plans/ \
 | **[Design System](DESIGN_SYSTEM.md)** | Palette de couleurs, règles d'accessibilité, composants |
 | **[Tests](TESTING.md)** | Guide complet des tests (pytest, Jest) |
 | **[Release Pipeline](RELEASE_PIPELINE.md)** | Conventional commits, versioning automatique, Docker, deploiement production |
-| **[Configuration Email](EMAIL_CONFIGURATION.md)** | Mailpit (dev), SMTP (prod), templates, Celery |
+| **[Configuration Email](../documentation/docs/administration/email.md)** | Mailpit (dev), SMTP (prod), templates, Celery |
 | **[CLAUDE.md](../CLAUDE.md)** | Référence technique pour Claude Code |
 | **[README.md](../README.md)** | Vue d'ensemble et installation rapide |
 
 ## 🚀 Déploiement et exploitation
 
-Point d'entrée : **[Infrastructure](INFRASTRUCTURE.md)**, qui situe chaque serveur et renvoie au guide de chacun.
+Point d'entrée : **[Infrastructure](../documentation/docs/administration/infrastructure.md)**, qui situe chaque serveur et renvoie au guide de chacun.
 
 | Document | Description |
 |----------|-------------|
-| **[Infrastructure](INFRASTRUCTURE.md)** | Qui parle à qui : instance, serveur de bases, dépôt APT, API de suivi, hub, GHCR — schémas, ports, cycle d'une release, vérifications |
-| **[Guide d'installation](INSTALLATION_GUIDE.md)** | Installer une instance (paquet Debian, formulaire, base dans Docker ou sur un serveur existant, Apache), la mettre à jour |
-| **[Procédure de release](RELEASE_PROCEDURE.md)** | Tag, paquet `.deb`, publication dans le dépôt APT, déploiement, pièges |
-| **[Déploiement du hub](DEPLOIEMENT_HUB.md)** | Hub d'exploration fédérée : installation, Apache, enrôlement d'une instance |
+| **[Infrastructure](../documentation/docs/administration/infrastructure.md)** | Qui parle à qui : instance, serveur de bases, dépôt APT, API de suivi, hub, GHCR — schémas, ports, cycle d'une release, vérifications |
+| **[Guide d'installation](../documentation/docs/administration/installation.md)** | Installer une instance (paquet Debian, formulaire, base dans Docker ou sur un serveur existant, Apache), la mettre à jour |
+| **[Procédure de release](../documentation/docs/administration/releases.md)** | Tag, paquet `.deb`, publication dans le dépôt APT, déploiement, pièges |
+| **[Déploiement du hub](../documentation/docs/administration/hub.md)** | Hub d'exploration fédérée : installation, Apache, enrôlement d'une instance |
 | **[API de suivi](../tracking-api/INSTALLATION.md)** | Installer l'API de suivi des instances (serveur de suivi) |
 | **[Banc de test en VM](../packaging/vm-bench/README.md)** | Rejouer toute cette infrastructure en local (scénario `a-z`, labo persistant) avant de toucher à la production |
 | **[Exploration fédérée en local](MULTI_INSTANCE_LOCAL.md)** | Deux instances de développement + hub sur un poste |
@@ -78,24 +78,24 @@ Point d'entrée : **[Infrastructure](INFRASTRUCTURE.md)**, qui situe chaque serv
 1. **[Design System](DESIGN_SYSTEM.md)** - Couleurs, accessibilité, composants visuels
 2. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Intégration complète des plans
 3. **[API Utilisateurs](API_USERS_GUIDE.md)** - Gestion des utilisateurs
-4. **[Nomenclatures](NOMENCLATURES.md)** - Référentiels et listes de valeurs
+4. **[Nomenclatures](../documentation/docs/administration/referentiels.md)** - Référentiels et listes de valeurs
 5. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Architecture et patterns
 
 ### Pour administrateurs système
 
-1. **[Infrastructure](INFRASTRUCTURE.md)** - Les serveurs et leurs liens, puis **[Guide d'installation](INSTALLATION_GUIDE.md)** et **[Procédure de release](RELEASE_PROCEDURE.md)**
+1. **[Infrastructure](../documentation/docs/administration/infrastructure.md)** - Les serveurs et leurs liens, puis **[Guide d'installation](../documentation/docs/administration/installation.md)** et **[Procédure de release](../documentation/docs/administration/releases.md)**
 2. **[Release Pipeline](RELEASE_PIPELINE.md)** - Deploiement production, images Docker, mise a jour
 3. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les fonctionnalités (logs, validations, etc.)
-4. **[Configuration Email](EMAIL_CONFIGURATION.md)** - Configuration SMTP pour l'envoi des notifications
+4. **[Configuration Email](../documentation/docs/administration/email.md)** - Configuration SMTP pour l'envoi des notifications
 5. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
-6. **[Nomenclatures](NOMENCLATURES.md)** - Import et maintenance des référentiels
+6. **[Nomenclatures](../documentation/docs/administration/referentiels.md)** - Import et maintenance des référentiels
 7. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
 
 ### Pour gestionnaires d'espaces naturels
 
 1. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les notifications, validations, modules
 2. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Utilisation de l'API
-3. **[Nomenclatures](NOMENCLATURES.md)** - Consultation des référentiels
+3. **[Nomenclatures](../documentation/docs/administration/referentiels.md)** - Consultation des référentiels
 4. Interface admin Django : http://localhost:8000/admin/ (`admin` / `admin`)
 
 ## 🔗 Liens utiles

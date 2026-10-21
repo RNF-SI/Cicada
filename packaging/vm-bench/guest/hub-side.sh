@@ -1,6 +1,6 @@
 #!/bin/bash
 # Exécuté sur la VM hub au début d'un scénario : déploiement selon
-# docs/DEPLOIEMENT_HUB.md (étapes 2, 3, Apache) puis enrôlement de l'instance.
+# documentation/docs/administration/hub.md (étapes 2, 3, Apache) puis enrôlement de l'instance.
 # Écrit les jetons délivrés dans $BENCH_DIR/hub-jetons (repris par bench.sh).
 set -uo pipefail
 VERSION="$1"; INSTANCE_ID="$2"; LIBELLE="$3"; INSTANCE_URL="$4"

@@ -38,7 +38,7 @@ echec() { echo "Erreur : $*" >&2; exit 1; }
 [ -r /etc/os-release ] || echec "système non reconnu (pas de /etc/os-release)."
 . /etc/os-release
 
-# Systèmes pris en charge (cf. docs/INSTALLATION_GUIDE.md)
+# Systèmes pris en charge (cf. documentation/docs/administration/installation.md)
 pris_en_charge=false
 case "${ID:-}" in
     debian) [ "${VERSION_ID%%.*}" -ge 12 ] 2>/dev/null && pris_en_charge=true ;;

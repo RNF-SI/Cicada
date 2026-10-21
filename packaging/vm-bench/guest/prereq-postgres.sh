@@ -1,5 +1,5 @@
 # PostgreSQL 17 + PostGIS installés sur l'hôte, comme le décrit l'étape 3 de
-# docs/INSTALLATION_GUIDE.md (dépôt officiel apt.postgresql.org).
+# documentation/docs/administration/installation.md (dépôt officiel apt.postgresql.org).
 # shellcheck shell=bash
 # Sourcé par un scénario (fonctions record/check disponibles).
 
