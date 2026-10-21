@@ -1,3 +1,6 @@
 <router-outlet></router-outlet>
-<!-- #746 — Acceptation des CGU, par-dessus toute page. -->
-<app-cgu-gate></app-cgu-gate>
+<!-- #746 — Acceptation des CGU, par-dessus toute page. Chargée à part
+     (@defer) : ses dépendances Material dépassaient le budget du bundle initial. -->
+@defer (on idle) {
+  <app-cgu-gate></app-cgu-gate>
+}
