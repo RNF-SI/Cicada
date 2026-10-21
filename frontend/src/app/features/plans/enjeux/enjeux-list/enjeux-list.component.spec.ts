@@ -647,6 +647,17 @@ describe('EnjeuxListComponent', () => {
       expect(el().querySelector('#oo-10 [data-testid="oo-sans-pression-badge"]')).toBeTruthy();
     });
 
+    // Retour 21/10 : l'alerte reprenait l'encart d'état vide (600 px, icône en
+    // pastille saumon). Elle est un bandeau pleine largeur, icône du kit.
+    it('s\'affiche en bandeau d\'alerte, pas en encart d\'état vide', () => {
+      fcr(true, [oo(10, [])]);
+      const alerte = el().querySelector('[data-testid="fcr-oo-sans-pression"]')!;
+      expect(alerte.classList).toContain('oo-alert-banner');
+      expect(alerte.classList).not.toContain('info-block');
+      expect(alerte.querySelector('.info-icon')).toBeNull();
+      expect(alerte.querySelector('i.fi-rr-triangle-warning')).toBeTruthy();
+    });
+
     it('un OO relié à une pression d\'un enjeu écologique (#474) compte comme relié', () => {
       fcr(true, [oo(12, [301])]);
       expect(component.fcrOosSansPression()).toEqual([]);

@@ -942,6 +942,56 @@
   }
 }
 
+// #731 — Alerte « OO reliés à aucune pression » d'un FCR : même forme que la
+// note d'aide (filet à gauche, coins TR/BL du kit UI), pleine largeur, ton
+// avertissement. Fond tag orange + texte noir (AA) ; l'orange warning reste
+// sur le filet, trop clair pour l'icône.
+.oo-alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-md;
+  width: 100%;
+  box-sizing: border-box;
+  padding: $spacing-md $spacing-lg;
+  margin-bottom: $spacing-md;
+  background-color: $tag-orange;
+  border-left: $border-width-accent solid $warning-color;
+  border-radius: 0 $border-radius-md 0 $border-radius-md;
+  color: $black;
+
+  > i {
+    font-size: 20px;
+    line-height: 1;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  &-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &-title {
+    font-weight: $font-weight-bold;
+    margin: 0 0 $spacing-xxs;
+  }
+
+  &-description {
+    font-size: $font-size-small;
+    margin: 0;
+  }
+
+  &-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-xxs $spacing-lg;
+    list-style: none;
+    padding: 0;
+    margin: $spacing-xs 0 0;
+    font-size: $font-size-small;
+  }
+}
+
 // #481 — Note d'aide unique : rappel de l'ordre de saisie + note contextuelle
 .olt-info-note-text {
   display: flex;

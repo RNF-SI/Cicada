@@ -1570,16 +1570,14 @@
 
               <!-- #731 — FCR avec pressions : OO reliés à aucune pression -->
               @if (fcrOosSansPression().length > 0) {
-                <div class="info-block info-block-warning" role="alert" data-testid="fcr-oo-sans-pression">
-                  <div class="info-icon">
-                    <i class="fi fi-rr-exclamation"></i>
-                  </div>
-                  <div class="info-content">
-                    <p class="info-title">{{ 'enjeux.oo.sansPression.title' | translate:{ count: fcrOosSansPression().length } }}</p>
-                    <p class="info-description">{{ 'enjeux.oo.sansPression.description' | translate }}</p>
-                    <ul class="list-bullets">
+                <div class="oo-alert-banner" role="alert" data-testid="fcr-oo-sans-pression">
+                  <i class="fi fi-rr-triangle-warning" aria-hidden="true"></i>
+                  <div class="oo-alert-banner-text">
+                    <p class="oo-alert-banner-title">{{ 'enjeux.oo.sansPression.title' | translate:{ count: fcrOosSansPression().length } }}</p>
+                    <p class="oo-alert-banner-description">{{ 'enjeux.oo.sansPression.description' | translate }}</p>
+                    <ul class="oo-alert-banner-list">
                       @for (o of fcrOosSansPression(); track o.id_oo) {
-                        <li>{{ ('enjeux.oo.label' | translate) + ' ' + getOoNumber(o.id_oo) + ' : ' + o.libelle }}</li>
+                        <li><strong>{{ ('enjeux.oo.label' | translate) + ' ' + getOoNumber(o.id_oo) }}</strong> : {{ o.libelle }}</li>
                       }
                     </ul>
                   </div>
@@ -1683,7 +1681,7 @@
                              [attr.aria-label]="'enjeux.oo.numeroPinned' | translate"></i>
                         }
                         @if (isOoSansPression(oo)) {
-                          <app-tag variant="warning" size="sm" icon="fi-rr-exclamation"
+                          <app-tag variant="warning" size="sm" icon="fi-rr-triangle-warning"
                                    data-testid="oo-sans-pression-badge"
                                    [label]="'enjeux.oo.sansPression.badge' | translate"
                                    [matTooltip]="'enjeux.oo.sansPression.description' | translate"></app-tag>
