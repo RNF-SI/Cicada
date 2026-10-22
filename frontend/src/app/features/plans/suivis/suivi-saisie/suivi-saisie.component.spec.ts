@@ -1210,6 +1210,84 @@ describe('SuiviSaisieComponent — lecture d\'une année enregistrée (#762)', (
   });
 });
 
+// -----------------------------------------------------------------------------
+// #760 — case « Déclinaison par type de poste » du temps de travail réalisé.
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — déclinaison par type de poste au suivi (#760)', () => {
+  function c760(op: any): any {
+    const c: any = comp();
+    c.operation = signal<any>(op);
+    return c;
+  }
+  const NONE = { ventilation_mode: 'none', declinaison_par_type_cout: false, declinaison_par_poste: false };
+  const BY_ORG = { ventilation_mode: 'by_org', declinaison_par_type_cout: false, declinaison_par_poste: false };
+  const PAR_POSTE = { ventilation_mode: 'by_type_poste', declinaison_par_type_cout: true, declinaison_par_poste: true };
+
+  it('décochée par défaut sans déclinaison à la programmation : temps global', () => {
+    const c = c760({ ...NONE });
+    expect(c.declinaisonPosteRealise()).toBe(false);
+    expect(c.declinaisonPosteVerrouillee()).toBe(false);
+    expect(c.computeRhMode()).toBe('global');
+  });
+
+  it('cochée au suivi : saisie par poste, même en « aucune ventilation »', () => {
+    const c = c760({ ...NONE, declinaison_par_poste_realise: true });
+    expect(c.computeRhMode()).toBe('postes');
+    expect(c.rhTotalUnique()).toBe(false);
+  });
+
+  it('décochée en ventilation par organisme : lignes par organisme', () => {
+    expect(c760({ ...BY_ORG }).computeRhMode()).toBe('organismes');
+  });
+
+  it('programmation par poste : cochée et verrouillée', () => {
+    const c = c760({ ...PAR_POSTE });
+    expect(c.declinaisonPosteRealise()).toBe(true);
+    expect(c.declinaisonPosteVerrouillee()).toBe(true);
+    expect(c.computeRhMode()).toBe('postes');
+  });
+
+  it('enregistrement refusé si une ligne de temps n\'a pas de poste', () => {
+    const c = c760({ ...NONE, declinaison_par_poste_realise: true });
+    const fb = new FormBuilder();
+    c.form = fb.group({ id_niveau_realisation: [7], rhLignes: fb.array([
+      fb.group({ id_poste: [null], jours: [5] }),
+    ]) });
+    c.saisieBloquee = () => false;
+    c.showNiveauError = signal(false);
+    c.translate = { instant: (k: string) => k };
+    c.snack = { open: jest.fn() };
+    c.realisationService = { upsert: jest.fn() };
+    c.submit();
+    expect(c.realisationService.upsert).not.toHaveBeenCalled();
+    expect(c.snack.open).toHaveBeenCalledWith(
+      'plans.suivis.saisie.errors.posteRequired', expect.anything(), expect.anything());
+  });
+
+  it('changer la case enregistre le réglage et recharge le temps de travail', () => {
+    const c = c760({ id_operation: 3, ...NONE });
+    c.isSavingReglages = signal(false);
+    c.hydrateRhArray = jest.fn();
+    c.currentOperationAnnee = () => null;
+    c.enjeuService = { setSuiviReglages: jest.fn(() => of({
+      declinaison_par_type_cout_realise: false, cout_salarial_auto_realise: false,
+      declinaison_par_poste_realise: true,
+    })) };
+    c.setReglage('declinaison_par_poste_realise', true);
+    expect(c.enjeuService.setSuiviReglages).toHaveBeenCalledWith(3, { declinaison_par_poste_realise: true });
+    expect(c.operation().declinaison_par_poste_realise).toBe(true);
+    expect(c.hydrateRhArray).toHaveBeenCalled();
+  });
+
+  it('gabarit : case au-dessus du temps de travail réalisé, liste « Poste »', () => {
+    const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    const rh = html.slice(html.indexOf('saisie-card rh-card'), html.indexOf('class="rh-table"'));
+    expect(rh).toContain("setReglage('declinaison_par_poste_realise', $event)");
+    expect(rh).toContain('declinaisonPosteVerrouillee()');
+    expect(html).toContain("'plans.suivis.saisie.rh.selectPoste'");
+  });
+});
+
 describe('SuiviSaisieComponent — réglages propres au suivi (#741)', () => {
   const OA = {
     annee: 2025,

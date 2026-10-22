@@ -184,6 +184,8 @@ class ActionFinance:
     has_type_budget: bool = False
     has_cost_detail: bool = False
     par_poste: bool = False
+    # #760 — temps RÉALISÉ décliné par poste (réglage du suivi).
+    par_poste_realise: bool = False
     is_global: bool = False
     cells: dict = field(default_factory=lambda: defaultdict(CostCell))
 
@@ -292,6 +294,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     af.has_type_budget = has_type_budget(op)
     af.has_cost_detail = bool(getattr(op, "declinaison_par_type_cout", True))
     af.par_poste = temps_par_poste(op)
+    af.par_poste_realise = op.get_declinaison_par_poste_realise()
     af.is_global = bool(getattr(op, "programmation_globale", False))
 
     # #600 — le coût salarial n'entre dans le budget que si l'action détaille
@@ -542,6 +545,12 @@ class PlanFinance:
     @property
     def par_poste(self) -> bool:
         return any(af.par_poste for af in self.actions)
+
+    @property
+    def par_poste_suivi(self) -> bool:
+        """#760 — exports de suivi : le réalisé peut être décliné par poste au
+        seul suivi, sans l'être à la programmation."""
+        return any(af.par_poste or af.par_poste_realise for af in self.actions)
 
     def org_ids(self) -> list:
         ids = set()

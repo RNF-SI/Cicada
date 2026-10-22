@@ -940,6 +940,8 @@ export interface Operation {
   declinaison_par_type_cout_realise?: boolean;
   /** #741 — coût salarial réalisé calculé (jours × coût jour) ou saisi au suivi. */
   cout_salarial_auto_realise?: boolean;
+  /** #760 — temps réalisé décliné par type de poste (réglage du suivi, ≥ programmation). */
+  declinaison_par_poste_realise?: boolean;
   finances?: FinanceOperation[];
   // #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge sinon calcul auto
   niveau_realisation_global_mnemonique?: string | null;

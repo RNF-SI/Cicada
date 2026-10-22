@@ -689,6 +689,17 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             niveau = attrs.get('id_niveau_realisation')
             mnem = getattr(niveau, 'mnemonique', None)
             attrs['periodicite_realisee'] = mnem in self._PERIODICITE_NIVEAUX
+        # #760 — réalisé décliné par poste : chaque temps saisi vise un poste.
+        rh = attrs.get('rh_lignes')
+        if rh and self.instance is not None:
+            operation = self.instance.id_operation_annee.id_operation
+            if operation.get_declinaison_par_poste_realise() and any(
+                l.get('jours') is not None and l.get('id_poste') is None for l in rh
+            ):
+                raise serializers.ValidationError({'rh_lignes': [_(
+                    "Le temps réalisé est décliné par type de poste : indiquez le "
+                    "poste de chaque ligne de temps de travail."
+                )]})
         return attrs
 
     def _set_rh_lignes(self, instance, rh_data):
@@ -741,6 +752,9 @@ class SuiviReglagesSerializer(serializers.Serializer):
     declinaison_par_type_cout_realise = serializers.BooleanField(required=False)
     cout_salarial_auto_realise = serializers.BooleanField(required=False)
     declinaison_verrouillee = serializers.BooleanField(read_only=True)
+    # #760 — temps réalisé par poste ; verrouillé (coché) si la programmation l'est.
+    declinaison_par_poste_realise = serializers.BooleanField(required=False)
+    declinaison_poste_verrouillee = serializers.BooleanField(read_only=True)
 
 
 class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
@@ -1084,6 +1098,8 @@ class OperationSerializer(serializers.ModelSerializer):
         source='get_declinaison_par_type_cout_realise', read_only=True)
     cout_salarial_auto_realise = serializers.BooleanField(
         source='get_cout_salarial_auto_realise', read_only=True)
+    declinaison_par_poste_realise = serializers.BooleanField(
+        source='get_declinaison_par_poste_realise', read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
     geom_geojson = serializers.SerializerMethodField()
@@ -1134,6 +1150,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'declinaison_par_type_cout', 'cout_salarial_auto',
             'programmation_globale', 'operation_annee_globale',
             'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
+            'declinaison_par_poste_realise',
             'geom', 'geom_geojson', 'emprise_suit_sites',
             'id_indicateur',
             'metriques', 'metrique_ids',
@@ -1450,6 +1467,8 @@ class OperationNestedSerializer(OperationListSerializer):
         source='get_declinaison_par_type_cout_realise', read_only=True)
     cout_salarial_auto_realise = serializers.BooleanField(
         source='get_cout_salarial_auto_realise', read_only=True)
+    declinaison_par_poste_realise = serializers.BooleanField(
+        source='get_declinaison_par_poste_realise', read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
 
     @extend_schema_field(OperationAnneeSerializer(allow_null=True))
@@ -1464,7 +1483,8 @@ class OperationNestedSerializer(OperationListSerializer):
              'declinaison_par_poste',
              'declinaison_par_type_cout', 'cout_salarial_auto',
              'programmation_globale', 'operation_annee_globale',
-             'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise']
+             'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
+             'declinaison_par_poste_realise']
 
 
 # =============================================================================

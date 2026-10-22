@@ -98,6 +98,10 @@ export interface SuiviReglages {
   cout_salarial_auto_realise: boolean;
   /** Cochée d'office : la programmation est déclinée par type de coût. */
   declinaison_verrouillee: boolean;
+  /** #760 — temps réalisé décliné par type de poste. */
+  declinaison_par_poste_realise: boolean;
+  /** #760 — cochée d'office : la programmation est déclinée par poste. */
+  declinaison_poste_verrouillee: boolean;
 }
 
 @Injectable({
@@ -233,7 +237,11 @@ export class EnjeuService {
    */
   setSuiviReglages(
     operationId: number,
-    reglages: { declinaison_par_type_cout_realise?: boolean; cout_salarial_auto_realise?: boolean },
+    reglages: {
+      declinaison_par_type_cout_realise?: boolean;
+      cout_salarial_auto_realise?: boolean;
+      declinaison_par_poste_realise?: boolean;
+    },
   ): Observable<SuiviReglages> {
     return this.http.post<SuiviReglages>(
       `${this.apiUrl}/realisations/suivi-reglages/${operationId}/`, reglages,

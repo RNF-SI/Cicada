@@ -289,6 +289,42 @@ test.describe('Suivi - Saisie page', () => {
     await expect(niveau).toBeDisabled();
   });
 
+  test('#760 — case « Déclinaison par type de poste » du temps de travail réalisé', async ({ referentPage }) => {
+    const y = new Date().getFullYear();
+    const caseLabel = 'Déclinaison par type de poste';
+
+    // Programmation déclinée par poste : case cochée et grisée.
+    const parPoste = await findVentilationValidee(referentPage, 'par type de budget et type de poste');
+    const opPoste = await findOperationByCode(referentPage, parPoste.id_pg, '-CS1');
+    await referentPage.goto(`/plans/${parPoste.slug}/suivi-actions/saisie/${opPoste.id_operation}/${y + 1}`);
+    const casePoste = referentPage.locator('[data-testid="suivi-declinaison-poste"] input[type="checkbox"]');
+    await expect(casePoste).toBeChecked({ timeout: 15000 });
+    await expect(casePoste).toBeDisabled();
+
+    // Aucune ventilation : décochée, un seul temps total ; cochée → saisie par poste.
+    const plan = await findVentilationValidee(referentPage, 'aucune ventilation');
+    const op = await findOperationByCode(referentPage, plan.id_pg, '-CS1');
+    await referentPage.goto(`/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${y + 1}`);
+    const bloc = referentPage.locator('[data-testid="suivi-declinaison-poste"]');
+    const caseNone = bloc.locator('input[type="checkbox"]');
+    await expect(caseNone).not.toBeChecked({ timeout: 15000 });
+    await expect(referentPage.locator('.rh-table .rh-line-label')).toHaveText('Temps de travail total');
+    try {
+      await bloc.getByText(caseLabel).click();
+      await expect(caseNone).toBeChecked();
+      await expect(referentPage.locator('.rh-table .rh-target-select')).toContainText('Poste');
+      // Temps saisi sans poste : enregistrement refusé.
+      await referentPage.locator('.rh-table input[formcontrolname="jours"]').first().fill('3');
+      await referentPage.locator('select[formcontrolname="id_niveau_realisation"]').selectOption({ label: 'Réalisée' });
+      await referentPage.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+      await expect(referentPage.getByText(/indiquez le poste de chaque ligne/i)).toBeVisible();
+    } finally {
+      // Le réglage vaut pour l'action : le remettre dans l'état du jeu d'essai.
+      await apiPost(referentPage, `plans/realisations/suivi-reglages/${op.id_operation}/`,
+        { declinaison_par_poste_realise: false });
+    }
+  });
+
   test('clicking a year cell in suivi-actions navigates to saisie', async ({ referentPage }) => {
     const plan = await findPlan(referentPage, 'Camargue');
     await referentPage.goto(`/plans/${plan.slug}/suivi-actions`);

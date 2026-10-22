@@ -828,6 +828,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         créée à la volée (periodicite=False) pour permettre la saisie du suivi
         d'une action « réalisée non prévue ».
         """
+        # #760 — un refus de validation ne laisse ni année ni réalisation vide.
+        with transaction.atomic():
+            return self._upsert(request)
+
+    def _upsert(self, request):
         id_op_annee = request.data.get('id_operation_annee')
         created_oa = False
         if id_op_annee:
@@ -947,7 +952,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             # que la surcharge (niveau + commentaire) quand ils sont posés.
             ov = OperationRealisationGlobale.objects.filter(id_operation=operation).first()
             if ov is not None:
-                if ov.declinaison_par_type_cout_realise is None and ov.cout_salarial_auto_realise is None:
+                if (ov.declinaison_par_type_cout_realise is None
+                        and ov.cout_salarial_auto_realise is None
+                        and ov.declinaison_par_poste_realise is None):
                     ov.delete()
                 else:
                     ov.id_niveau_realisation = None
@@ -991,6 +998,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'cout_salarial_auto_realise': operation.get_cout_salarial_auto_realise(),
             # La case est verrouillée (cochée) quand la programmation est détaillée.
             'declinaison_verrouillee': bool(operation.declinaison_par_type_cout),
+            # #760 — idem pour le temps par poste.
+            'declinaison_par_poste_realise': operation.get_declinaison_par_poste_realise(),
+            'declinaison_poste_verrouillee': operation.temps_par_poste(),
         }
 
     @extend_schema(request=SuiviReglagesSerializer, responses=SuiviReglagesSerializer)
@@ -1001,7 +1011,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         #741 — réglages du tableau budgétaire du SUIVI d'une action.
 
         GET  /api/plans/realisations/suivi-reglages/{operation_id}/
-        POST …  body { declinaison_par_type_cout_realise?, cout_salarial_auto_realise? }
+        POST …  body { declinaison_par_type_cout_realise?, cout_salarial_auto_realise?,
+                       declinaison_par_poste_realise? }
 
         Données de suivi : valables pour toutes les années de l'action et
         modifiables plan validé, par ceux qui saisissent le suivi. Le réalisé ne
@@ -1031,8 +1042,15 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     "La programmation est déclinée par type de coût : le suivi l'est aussi."]},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        if data.get('declinaison_par_poste_realise') is False and operation.temps_par_poste():
+            return Response(
+                {'declinaison_par_poste_realise': [
+                    "La programmation est déclinée par type de poste : le suivi l'est aussi."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         defaults = {'id_utilisateur_maj': request.user}
-        for champ in ('declinaison_par_type_cout_realise', 'cout_salarial_auto_realise'):
+        for champ in ('declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
+                      'declinaison_par_poste_realise'):
             if champ in data:
                 defaults[champ] = data[champ]
         OperationRealisationGlobale.objects.update_or_create(

@@ -931,6 +931,24 @@ class Operation(models.Model):
         ov = self.realisation_globale_override
         return bool(ov is not None and ov.declinaison_par_type_cout_realise)
 
+    def temps_par_poste(self):
+        """Temps de travail PROGRAMMÉ décliné par poste (#600 / #735) : modes
+        « + type de poste », ancienne case par poste, ou coûts détaillés."""
+        return (self.ventilation_mode in self.VENTILATION_POSTE_MODES
+                or bool(self.declinaison_par_poste)
+                or bool(self.declinaison_par_type_cout))
+
+    def get_declinaison_par_poste_realise(self):
+        """
+        #760 — temps réalisé saisi par poste : toujours si la programmation l'est
+        (on ne suit pas moins finement qu'on n'a prévu), sinon au choix du suivi
+        (décoché par défaut, « aucune ventilation » comprise).
+        """
+        if self.temps_par_poste():
+            return True
+        ov = self.realisation_globale_override
+        return bool(ov is not None and ov.declinaison_par_poste_realise)
+
     def get_cout_salarial_auto_realise(self):
         """#741 — coût salarial réalisé calculé (jours × coût jour) ou saisi au suivi."""
         ov = self.realisation_globale_override
@@ -1591,6 +1609,13 @@ class OperationRealisationGlobale(models.Model):
         null=True, blank=True,
         help_text=_("Jours réalisés × coût jour des postes, ou coût salarial saisi au "
                     "suivi. Vide : même réglage qu'à la programmation.")
+    )
+    # #760 — temps de travail réalisé décliné par poste.
+    declinaison_par_poste_realise = models.BooleanField(
+        _("Réalisé décliné par type de poste"),
+        null=True, blank=True,
+        help_text=_("Saisit le temps réalisé poste par poste même si la programmation "
+                    "ne l'est pas. Sans effet si la programmation est déclinée par poste.")
     )
     date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
     date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)

@@ -214,8 +214,22 @@
             <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
             <h2 class="card-title">{{ 'plans.suivis.saisie.rh.title' | translate }}</h2>
           </div>
+          <!-- #760 — temps réalisé saisi au global (ou par organisme) ou poste
+               par poste ; cochée d'office si la programmation l'est. -->
+          <div class="budget-options rh-options" data-testid="suivi-declinaison-poste">
+            <app-checkbox
+              [checked]="declinaisonPosteRealise()"
+              (checkedChange)="setReglage('declinaison_par_poste_realise', $event)"
+              [disabled]="formVerrouille() || declinaisonPosteVerrouillee() || isSavingReglages()"
+              [label]="'plans.suivis.saisie.reglages.declinaisonPoste' | translate"
+              [mention]="(declinaisonPosteVerrouillee()
+                ? 'plans.suivis.saisie.reglages.declinaisonPosteVerrouillee'
+                : 'plans.suivis.saisie.reglages.declinaisonPosteHint') | translate">
+            </app-checkbox>
+          </div>
           <p class="text-mention rh-hint">
-            {{ 'plans.suivis.saisie.rh.hint' | translate:{ year: selectedYear() } }}
+            {{ (rhMode() === 'postes' ? 'plans.suivis.saisie.rh.hint' : 'plans.suivis.saisie.rh.hintTotal')
+               | translate:{ year: selectedYear() } }}
           </p>
 
           @if (rhMode() === 'global' && rhLignesFA.controls.length === 0) {
@@ -260,7 +274,9 @@
                                     [value]="rhTargetValue(ctrl)"
                                     (valueChange)="setRhTarget(ctrl, $event)"
                                     [disabled]="formVerrouille()"
-                                    [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
+                                    [placeholder]="(rhMode() === 'postes'
+                                      ? 'plans.suivis.saisie.rh.selectPoste'
+                                      : 'plans.suivis.saisie.rh.selectTarget') | translate">
                           @if (rhMode() === 'organismes') {
                             @for (o of rhOrganismes(); track o.id_organisme) {
                               <mat-option [value]="o.id_organisme">{{ o.nom_organisme }}</mat-option>

@@ -470,7 +470,7 @@ def build_rh_suivi_workbook(plan) -> bytes:
     m.total("TOTAL", _sum_years(pr, pf.years), _sum_years(rr, pf.years))
     m.freeze()
 
-    if pf.par_poste:
+    if pf.par_poste_suivi:
         _rh_par_poste_sheet(wb, pf, used, suivi=True)
     return _save(wb)
 
@@ -601,7 +601,7 @@ def _budget_par_poste_sheet(wb, pf, used, *, suivi):
 
     def poste_rows(keys_prev, keys_real):
         """Coût salarial par type de poste (seulement si temps par poste)."""
-        if not pf.par_poste:
+        if not (pf.par_poste_suivi if suivi else pf.par_poste):
             return
         for lab in salaried:
             prev = _sum_years([_poste_year(pf, lab, k) for k in keys_prev], pf.years)

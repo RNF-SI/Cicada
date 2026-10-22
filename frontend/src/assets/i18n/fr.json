@@ -2602,6 +2602,9 @@
           "declinaison": "Déclinaison par type de coût",
           "declinaisonHint": "Détaille le réalisé en coût salarial, coût stage, coût prestataire et autres coûts, même si la programmation ne l'est pas : le prévu n'est alors rappelé qu'en totaux. Vaut pour toutes les années de l'action.",
           "declinaisonVerrouillee": "La programmation de l'action est déclinée par type de coût : le suivi l'est aussi.",
+          "declinaisonPoste": "Déclinaison par type de poste",
+          "declinaisonPosteHint": "Cochée, le temps réalisé se saisit poste par poste (chaque ligne vise un poste). Décochée, il se saisit en un temps total, ou par organisme si le budget est ventilé par organisme. Vaut pour toutes les années de l'action.",
+          "declinaisonPosteVerrouillee": "La programmation de l'action est déclinée par type de poste : le suivi l'est aussi.",
           "coutSalarialAuto": "Saisie automatique du coût salarial",
           "coutSalarialAutoHint": "Calcule le coût salarial réalisé à partir des jours réalisés et du coût jour des postes. Décochée, il est saisi au suivi (le coût réel diffère souvent du prévu), quel que soit le réglage de la programmation. Vaut pour toutes les années de l'action.",
           "error": "Le réglage n'a pas pu être enregistré."
@@ -2723,6 +2726,7 @@
           "operationNotFound": "Action introuvable.",
           "missingProgrammation": "Cette année n'est pas programmée pour cette action.",
           "niveauRequired": "Le niveau de réalisation est obligatoire pour enregistrer le suivi.",
+          "posteRequired": "Le temps réalisé est décliné par type de poste : indiquez le poste de chaque ligne de temps de travail.",
           "saveFailed": "Erreur lors de l'enregistrement.",
           "clearFailed": "Erreur lors de l'effacement de la saisie."
         },
@@ -2738,6 +2742,8 @@
           "target": "Poste / organisme",
           "globalRowLabel": "Temps de travail total",
           "selectTarget": "Choisir…",
+          "selectPoste": "Poste",
+          "hintTotal": "Temps de travail réellement consacré à l'action en {{year}}.",
           "prevu": "Prévu",
           "realise": "Réalisé",
           "total": "TOTAL",

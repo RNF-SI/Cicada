@@ -50,7 +50,7 @@ import { formatScoreRange, computeMetriqueScore, computeCombinedScore, scoreLeve
 import { hasSaisieRealisation } from '../action-status.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
 import {
-  hasTypeBudget, rhModeFor, salaryIsComputed, salaryIsComputedReal, salaryOptionAvailable, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+  hasTypeBudget, salaryIsComputed, tempsParPoste, salaryIsComputedReal, salaryOptionAvailable, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
 } from '../../../../shared/utils/operation-budget';
 import { planEndYear } from '../../../../shared/utils/plan-periode';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
@@ -243,11 +243,26 @@ export class SuiviSaisieComponent implements OnInit {
   /** #735 (retour 21/10) — même règle que la fiche action (`rhModeFor`) : temps
    *  décliné par poste dès que les coûts sont détaillés, dans tous les modes. */
   computeRhMode(): 'postes' | 'organismes' | 'global' {
+    // #760 — c'est la case du SUIVI qui fixe les lignes du temps réalisé ;
+    // décochée, on retombe sur la disposition du mode sans poste.
+    if (this.declinaisonPosteRealise()) return 'postes';
+    const mode = this.operation()?.ventilation_mode;
+    return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
+  }
+
+  /** #760 — programmation déclinée par poste (même règle que la fiche action). */
+  declinaisonPosteVerrouillee(): boolean {
     const op = this.operation();
-    return rhModeFor(
-      op?.ventilation_mode, op?.declinaison_par_type_cout !== false && !!op,
-      !!op?.declinaison_par_poste,
-    );
+    return !!op && tempsParPoste(op);
+  }
+
+  /**
+   * #760 — temps réalisé décliné par type de poste : réglage du suivi, cochée
+   * d'office (et non décochable) si la programmation l'est, décochée sinon.
+   */
+  declinaisonPosteRealise(): boolean {
+    if (this.declinaisonPosteVerrouillee()) return true;
+    return !!this.operation()?.declinaison_par_poste_realise;
   }
 
   /** #735 (retour 21/10) — la catégorie (fonctionnement / investissement /
@@ -388,7 +403,9 @@ export class SuiviSaisieComponent implements OnInit {
 
   /** Enregistre un réglage du suivi (valable pour toutes les années de l'action). */
   setReglage(
-    champ: 'declinaison_par_type_cout_realise' | 'cout_salarial_auto_realise', valeur: boolean,
+    champ: 'declinaison_par_type_cout_realise' | 'cout_salarial_auto_realise'
+      | 'declinaison_par_poste_realise',
+    valeur: boolean,
   ): void {
     const op = this.operation();
     if (!op) return;
@@ -400,7 +417,12 @@ export class SuiviSaisieComponent implements OnInit {
           ...op,
           declinaison_par_type_cout_realise: r.declinaison_par_type_cout_realise,
           cout_salarial_auto_realise: r.cout_salarial_auto_realise,
+          declinaison_par_poste_realise: r.declinaison_par_poste_realise,
         });
+        // #760 — les lignes du temps réalisé changent (postes ↔ total / organismes).
+        if (champ === 'declinaison_par_poste_realise') {
+          this.hydrateRhArray(this.currentOperationAnnee());
+        }
       },
       error: () => {
         this.isSavingReglages.set(false);
@@ -1719,6 +1741,17 @@ export class SuiviSaisieComponent implements OnInit {
       return;
     }
     this.showNiveauError.set(false);
+    // #760 — temps décliné par poste : chaque ligne saisie vise un poste.
+    if (this.computeRhMode() === 'postes' && this.rhLignesFA.controls.some(
+      c => c.get('jours')?.value != null && c.get('jours')?.value !== '' && c.get('id_poste')?.value == null,
+    )) {
+      this.snack.open(
+        this.translate.instant('plans.suivis.saisie.errors.posteRequired'),
+        this.translate.instant('common.actions.close'),
+        { duration: 5000 },
+      );
+      return;
+    }
     const oa = this.currentOperationAnnee();
     const v = this.form.value;
     const orgVentilation = this.isOrgVentilation();
