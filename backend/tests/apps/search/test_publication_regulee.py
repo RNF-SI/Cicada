@@ -27,6 +27,9 @@ def partage_consenti(db):
 
 @pytest.fixture
 def hub(settings):
+    # Fixée ici, pas laissée au .env : sans elle, settings retombe sur 'local',
+    # que le diagnostic refuse (identite_manquante) avant tout autre cas (#755).
+    settings.CICADA_INSTANCE_ID = 'rnf'
     settings.CICADA_HUB_URL = 'http://hub:8000'
     settings.CICADA_HUB_PUSH_TOKEN = 'jeton'
     settings.CICADA_HUB_PUSH_AUTO = True
