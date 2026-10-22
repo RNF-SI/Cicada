@@ -1838,18 +1838,26 @@ export class SuiviSaisieComponent implements OnInit {
             o => o.id_operation_annee === savedAnnual.id_operation_annee,
           );
           if (idx >= 0) {
+            // #758 — nouvelle référence d'année (et d'organismes) : modifiée sur
+            // place, `currentOperationAnnee` rendrait le même objet et les
+            // computed qui en dérivent (bouton « Effacer », statut) ne se
+            // réévalueraient qu'au rechargement de la page.
             const target = op.operation_annees[idx];
-            target.realisation = savedAnnual;
-            if (target.organismes && (savedOrgs as any[])?.length) {
-              for (const so of savedOrgs as any[]) {
-                const idxOrg = target.organismes.findIndex(
-                  (oao: OperationAnneeOrganisme) =>
-                    oao.id_operation_annee_organisme === so.id_operation_annee_organisme,
-                );
-                if (idxOrg >= 0) target.organismes[idxOrg].realisation = so;
-              }
-            }
-            this.operation.set({ ...op });
+            const savedByOao = new Map<number | undefined, any>(
+              ((savedOrgs as any[]) ?? []).map(so => [so.id_operation_annee_organisme, so]),
+            );
+            const updated: OperationAnnee = {
+              ...target,
+              realisation: savedAnnual,
+              organismes: (target.organismes || []).map((oao: OperationAnneeOrganisme) =>
+                savedByOao.has(oao.id_operation_annee_organisme)
+                  ? { ...oao, realisation: savedByOao.get(oao.id_operation_annee_organisme) }
+                  : oao),
+            };
+            this.operation.set({
+              ...op,
+              operation_annees: op.operation_annees.map((o, i) => (i === idx ? updated : o)),
+            });
           } else {
             // #418 — année non planifiée créée à la volée : on l'ajoute
             // localement pour refléter immédiatement la saisie.

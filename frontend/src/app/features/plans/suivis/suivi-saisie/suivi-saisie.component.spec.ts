@@ -11,6 +11,7 @@ import { computed, signal } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup } from '@angular/forms';
 import { SuiviSaisieComponent } from './suivi-saisie.component';
 import { hasSaisieRealisation } from '../action-status.util';
+import { of } from 'rxjs';
 
 /** Faux AbstractControl minimal : seul `value` est lu par les helpers. */
 function ctrlOf(value: unknown): any {
@@ -996,6 +997,73 @@ describe('SuiviSaisieComponent — effacer la saisie (#699)', () => {
   it('le template n\'affiche le bouton que si une saisie existe et le plan est validé', () => {
     const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
     expect(html).toMatch(/@if \(hasSaisieForYear\(\)\)[\s\S]*?\(click\)="clearSaisie\(\)"/);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #758 — « Effacer les données de l'année » doit apparaître dès l'enregistrement,
+// sans rafraîchir : l'année enregistrée doit être une NOUVELLE référence, sinon
+// `currentOperationAnnee` rend le même objet et `hasSaisieForYear` ne se
+// réévalue pas.
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — bouton Effacer après enregistrement (#758)', () => {
+  function setup(oa: any, saved: any, savedOrgs: any[] = []) {
+    const c = Object.create(SuiviSaisieComponent.prototype) as any;
+    c.fb = new FormBuilder();
+    c.form = c.fb.group({
+      id_niveau_realisation: [7], commentaires: [''], operateurs_realises: [''], financeurs_realises: [''],
+      organismes: c.fb.array([]), indicateurs: c.fb.array([]), rhLignes: c.fb.array([]),
+    });
+    c.operation = signal<any>({ operation_annees: oa ? [oa] : [] });
+    c.operationId = signal(5);
+    c.selectedYear = signal(2025);
+    c.currentOperationAnnee = computed(
+      () => c.operation()?.operation_annees?.find((o: any) => o.annee === c.selectedYear()) ?? null,
+    );
+    c.hasSaisieForYear = computed(() => hasSaisieRealisation(c.currentOperationAnnee()));
+    c.saisieBloquee = signal(false);
+    c.showNiveauError = signal(false);
+    c.isSaving = signal(false);
+    c.niveaux = signal([]);
+    c.isOrgVentilation = signal(savedOrgs.length > 0);
+    c.isGlobalDetailVentilation = signal(false);
+    c.isByType = signal(false);
+    c.isMaxVentilation = signal(false);
+    c.ventilationMode = signal(savedOrgs.length ? 'by_org' : 'none');
+    c.pendingGeomRealisee = signal<any>(undefined);
+    c.isEditingGeom = signal(false);
+    c.empriseSnapshot = signal<any>(null);
+    c.mesuresByMetrique = new Map();
+    c.translate = { instant: (k: string) => k };
+    c.snack = { open: jest.fn() };
+    c.realisationService = {
+      upsert: jest.fn(() => of(saved)),
+      upsertOrganisme: jest.fn((p: any) => of(savedOrgs.find(s => s.id_operation_annee_organisme === p.id_operation_annee_organisme))),
+    };
+    return c;
+  }
+
+  it('année programmée : le bouton apparaît dès la réponse du serveur', () => {
+    const oa = { id_operation_annee: 42, annee: 2025, periodicite: true, organismes: [], realisation: null };
+    const c = setup(oa, { id_operation_annee: 42, id_niveau_realisation: 7 });
+    expect(c.hasSaisieForYear()).toBe(false);
+    c.submit();
+    expect(c.hasSaisieForYear()).toBe(true);
+    expect(c.currentOperationAnnee().realisation.id_niveau_realisation).toBe(7);
+  });
+
+  it('ventilation par organisme : la réalisation par organisme suffit à afficher le bouton', () => {
+    const oa = {
+      id_operation_annee: 42, annee: 2025, periodicite: true, realisation: null,
+      organismes: [{ id_operation_annee_organisme: 3, id_organisme: 1, realisation: null }],
+    };
+    const c = setup(oa, null as any, [{ id_operation_annee_organisme: 3, etp_realise: 2 }]);
+    c.realisationService.upsert = jest.fn(() => of({ id_operation_annee: 42 }));
+    c.organismesFA.push(c.fb.group({ id_operation_annee_organisme: [3], budget_fonctionnement_realise: [10], etp_realise: [2] }));
+    expect(c.hasSaisieForYear()).toBe(false);
+    c.submit();
+    expect(c.hasSaisieForYear()).toBe(true);
+    expect(c.currentOperationAnnee().organismes[0].realisation.etp_realise).toBe(2);
   });
 });
 
