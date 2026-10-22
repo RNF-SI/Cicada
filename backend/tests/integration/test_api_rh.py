@@ -452,7 +452,11 @@ class TestRealisationRhLignes:
         """
         plan = PlanGestionFactory()
         suivi = SuiviInventaireFactory(id_pg=plan)
-        return OperationAnneeFactory(id_operation=OperationFactory(id_suivi=suivi))
+        # #760 — temps non décliné par poste (coûts non détaillés) : les lignes
+        # sans poste (temps non affecté, organisme) restent recevables. Déclinée
+        # par poste, l'action les refuserait (cf. test_suivi_declinaison_poste).
+        return OperationAnneeFactory(id_operation=OperationFactory(
+            id_suivi=suivi, declinaison_par_type_cout=False))
 
     def _upsert(self, client, oa, rh_lignes):
         return client.post(
