@@ -932,6 +932,8 @@ describe('SuiviSaisieComponent — effacer la saisie (#699)', () => {
     );
     c.hasSaisieForYear = computed(() => hasSaisieRealisation(c.currentOperationAnnee()));
     c.saisieBloquee = signal(!!opts.notValidated);  // #740 — verrou unique des actions
+    c.editionDemandee = signal(true);  // #762 — « Modifier » cliqué avant d'effacer
+    c.enLecture = computed(() => !c.saisieBloquee() && c.hasSaisieForYear() && !c.editionDemandee());
     c.isSaving = signal(false);
     c.pendingGeomRealisee = signal<any>({ type: 'Point' });
     c.isEditingGeom = signal(true);
@@ -969,6 +971,9 @@ describe('SuiviSaisieComponent — effacer la saisie (#699)', () => {
     expect(c.isEditingGeom()).toBe(false);
     expect(c.hydrateFormFromCurrentYear).toHaveBeenCalled();
     expect(c.isSaving()).toBe(false);
+    // #762 — plus de saisie : retour automatique en saisie.
+    expect(c.editionDemandee()).toBe(false);
+    expect(c.enLecture()).toBe(false);
   });
 
   it('sans confirmation, rien n\'est effacé', () => {
@@ -1022,6 +1027,9 @@ describe('SuiviSaisieComponent — bouton Effacer après enregistrement (#758)',
     );
     c.hasSaisieForYear = computed(() => hasSaisieRealisation(c.currentOperationAnnee()));
     c.saisieBloquee = signal(false);
+    c.editionDemandee = signal(false);
+    c.enLecture = computed(() => !c.saisieBloquee() && c.hasSaisieForYear() && !c.editionDemandee());
+    c.formVerrouille = computed(() => c.saisieBloquee() || c.enLecture());
     c.showNiveauError = signal(false);
     c.isSaving = signal(false);
     c.niveaux = signal([]);
@@ -1049,7 +1057,9 @@ describe('SuiviSaisieComponent — bouton Effacer après enregistrement (#758)',
     expect(c.hasSaisieForYear()).toBe(false);
     c.submit();
     expect(c.hasSaisieForYear()).toBe(true);
-    expect(c.currentOperationAnnee().realisation.id_niveau_realisation).toBe(7);
+    expect(c.currentOperationAnnee().realisation.id_niveau_realisation).toBe(7);    // #762 — l'année enregistrée passe en lecture.
+    expect(c.enLecture()).toBe(true);
+    expect(c.form.disabled).toBe(true);
   });
 
   it('ventilation par organisme : la réalisation par organisme suffit à afficher le bouton', () => {
@@ -1064,6 +1074,92 @@ describe('SuiviSaisieComponent — bouton Effacer après enregistrement (#758)',
     c.submit();
     expect(c.hasSaisieForYear()).toBe(true);
     expect(c.currentOperationAnnee().organismes[0].realisation.etp_realise).toBe(2);
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #762 — année enregistrée en lecture + « Modifier » ; « Effacer » en haut à
+// droite ; plus de report de saisie d'une année sur l'autre.
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — lecture d\'une année enregistrée (#762)', () => {
+  function setup(opts: { bloquee?: boolean } = {}) {
+    const c = Object.create(SuiviSaisieComponent.prototype) as any;
+    const fb = new FormBuilder();
+    c.form = fb.group({ id_niveau_realisation: [null], commentaires: [''] });
+    c.operation = signal<any>({
+      operation_annees: [
+        { id_operation_annee: 1, annee: 2024, periodicite: true, organismes: [], realisation: { id_niveau_realisation: 7 } },
+        { id_operation_annee: 2, annee: 2025, periodicite: true, organismes: [], realisation: null },
+      ],
+    });
+    c.selectedYear = signal(2024);
+    c.currentOperationAnnee = computed(
+      () => c.operation()?.operation_annees?.find((o: any) => o.annee === c.selectedYear()) ?? null,
+    );
+    c.hasSaisieForYear = computed(() => hasSaisieRealisation(c.currentOperationAnnee()));
+    c.saisieBloquee = signal(!!opts.bloquee);
+    c.editionDemandee = signal(false);
+    c.enLecture = computed(() => !c.saisieBloquee() && c.hasSaisieForYear() && !c.editionDemandee());
+    c.formVerrouille = computed(() => c.saisieBloquee() || c.enLecture());
+    c.hydrateFormFromCurrentYear = jest.fn(() => c.applyReadOnlyLock());
+    c.refreshIndicateursForYear = jest.fn();
+    c.pendingGeomRealisee = signal<any>(undefined);
+    c.isEditingGeom = signal(false);
+    c.empriseSnapshot = signal<any>(null);
+    return c;
+  }
+
+  it('année enregistrée : en lecture, formulaire désactivé', () => {
+    const c = setup();
+    c.applyReadOnlyLock();
+    expect(c.enLecture()).toBe(true);
+    expect(c.form.disabled).toBe(true);
+  });
+
+  it('« Modifier » repasse en saisie', () => {
+    const c = setup();
+    c.applyReadOnlyLock();
+    c.modifier();
+    expect(c.enLecture()).toBe(false);
+    expect(c.form.enabled).toBe(true);
+  });
+
+  it('année jamais saisie : directement en saisie ; retour sur l\'année enregistrée : en lecture', () => {
+    const c = setup();
+    c.modifier();
+    c.selectYear(2025);
+    expect(c.enLecture()).toBe(false);
+    expect(c.form.enabled).toBe(true);
+    c.selectYear(2024);
+    expect(c.editionDemandee()).toBe(false);
+    expect(c.enLecture()).toBe(true);
+    expect(c.form.disabled).toBe(true);
+  });
+
+  it('saisie bloquée (#379 / #740) : jamais de « Modifier », formulaire verrouillé', () => {
+    const c = setup({ bloquee: true });
+    c.modifier();
+    expect(c.editionDemandee()).toBe(false);
+    expect(c.enLecture()).toBe(false);
+    expect(c.formVerrouille()).toBe(true);
+    c.applyReadOnlyLock();
+    expect(c.form.disabled).toBe(true);
+  });
+
+  it('gabarit : « Modifier » et « Effacer » dans la barre du haut, plus en bas du formulaire', () => {
+    const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    const toolbar = html.slice(html.indexOf('class="saisie-toolbar"'), html.indexOf('</form>'));
+    expect(html.indexOf('class="saisie-toolbar"')).toBeGreaterThan(html.indexOf('<form'));
+    expect(html.indexOf('class="saisie-toolbar"')).toBeLessThan(html.indexOf('saisie-card'));
+    expect(toolbar).toMatch(/@if \(enLecture\(\)\)[\s\S]*?\(click\)="modifier\(\)"/);
+    const bottom = html.slice(html.indexOf('class="bottom-actions"'));
+    expect(bottom).not.toContain('clearSaisie()');
+    expect(bottom).toMatch(/@if \(!formVerrouille\(\)\)[\s\S]*?type="submit"/);
+  });
+
+  it('gabarit : les lignes de temps réalisé sont suivies par contrôle, pas par index', () => {
+    const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    expect(html).toContain('@for (ctrl of rhLignesFA.controls; track ctrl;');
   });
 });
 
@@ -1147,7 +1243,10 @@ describe('SuiviSaisieComponent — lecture seule (#740)', () => {
     const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
     expect(html).toContain('plans.suivis.readOnlyBanner.title');
     expect(html).not.toMatch(/\[disabled\]="planNotValidated\(\)/);
-    expect(html).toMatch(/\[disabled\]="saisieBloquee\(\)/);
+    // #762 — le gabarit se verrouille via `formVerrouille()`, qui inclut
+    // `saisieBloquee()` (vérifié dans le bloc #762).
+    expect(html).toMatch(/\[disabled\]="formVerrouille\(\)/);
+    expect(html).not.toMatch(/\[disabled\]="saisieBloquee\(\)/);
   });
 });
 

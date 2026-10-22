@@ -928,10 +928,26 @@ textarea.full-width {
   border-top: 1px solid $gray-light;
 }
 
-// #699 — action discrète, isolée à gauche des boutons d'enregistrement.
-.btn-clear-saisie {
-  order: -1;
-  margin-right: auto;
+// #762 — en-tête du formulaire : rappel (champs obligatoires / année
+// enregistrée) à gauche, « Modifier » et « Effacer la saisie » en haut à droite.
+.saisie-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .text-mention {
+    margin: 0;
+  }
+}
+
+.saisie-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-left: auto;
 
   i {
     margin-right: $spacing-xs;

@@ -115,6 +115,14 @@ export class SuiviSaisieComponent implements OnInit {
   lectureSeule = signal(false);
   /** Saisie impossible : plan non validé (#379) ou consultation seule (#740). */
   saisieBloquee = computed(() => this.planNotValidated() || this.lectureSeule());
+  /** #762 — « Modifier » cliqué : l'année déjà enregistrée repasse en saisie. */
+  editionDemandee = signal(false);
+  /** #762 — année déjà enregistrée : affichée en lecture tant qu'on n'a pas
+   *  cliqué sur « Modifier ». Une année jamais saisie s'ouvre en saisie. */
+  enLecture = computed(() =>
+    !this.saisieBloquee() && this.hasSaisieForYear() && !this.editionDemandee());
+  /** Formulaire non modifiable : saisie bloquée (#379 / #740) ou lecture (#762). */
+  formVerrouille = computed(() => this.saisieBloquee() || this.enLecture());
 
   // -------- Data --------
   operation = signal<Operation | null>(null);
@@ -977,6 +985,7 @@ export class SuiviSaisieComponent implements OnInit {
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
+    this.editionDemandee.set(false);
 
     // Plan (pour breadcrumb + sidebar) — slug → plan via AdminService
     this.adminService.getPlanBySlug(slug).subscribe({
@@ -1262,11 +1271,22 @@ export class SuiviSaisieComponent implements OnInit {
    * #379 — Verrou lecture seule : si le plan n'est pas validé, on désactive
    * tout le formulaire (y compris les contrôles ajoutés dynamiquement aux
    * FormArrays). À rappeler après chaque (ré)hydratation.
+   * #762 — idem pour une année déjà enregistrée tant qu'on n'a pas cliqué sur
+   * « Modifier » ; le formulaire est réactivé dans le cas contraire.
    */
   private applyReadOnlyLock(): void {
-    if (this.saisieBloquee()) {
+    if (this.formVerrouille()) {
       this.form.disable({ emitEvent: false });
+    } else {
+      this.form.enable({ emitEvent: false });
     }
+  }
+
+  /** #762 — repasse l'année enregistrée en saisie. */
+  modifier(): void {
+    if (this.saisieBloquee()) return;
+    this.editionDemandee.set(true);
+    this.applyReadOnlyLock();
   }
 
   private hydrateFormFromCurrentYear(): void {
@@ -1548,6 +1568,9 @@ export class SuiviSaisieComponent implements OnInit {
 
   selectYear(year: number): void {
     this.selectedYear.set(year);
+    // #762 — chaque année s'ouvre dans son propre état : en lecture si elle est
+    // déjà enregistrée, en saisie sinon.
+    this.editionDemandee.set(false);
     this.hydrateFormFromCurrentYear();
     // Les indicateurs de réponse sont saisis par année : recharger la mesure
     // correspondant à la nouvelle année. On PATCHE les contrôles existants
@@ -1629,6 +1652,8 @@ export class SuiviSaisieComponent implements OnInit {
             this.pendingGeomRealisee.set(undefined);
             this.isEditingGeom.set(false);
             this.empriseSnapshot.set(null);
+            // #762 — plus de saisie : le formulaire revient en saisie.
+            this.editionDemandee.set(false);
             this.hydrateFormFromCurrentYear();
             this.snack.open(
               this.translate.instant('plans.suivis.saisie.messages.cleared', { year }),
@@ -1876,6 +1901,9 @@ export class SuiviSaisieComponent implements OnInit {
         this.pendingGeomRealisee.set(undefined);
         this.isEditingGeom.set(false);
         this.empriseSnapshot.set(null);
+        // #762 — l'année est enregistrée : elle s'affiche en lecture.
+        this.editionDemandee.set(false);
+        this.applyReadOnlyLock();
         // « Enregistrer et quitter » : retour à la liste de suivi des actions.
         if (quit) this.goBack();
       },

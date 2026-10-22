@@ -133,7 +133,29 @@
       <form [formGroup]="form" class="saisie-form" (ngSubmit)="submit()">
 
         @if (!saisieBloquee()) {
-          <p class="text-mention">{{ 'plans.suivis.saisie.requiredHint' | translate }}</p>
+          <!-- #762 — année enregistrée : en lecture, « Modifier » et « Effacer »
+               en haut à droite. Année jamais saisie : directement en saisie. -->
+          <div class="saisie-head">
+            <p class="text-mention">
+              {{ (enLecture() ? 'plans.suivis.saisie.lecture.hint' : 'plans.suivis.saisie.requiredHint')
+                 | translate:{ year: selectedYear() } }}
+            </p>
+            @if (hasSaisieForYear()) {
+              <div class="saisie-toolbar">
+                @if (enLecture()) {
+                  <button type="button" mat-flat-button color="primary" (click)="modifier()" [disabled]="isSaving()">
+                    <i class="fi fi-rr-pencil"></i>
+                    {{ 'common.actions.edit' | translate }}
+                  </button>
+                }
+                <!-- #699 — retour à « non encore saisie » pour l'année active -->
+                <button type="button" mat-stroked-button class="btn-clear-saisie" (click)="clearSaisie()" [disabled]="isSaving()">
+                  <i class="fi fi-rr-undo"></i>
+                  {{ 'plans.suivis.saisie.clear.button' | translate:{ year: selectedYear() } }}
+                </button>
+              </div>
+            }
+          </div>
         }
 
         <!-- Opérateurs / Financeurs : valeur PRÉVUE (lecture seule) + valeur
@@ -221,7 +243,11 @@
                 </tr>
               </thead>
               <tbody>
-                @for (ctrl of rhLignesFA.controls; track $index; let li = $index) {
+                <!-- #762 — suivi par contrôle et non par index : au changement d'année,
+                     les lignes sont reconstruites ; réutilisées par index, leurs
+                     champs restaient liés aux contrôles de l'année précédente
+                     (saisie reportée d'une année sur l'autre). -->
+                @for (ctrl of rhLignesFA.controls; track ctrl; let li = $index) {
                   <tr [formGroupName]="li">
                     <td class="rh-target-col">
                       @if (rhMode() === 'global') {
@@ -233,7 +259,7 @@
                         <mat-select class="rh-target-select"
                                     [value]="rhTargetValue(ctrl)"
                                     (valueChange)="setRhTarget(ctrl, $event)"
-                                    [disabled]="saisieBloquee()"
+                                    [disabled]="formVerrouille()"
                                     [placeholder]="'plans.suivis.saisie.rh.selectTarget' | translate">
                           @if (rhMode() === 'organismes') {
                             @for (o of rhOrganismes(); track o.id_organisme) {
@@ -257,7 +283,7 @@
                       <mat-select class="rh-categorie-select"
                                   [value]="$safeNavigationMigration(ctrl.get('categorie_depense')?.value)"
                                   (valueChange)="setRhCategorie(ctrl, $event)"
-                                  [disabled]="saisieBloquee()">
+                                  [disabled]="formVerrouille()">
                         @for (cat of categorieDepenseOptions; track cat) {
                           <mat-option [value]="cat">
                             {{ 'plans.rh.categorieDepense.' + cat | translate }}
@@ -276,7 +302,7 @@
                              formControlName="jours" placeholder="j" />
                     </td>
                     <td class="rh-actions-col">
-                      @if (!saisieBloquee()) {
+                      @if (!formVerrouille()) {
                         <button type="button" class="rh-remove-btn"
                                 (click)="removeRhLigne(li)"
                                 [title]="'common.actions.delete' | translate">
@@ -318,7 +344,7 @@
             </table>
           }
 
-          @if (!saisieBloquee()) {
+          @if (!formVerrouille()) {
             <div class="rh-controls">
               <button type="button" mat-stroked-button class="btn-sm" (click)="addRhLigne()">
                 <i class="fi fi-rr-plus"></i>
@@ -373,7 +399,7 @@
             <app-checkbox
               [checked]="declinaisonRealise()"
               (checkedChange)="setReglage('declinaison_par_type_cout_realise', $event)"
-              [disabled]="saisieBloquee() || declinaisonVerrouillee() || isSavingReglages()"
+              [disabled]="formVerrouille() || declinaisonVerrouillee() || isSavingReglages()"
               [label]="'plans.suivis.saisie.reglages.declinaison' | translate"
               [mention]="(declinaisonVerrouillee()
                 ? 'plans.suivis.saisie.reglages.declinaisonVerrouillee'
@@ -383,7 +409,7 @@
               <app-checkbox
                 [checked]="salaireCalcule()"
                 (checkedChange)="setReglage('cout_salarial_auto_realise', $event)"
-                [disabled]="saisieBloquee() || isSavingReglages()"
+                [disabled]="formVerrouille() || isSavingReglages()"
                 [label]="'plans.suivis.saisie.reglages.coutSalarialAuto' | translate"
                 [mention]="'plans.suivis.saisie.reglages.coutSalarialAutoHint' | translate">
               </app-checkbox>
@@ -1099,7 +1125,7 @@
           </div>
           <!-- #434 — copier l'emprise prévue (emprise de l'action) comme emprise
                réalisée, puis l'ajuster. Visible seulement si une emprise est prévue. -->
-          @if (hasPlannedGeom() && !saisieBloquee()) {
+          @if (hasPlannedGeom() && !formVerrouille()) {
             <div class="emprise-actions">
               <button type="button" mat-stroked-button class="btn-sm copy-planned-emprise"
                       (click)="copyPlannedEmprise()">
@@ -1122,7 +1148,7 @@
           <app-emprise-editor
             [geometry]="realisedGeom()"
             [backgroundGeometry]="plannedGeom()"
-            [disabled]="saisieBloquee()"
+            [disabled]="formVerrouille()"
             [editing]="isEditingGeom()"
             (editingChange)="isEditingGeom.set($event)"
             (geometryChange)="onGeomRealiseeChange($event)">
@@ -1273,9 +1299,9 @@
         <!-- Bottom action bar -->
         <div class="bottom-actions">
           <button type="button" mat-stroked-button (click)="goBack()" [disabled]="isSaving()">
-            {{ saisieBloquee() ? ('common.actions.back' | translate) : ('common.actions.cancel' | translate) }}
+            {{ formVerrouille() ? ('common.actions.back' | translate) : ('common.actions.cancel' | translate) }}
           </button>
-          @if (!saisieBloquee()) {
+          @if (!formVerrouille()) {
             <button type="submit" mat-flat-button color="primary" [disabled]="isSaving()">
               @if (isSaving()) {
                 <mat-spinner diameter="18"></mat-spinner>
@@ -1285,13 +1311,6 @@
             <button type="button" mat-stroked-button color="primary" (click)="submit(true)" [disabled]="isSaving()">
               {{ 'common.actions.saveAndQuit' | translate }}
             </button>
-            <!-- #699 — retour à « non encore saisie » pour l'année active -->
-            @if (hasSaisieForYear()) {
-              <button type="button" mat-button class="btn-clear-saisie" (click)="clearSaisie()" [disabled]="isSaving()">
-                <i class="fi fi-rr-undo"></i>
-                {{ 'plans.suivis.saisie.clear.button' | translate:{ year: selectedYear() } }}
-              </button>
-            }
           }
         </div>
       </form>

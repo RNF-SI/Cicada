@@ -2620,6 +2620,9 @@
         "viewFiche": "Voir la fiche action",
         "backToSuivi": "Revenir au suivi des actions",
         "requiredHint": "Les champs avec * sont obligatoires",
+        "lecture": {
+          "hint": "Suivi de {{year}} enregistré. Cliquez sur « Modifier » pour le reprendre."
+        },
         "yearPlanned": "Année prévue (action programmée)",
         "yearNotPlanned": "Année non prévue",
         "noProgrammation": "Aucune programmation n'a été définie pour cette année — créez d'abord une OperationAnnee.",

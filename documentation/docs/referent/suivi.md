@@ -64,6 +64,8 @@ Pour chaque année, vous pouvez renseigner :
 
 Les onglets d'années couvrent toute la durée du plan : saisir une année non prévue enregistre une action réalisée non prévue.
 
+Chaque année s'ouvre avec ses propres données : une année jamais saisie s'affiche directement en saisie, vide, avec seulement les valeurs reprises de la programmation. Une année **déjà enregistrée** s'affiche en lecture : le bouton « **Modifier** », en haut à droite du formulaire, la repasse en saisie. À côté, « **Effacer la saisie de l'année** » supprime tout le suivi de cette année (niveau, budget, temps, emprise, commentaires) après confirmation : l'action revient à l'état « non encore saisie » et le formulaire repasse en saisie.
+
 Pour une action **programmée globalement sur sa période** (voir [§ 4.8.1](actions.md#481-la-saisie-dune-action-de-gestion)), le réalisé se saisit toujours année par année, mais le tableau ne rappelle pas de prévu par année : deux encadrés au-dessus du tableau donnent le budget et le temps de travail prévus pour la période, face au réalisé enregistré toutes années confondues.
 
 Comme à la saisie de l'action, la catégorie de dépense du temps réalisé (fonctionnement, investissement, bénévolat partenariat) n'est demandée que si le mode de ventilation inclut le type de budget. Dans les onglets Budget et RH du suivi des actions, son prévu ne compte que dans la colonne du total du plan.

@@ -161,6 +161,10 @@ test.describe('Suivi - Saisie page', () => {
     // Capture la valeur d'origine pour restaurer la donnée seedée après le test.
     const original = await referentPage.locator(commentaires).inputValue();
 
+    // #762 — l'année seedée est déjà enregistrée : elle s'ouvre en lecture.
+    const modifier = referentPage.locator('.saisie-toolbar').getByRole('button', { name: 'Modifier' });
+    await modifier.click();
+
     // Commentaires : unique marker so we can verify after reload
     const marker = `Test E2E ${Date.now()}`;
     await referentPage.locator(commentaires).fill(marker);
@@ -177,6 +181,7 @@ test.describe('Suivi - Saisie page', () => {
     await expect(referentPage.locator(commentaires)).toHaveValue(marker);
 
     // Restaure la valeur d'origine pour ne pas polluer la donnée seedée.
+    await modifier.click();
     await referentPage.locator(commentaires).fill(original);
     await referentPage.getByRole('button', { name: 'Enregistrer', exact: true }).click();
     await expect(referentPage.getByText(/Modifications enregistrées/i)).toBeVisible({ timeout: 6000 });
@@ -229,6 +234,59 @@ test.describe('Suivi - Saisie page', () => {
     const ogReal = (await activeCell(referentPage, referentPage, 'Budget total OG réalisé (€)').allTextContents())
       .map((t: string) => t.replace(/\s/g, ''));
     expect(ogReal.sort()).toEqual(['1540€', '2640€']);
+  });
+
+  test('#762 — changer d\'année ne reporte pas la saisie d\'une autre année', async ({ referentPage }) => {
+    // Action CS du plan validé « par type de budget et type de poste » : temps de
+    // travail décliné par poste, programmé chaque année. Année − 2 : suivi saisi ;
+    // année + 1 : jamais saisie. Les lignes de temps réalisé de l'année + 1
+    // doivent être vides, et non reprendre les jours de l'année − 2.
+    const plan = await findVentilationValidee(referentPage, 'par type de budget et type de poste');
+    const op = await findOperationByCode(referentPage, plan.id_pg, '-CS1');
+    const y = new Date().getFullYear();
+    await referentPage.goto(`/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${y - 2}`);
+
+    const jours = referentPage.locator('.rh-table input[formcontrolname="jours"]');
+    await expect(jours.first()).not.toHaveValue('', { timeout: 15000 });
+
+    await referentPage.locator('.year-tab', { hasText: String(y + 1) }).click();
+    await expect(referentPage.locator('.year-tab.active')).toContainText(String(y + 1));
+    expect(await jours.count()).toBeGreaterThan(0);
+    for (const v of await jours.evaluateAll((els: HTMLInputElement[]) => els.map(e => e.value))) {
+      expect(v).toBe('');
+    }
+  });
+
+  test('#762 — année enregistrée en lecture, « Modifier » et « Effacer » en haut à droite', async ({ referentPage }) => {
+    const plan = await findVentilationValidee(referentPage, 'aucune ventilation');
+    const op = await findOperationByCode(referentPage, plan.id_pg, '-CS1');
+    const y = new Date().getFullYear();
+    const niveau = referentPage.locator('select[formcontrolname="id_niveau_realisation"]');
+    const toolbar = referentPage.locator('.saisie-toolbar');
+    const enregistrer = referentPage.getByRole('button', { name: 'Enregistrer', exact: true });
+
+    // Année − 2 : saisie enregistrée → lecture.
+    await referentPage.goto(`/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${y - 2}`);
+    await expect(toolbar.getByRole('button', { name: 'Modifier' })).toBeVisible({ timeout: 15000 });
+    await expect(toolbar.getByRole('button', { name: `Effacer la saisie de ${y - 2}` })).toBeVisible();
+    await expect(niveau).toBeDisabled();
+    await expect(enregistrer).toHaveCount(0);
+
+    // « Modifier » repasse en saisie.
+    await toolbar.getByRole('button', { name: 'Modifier' }).click();
+    await expect(niveau).toBeEnabled();
+    await expect(enregistrer).toBeVisible();
+    await expect(toolbar.getByRole('button', { name: 'Modifier' })).toHaveCount(0);
+
+    // Année + 1, jamais saisie : directement en saisie, sans « Modifier » ni « Effacer ».
+    await referentPage.locator('.year-tab', { hasText: String(y + 1) }).click();
+    await expect(niveau).toBeEnabled();
+    await expect(niveau).toHaveValue(/^(0: null|)$/);
+    await expect(toolbar).toHaveCount(0);
+
+    // Retour sur l'année − 2 : de nouveau en lecture.
+    await referentPage.locator('.year-tab', { hasText: String(y - 2) }).click();
+    await expect(niveau).toBeDisabled();
   });
 
   test('clicking a year cell in suivi-actions navigates to saisie', async ({ referentPage }) => {
