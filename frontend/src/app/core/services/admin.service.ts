@@ -858,6 +858,15 @@ export class AdminService {
   }
 
   /** Télécharge le suivi RH (Excel, prévu/réalisé). */
+  /** #727 — fiches de suivi des actions d'une année (Excel). */
+  downloadFichesSuivi(planId: number, annee: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-fiches-suivi-xlsx/`, {
+        params: { annee: String(annee) }, responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
   downloadRhSuivi(planId: number): Observable<Blob> {
     return this.http
       .get(`${this.plansApiUrl}/plans/${planId}/export-rh-suivi-xlsx/`, { responseType: 'blob' })

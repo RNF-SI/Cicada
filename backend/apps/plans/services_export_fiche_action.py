@@ -398,20 +398,25 @@ def _geom_rings(geom, out=None):
     return out
 
 
-def _geom_png(geom, width=_MAP_W, height=_MAP_H):
-    """Carte de localisation (PNG) : emprise sur fond de carte, ou None."""
+def _geom_png(geom, width=_MAP_W, height=_MAP_H, realise=None):
+    """Carte de localisation (PNG) : emprise sur fond de carte, ou None.
+
+    #727 — `realise` : emprise RÉALISÉE, dessinée en terra cotta par-dessus
+    l'emprise prévue (fiche de suivi) ; le cadrage couvre les deux."""
     try:
         from PIL import Image as PILImage, ImageDraw
     except ImportError:      # Pillow absent → pas de carte, le reste s'exporte
         return None
 
-    rings = [r for r in _geom_rings(geom) if r]
-    if not rings:
+    rings = [r for r in _geom_rings(geom) if r] if geom is not None else []
+    rings_real = [r for r in _geom_rings(realise) if r] if realise is not None else []
+    if not rings and not rings_real:
         return None
 
     proj = [[_merc(lon, lat) for lon, lat in ring] for ring in rings]
-    xs = [p[0] for ring in proj for p in ring]
-    ys = [p[1] for ring in proj for p in ring]
+    proj_real = [[_merc(lon, lat) for lon, lat in ring] for ring in rings_real]
+    xs = [p[0] for ring in proj + proj_real for p in ring]
+    ys = [p[1] for ring in proj + proj_real for p in ring]
     span_x, span_y = max(xs) - min(xs), max(ys) - min(ys)
     zoom = _fit_zoom(span_x, span_y, width, height)
     world = _TILE_SIZE * (2 ** zoom)
@@ -429,17 +434,21 @@ def _geom_png(geom, width=_MAP_W, height=_MAP_H):
     # L'emprise passe en surcouche translucide pour laisser voir le fond.
     overlay = PILImage.new("RGBA", (width, height), (0, 0, 0, 0))
     odraw = ImageDraw.Draw(overlay)
-    for ring in proj:
-        pts = [(x * world - left, y * world - top) for x, y in ring]
-        if len(pts) >= 3:
-            odraw.polygon(pts, fill=(192, 227, 207, 110))
-            odraw.line(pts + [pts[0]], fill=(2, 83, 89, 255), width=3, joint="curve")
-        elif len(pts) == 2:
-            odraw.line(pts, fill=(2, 83, 89, 255), width=3)
-        else:
-            x, y = pts[0]
-            odraw.ellipse([x - 6, y - 6, x + 6, y + 6],
-                          fill=(183, 77, 93, 255), outline=(255, 255, 255, 255), width=2)
+    # Prévu : vert pâle / bleu-vert ; réalisé (#727) : terra cotta.
+    styles = [(proj, (192, 227, 207, 110), (2, 83, 89, 255)),
+              (proj_real, (183, 77, 93, 70), (183, 77, 93, 255))]
+    for rings_px, fill, stroke in styles:
+        for ring in rings_px:
+            pts = [(x * world - left, y * world - top) for x, y in ring]
+            if len(pts) >= 3:
+                odraw.polygon(pts, fill=fill)
+                odraw.line(pts + [pts[0]], fill=stroke, width=3, joint="curve")
+            elif len(pts) == 2:
+                odraw.line(pts, fill=stroke, width=3)
+            else:
+                x, y = pts[0]
+                odraw.ellipse([x - 6, y - 6, x + 6, y + 6],
+                              fill=(183, 77, 93, 255), outline=(255, 255, 255, 255), width=2)
     img = PILImage.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
 
     draw = ImageDraw.Draw(img)

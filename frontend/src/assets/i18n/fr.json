@@ -2623,6 +2623,7 @@
         "subtitle": "Remplir le suivi d'une action",
         "viewGlobal": "Voir le résultat global",
         "viewFiche": "Voir la fiche action",
+        "exportFicheSuivi": "Exporter la fiche de suivi {{year}}",
         "backToSuivi": "Revenir au suivi des actions",
         "requiredHint": "Les champs avec * sont obligatoires",
         "lecture": {
@@ -3087,6 +3088,9 @@
       "rhPrevHint": "Ressources humaines prévisionnelles (jours) par organisme gestionnaire : un onglet par organisme + total + synthèse par type de poste. Jours par action et par année.",
       "rhSuivi": "Exporter le suivi RH (Excel)",
       "rhSuiviHint": "Suivi des ressources humaines : mêmes onglets que le prévisionnel, chaque année dédoublée en colonnes Prévu / Réalisé.",
+      "fichesSuivi": "Exporter les fiches de suivi des actions (Excel)",
+      "fichesSuiviHint": "Une fiche par action suivie l'année choisie : prévu et réalisé (niveau, mois, opérateurs, temps de travail, budget, indicateurs de réponse, emprise, commentaires).",
+      "annee": "Année :",
       "arborescence": "Exporter le contenu de ce plan (Excel)",
       "arborescenceHint": "Sauvegarde du contenu déjà saisi dans ce plan, au format du modèle d'import : réimportable dans un autre plan en brouillon. Vide tant que le plan n'a pas d'arborescence.",
       "downloadError": "Le téléchargement de l'export a échoué."

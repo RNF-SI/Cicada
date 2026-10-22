@@ -53,6 +53,8 @@ Une grille actions × années pour saisir la réalisation des actions, ainsi que
 
 **On accède à la zone de saisie du suivi des actions en cliquant sur la case de l'année sur laquelle le suivi est souhaitée dans le tableau de l'onglet « Réalisation ».**
 
+Le bouton « **Exporter la fiche de suivi** », en tête de page, télécharge la fiche Excel de l'action pour l'année affichée : prévu et réalisé côte à côte (voir [§ 4.12](exports.md)). Il est réservé, comme tous les exports, aux référents du plan et aux gestionnaires.
+
 Pour chaque année, vous pouvez renseigner :
 
 - **Le niveau de réalisation** : réalisée, partiellement réalisée ou non réalisée ;

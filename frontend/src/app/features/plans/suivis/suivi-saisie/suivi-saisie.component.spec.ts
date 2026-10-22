@@ -1381,6 +1381,30 @@ describe('SuiviSaisieComponent — réglages du 1er suivi proposés (#761)', () 
   });
 });
 
+// -----------------------------------------------------------------------------
+// #727 — export de la fiche de suivi de l'action pour l'année ouverte.
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — export de la fiche de suivi (#727)', () => {
+  it('télécharge la fiche de l\'action pour l\'année affichée', () => {
+    const c: any = comp();
+    c.operationId = signal(12);
+    c.selectedYear = signal(2025);
+    c.operation = signal<any>({ id_operation: 12, code_operation: 'CS1' });
+    c.isExportingFiche = signal(false);
+    c.enjeuService = { downloadOperationFicheSuiviXlsx: jest.fn(() => of(new Blob(['x']))) };
+    c.telechargerFichier = jest.fn();
+    c.exporterFicheSuivi();
+    expect(c.enjeuService.downloadOperationFicheSuiviXlsx).toHaveBeenCalledWith(12, 2025);
+    expect(c.telechargerFichier).toHaveBeenCalledWith(expect.any(Blob), 'fiche-suivi-CS1-2025.xlsx');
+    expect(c.isExportingFiche()).toBe(false);
+  });
+
+  it('gabarit : bouton réservé à qui peut exporter le plan', () => {
+    const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    expect(html).toMatch(/@if \(peutExporter\(\)\)[\s\S]*?\(click\)="exporterFicheSuivi\(\)"/);
+  });
+});
+
 describe('SuiviSaisieComponent — réglages propres au suivi (#741)', () => {
   const OA = {
     annee: 2025,

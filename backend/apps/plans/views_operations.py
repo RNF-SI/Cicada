@@ -39,7 +39,8 @@ from .serializers_operations import (
     FonctionSerializer, PosteSerializer, PosteWriteSerializer, SuiviReglagesSerializer, SuiviDefaultsSerializer,
 )
 from .filters_operations import OperationFilter
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 
 
 # #452 — Champs de grille de scoring d'une métrique (réponse en format GRILLE).
@@ -375,7 +376,32 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             request, build_fiche_action_docx, 'docx',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
 
-    def _export_fiche(self, request, build, extension, content_type):
+    @extend_schema(
+        parameters=[OpenApiParameter('annee', int, required=True, description="Année du suivi")],
+        responses={(200, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'):
+                   OpenApiTypes.BINARY})
+    @action(detail=True, methods=['get'], url_path='export-fiche-suivi-xlsx')
+    def export_fiche_suivi_xlsx(self, request, pk=None):
+        """
+        #727 — Exporter la fiche de SUIVI de cette action pour une année (Excel).
+
+        GET /api/plans/operations/{id}/export-fiche-suivi-xlsx/?annee=2026
+
+        Prévu / réalisé de l'année ; mêmes droits que tous les exports.
+        """
+        from .services_export_fiche_suivi import build_fiche_suivi_workbook
+        annee = request.query_params.get('annee')
+        if not (annee or '').isdigit():
+            return Response({'annee': ["Indiquez l'année du suivi à exporter."]},
+                            status=status.HTTP_400_BAD_REQUEST)
+        return self._export_fiche(
+            request,
+            lambda plan, operation_ids: build_fiche_suivi_workbook(plan, int(annee), operation_ids),
+            'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            prefixe='fiche-suivi', suffixe=f'-{annee}')
+
+    def _export_fiche(self, request, build, extension, content_type,
+                      prefixe='fiche-action', suffixe=''):
         """Fiche d'une seule action, au format que produit `build`."""
         from rest_framework.exceptions import PermissionDenied
         from urllib.parse import quote as _url_quote
@@ -404,7 +430,7 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         suffix = (operation.code_operation or code or f'action-{operation.pk}').strip()
         response = HttpResponse(content, content_type=content_type)
         response['Content-Disposition'] = (
-            f"attachment; filename*=UTF-8''{_url_quote(f'fiche-action-{suffix}.{extension}')}"
+            f"attachment; filename*=UTF-8''{_url_quote(f'{prefixe}-{suffix}{suffixe}.{extension}')}"
         )
         return response
 

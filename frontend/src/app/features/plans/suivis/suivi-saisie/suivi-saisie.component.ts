@@ -53,6 +53,7 @@ import {
   hasTypeBudget, salaryIsComputed, tempsParPoste, salaryIsComputedReal, salaryOptionAvailable, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
 } from '../../../../shared/utils/operation-budget';
 import { planEndYear } from '../../../../shared/utils/plan-periode';
+import { downloadBlob } from '../../../../shared/utils/chart-image-export';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 
 interface Niveau {
@@ -113,6 +114,9 @@ export class SuiviSaisieComponent implements OnInit {
   });
   /** #740 — utilisateur lié au plan sans droit de saisie : il consulte le suivi. */
   lectureSeule = signal(false);
+  /** #727 — droit d'export du plan (référents et gestionnaires). */
+  peutExporter = signal(false);
+  isExportingFiche = signal(false);
   /** Saisie impossible : plan non validé (#379) ou consultation seule (#740). */
   saisieBloquee = computed(() => this.planNotValidated() || this.lectureSeule());
   /** #762 — « Modifier » cliqué : l'année déjà enregistrée repasse en saisie. */
@@ -1081,6 +1085,7 @@ export class SuiviSaisieComponent implements OnInit {
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);
         this.lectureSeule.set(plan.peut_saisir_suivis === false);
+        this.peutExporter.set(plan.peut_exporter === true);
         this.planYearStart.set(plan.annee_debut ?? null);
         this.planYearEnd.set(planEndYear(plan));  // #672
         this.proposerReglagesDuPlan();  // #761
@@ -1711,6 +1716,32 @@ export class SuiviSaisieComponent implements OnInit {
       );
     }
     this.applyReadOnlyLock();
+  }
+
+  /** #727 — fiche de suivi de l'action pour l'année affichée (Excel). */
+  exporterFicheSuivi(): void {
+    const opId = this.operationId();
+    if (opId == null || this.isExportingFiche()) return;
+    const annee = this.selectedYear();
+    const code = (this.operation()?.code_operation || `action-${opId}`).trim();
+    this.isExportingFiche.set(true);
+    this.enjeuService.downloadOperationFicheSuiviXlsx(opId, annee).subscribe({
+      next: blob => {
+        this.isExportingFiche.set(false);
+        this.telechargerFichier(blob, `fiche-suivi-${code}-${annee}.xlsx`);
+      },
+      error: () => {
+        this.isExportingFiche.set(false);
+        this.snack.open(
+          this.translate.instant('plans.exports.downloadError'),
+          this.translate.instant('common.actions.close'), { duration: 5000 },
+        );
+      },
+    });
+  }
+
+  private telechargerFichier(blob: Blob, filename: string): void {
+    downloadBlob(filename, blob);
   }
 
   goBack(): void {

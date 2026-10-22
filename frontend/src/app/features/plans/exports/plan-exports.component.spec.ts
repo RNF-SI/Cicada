@@ -40,6 +40,8 @@ const mockPlan = {
   nom: 'Plan Test',
   slug: 'plan-test',
   referents: [{ id_role: 42 }],
+  annee_debut: 2024,
+  annee_fin: 2027,
 };
 
 describe('PlanExportsComponent (#617)', () => {
@@ -62,6 +64,7 @@ describe('PlanExportsComponent (#617)', () => {
       downloadRhPrevisionnel: jest.fn().mockImplementation(blob),
       downloadRhSuivi: jest.fn().mockImplementation(blob),
       downloadArborescenceTemplate: jest.fn().mockImplementation(blob),
+      downloadFichesSuivi: jest.fn().mockImplementation(blob),
     };
     mockSnackBar = { open: jest.fn() };
 
@@ -155,6 +158,20 @@ describe('PlanExportsComponent (#617)', () => {
     // Export du contenu = modèle pré-rempli (empty = false).
     byId('arbo-export-prefilled').click();
     expect(mockAdminService.downloadArborescenceTemplate).toHaveBeenCalledWith(10, false);
+  });
+
+  it('#727 — fiches de suivi : export de l\'année choisie', () => {
+    const select = fixture.nativeElement.querySelector(
+      '[data-testid="fiches-suivi-annee"]') as HTMLSelectElement;
+    expect(select).toBeTruthy();
+    // Années du plan proposées.
+    expect(Array.from(select.options).map(o => o.textContent?.trim()))
+      .toEqual(['2024', '2025', '2026', '2027']);
+    component.setAnneeSuivi(2025);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="fiches-suivi-export"]') as HTMLButtonElement)
+      .click();
+    expect(mockAdminService.downloadFichesSuivi).toHaveBeenCalledWith(10, 2025);
   });
 
   it('masque les exports pour un utilisateur lié au plan mais non référent', () => {

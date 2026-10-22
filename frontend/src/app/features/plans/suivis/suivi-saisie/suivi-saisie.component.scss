@@ -187,6 +187,7 @@
       padding: $spacing-sm $spacing-lg;
       border-radius: $border-radius-pill;
       font-family: 'Nunito', sans-serif;
+      font-size: inherit;  // #727 — aussi pour le <button> d'export
       font-weight: 600;
       text-decoration: none;
       cursor: pointer;

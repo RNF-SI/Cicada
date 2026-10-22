@@ -1648,6 +1648,38 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
+    @extend_schema(
+        summary='Exporter les fiches de suivi des actions (année)',
+        description="#727 — une fiche par action dont le suivi est saisi l'année choisie : "
+                    "prévu / réalisé (niveau, mois, opérateurs, financeurs, temps de travail, "
+                    "budget, indicateurs de réponse, emprise, commentaires). Paramètre `annee` "
+                    "obligatoire. Réservé aux référents du plan et aux gestionnaires.",
+        parameters=[OpenApiParameter('annee', int, required=True, description="Année du suivi")],
+        responses={200: reponse_xlsx('Fiches de suivi des actions'), 400: REPONSE_400,
+                   403: REPONSE_403, 404: REPONSE_404})
+    @action(detail=True, methods=['get'], url_path='export-fiches-suivi-xlsx')
+    def export_fiches_suivi_xlsx(self, request, pk=None):
+        """
+        #727 — Fiches de suivi des actions d'une année (Excel).
+
+        GET /api/plans/plans/{id}/export-fiches-suivi-xlsx/?annee=2026
+        """
+        from .services_export_fiche_suivi import build_fiche_suivi_workbook
+
+        plan = self._get_plan_for_export()
+        annee = request.query_params.get('annee')
+        if not (annee or '').isdigit():
+            return Response({'annee': ["Indiquez l'année du suivi à exporter."]},
+                            status=status.HTTP_400_BAD_REQUEST)
+        content = build_fiche_suivi_workbook(plan, int(annee))
+        filename = f"fiches-suivi-{plan.slug or f'plan-{plan.pk}'}-{annee}.xlsx"
+        response = HttpResponse(
+            content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        return response
+
     @extend_schema(summary='Exporter les fiches action (Word)', description="Document Word des fiches action, une par page : même contenu que l'export Excel (cadre, détails, volet financier prévisionnel, indicateurs de réponse). Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", responses={200: reponse_docx('Fiches action du plan'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-fiches-actions-docx')
     def export_fiches_actions_docx(self, request, pk=None):

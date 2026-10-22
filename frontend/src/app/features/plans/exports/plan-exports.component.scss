@@ -86,6 +86,22 @@
   flex-direction: column;
   gap: 2px;
 
+  // #727 — choix de l'année exportée, sous le bouton.
+  .export-annee {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+
+    select {
+      font-family: inherit;
+      color: $black;
+      padding: $spacing-xxs $spacing-xs;
+      border: 1px solid $gray;
+      border-radius: $border-radius-sm;
+      background: $white;
+    }
+  }
+
   button {
     align-self: flex-start;
 

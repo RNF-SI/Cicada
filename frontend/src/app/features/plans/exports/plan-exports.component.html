@@ -65,6 +65,19 @@
                     <mat-spinner diameter="16"></mat-spinner>
                   }
                 </button>
+                @if (item.parAnnee) {
+                  <!-- #727 — année exportée -->
+                  <label class="export-annee">
+                    <span class="text-mention">{{ 'plans.exports.annee' | translate }}</span>
+                    <select [attr.data-testid]="'fiches-suivi-annee'"
+                            [value]="anneeSuivi()"
+                            (change)="setAnneeSuivi($any($event.target).value)">
+                      @for (a of anneesPlan(); track a) {
+                        <option [value]="a" [selected]="a === anneeSuivi()">{{ a }}</option>
+                      }
+                    </select>
+                  </label>
+                }
                 <span class="text-mention">{{ item.hintKey | translate }}</span>
               </div>
             }

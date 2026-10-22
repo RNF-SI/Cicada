@@ -70,6 +70,14 @@
               <!-- #589 — le bouton « Modifier l'action » a été retiré : depuis le
                    suivi, on consulte l'action via sa fiche, on ne l'édite pas. -->
               <!-- #534 — Accès à la fiche action (synthèse imprimable/exportable) -->
+              <!-- #727 — fiche de suivi (prévu / réalisé) de l'année affichée -->
+              @if (peutExporter()) {
+                <button type="button" class="btn-hero-secondary" data-testid="export-fiche-suivi"
+                        [disabled]="isExportingFiche()" (click)="exporterFicheSuivi()">
+                  <i class="fi fi-rr-download"></i>
+                  <span>{{ 'plans.suivis.saisie.exportFicheSuivi' | translate:{ year: selectedYear() } }}</span>
+                </button>
+              }
               <a class="btn-hero-secondary"
                  [routerLink]="['/plans', planSlug(), 'enjeux', 'operations', operationId(), 'fiche']"
                  [queryParams]="{ from: 'suivi' }">

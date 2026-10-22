@@ -25,6 +25,7 @@ import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.compon
 import { AdminService } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { AdminPlan } from '../../../core/models/admin.model';
+import { planEndYear } from '../../../shared/utils/plan-periode';
 
 /** Un export téléchargeable du plan. */
 export interface PlanExportItem {
@@ -36,8 +37,10 @@ export interface PlanExportItem {
   icon: string;
   labelKey: string;
   hintKey: string;
-  request: (planId: number) => Observable<Blob>;
-  filename: (slug: string) => string;
+  request: (planId: number, annee: number) => Observable<Blob>;
+  filename: (slug: string, annee: number) => string;
+  /** #727 — export d'une année du plan, choisie à côté du bouton. */
+  parAnnee?: boolean;
 }
 
 /** Groupe d'exports affiché en section. */
@@ -93,6 +96,29 @@ export class PlanExportsComponent implements OnInit {
     if (!p || !currentUser) return false;
     return p.referents?.some(r => r.id_role === currentUser.id) || false;
   });
+
+  /** #727 — années du plan (prolongation comprise), pour les exports par année. */
+  readonly anneesPlan = computed<number[]>(() => {
+    const p = this.plan();
+    if (!p?.annee_debut) return [];
+    const fin = planEndYear(p) ?? p.annee_debut;
+    return Array.from({ length: fin - p.annee_debut + 1 }, (_, i) => p.annee_debut! + i);
+  });
+
+  private readonly anneeChoisie = signal<number | null>(null);
+  /** Année proposée : celle choisie, sinon l'année courante bornée au plan. */
+  readonly anneeSuivi = computed<number>(() => {
+    const annees = this.anneesPlan();
+    const choisie = this.anneeChoisie();
+    if (choisie != null) return choisie;
+    const y = new Date().getFullYear();
+    if (!annees.length) return y;
+    return Math.min(Math.max(y, annees[0]), annees[annees.length - 1]);
+  });
+
+  setAnneeSuivi(annee: number): void {
+    this.anneeChoisie.set(Number(annee));
+  }
 
   /** Clés des exports en cours de téléchargement (plusieurs en parallèle possible). */
   readonly downloading = signal<ReadonlySet<string>>(new Set<string>());
@@ -178,6 +204,17 @@ export class PlanExportsComponent implements OnInit {
           request: id => this.adminService.downloadRhSuivi(id),
           filename: slug => `rh-suivi-${slug}.xlsx`,
         },
+        {
+          // #727 — fiche de suivi de chaque action suivie l'année choisie.
+          key: 'fiches-suivi',
+          testId: 'fiches-suivi-export',
+          icon: 'fi-rr-memo-circle-check',
+          labelKey: 'plans.exports.fichesSuivi',
+          hintKey: 'plans.exports.fichesSuiviHint',
+          request: (id, annee) => this.adminService.downloadFichesSuivi(id, annee),
+          filename: (slug, annee) => `fiches-suivi-${slug}-${annee}.xlsx`,
+          parAnnee: true,
+        },
       ],
     },
     {
@@ -230,10 +267,11 @@ export class PlanExportsComponent implements OnInit {
     const id = this.planId();
     if (id == null || !this.canManage() || this.isDownloading(item.key)) return;
     this.setDownloading(item.key, true);
-    item.request(id).subscribe({
+    const annee = this.anneeSuivi();
+    item.request(id, annee).subscribe({
       next: blob => {
         this.setDownloading(item.key, false);
-        this.triggerBlobDownload(blob, item.filename(this.planSlug() || `plan-${id}`));
+        this.triggerBlobDownload(blob, item.filename(this.planSlug() || `plan-${id}`, annee));
       },
       error: err => {
         this.setDownloading(item.key, false);

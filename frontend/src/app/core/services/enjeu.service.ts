@@ -840,6 +840,13 @@ export class EnjeuService {
    * un seul onglet). Réservé aux référents du plan / gestionnaires côté serveur.
    * GET /api/plans/operations/{id}/export-fiche-xlsx/
    */
+  /** #727 — fiche de SUIVI de cette action pour une année (Excel). */
+  downloadOperationFicheSuiviXlsx(operationId: number, annee: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/operations/${operationId}/export-fiche-suivi-xlsx/`, {
+      params: { annee: String(annee) }, responseType: 'blob',
+    });
+  }
+
   downloadOperationFicheXlsx(operationId: number): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/operations/${operationId}/export-fiche-xlsx/`, {
       responseType: 'blob',
