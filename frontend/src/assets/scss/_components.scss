@@ -191,13 +191,28 @@
 // ============================================
 // BLOC INFO CONSEIL (Kit UI)
 // ============================================
+// Charte (docs/DESIGN_SYSTEM.md « Bloc info/conseil », #742) : fond vert pâle
+// pour l'info, jaune pour l'avertissement, rouge léger + bordure pour l'erreur.
+// Texte noir uniquement (gris foncé non AA sur ces fonds). Icônes Uicons
+// (glyphes du set Rounded Regular 2.6.0 chargé par index.html), pas d'emoji.
+
+@mixin info-block-glyph($glyph) {
+  &::before {
+    content: $glyph;
+    font-family: 'uicons-regular-rounded';
+    font-style: normal;
+    font-weight: normal;
+    line-height: 1;
+  }
+}
 
 .info-block {
   display: flex;
   gap: $spacing-md;
   padding: $spacing-md;
-  background-color: $beige;
+  background-color: $secondary-pale-green;
   border-radius: $border-radius-md;
+  color: $black;
 
   &-icon {
     flex-shrink: 0;
@@ -206,12 +221,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: $secondary-yellow;
+    color: $primary-color;
     font-size: $font-size-h4;
 
-    &::before {
-      content: '💡';
-    }
+    @include info-block-glyph('\e27f'); // fi-rr-bulb
   }
 
   &-content {
@@ -220,13 +233,13 @@
     &-title {
       font-size: $font-size-base;
       font-weight: $font-weight-bold;
-      color: $black;
+      color: $primary-color;
       margin: 0 0 $spacing-xxs;
     }
 
     &-text {
       font-size: $font-size-base;
-      color: $gray-dark;
+      color: $black;
       margin: 0;
     }
   }
@@ -236,26 +249,32 @@
     border-left: $border-width-accent solid $success-color;
 
     .info-block-icon {
-      color: $success-color;
-      &::before { content: '✓'; }
+      color: $primary-color;
+      @include info-block-glyph('\e360'); // fi-rr-check-circle
     }
   }
 
   &.info-block-warning {
-    border-left: $border-width-accent solid $warning-color;
+    background-color: $secondary-yellow;
+    border-left: $border-width-accent solid $primary-color;
 
     .info-block-icon {
-      color: $warning-color;
-      &::before { content: '⚠'; }
+      color: $primary-color;
+      @include info-block-glyph('\f047'); // fi-rr-triangle-warning
     }
   }
 
   &.info-block-error {
+    background-color: rgba($error-color, 0.1);
     border-left: $border-width-accent solid $error-color;
 
     .info-block-icon {
       color: $error-color;
-      &::before { content: '✕'; }
+      @include info-block-glyph('\e4ce'); // fi-rr-cross-circle
+    }
+
+    .info-block-content-title {
+      color: $black;
     }
   }
 }

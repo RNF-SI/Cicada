@@ -982,22 +982,26 @@ Puces carrees avec couleur semantique.
 
 ### Bloc info/conseil
 
-Encadre avec fond colore pour informations importantes.
+Encadre avec fond colore pour informations importantes (`.info-block`, `_components.scss`, #742).
 
-| Type | Fond | Bordure gauche |
-|------|------|----------------|
-| Info/Conseil | `#C0E3CF` (vert pale) | - |
-| Warning | `#FEC180` (jaune) | - |
-| Erreur | `rgba(#E12329, 0.1)` | `#E12329` |
+| Type | Classe | Fond | Bordure gauche | Icone (Uicons) |
+|------|--------|------|----------------|----------------|
+| Info/Conseil | `.info-block` | `#C0E3CF` (vert pale) | - | `fi-rr-bulb` primary |
+| Succes | `.info-block-success` | `#C0E3CF` (vert pale) | `#04854B` | `fi-rr-check-circle` primary |
+| Warning | `.info-block-warning` | `#FEC180` (jaune) | `#025359` | `fi-rr-triangle-warning` primary |
+| Erreur | `.info-block-error` | `rgba(#E12329, 0.1)` | `#E12329` | `fi-rr-cross-circle` erreur |
 
-```scss
-.info-block {
-  background: $secondary-pale-green;
-  padding: $spacing-md;
-  border-radius: 8px;
+Texte toujours noir `#343433` (titre en primary sauf erreur) : le gris fonce n'est pas AA sur ces fonds.
+L'icone est posee par la feuille globale sur `<div class="info-block-icon"></div>` : jamais d'emoji.
 
-  .info-title { font-weight: bold; }
-}
+```html
+<div class="info-block">
+  <div class="info-block-icon"></div>
+  <div class="info-block-content">
+    <p class="info-block-content-title">Titre</p>
+    <p class="info-block-content-text">Texte</p>
+  </div>
+</div>
 ```
 
 ### Filtres
