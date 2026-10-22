@@ -472,6 +472,8 @@ def build_rh_suivi_workbook(plan) -> bytes:
 
     if pf.par_poste_suivi:
         _rh_par_poste_sheet(wb, pf, used, suivi=True)
+    # #754 — détail par action et par poste (ou temps total / organisme).
+    _rh_detail_sheet(wb, pf, used)
     return _save(wb)
 
 
@@ -552,6 +554,9 @@ def _build_budget_workbook(plan, *, suivi) -> bytes:
     # ses types de coût (sinon elle ne ferait que répéter le TOTAL).
     if pf.has_cost_detail:
         _budget_par_poste_sheet(wb, pf, used, suivi=suivi)
+    # #754 — détail par action et par poste de dépense, avec OLT / OO.
+    if suivi:
+        _budget_detail_sheet(wb, pf, used)
     return _save(wb)
 
 
@@ -677,6 +682,199 @@ def _plan_cost_by_year_real(pf, attr):
         for y in pf.years:
             out[y] += getattr(af.year_total(y), attr)
     return out
+
+
+# ---------------------------------------------------------------------------
+# #754 — Feuille « Détail par action » (exports de SUIVI)
+# ---------------------------------------------------------------------------
+
+DETAIL_SHEET = "Détail par action"
+
+
+class _DetailMatrix:
+    """Enjeu/FCR | OLT | OO | Code simplifié | Code action PG | Libellé | <détail>
+    | (Prévu, Réalisé) par année | TOTAL (Prévu, Réalisé)."""
+
+    def __init__(self, ws, years, *, fmt, detail_header):
+        self.ws, self.years, self.fmt = ws, years, fmt
+        self.headers = ["Enjeu / FCR", "OLT", "OO", "Code simplifié", "Code action PG",
+                        "Libellé de l'action", detail_header]
+        self.base = len(self.headers) + 1
+        self.ncols = len(self.headers) + 2 * len(years) + 2
+        self.r = 1
+        for c, w in enumerate((18, 28, 28, 11, 13, 36, 30), 1):
+            ws.column_dimensions[get_column_letter(c)].width = w
+        for c in range(self.base, self.ncols + 1):
+            ws.column_dimensions[get_column_letter(c)].width = 10
+
+    def _yc(self, i, real=False):
+        return self.base + 2 * i + (1 if real else 0)
+
+    def _tc(self, real=False):
+        return self.base + 2 * len(self.years) + (1 if real else 0)
+
+    def head(self, title, subtitle):
+        ws = self.ws
+        for r, (text, font) in enumerate(((title, _F_TITLE), (subtitle, _F_SUB)), 1):
+            ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=self.ncols)
+            c = ws.cell(r, 1, text); c.font = font; c.alignment = _AL_L
+        hr = 3
+        for col, h in enumerate(self.headers, 1):
+            ws.merge_cells(start_row=hr, start_column=col, end_row=hr + 1, end_column=col)
+            _set(ws, hr, col, h, fill=_HDR_FILL, font=_F_HDR, align=_AL_C)
+        cols = [(self._yc(i), str(year_label(y))) for i, y in enumerate(self.years)]
+        cols.append((self._tc(), "TOTAL"))
+        for col, label in cols:
+            ws.merge_cells(start_row=hr, start_column=col, end_row=hr, end_column=col + 1)
+            _set(ws, hr, col, label, fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
+            _set(ws, hr + 1, col, "Prévu", fill=_SECTION_FILL, font=_F_TOTAL, align=_AL_C)
+            _set(ws, hr + 1, col + 1, "Réalisé", fill=_SECTION_FILL, font=_F_TOTAL, align=_AL_C)
+        self.r = hr + 2
+
+    def row(self, ident, detail, prev, real, *, total=False):
+        ws, r = self.ws, self.r
+        fill = _TOTAL_FILL if total else None
+        font = _F_TOTAL if total else _F_CELL
+        for col, v in enumerate([*ident, detail], 1):
+            _set(ws, r, col, v, fill=fill, font=font, align=_AL_C if col in (4, 5) else _AL_L)
+        tp = tr = _ZERO
+        for i, y in enumerate(self.years):
+            pv, rv = prev.get(y, _ZERO), real.get(y, _ZERO)
+            tp += pv; tr += rv
+            _set(ws, r, self._yc(i), self.fmt(pv), fill=fill, font=font)
+            _set(ws, r, self._yc(i, True), self.fmt(rv), fill=fill, font=font)
+        _set(ws, r, self._tc(), self.fmt(tp), fill=_TOTAL_FILL, font=_F_TOTAL)
+        _set(ws, r, self._tc(True), self.fmt(tr), fill=_TOTAL_FILL, font=_F_TOTAL)
+        self.r += 1
+
+    def freeze(self):
+        self.ws.freeze_panes = self.ws.cell(5, self.base).coordinate
+        self.ws.sheet_view.showGridLines = False
+
+
+def _objectifs(op):
+    """(OLT, OO) de l'action, par ses indicateurs : NE → OLT, RA → OO."""
+    from .services_export_fiche_action import _linked_indicateurs
+
+    olts, oos = [], []
+    for ind in _linked_indicateurs(op):
+        ne = getattr(ind, "id_ne", None)
+        ra = getattr(ind, "id_resultat_attendu", None)
+        olt = getattr(ne, "id_olt", None) if ne else None
+        oo = getattr(ra, "id_oo", None) if ra else None
+        if olt and olt.libelle and olt.libelle not in olts:
+            olts.append(olt.libelle)
+        if oo and oo.libelle and oo.libelle not in oos:
+            oos.append(oo.libelle)
+    return " ; ".join(olts), " ; ".join(oos)
+
+
+def _ident(af):
+    olt, oo = _objectifs(af.op)
+    return [af.enjeu_label, olt, oo, af.categorie, af.code, af.libelle]
+
+
+def _budget_postes(af):
+    """Postes de dépense d'une action : (libellé, prévu(cellule), réalisé(cellule))."""
+    detail = af.has_cost_detail or af.op.get_declinaison_par_type_cout_realise()
+    if not detail:
+        # Enveloppes saisies, sans détail des coûts.
+        if af.has_type_budget:
+            return [("Budget de fonctionnement", lambda c: c.tot_fonct, lambda c: c.rtot_fonct),
+                    ("Budget d'investissement", lambda c: c.tot_invest, lambda c: c.rtot_invest)]
+        return [("Budget", lambda c: c.tot, lambda c: c.rtot)]
+    fonct = [
+        ("Coût salarial", lambda c: c.sal_fonct, lambda c: c.rsal_fonct),
+        ("Coût stage", lambda c: c.stage_fonct, lambda c: c.rstage_fonct),
+        ("Coût prestataire", lambda c: c.prest_fonct, lambda c: c.rprest_fonct),
+        ("Autres coûts", lambda c: c.autre_fonct - c.stage_fonct,
+         lambda c: c.rautre_fonct - c.rstage_fonct),
+    ]
+    invest = [
+        ("Coût salarial", lambda c: c.sal_invest, lambda c: c.rsal_invest),
+        ("Coût prestataire", lambda c: c.prest_invest, lambda c: c.rprest_invest),
+        ("Autres coûts", lambda c: c.autre_invest, lambda c: c.rautre_invest),
+    ]
+    if af.has_type_budget:
+        return ([(f"{l} — fonctionnement", p, r) for l, p, r in fonct]
+                + [(f"{l} — investissement", p, r) for l, p, r in invest])
+    # Sans type de budget : pas de distinction fonctionnement / investissement.
+    inv = {l: (p, r) for l, p, r in invest}
+    out = []
+    for l, p, r in fonct:
+        ip, ir = inv.get(l, (lambda c: _ZERO, lambda c: _ZERO))
+        out.append((l, lambda c, p=p, ip=ip: p(c) + ip(c), lambda c, r=r, ir=ir: r(c) + ir(c)))
+    return out
+
+
+def _budget_detail_sheet(wb, pf, used):
+    m = _DetailMatrix(wb.create_sheet(_title(DETAIL_SHEET, used)), pf.years,
+                      fmt=_fmt_euro, detail_header="Poste de dépense")
+    m.head(_plan_title(pf.plan), "BUDGET SUIVI (€) — détail des dépenses de chaque action")
+    for af in pf.actions:
+        ident = _ident(af)
+        rows = 0
+        for label, prev_of, real_of in _budget_postes(af):
+            prev = {y: prev_of(af.year_total(y)) for y in pf.years}
+            real = {y: real_of(af.year_total(y)) for y in pf.years}
+            if any(prev.values()) or any(real.values()):
+                m.row(ident, label, prev, real)
+                rows += 1
+        if rows:
+            m.row(ident, "Total action",
+                  {y: af.year_total(y).tot for y in pf.years},
+                  {y: af.year_total(y).rtot for y in pf.years}, total=True)
+    m.freeze()
+
+
+def _rh_cible(ligne) -> str:
+    if ligne.id_poste_id:
+        return ligne.id_poste.libelle or f"Poste {ligne.id_poste_id}"
+    if ligne.id_organisme_id:
+        return ligne.id_organisme.nom_organisme or f"Organisme {ligne.id_organisme_id}"
+    return "Temps de travail total"
+
+
+def _rh_detail_sheet(wb, pf, used):
+    from collections import defaultdict
+    from .models_operations import OperationAnneeRH, RealisationOperationAnneeRH
+
+    m = _DetailMatrix(wb.create_sheet(_title(DETAIL_SHEET, used)), pf.years,
+                      fmt=_fmt_jours, detail_header="Poste / temps de travail")
+    m.head(_plan_title(pf.plan), "RESSOURCES HUMAINES — SUIVI (jours) — détail par action")
+    for af in pf.actions:
+        op = af.op
+        prev, real = defaultdict(lambda: defaultdict(lambda: _ZERO)), defaultdict(lambda: defaultdict(lambda: _ZERO))
+        order = []
+
+        def cle(ligne):
+            label = _rh_cible(ligne)
+            if not ligne.finance:
+                label += " (bénévolat / partenariat)"
+            if label not in order:
+                order.append(label)
+            return label
+
+        for l in (OperationAnneeRH.objects.filter(id_operation_annee__id_operation=op)
+                  .select_related("id_operation_annee", "id_poste", "id_organisme")
+                  .order_by("pk")):
+            prev[cle(l)][l.id_operation_annee.annee] += l.jours or _ZERO
+        for l in (RealisationOperationAnneeRH.objects
+                  .filter(id_realisation_operation_annee__id_operation_annee__id_operation=op)
+                  .select_related("id_realisation_operation_annee__id_operation_annee",
+                                  "id_poste", "id_organisme")
+                  .order_by("pk")):
+            real[cle(l)][l.id_realisation_operation_annee.id_operation_annee.annee] += l.jours or _ZERO
+        if not order:
+            continue
+        ident = _ident(af)
+        for label in order:
+            m.row(ident, label, dict(prev[label]), dict(real[label]))
+        m.row(ident, "Total action",
+              {y: sum((prev[l].get(y, _ZERO) for l in order), _ZERO) for y in pf.years},
+              {y: sum((real[l].get(y, _ZERO) for l in order), _ZERO) for y in pf.years},
+              total=True)
+    m.freeze()
 
 
 def _save(wb) -> bytes:
