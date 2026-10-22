@@ -16,8 +16,8 @@ from apps.search.indexing import index_plan
 from tests.factories.core import SiteTypeNomenclatureFactory
 from tests.factories.enjeux import (
     EnjeuFactory, FacteurInfluenceFactory, IndicateurFactory,
-    NiveauExigenceFactory, ObjectifLongTermeFactory, OperationFactory,
-    PressionFactory,
+    NiveauExigenceFactory, NomenclatureTypeIndicateurFactory,
+    ObjectifLongTermeFactory, OperationFactory, PressionFactory,
 )
 from tests.factories.plans import CorSitePgFactory, PlanGestionFactory
 from tests.factories.users import (
@@ -83,7 +83,15 @@ def _plan_avec_contenu(nom, libelle_enjeu, prefixe, site=None, statut='valide'):
     PressionFactory(id_facteur_influence=facteur, libelle=f'Pression {prefixe}')
     olt = ObjectifLongTermeFactory(id_enjeu=enjeu, libelle=f'Objectif {prefixe}')
     niveau = NiveauExigenceFactory(id_olt=olt)
-    indicateur = IndicateurFactory(id_ne=niveau, nom_indicateur=f'Indicateur {prefixe}')
+    # Type fixé : `NomenclatureTypeIndicateurFactory` tourne sur ETAT / PRESSION
+    # / REPONSE, et selon les tests passés avant, l'indicateur racine devenait
+    # un indicateur de réponse, détaché de l'arborescence (#756).
+    etat = NomenclatureTypeIndicateurFactory(
+        cd_nomenclature='ETAT', mnemonique='ETAT', label='État',
+    )
+    indicateur = IndicateurFactory(
+        id_ne=niveau, nom_indicateur=f'Indicateur {prefixe}', type_indicateur=etat,
+    )
 
     plan.statut = statut
     plan.save()
