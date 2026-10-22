@@ -179,3 +179,11 @@ def test_conteneurs_de_l_application_joignent_l_hote():
 
     for service_name in ('web', 'celery-worker', 'celery-beat'):
         assert 'host.docker.internal:host-gateway' in compose['services'][service_name]['extra_hosts']
+
+
+def test_la_mise_a_jour_relance_l_installateur():
+    """Sans relance, une mise à jour laisse tourner l'installateur de la version
+    précédente : le formulaire ignorait les corrections du paquet installé."""
+    postinst = (INSTALL_DIR.parents[3] / 'DEBIAN/postinst').read_text()
+
+    assert 'systemctl try-restart cicada-installer.service' in postinst

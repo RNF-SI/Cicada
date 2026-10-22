@@ -113,6 +113,10 @@ fi
 if [ -d /run/systemd/system ]; then
     systemctl daemon-reload || true
     systemctl enable --now cicada-installer.service || true
+    # enable --now ne relance pas un service déjà démarré : après une mise à
+    # jour, l'installateur servait encore le code de la version précédente
+    # (0.1.61 : PostgreSQL local toujours refusé par le formulaire).
+    systemctl try-restart cicada-installer.service || true
     systemctl enable --now cicada-heartbeat.timer || true
     systemctl enable --now cicada-updater.path || true
     systemctl enable --now cicada-heartbeat-check.path || true
