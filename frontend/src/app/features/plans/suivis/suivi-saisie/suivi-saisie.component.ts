@@ -257,6 +257,15 @@ export class SuiviSaisieComponent implements OnInit {
     return this.showInvest();
   }
 
+  /**
+   * #759 — temps global sans catégorie de dépense (aucune ventilation) : un
+   * seul « Temps de travail total » par année, sans ajout de ligne ni
+   * distinction agent / partenaire.
+   */
+  rhTotalUnique(): boolean {
+    return !!this.operation() && this.computeRhMode() === 'global' && !this.showRhCategorie();
+  }
+
   // ---- #735 — action programmée GLOBALEMENT sur sa période ------------------
 
   /** Budget et temps de travail prévus pour toute la période, sans détail annuel. */
@@ -1334,6 +1343,27 @@ export class SuiviSaisieComponent implements OnInit {
   private hydrateRhArray(oa: OperationAnnee | null): void {
     const fa = this.rhLignesFA;
     while (fa.length) fa.removeAt(0);
+
+    // #759 — une seule ligne : le prévu et le réalisé de l'année, tous lots
+    // confondus, rattachée à la première ligne prévue.
+    if (this.rhTotalUnique()) {
+      const prevus = this.isGlobale() ? [] : oa?.rh_lignes ?? [];
+      const reels = oa?.realisation?.rh_lignes ?? [];
+      const somme = (ls: OperationRHLigne[]) => ls.length
+        ? ls.reduce((t, l) => t + (Number(l.jours) || 0), 0)
+        : null;
+      fa.push(this.fb.group({
+        id_operation_annee_rh: [prevus[0]?.id_operation_annee_rh ?? null],
+        id_poste: [null],
+        id_organisme: [null],
+        finance: [true],
+        categorie_depense: ['fonctionnement'],
+        plan_jours: [somme(prevus)],
+        plan_finance: [true],
+        jours: [somme(reels.filter(l => l.jours != null))],
+      }));
+      return;
+    }
     if (!oa) return;
 
     const reelles = oa.realisation?.rh_lignes ?? [];

@@ -1060,7 +1060,17 @@ class VentilationPlansSeeder(BaseSeeder):
                 ))
             return lignes
 
-        # Modes globaux : une ligne de temps total par catégorie de dépense.
+        # #759 — aucune ventilation : un seul temps de travail total, sans
+        # distinction agent / partenaire.
+        if mode == 'none':
+            return [OperationAnneeRH.objects.create(
+                id_operation_annee=oa,
+                jours=sum((_dec(jours) for _cle, jours, _cat in action['rh']), Decimal('0')),
+                categorie_depense=_FONCT,
+                finance=True,
+            )]
+
+        # Par type de budget : une ligne de temps total par catégorie de dépense.
         cumul_cat: Dict[str, Decimal] = {}
         for _cle, jours, categorie in action['rh']:
             cumul_cat[categorie] = cumul_cat.get(categorie, Decimal('0')) + _dec(jours)

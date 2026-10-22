@@ -829,6 +829,13 @@ export class OperationFormComponent implements OnInit {
     rhModeFor(this.ventilationMode(), this.declinaisonParTypeCout(), this.declinaisonParPoste()),
   );
 
+  /**
+   * #759 — « aucune ventilation » (temps global, sans catégorie de dépense) :
+   * un seul « Temps de travail total » par année, sans ajout de ligne ni
+   * distinction agent / partenaire.
+   */
+  rhTotalUnique = computed<boolean>(() => this.rhMode() === 'global' && !this.showRhCategorie());
+
   rhLines: Array<{
     id_poste: number | null;
     id_organisme: number | null;
@@ -3481,6 +3488,23 @@ export class OperationFormComponent implements OnInit {
     // des lots ajoutés à la main.
     if (mode === 'global') {
       const globals = this.rhLines.filter(l => l.id_poste == null && l.id_organisme == null);
+      // #759 — sans catégorie de dépense, les lots se fondent en un seul temps
+      // total (financé : plus de distinction agent / partenaire).
+      if (this.rhTotalUnique()) {
+        const jours: Record<number, number | null> = {};
+        for (const l of globals) {
+          for (const [k, v] of Object.entries(l.jours)) {
+            if (v == null) continue;
+            const i = Number(k);
+            jours[i] = (jours[i] ?? 0) + v;
+          }
+        }
+        this.rhLines = [{
+          id_poste: null, id_organisme: null, finance: true,
+          categorie_depense: 'fonctionnement', jours, derived: true,
+        }];
+        return;
+      }
       this.rhLines = globals.length
         ? globals.map((l, i) => ({ ...l, derived: i === 0 }))
         : [{ id_poste: null, id_organisme: null, finance: true, categorie_depense: 'fonctionnement', jours: {}, derived: true }];

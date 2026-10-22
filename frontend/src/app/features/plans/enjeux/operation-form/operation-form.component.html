@@ -888,7 +888,7 @@
                             }
                             <td class="rh-actions-col"></td>
                           </tr>
-                          @if (hasRhNonFinance()) {
+                          @if (hasRhNonFinance() && !rhTotalUnique()) {
                             <tr class="rh-subtotal-row">
                               <td class="label-cell rh-target-col">{{ 'plans.rh.finance' | translate }}</td>
                               @if (showRhCategorie()) { <td class="rh-finance-col"></td> }
@@ -910,7 +910,8 @@
                       </table>
                     </div>
 
-                    @if (!isReadOnly()) {
+                    <!-- #759 — temps total unique : pas de lot supplémentaire. -->
+                    @if (!isReadOnly() && !rhTotalUnique()) {
                       <div class="rh-controls">
                         <button type="button" mat-stroked-button class="rh-add-btn" (click)="addRhLine()">
                           <i class="fi fi-rr-plus"></i>

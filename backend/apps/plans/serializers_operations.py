@@ -8,6 +8,7 @@ from drf_spectacular.types import OpenApiTypes
 
 from config.spectacular import geojson_geometry_schema
 
+from .rh_total import est_temps_total_unique, fusionner_annee, fusionner_temps_total
 from .models_operations import (
     Protocole, SuiviInventaire,
     Operation, CorOperationSite, CorOperationMetrique,
@@ -715,6 +716,7 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
         instance = super().create(validated_data)
         if rh_data is not None:
             self._set_rh_lignes(instance, rh_data)
+            self._fusionner_temps_total(instance)
         return instance
 
     def update(self, instance, validated_data):
@@ -722,7 +724,15 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         if rh_data is not None:
             self._set_rh_lignes(instance, rh_data)
+            self._fusionner_temps_total(instance)
         return instance
+
+    @staticmethod
+    def _fusionner_temps_total(instance):
+        """#759 — aucune ventilation : un seul temps total réalisé par année."""
+        annee = instance.id_operation_annee
+        if est_temps_total_unique(annee.id_operation):
+            fusionner_annee(annee)
 
 
 class SuiviReglagesSerializer(serializers.Serializer):
@@ -1718,6 +1728,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         # Nested: operation_annees and finances
         self._create_operation_annees(operation, annees_data)
         self._save_annee_globale(operation, globale_data)
+        # #759 — aucune ventilation : un seul temps de travail total par année.
+        fusionner_temps_total(operation)
         self._create_finances(operation, finances_data)
 
         return operation
@@ -1809,6 +1821,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         # supprimée dès que l'action redevient annuelle.
         if globale_data is not None or not instance.programmation_globale:
             self._save_annee_globale(instance, globale_data)
+        # #759 — aucune ventilation : un seul temps de travail total par année.
+        fusionner_temps_total(instance)
 
         # Replace nested finances (delete + recreate)
         if finances_data is not None:

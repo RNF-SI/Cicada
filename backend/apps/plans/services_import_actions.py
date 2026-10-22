@@ -56,6 +56,7 @@ from .models_operations import (
     Poste,
 )
 from .services_export_finance import ORG_VENTILATION_MODES, TYPE_VENTILATION_MODES
+from .rh_total import fusionner_temps_total
 from .services_import import (
     ERROR,
     FORMAT_VERSION,
@@ -2313,6 +2314,11 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         # Une année qui porte un montant est « programmée » (autoCheckPeriodicite).
         oa.periodicite = bool((oa.budget or 0) > 0 or (oa.etp or 0) > 0)
         oa.save()
+
+    # #759 — aucune ventilation : un seul temps de travail total par année,
+    # comme l'enregistre la fiche action.
+    for code in {code for code, _annee in touched}:
+        fusionner_temps_total(op_by_code[code])
 
     # Les organismes de la ventilation sont ceux des sites de l'action : sans ce
     # rattachement, la fiche action ne les proposerait pas (plan multi-sites).

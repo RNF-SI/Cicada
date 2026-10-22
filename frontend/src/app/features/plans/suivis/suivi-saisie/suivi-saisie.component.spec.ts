@@ -241,6 +241,53 @@ describe('SuiviSaisieComponent — lignes RH (#560)', () => {
   /** Réel rattaché à une ligne prévue via la FK. */
   const reelDe = (prev: any, extra: any) => ({ ...prev, ...extra });
 
+  describe('#759 — aucune ventilation : un seul temps de travail total', () => {
+    const G_AGENT = { id_operation_annee_rh: 21, id_poste: null, id_organisme: null, jours: '25.00', finance: true, categorie_depense: 'fonctionnement' };
+    const G_PART = { id_operation_annee_rh: 22, id_poste: null, id_organisme: null, jours: '6.00', finance: false, categorie_depense: 'benevolat_partenariat' };
+    function noneComp(mode = 'none'): any {
+      const c = rhComp();
+      c.operation.set({ ventilation_mode: mode, declinaison_par_type_cout: false, declinaison_par_poste: false });
+      return c;
+    }
+
+    it('prévu et réalisé en plusieurs lots fusionnent en une ligne', () => {
+      const c = noneComp();
+      expect(c.rhTotalUnique()).toBe(true);
+      c.hydrateRhArray({
+        rh_lignes: [G_AGENT, G_PART],
+        realisation: { rh_lignes: [reelDe(G_AGENT, { jours: '20.00' }), reelDe(G_PART, { jours: '4.00' })] },
+      });
+      expect(c.rhLignesFA.length).toBe(1);
+      const v = c.rhLignesFA.at(0).value;
+      expect(Number(v.plan_jours)).toBe(31);
+      expect(Number(v.jours)).toBe(24);
+      expect(v.finance).toBe(true);
+      expect(v.id_poste).toBeNull();
+      expect(v.id_organisme).toBeNull();
+    });
+
+    it('sans prévu cette année : une ligne vide à saisir', () => {
+      const c = noneComp();
+      c.hydrateRhArray({ rh_lignes: [], realisation: null });
+      expect(c.rhLignesFA.length).toBe(1);
+      expect(c.rhLignesFA.at(0).value.jours).toBeNull();
+    });
+
+    it('par type de budget : les lots par catégorie restent distincts', () => {
+      const c = noneComp('by_type');
+      expect(c.rhTotalUnique()).toBe(false);
+      c.hydrateRhArray({ rh_lignes: [G_AGENT, G_PART], realisation: null });
+      expect(c.rhLignesFA.length).toBe(2);
+    });
+
+    it('gabarit : ni ajout ni suppression de ligne, ni sous-totaux agent / partenaire', () => {
+      const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+      expect(html).toMatch(/@if \(!formVerrouille\(\) && !rhTotalUnique\(\)\) \{\s*<button type="button" class="rh-remove-btn"/);
+      expect(html).toMatch(/@if \(!formVerrouille\(\) && !rhTotalUnique\(\)\) \{\s*<div class="rh-controls">/);
+      expect(html).toMatch(/@if \(!rhTotalUnique\(\)\) \{\s*<tr class="rh-subtotal-row">/);
+    });
+  });
+
   describe('hydrateRhArray', () => {
     it('pré-remplit le prévu et y fusionne le réalisé correspondant', () => {
       const c = rhComp();

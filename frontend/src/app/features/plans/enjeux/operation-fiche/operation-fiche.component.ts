@@ -324,10 +324,15 @@ export class OperationFicheComponent implements OnInit {
       categorie: CategorieDepense; jours: number;
     }>();
     const op = this.operation();
+    const typeBudget = this.showTypeBudget();
     for (const oa of op ? prevAnnees(op) : []) {
       for (const l of oa.rh_lignes ?? []) {
-        const categorie: CategorieDepense =
-          l.categorie_depense ?? (l.finance ? 'fonctionnement' : 'benevolat_partenariat');
+        // #759 — temps total sans type de budget (aucune ventilation) : un seul
+        // « Temps de travail total », sans distinction agent / partenaire.
+        const totalUnique = !typeBudget && l.id_poste == null && l.id_organisme == null;
+        const categorie: CategorieDepense = totalUnique
+          ? 'fonctionnement'
+          : l.categorie_depense ?? (l.finance ? 'fonctionnement' : 'benevolat_partenariat');
         const key = `${l.id_poste ?? ''}|${l.id_organisme ?? ''}|${categorie}`;
         // #580 — une ligne sans cible (poste ou organisme) est un temps de
         // travail total, saisi sans déclinaison ni ventilation par organisme.

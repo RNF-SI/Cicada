@@ -390,6 +390,25 @@ describe('OperationFicheComponent — programmation détaillée (#556)', () => {
     expect(rows.map(r => r.finance).sort()).toEqual([false, true]);
   });
 
+  it('#759 — aucune ventilation : un seul « Temps de travail total », sans distinction agent / partenaire', () => {
+    const fixture = setup(operationWithAnnees([
+      {
+        annee: 2024, periodicite: true,
+        rh_lignes: [
+          { jours: 25, finance: true, categorie_depense: 'fonctionnement' },
+          { jours: 6, finance: false, categorie_depense: 'benevolat_partenariat' },
+        ],
+      },
+    ]));
+    const c = fixture.componentInstance;
+    const rows = c.rhBreakdown();
+    expect(rows.length).toBe(1);
+    expect(rows[0].libelle).toBe('enjeux.operations.rh.globalRowLabel');
+    expect(rows[0].jours).toBe(31);
+    expect(c.hasRhNonFinance()).toBe(false);
+    expect(c.totalJours()).toBe(31);
+  });
+
   it('n\'affiche pas les colonnes de type de budget en saisie à plat', () => {
     const fixture = setup(operationWithAnnees([{ annee: 2024, periodicite: true, budget: 100, etp: 3 }]));
     expect(fixture.componentInstance.hasBudgetTypes()).toBe(false);

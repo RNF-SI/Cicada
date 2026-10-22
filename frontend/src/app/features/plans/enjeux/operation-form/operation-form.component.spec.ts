@@ -4,6 +4,8 @@
  * On teste la logique métier (helpers, save payload, inférence mode au chargement)
  * sans monter le composant complet (trop de dépendances).
  */
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { TestBed } from '@angular/core/testing';
 import { signal, computed } from '@angular/core';
 import { Subject, of, throwError } from 'rxjs';
@@ -86,6 +88,10 @@ function createComponentInstance(): OperationFormComponent {
     (comp as any).declinaisonParPoste(),
   ));
   (comp as any).directTotalMode = computed(() => (comp as any).ventilationMode() === 'none');
+  (comp as any).showRhCategorie = computed(() => (comp as any).hasTypeVentilation());
+  // #759 — temps global sans catégorie (aucune ventilation) : une seule ligne.
+  (comp as any).rhTotalUnique = computed(
+    () => (comp as any).rhMode() === 'global' && !(comp as any).showRhCategorie());
   (comp as any).selectedSiteIdsVersion = signal(0);
   (comp as any).planSites = signal([
     {
@@ -1416,6 +1422,39 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       expect(global).toBeDefined();
       expect(global!.jours[0]).toBe(12);
       expect(comp.rhLines.length).toBe(1);
+    });
+
+    it('#759 — aucune ventilation : les lignes de temps total fusionnent en une seule', () => {
+      comp.rhLines = [
+        { id_poste: null, id_organisme: null, finance: true, categorie_depense: 'fonctionnement', jours: { 0: 25, 1: 20 }, derived: true },
+        { id_poste: null, id_organisme: null, finance: false, categorie_depense: 'benevolat_partenariat', jours: { 0: 6, 2: 3 }, derived: false },
+      ];
+      (comp as any).syncRhLines();
+      expect((comp as any).rhTotalUnique()).toBe(true);
+      expect(comp.rhLines.length).toBe(1);
+      const [line] = comp.rhLines;
+      expect(line.jours).toEqual({ 0: 31, 1: 20, 2: 3 });
+      expect(line.finance).toBe(true);
+      expect(line.categorie_depense).toBe('fonctionnement');
+      expect(line.derived).toBe(true);
+      expect(comp.hasRhNonFinance()).toBe(false);
+    });
+
+    it('#759 — par type de budget : les lignes globales par catégorie restent distinctes', () => {
+      (comp as any).ventilationMode.set('by_type');
+      comp.rhLines = [
+        { id_poste: null, id_organisme: null, finance: true, categorie_depense: 'fonctionnement', jours: { 0: 25 }, derived: true },
+        { id_poste: null, id_organisme: null, finance: false, categorie_depense: 'benevolat_partenariat', jours: { 0: 6 }, derived: false },
+      ];
+      (comp as any).syncRhLines();
+      expect((comp as any).rhTotalUnique()).toBe(false);
+      expect(comp.rhLines.length).toBe(2);
+    });
+
+    it('#759 — gabarit : ni ajout de ligne ni sous-totaux agent / partenaire pour le temps total unique', () => {
+      const html = readFileSync(join(__dirname, 'operation-form.component.html'), 'utf8');
+      expect(html).toMatch(/@if \(hasRhNonFinance\(\) && !rhTotalUnique\(\)\)/);
+      expect(html).toMatch(/@if \(!isReadOnly\(\) && !rhTotalUnique\(\)\) \{\s*<div class="rh-controls">/);
     });
 
     it('démarre vide en mode postes : saisie manuelle (#606)', () => {

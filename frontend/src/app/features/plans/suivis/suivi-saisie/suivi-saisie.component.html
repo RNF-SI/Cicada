@@ -302,7 +302,7 @@
                              formControlName="jours" placeholder="j" />
                     </td>
                     <td class="rh-actions-col">
-                      @if (!formVerrouille()) {
+                      @if (!formVerrouille() && !rhTotalUnique()) {
                         <button type="button" class="rh-remove-btn"
                                 (click)="removeRhLigne(li)"
                                 [title]="'common.actions.delete' | translate">
@@ -322,6 +322,8 @@
                   <td class="rh-num-col active">{{ sumRh('jours') | number:'1.0-2' }} j</td>
                   <td></td>
                 </tr>
+                <!-- #759 — temps total unique : pas de distinction agent / partenaire. -->
+                @if (!rhTotalUnique()) {
                 <tr class="rh-subtotal-row">
                   <td>{{ 'plans.rh.finance' | translate }}</td>
                   <td></td>
@@ -340,11 +342,12 @@
                   <td class="rh-num-col active">{{ sumRh('jours', false) | number:'1.0-2' }} j</td>
                   <td></td>
                 </tr>
+                }
               </tbody>
             </table>
           }
 
-          @if (!formVerrouille()) {
+          @if (!formVerrouille() && !rhTotalUnique()) {
             <div class="rh-controls">
               <button type="button" mat-stroked-button class="btn-sm" (click)="addRhLigne()">
                 <i class="fi fi-rr-plus"></i>

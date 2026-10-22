@@ -44,7 +44,7 @@ Deux cases complètent le mode de ventilation :
 - par année → globale : les montants et les jours des années sont **additionnés** dans la colonne « Période » ; la répartition par année disparaît ;
 - globale → par année : la colonne « Période » est **vidée** ; les montants sont à ressaisir année par année.
 
-Le temps de travail distingue le temps agent (gestionnaire) et le temps partenaire / bénévole (valorisé). Quand le mode inclut le type de budget, chaque ligne porte une catégorie de dépense (fonctionnement, investissement, bénévolat partenariat) ; sinon, le temps d'un poste bénévole ou partenaire est valorisé d'office. Une nouvelle action reprend le paramétrage de ventilation de la dernière action saisie dans le plan.
+Le temps de travail distingue le temps agent (gestionnaire) et le temps partenaire / bénévole (valorisé), sauf en « aucune ventilation » sans déclinaison par type de coût : le temps s'y réduit à un seul « Temps de travail total » par année, sans ligne supplémentaire. Quand le mode inclut le type de budget, chaque ligne porte une catégorie de dépense (fonctionnement, investissement, bénévolat partenariat) ; sinon, le temps d'un poste bénévole ou partenaire est valorisé d'office. Une nouvelle action reprend le paramétrage de ventilation de la dernière action saisie dans le plan.
 
 Le formulaire propose deux boutons :
 
