@@ -61,6 +61,8 @@ interface AggregatedCell {
   realise: number;
   hasRealise: boolean;
   ecartPct: number | null;
+  /** #749 — action programmée globalement : pas de prévu annuel (affiché « / »). */
+  prevSansObjet: boolean;
 }
 
 interface FlatOperation {
@@ -432,6 +434,8 @@ export class PlanSuiviActionsComponent implements OnInit {
     let previsionnel = 0;
     let realise = 0;
     let hasRealise = false;
+    // #749 — groupe composé uniquement d'actions globales : pas de prévu annuel.
+    let prevSansObjet = items.length > 0;
     for (const item of items) {
       const c = metric === 'budget'
         ? this.aggregateBudget(item.operation, period)
@@ -439,9 +443,10 @@ export class PlanSuiviActionsComponent implements OnInit {
       previsionnel += c.previsionnel;
       realise += c.realise;
       if (c.hasRealise) hasRealise = true;
+      if (!c.prevSansObjet) prevSansObjet = false;
     }
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
-    return { previsionnel, realise, hasRealise, ecartPct };
+    return { previsionnel, realise, hasRealise, ecartPct, prevSansObjet };
   }
 
   priorites = computed(() => {
@@ -727,7 +732,8 @@ export class PlanSuiviActionsComponent implements OnInit {
     const cy = this.currentYear();
     const annees = (op.operation_annees || []).filter(oa => {
       if (period === 'current') return oa.annee === cy;
-      if (period === 'past') return oa.annee < cy;
+      // #749 — la période écoulée comprend l'année en cours.
+      if (period === 'past') return oa.annee <= cy;
       return true; // total
     });
 
@@ -768,7 +774,10 @@ export class PlanSuiviActionsComponent implements OnInit {
     }
 
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
-    return { previsionnel, realise, hasRealise, ecartPct };
+    // #749 — sur l'année en cours et la période écoulée, une action globale n'a
+    // pas de prévu à comparer : « / » plutôt qu'un 0 € trompeur.
+    const prevSansObjet = !!globale && period !== 'total';
+    return { previsionnel, realise, hasRealise, ecartPct, prevSansObjet };
   }
 
   // ===========================================================================
@@ -988,7 +997,8 @@ export class PlanSuiviActionsComponent implements OnInit {
           cellules: [
             orgName,
             ...this.identityCells(item),
-            ...cells.flatMap(c => [c.previsionnel, c.hasRealise ? c.realise : null]),
+            // #749 — prévu sans objet (action globale) : « / », comme à l'écran.
+            ...cells.flatMap(c => [c.prevSansObjet ? '/' : c.previsionnel, c.hasRealise ? c.realise : null]),
           ],
         });
       }
@@ -1001,7 +1011,7 @@ export class PlanSuiviActionsComponent implements OnInit {
         cellules: [
           `${this.t('plans.suivis.actions.export.totalGroupe')} ${orgName}`,
           ...this.emptyIdentityCells(),
-          ...totals.flatMap(c => [c.previsionnel, c.hasRealise ? c.realise : null]),
+          ...totals.flatMap(c => [c.prevSansObjet ? '/' : c.previsionnel, c.hasRealise ? c.realise : null]),
         ],
       });
     }

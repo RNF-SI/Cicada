@@ -470,17 +470,27 @@
                         @for (period of ['current', 'past', 'total']; track period) {
                           @let gcell = groupAggregate(group.fullOperations, $any(period), 'budget');
                           <td class="col-agg">
-                            <div class="agg-prev">{{ gcell.previsionnel | number:'1.0-0':'fr-FR' }} €</div>
                             @if (gcell.hasRealise) {
-                              @let gRestant = gcell.previsionnel - gcell.realise;
-                              <div class="agg-real">
-                                <span class="ecart" [class.positive]="gRestant >= 0" [class.negative]="gRestant < 0"
-                                      [matTooltip]="(gRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
-                                  <i class="fi" [class.fi-rr-arrow-up]="gRestant >= 0" [class.fi-rr-arrow-down]="gRestant < 0"></i>
-                                  {{ (gRestant >= 0 ? gRestant : -gRestant) | number:'1.0-0':'fr-FR' }} €
-                                </span>
-                              </div>
+                              <div class="agg-main">{{ gcell.realise | number:'1.0-0':'fr-FR' }} €</div>
+                            } @else {
+                              <div class="agg-main agg-main-empty">—</div>
                             }
+                            <!-- #749 — le prévu, en rappel sous le réalisé. -->
+                            <div class="agg-sub">
+                              @if (gcell.prevSansObjet) {
+                                <span class="agg-prev" [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">{{ 'plans.suivis.actions.prevuLabel' | translate }} /</span>
+                              } @else {
+                                <span class="agg-prev">{{ 'plans.suivis.actions.prevuLabel' | translate }} {{ gcell.previsionnel | number:'1.0-0':'fr-FR' }} €</span>
+                                @if (gcell.hasRealise) {
+                                  @let gRestant = gcell.previsionnel - gcell.realise;
+                                  <span class="ecart" [class.positive]="gRestant >= 0" [class.negative]="gRestant < 0"
+                                        [matTooltip]="(gRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
+                                    <i class="fi" [class.fi-rr-arrow-up]="gRestant >= 0" [class.fi-rr-arrow-down]="gRestant < 0"></i>
+                                    {{ (gRestant >= 0 ? gRestant : -gRestant) | number:'1.0-0':'fr-FR' }} €
+                                  </span>
+                                }
+                              }
+                            </div>
                           </td>
                         }
                         <td colspan="2"></td>
@@ -501,20 +511,27 @@
                                 [class.clickable]="period === 'current'"
                                 [routerLink]="period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null"
                                 [title]="period === 'current' ? ('plans.suivis.actionGlobal.fillBudgetTooltip' | translate) : ''">
-                              <div class="agg-prev">{{ cell.previsionnel | number:'1.0-0':'fr-FR' }} €</div>
                               @if (cell.hasRealise) {
-                                @let cRestant = cell.previsionnel - cell.realise;
-                                <div class="agg-real">
-                                  <span class="ecart" [class.positive]="cRestant >= 0" [class.negative]="cRestant < 0"
-                                        [matTooltip]="(cRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
-                                    <i class="fi" [class.fi-rr-arrow-up]="cRestant >= 0" [class.fi-rr-arrow-down]="cRestant < 0"></i>
-                                    {{ (cRestant >= 0 ? cRestant : -cRestant) | number:'1.0-0':'fr-FR' }} €
-                                  </span>
-                                  <span class="real-value">{{ cell.realise | number:'1.0-0':'fr-FR' }} €</span>
-                                </div>
+                                <div class="agg-main">{{ cell.realise | number:'1.0-0':'fr-FR' }} €</div>
                               } @else {
-                                <div class="agg-real-empty">—</div>
+                                <div class="agg-main agg-main-empty">—</div>
                               }
+                              <!-- #749 — le prévu, en rappel sous le réalisé. -->
+                              <div class="agg-sub">
+                                @if (cell.prevSansObjet) {
+                                  <span class="agg-prev" [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">{{ 'plans.suivis.actions.prevuLabel' | translate }} /</span>
+                                } @else {
+                                  <span class="agg-prev">{{ 'plans.suivis.actions.prevuLabel' | translate }} {{ cell.previsionnel | number:'1.0-0':'fr-FR' }} €</span>
+                                  @if (cell.hasRealise) {
+                                    @let cRestant = cell.previsionnel - cell.realise;
+                                    <span class="ecart" [class.positive]="cRestant >= 0" [class.negative]="cRestant < 0"
+                                          [matTooltip]="(cRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
+                                      <i class="fi" [class.fi-rr-arrow-up]="cRestant >= 0" [class.fi-rr-arrow-down]="cRestant < 0"></i>
+                                      {{ (cRestant >= 0 ? cRestant : -cRestant) | number:'1.0-0':'fr-FR' }} €
+                                    </span>
+                                  }
+                                }
+                              </div>
                             </td>
                           }
                           <!-- #356 — colonne Global : icône statistiques → page globale
@@ -587,17 +604,27 @@
                         @for (period of ['current', 'past', 'total']; track period) {
                           @let gcell = groupAggregate(group.fullOperations, $any(period), 'etp');
                           <td class="col-agg">
-                            <div class="agg-prev">{{ gcell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
                             @if (gcell.hasRealise) {
-                              @let gRestant = gcell.previsionnel - gcell.realise;
-                              <div class="agg-real">
-                                <span class="ecart" [class.positive]="gRestant >= 0" [class.negative]="gRestant < 0"
-                                      [matTooltip]="(gRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
-                                  <i class="fi" [class.fi-rr-arrow-up]="gRestant >= 0" [class.fi-rr-arrow-down]="gRestant < 0"></i>
-                                  {{ (gRestant >= 0 ? gRestant : -gRestant) | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
-                                </span>
-                              </div>
+                              <div class="agg-main">{{ gcell.realise | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
+                            } @else {
+                              <div class="agg-main agg-main-empty">—</div>
                             }
+                            <!-- #749 — le prévu, en rappel sous le réalisé. -->
+                            <div class="agg-sub">
+                              @if (gcell.prevSansObjet) {
+                                <span class="agg-prev" [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">{{ 'plans.suivis.actions.prevuLabel' | translate }} /</span>
+                              } @else {
+                                <span class="agg-prev">{{ 'plans.suivis.actions.prevuLabel' | translate }} {{ gcell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
+                                @if (gcell.hasRealise) {
+                                  @let gRestant = gcell.previsionnel - gcell.realise;
+                                  <span class="ecart" [class.positive]="gRestant >= 0" [class.negative]="gRestant < 0"
+                                        [matTooltip]="(gRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
+                                    <i class="fi" [class.fi-rr-arrow-up]="gRestant >= 0" [class.fi-rr-arrow-down]="gRestant < 0"></i>
+                                    {{ (gRestant >= 0 ? gRestant : -gRestant) | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
+                                  </span>
+                                }
+                              }
+                            </div>
                           </td>
                         }
                         <td colspan="2"></td>
@@ -618,20 +645,27 @@
                                 [class.clickable]="period === 'current'"
                                 [routerLink]="period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null"
                                 [title]="period === 'current' ? ('plans.suivis.actionGlobal.fillRhTooltip' | translate) : ''">
-                              <div class="agg-prev">{{ cell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
                               @if (cell.hasRealise) {
-                                @let cRestant = cell.previsionnel - cell.realise;
-                                <div class="agg-real">
-                                  <span class="ecart" [class.positive]="cRestant >= 0" [class.negative]="cRestant < 0"
-                                        [matTooltip]="(cRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
-                                    <i class="fi" [class.fi-rr-arrow-up]="cRestant >= 0" [class.fi-rr-arrow-down]="cRestant < 0"></i>
-                                    {{ (cRestant >= 0 ? cRestant : -cRestant) | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
-                                  </span>
-                                  <span class="real-value">{{ cell.realise | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
-                                </div>
+                                <div class="agg-main">{{ cell.realise | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
                               } @else {
-                                <div class="agg-real-empty">—</div>
+                                <div class="agg-main agg-main-empty">—</div>
                               }
+                              <!-- #749 — le prévu, en rappel sous le réalisé. -->
+                              <div class="agg-sub">
+                                @if (cell.prevSansObjet) {
+                                  <span class="agg-prev" [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">{{ 'plans.suivis.actions.prevuLabel' | translate }} /</span>
+                                } @else {
+                                  <span class="agg-prev">{{ 'plans.suivis.actions.prevuLabel' | translate }} {{ cell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
+                                  @if (cell.hasRealise) {
+                                    @let cRestant = cell.previsionnel - cell.realise;
+                                    <span class="ecart" [class.positive]="cRestant >= 0" [class.negative]="cRestant < 0"
+                                          [matTooltip]="(cRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
+                                      <i class="fi" [class.fi-rr-arrow-up]="cRestant >= 0" [class.fi-rr-arrow-down]="cRestant < 0"></i>
+                                      {{ (cRestant >= 0 ? cRestant : -cRestant) | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
+                                    </span>
+                                  }
+                                }
+                              </div>
                             </td>
                           }
                           <!-- #356 — colonne Global : icône statistiques → page globale

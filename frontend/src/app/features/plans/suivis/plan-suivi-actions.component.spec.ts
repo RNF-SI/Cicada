@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
@@ -117,7 +119,7 @@ describe('PlanSuiviActionsComponent — agrégation RH (#569)', () => {
     expect(cell.hasRealise).toBe(true);
   });
 
-  it('répercute la RH sur la période écoulée (années < année en cours)', () => {
+  it('répercute la RH sur la période écoulée (années ≤ année en cours, #749)', () => {
     const op: any = {
       ventilation_mode: 'none',
       operation_annees: [
@@ -125,7 +127,8 @@ describe('PlanSuiviActionsComponent — agrégation RH (#569)', () => {
         { annee: 2026, rh_lignes: [{ jours: 9, finance: true }] },
       ],
     };
-    expect(component.aggregateEtp(op, 'past').previsionnel).toBe(7);
+    // #749 — la période écoulée comprend l'année en cours.
+    expect(component.aggregateEtp(op, 'past').previsionnel).toBe(16);
     expect(component.aggregateEtp(op, 'total').previsionnel).toBe(16);
   });
 
@@ -227,13 +230,13 @@ describe('PlanSuiviActionsComponent — choix de l\'année de synthèse (#570)',
     };
     component.setCurrentYear(2028);
     expect(component.currentYear()).toBe(2028);
-    // Année en cours = 2028 ; période écoulée = 2024 + 2026.
+    // Année en cours = 2028 ; période écoulée = 2024 + 2026 + 2028 (#749).
     expect(component.aggregateBudget(op, 'current').previsionnel).toBe(300);
-    expect(component.aggregateBudget(op, 'past').previsionnel).toBe(300);
+    expect(component.aggregateBudget(op, 'past').previsionnel).toBe(600);
 
     component.setCurrentYear(2026);
     expect(component.aggregateBudget(op, 'current').previsionnel).toBe(200);
-    expect(component.aggregateBudget(op, 'past').previsionnel).toBe(100);
+    expect(component.aggregateBudget(op, 'past').previsionnel).toBe(300);
   });
 });
 
@@ -297,8 +300,35 @@ describe('PlanSuiviActionsComponent — agrégation budget / RH (#616)', () => {
 
   it('restreint l\'agrégation à la période demandée', () => {
     expect(component.aggregateBudget(action, 'current').previsionnel).toBe(4700);
-    // 2027 n'est pas une année écoulée : rien à agréger.
+    // #749 — l'année en cours fait partie de la période écoulée.
+    expect(component.aggregateBudget(action, 'past').previsionnel).toBe(4700);
+    component.currentYear.set(2026);
     expect(component.aggregateBudget(action, 'past').previsionnel).toBe(0);
+  });
+
+  it('#749 — action programmée globalement : prévu annuel sans objet (« / »)', () => {
+    const globale: any = {
+      id_operation: 3, ventilation_mode: 'none', programmation_globale: true,
+      operation_annee_globale: { annee: null, budget: '5000.00', rh_lignes: [] },
+      operation_annees: [{ annee: 2027, realisation: { budget_realise: '800.00', rh_lignes: [] } }],
+    };
+    for (const p of ['current', 'past'] as const) {
+      const c = component.aggregateBudget(globale, p);
+      expect(c.prevSansObjet).toBe(true);
+      expect(c.realise).toBe(800);
+    }
+    const total = component.aggregateBudget(globale, 'total');
+    expect(total.prevSansObjet).toBe(false);
+    expect(total.previsionnel).toBe(5000);
+    expect(component.aggregateBudget(action, 'current').prevSansObjet).toBe(false);
+  });
+
+  it('#749 — gabarit : « / » pour le prévu sans objet, réalisé mis en avant', () => {
+    const html = readFileSync(join(__dirname, 'plan-suivi-actions.component.html'), 'utf8');
+    expect((html.match(/@if \(cell\.prevSansObjet\)/g) || []).length).toBe(2);
+    // Le réalisé est la valeur principale de la cellule, le prévu son rappel.
+    expect((html.match(/class="agg-main"/g) || []).length).toBeGreaterThanOrEqual(4);
+    expect(html).not.toMatch(/<div class="agg-prev">\{\{ cell\.previsionnel/);
   });
 
   it('n\'affiche aucun réalisé tant qu\'aucun suivi n\'est saisi', () => {
@@ -449,6 +479,22 @@ describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
     expect(String(total.cellules[0])).toContain('plans.suivis.actions.planGeneral');
     // … et les colonnes d'identification de l'action restent vides.
     expect(total.cellules.slice(1, 7)).toEqual(['', '', '', '', '', '']);
+  });
+
+  it('#749 — export : « / » pour le prévu annuel d\'une action globale', () => {
+    component.currentYear.set(2026);
+    component.allOperations.set([{
+      operation: {
+        ...makeOp(3, 'Action globale', [{ annee: 2026, realisation: { budget_realise: '800.00' } }]),
+        programmation_globale: true,
+        operation_annee_globale: { annee: null, budget: '5000.00' },
+      } as any,
+      enjeuLibelle: 'Enjeu 1', enjeuId: 1,
+    }]);
+    const g = grid('buildAggregationGrid', 'budget');
+    const n = g.entetes.length;
+    // Colonnes : … courant prévu / réalisé, écoulé prévu / réalisé, total prévu / réalisé.
+    expect(g.lignes[0].cellules.slice(n - 6)).toEqual(['/', 800, '/', 800, 5000, 800]);
   });
 
   it('annonce l’onglet et les filtres actifs en tête de classeur', () => {

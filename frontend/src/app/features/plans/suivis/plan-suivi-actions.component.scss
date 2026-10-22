@@ -323,15 +323,22 @@
       &:hover { background: rgba($primary-color, 0.08); }
     }
 
-    .agg-prev {
+    // #749 — le réalisé est la valeur principale de la cellule ; le prévu,
+    // plus discret, en rappel dessous avec l'écart.
+    .agg-main {
       font-weight: 700;
+      font-size: 1rem;
       color: $black;
+
+      &.agg-main-empty { color: $gray-dark; font-weight: 400; }
     }
-    .agg-real {
+    .agg-sub {
       margin-top: $spacing-xxs;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       color: $gray-dark;
       display: inline-flex;
+      flex-wrap: wrap;
+      justify-content: center;
       align-items: center;
       gap: $spacing-xxs;
 
@@ -345,23 +352,16 @@
         font-size: 0.75rem;
 
         &.positive {
-          background: rgba(4, 133, 75, 0.15);
-          color: #04854B;
+          background: rgba($success-color, 0.15);
+          color: $success-color;
         }
         &.negative {
-          background: rgba(183, 77, 93, 0.15);
+          background: rgba($secondary-terra-cotta, 0.15);
           color: $secondary-terra-cotta;
         }
 
         i { font-size: 0.7rem; }
       }
-
-      .real-value { font-style: italic; }
-    }
-    .agg-real-empty {
-      margin-top: $spacing-xxs;
-      color: $gray-light;
-      font-size: 0.85rem;
     }
   }
 }
@@ -817,8 +817,7 @@ tr.is-draft {
 
     td.col-agg {
       text-align: center;
-      .agg-prev { font-weight: 700; font-size: 1rem; color: $primary-color; }
-      .agg-real { margin-top: $spacing-xxs; }
+      .agg-main { color: $primary-color; }
     }
   }
 }

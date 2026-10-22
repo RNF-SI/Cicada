@@ -44,7 +44,7 @@ Une grille actions × années pour saisir la réalisation des actions, ainsi que
 - **Des filtres** : catégorie d'action, enjeu, priorité, organisme, année et réalisation (réalisées / non réalisées), et recherche par nom ou code.
 - **Une légende de réalisation :** action prévue ; prévue et réalisée ; prévue et partiellement réalisée ; prévue non réalisée ; réalisée non prévue ; partiellement réalisée non prévue ; en cours (sablier) ; non commencée.
 - **Une colonne « Global »** qui donne la **réalisation sur toute la période** et ouvre la page globale de l'action.
-- **Onglets Budget et RH :** pour l'année de référence choisie, la période écoulée et le total du plan, le prévisionnel et le réalisé, avec l'écart (montant restant en vert, dépassé en rouge).
+- **Onglets Budget et RH :** pour l'année de référence choisie, la période écoulée (du début du plan jusqu'à l'année de référence incluse) et le total du plan, le réalisé, puis en rappel le prévisionnel et l'écart (montant restant en vert, dépassé en rouge). Pour une action programmée globalement sur sa période, le prévisionnel ne se répartit pas par année : il est noté « / » sur l'année et la période écoulée, et ne figure que dans le total du plan.
 - **Planification mensuelle** : vue Agenda (ce mois-ci, le mois prochain, cette année) ou vue Calendrier (une ligne par action, douze mois).
 - « **Exporter le tableau** » produit un fichier Excel **selon l'onglet et les filtres en cours.** Depuis l'onglet « Réalisation », chaque case d'année y porte le **même pictogramme qu'à l'écran**, et la légende des pictogrammes figure en tête du fichier.
 - **Voir la fiche action,** en cliquant sur l'icône œil.
