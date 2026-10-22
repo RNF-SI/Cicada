@@ -26,7 +26,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { forkJoin, of } from 'rxjs';
+import { Observable, forkJoin, of, switchMap } from 'rxjs';
 
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.component';
@@ -401,6 +401,57 @@ export class SuiviSaisieComponent implements OnInit {
 
   isSavingReglages = signal(false);
 
+  // ---- #761 — réglages du 1er suivi du plan proposés par défaut ------------
+
+  /** Réglages proposés (non encore enregistrés) ; null s'il n'y a rien à proposer. */
+  reglagesProposes = signal<{
+    declinaison_par_type_cout_realise: boolean;
+    declinaison_par_poste_realise: boolean;
+  } | null>(null);
+  private reglagesDemandes = false;
+
+  /**
+   * #761 — action sans réglage ni suivi : on lui propose les réglages du 1er
+   * suivi saisi du plan. Les règles de la programmation priment (cases
+   * verrouillées). Rien n'est enregistré avant le 1er enregistrement du suivi
+   * ou un changement de case : ce n'est qu'une valeur par défaut.
+   */
+  proposerReglagesDuPlan(): void {
+    const op = this.operation();
+    const planId = this.planId();
+    if (!op || planId == null || this.reglagesDemandes || this.saisieBloquee()) return;
+    if (op.reglages_suivi_definis !== false) return;
+    const annees = [...(op.operation_annees ?? []), ...(op.operation_annee_globale ? [op.operation_annee_globale] : [])];
+    if (annees.some(oa => hasSaisieRealisation(oa))) return;
+    this.reglagesDemandes = true;
+    this.enjeuService.getSuiviDefaults(planId).subscribe({
+      next: d => {
+        if (d.source_operation_id == null) return;
+        const courant = this.operation();
+        if (!courant) return;
+        const proposes = {
+          declinaison_par_type_cout_realise:
+            this.declinaisonVerrouillee() || !!d.declinaison_par_type_cout_realise,
+          declinaison_par_poste_realise:
+            this.declinaisonPosteVerrouillee() || !!d.declinaison_par_poste_realise,
+        };
+        this.reglagesProposes.set(proposes);
+        this.operation.set({ ...courant, ...proposes });
+        this.hydrateRhArray(this.currentOperationAnnee());
+      },
+      error: () => { /* défaut de la programmation */ },
+    });
+  }
+
+  /** #761 — enregistre les réglages proposés (1er enregistrement du suivi). */
+  persisterReglagesProposes(): Observable<unknown> {
+    const proposes = this.reglagesProposes();
+    const op = this.operation();
+    if (!proposes || !op) return of(null);
+    this.reglagesProposes.set(null);
+    return this.enjeuService.setSuiviReglages(op.id_operation, proposes);
+  }
+
   /** Enregistre un réglage du suivi (valable pour toutes les années de l'action). */
   setReglage(
     champ: 'declinaison_par_type_cout_realise' | 'cout_salarial_auto_realise'
@@ -410,9 +461,12 @@ export class SuiviSaisieComponent implements OnInit {
     const op = this.operation();
     if (!op) return;
     this.isSavingReglages.set(true);
-    this.enjeuService.setSuiviReglages(op.id_operation, { [champ]: valeur }).subscribe({
+    // #761 — la proposition de l'autre case est enregistrée en même temps.
+    const proposes = this.reglagesProposes();
+    this.enjeuService.setSuiviReglages(op.id_operation, { ...(proposes ?? {}), [champ]: valeur }).subscribe({
       next: r => {
         this.isSavingReglages.set(false);
+        this.reglagesProposes.set(null);
         this.operation.set({
           ...op,
           declinaison_par_type_cout_realise: r.declinaison_par_type_cout_realise,
@@ -1017,6 +1071,8 @@ export class SuiviSaisieComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.editionDemandee.set(false);
+    this.reglagesProposes.set(null);
+    this.reglagesDemandes = false;
 
     // Plan (pour breadcrumb + sidebar) — slug → plan via AdminService
     this.adminService.getPlanBySlug(slug).subscribe({
@@ -1027,6 +1083,7 @@ export class SuiviSaisieComponent implements OnInit {
         this.lectureSeule.set(plan.peut_saisir_suivis === false);
         this.planYearStart.set(plan.annee_debut ?? null);
         this.planYearEnd.set(planEndYear(plan));  // #672
+        this.proposerReglagesDuPlan();  // #761
         // #560 — postes du PG, pour la saisie / ré-attribution du RH réalisé.
         this.rhService.getPostesByPlan(plan.id_pg).subscribe(
           (list) => this.postes.set(list),
@@ -1051,6 +1108,7 @@ export class SuiviSaisieComponent implements OnInit {
         this.operation.set(op);
         this.loadMesuresForMetriques(op);
         this.hydrateFormFromCurrentYear();
+        this.proposerReglagesDuPlan();  // #761
         this.isLoading.set(false);
         this.scrollToRequestedFragment();
       },
@@ -1898,7 +1956,10 @@ export class SuiviSaisieComponent implements OnInit {
       : of([]);
     const mesureCallsObs = measureCalls.length ? forkJoin(measureCalls) : of([]);
 
-    forkJoin([annualCall, orgCalls, mesureCallsObs]).subscribe({
+    // #761 — 1er suivi de l'action : ses réglages proposés sont enregistrés d'abord.
+    this.persisterReglagesProposes().pipe(
+      switchMap(() => forkJoin([annualCall, orgCalls, mesureCallsObs])),
+    ).subscribe({
       next: ([savedAnnual, savedOrgs, savedMesures]) => {
         this.isSaving.set(false);
         // #542 — réinjecter les mesures renvoyées par le serveur dans le cache et

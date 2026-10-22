@@ -942,6 +942,8 @@ export interface Operation {
   cout_salarial_auto_realise?: boolean;
   /** #760 — temps réalisé décliné par type de poste (réglage du suivi, ≥ programmation). */
   declinaison_par_poste_realise?: boolean;
+  /** #761 — réglages du suivi déjà posés pour l'action (sinon : ceux du 1er suivi du plan). */
+  reglages_suivi_definis?: boolean;
   finances?: FinanceOperation[];
   // #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge sinon calcul auto
   niveau_realisation_global_mnemonique?: string | null;

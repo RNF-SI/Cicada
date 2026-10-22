@@ -1080,6 +1080,7 @@ describe('SuiviSaisieComponent — bouton Effacer après enregistrement (#758)',
     c.showNiveauError = signal(false);
     c.isSaving = signal(false);
     c.niveaux = signal([]);
+    c.reglagesProposes = signal<any>(null);  // #761 — pas de réglage proposé
     c.isOrgVentilation = signal(savedOrgs.length > 0);
     c.isGlobalDetailVentilation = signal(false);
     c.isByType = signal(false);
@@ -1267,6 +1268,7 @@ describe('SuiviSaisieComponent — déclinaison par type de poste au suivi (#760
   it('changer la case enregistre le réglage et recharge le temps de travail', () => {
     const c = c760({ id_operation: 3, ...NONE });
     c.isSavingReglages = signal(false);
+    c.reglagesProposes = signal<any>(null);  // #761
     c.hydrateRhArray = jest.fn();
     c.currentOperationAnnee = () => null;
     c.enjeuService = { setSuiviReglages: jest.fn(() => of({
@@ -1285,6 +1287,97 @@ describe('SuiviSaisieComponent — déclinaison par type de poste au suivi (#760
     expect(rh).toContain("setReglage('declinaison_par_poste_realise', $event)");
     expect(rh).toContain('declinaisonPosteVerrouillee()');
     expect(html).toContain("'plans.suivis.saisie.rh.selectPoste'");
+  });
+});
+
+// -----------------------------------------------------------------------------
+// #761 — réglages du 1er suivi du plan proposés aux autres actions.
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — réglages du 1er suivi proposés (#761)', () => {
+  const NONE = { id_operation: 5, ventilation_mode: 'none', declinaison_par_type_cout: false,
+    declinaison_par_poste: false, reglages_suivi_definis: false,
+    declinaison_par_type_cout_realise: false, declinaison_par_poste_realise: false,
+    operation_annees: [{ annee: 2027, realisation: null, organismes: [] }] };
+  const DEFAULTS = { plan_id: 1, source_operation_id: 9,
+    declinaison_par_type_cout_realise: true, declinaison_par_poste_realise: true };
+
+  function c761(op: any, defaults: any = DEFAULTS): any {
+    const c: any = comp();
+    c.operation = signal<any>(op);
+    c.planId = signal<number | null>(1);
+    c.saisieBloquee = () => false;
+    c.reglagesProposes = signal<any>(null);
+    c.hydrateRhArray = jest.fn();
+    c.currentOperationAnnee = () => null;
+    c.isSavingReglages = signal(false);
+    c.enjeuService = {
+      getSuiviDefaults: jest.fn(() => of(defaults)),
+      setSuiviReglages: jest.fn((_id: number, r: any) => of({
+        declinaison_par_type_cout_realise: r.declinaison_par_type_cout_realise,
+        cout_salarial_auto_realise: false,
+        declinaison_par_poste_realise: r.declinaison_par_poste_realise,
+      })),
+    };
+    return c;
+  }
+
+  it('action sans suivi ni réglage : propose ceux du 1er suivi du plan', () => {
+    const c = c761({ ...NONE });
+    c.proposerReglagesDuPlan();
+    expect(c.enjeuService.getSuiviDefaults).toHaveBeenCalledWith(1);
+    expect(c.declinaisonRealise()).toBe(true);
+    expect(c.declinaisonPosteRealise()).toBe(true);
+    expect(c.reglagesProposes()).toEqual({
+      declinaison_par_type_cout_realise: true, declinaison_par_poste_realise: true });
+    expect(c.hydrateRhArray).toHaveBeenCalled();
+    // Rien n'est enregistré tant que le suivi ne l'est pas.
+    expect(c.enjeuService.setSuiviReglages).not.toHaveBeenCalled();
+  });
+
+  it('réglages déjà posés ou suivi déjà saisi : rien n\'est proposé', () => {
+    const definis = c761({ ...NONE, reglages_suivi_definis: true });
+    definis.proposerReglagesDuPlan();
+    expect(definis.enjeuService.getSuiviDefaults).not.toHaveBeenCalled();
+    const saisie = c761({ ...NONE, operation_annees: [{ annee: 2027, realisation: { id_niveau_realisation: 1 } }] });
+    saisie.proposerReglagesDuPlan();
+    expect(saisie.enjeuService.getSuiviDefaults).not.toHaveBeenCalled();
+  });
+
+  it('pas de suivi dans le plan : les réglages de la programmation restent', () => {
+    const c = c761({ ...NONE }, { ...DEFAULTS, source_operation_id: null,
+      declinaison_par_type_cout_realise: null, declinaison_par_poste_realise: null });
+    c.proposerReglagesDuPlan();
+    expect(c.reglagesProposes()).toBeNull();
+    expect(c.declinaisonPosteRealise()).toBe(false);
+  });
+
+  it('les règles de la programmation priment sur la proposition', () => {
+    const c = c761({ ...NONE, ventilation_mode: 'by_type_poste', declinaison_par_type_cout: true,
+      declinaison_par_poste: true, declinaison_par_type_cout_realise: true, declinaison_par_poste_realise: true },
+    { ...DEFAULTS, declinaison_par_type_cout_realise: false, declinaison_par_poste_realise: false });
+    c.proposerReglagesDuPlan();
+    expect(c.declinaisonRealise()).toBe(true);
+    expect(c.declinaisonPosteRealise()).toBe(true);
+  });
+
+  it('changer une case enregistre aussi la proposition de l\'autre', () => {
+    const c = c761({ ...NONE });
+    c.proposerReglagesDuPlan();
+    c.translate = { instant: (k: string) => k };
+    c.snack = { open: jest.fn() };
+    c.setReglage('declinaison_par_poste_realise', false);
+    expect(c.enjeuService.setSuiviReglages).toHaveBeenCalledWith(5, {
+      declinaison_par_type_cout_realise: true, declinaison_par_poste_realise: false });
+    expect(c.reglagesProposes()).toBeNull();
+  });
+
+  it('le 1er enregistrement du suivi enregistre les réglages proposés', () => {
+    const c = c761({ ...NONE });
+    c.proposerReglagesDuPlan();
+    c.persisterReglagesProposes().subscribe();
+    expect(c.enjeuService.setSuiviReglages).toHaveBeenCalledWith(5, {
+      declinaison_par_type_cout_realise: true, declinaison_par_poste_realise: true });
+    expect(c.reglagesProposes()).toBeNull();
   });
 });
 
@@ -1346,6 +1439,7 @@ describe('SuiviSaisieComponent — réglages propres au suivi (#741)', () => {
     });
     c.enjeuService = { setSuiviReglages: post };
     c.isSavingReglages = signal(false);
+    c.reglagesProposes = signal<any>(null);  // #761
     c.setReglage('cout_salarial_auto_realise', false);
     expect(post).toHaveBeenCalledWith(9, { cout_salarial_auto_realise: false });
     expect(c.salaireCalcule()).toBe(false);

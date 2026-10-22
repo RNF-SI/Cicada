@@ -36,7 +36,7 @@ from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
     RealisationOperationAnneeSerializer, RealisationOperationAnneeOrganismeSerializer,
-    FonctionSerializer, PosteSerializer, PosteWriteSerializer, SuiviReglagesSerializer,
+    FonctionSerializer, PosteSerializer, PosteWriteSerializer, SuiviReglagesSerializer, SuiviDefaultsSerializer,
 )
 from .filters_operations import OperationFilter
 from drf_spectacular.utils import extend_schema
@@ -299,6 +299,37 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             'ventilation_mode': last.ventilation_mode if last else 'none',
             'declinaison_par_type_cout': last.declinaison_par_type_cout if last else True,
             'cout_salarial_auto': last.cout_salarial_auto if last else True,
+        })
+
+    @extend_schema(responses=SuiviDefaultsSerializer)
+    @action(detail=False, methods=['get'], url_path=r'suivi-defaults/(?P<plan_id>\d+)')
+    def suivi_defaults(self, request, plan_id=None):
+        """
+        #761 — Réglages du suivi à proposer par défaut pour une action qui n'en
+        a pas encore : ceux du 1ER suivi saisi du plan (« Déclinaison par type de
+        coût » #741, « Déclinaison par type de poste » #760), tels qu'ils
+        s'appliquent à cette action-là. Pendant, pour le suivi, de
+        `ventilation-defaults` (#641) — qui reprend, lui, la dernière action.
+        Sans suivi dans le plan : valeurs nulles (le client garde celles de la
+        programmation).
+
+        GET /api/plans/operations/suivi-defaults/{plan_id}/
+        """
+        plan = get_object_or_404(PlanGestion, id_pg=plan_id)
+        assert_plan_access(request.user, plan)
+        premier = (
+            RealisationOperationAnnee.objects
+            .filter(id_operation_annee__id_operation__in=self._operations_of_plan(plan))
+            .select_related('id_operation_annee__id_operation')
+            .order_by('date_ajout', 'id_realisation_operation_annee')
+            .first()
+        )
+        op = premier.id_operation_annee.id_operation if premier else None
+        return Response({
+            'plan_id': int(plan_id),
+            'source_operation_id': op.id_operation if op else None,
+            'declinaison_par_type_cout_realise': op.get_declinaison_par_type_cout_realise() if op else None,
+            'declinaison_par_poste_realise': op.get_declinaison_par_poste_realise() if op else None,
         })
 
     @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')

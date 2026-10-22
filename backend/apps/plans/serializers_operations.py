@@ -757,6 +757,14 @@ class SuiviReglagesSerializer(serializers.Serializer):
     declinaison_poste_verrouillee = serializers.BooleanField(read_only=True)
 
 
+class SuiviDefaultsSerializer(serializers.Serializer):
+    """#761 — réglages du suivi proposés par défaut (1er suivi du plan)."""
+    plan_id = serializers.IntegerField()
+    source_operation_id = serializers.IntegerField(allow_null=True)
+    declinaison_par_type_cout_realise = serializers.BooleanField(allow_null=True)
+    declinaison_par_poste_realise = serializers.BooleanField(allow_null=True)
+
+
 class OperationAnneeOrganismeSerializer(serializers.ModelSerializer):
     """Serializer pour la ventilation budget/travail par organisme."""
     organisme_nom = serializers.CharField(source='id_organisme.nom_organisme', read_only=True)
@@ -1100,6 +1108,8 @@ class OperationSerializer(serializers.ModelSerializer):
         source='get_cout_salarial_auto_realise', read_only=True)
     declinaison_par_poste_realise = serializers.BooleanField(
         source='get_declinaison_par_poste_realise', read_only=True)
+    # #761 — sinon, le suivi propose les réglages du 1er suivi du plan.
+    reglages_suivi_definis = serializers.BooleanField(read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
     geom_geojson = serializers.SerializerMethodField()
@@ -1150,7 +1160,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'declinaison_par_type_cout', 'cout_salarial_auto',
             'programmation_globale', 'operation_annee_globale',
             'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
-            'declinaison_par_poste_realise',
+            'declinaison_par_poste_realise', 'reglages_suivi_definis',
             'geom', 'geom_geojson', 'emprise_suit_sites',
             'id_indicateur',
             'metriques', 'metrique_ids',
@@ -1469,6 +1479,8 @@ class OperationNestedSerializer(OperationListSerializer):
         source='get_cout_salarial_auto_realise', read_only=True)
     declinaison_par_poste_realise = serializers.BooleanField(
         source='get_declinaison_par_poste_realise', read_only=True)
+    # #761 — sinon, le suivi propose les réglages du 1er suivi du plan.
+    reglages_suivi_definis = serializers.BooleanField(read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
 
     @extend_schema_field(OperationAnneeSerializer(allow_null=True))
@@ -1484,7 +1496,7 @@ class OperationNestedSerializer(OperationListSerializer):
              'declinaison_par_type_cout', 'cout_salarial_auto',
              'programmation_globale', 'operation_annee_globale',
              'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
-             'declinaison_par_poste_realise']
+             'declinaison_par_poste_realise', 'reglages_suivi_definis']
 
 
 # =============================================================================

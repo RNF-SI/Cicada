@@ -949,6 +949,14 @@ class Operation(models.Model):
         ov = self.realisation_globale_override
         return bool(ov is not None and ov.declinaison_par_poste_realise)
 
+    def reglages_suivi_definis(self):
+        """#761 — les déclinaisons du suivi (#741 / #760) ont-elles été posées
+        pour cette action ? Sinon, le suivi propose celles du 1er suivi du plan."""
+        ov = self.realisation_globale_override
+        return bool(ov is not None and (
+            ov.declinaison_par_type_cout_realise is not None
+            or ov.declinaison_par_poste_realise is not None))
+
     def get_cout_salarial_auto_realise(self):
         """#741 — coût salarial réalisé calculé (jours × coût jour) ou saisi au suivi."""
         ov = self.realisation_globale_override

@@ -92,6 +92,14 @@ export interface IndicateurGlobalResponse {
 }
 
 /** #741 — réglages effectifs du suivi d'une action. */
+/** #761 — réglages du 1er suivi saisi du plan (null : aucun suivi dans le plan). */
+export interface SuiviDefaults {
+  plan_id: number;
+  source_operation_id: number | null;
+  declinaison_par_type_cout_realise: boolean | null;
+  declinaison_par_poste_realise: boolean | null;
+}
+
 export interface SuiviReglages {
   id_operation: number;
   declinaison_par_type_cout_realise: boolean;
@@ -861,6 +869,13 @@ export class EnjeuService {
    * #641 — Réglages de ventilation de la dernière action saisie du plan, servant
    * de valeurs par défaut au formulaire de création d'une nouvelle action.
    */
+  /** #761 — réglages du suivi proposés par défaut : ceux du 1er suivi du plan. */
+  getSuiviDefaults(planId: number): Observable<SuiviDefaults> {
+    return this.http.get<SuiviDefaults>(
+      `${this.apiUrl}/operations/suivi-defaults/${planId}/`
+    );
+  }
+
   getVentilationDefaults(planId: number): Observable<VentilationDefaults> {
     return this.http.get<VentilationDefaults>(
       `${this.apiUrl}/operations/ventilation-defaults/${planId}/`
