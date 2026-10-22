@@ -1,0 +1,147 @@
+@import 'variables';
+
+// Bloc d'un protocole dans la fiche action (#732). Les règles de champ
+// reprennent celles de la section « Protocoles » du formulaire d'action, dont
+// les styles encapsulés ne descendent pas dans ce composant.
+
+:host {
+  display: block;
+}
+
+.protocole-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.protocole-block-title {
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.protocole-remove-btn {
+  color: $error-color;
+}
+
+// Même espacement que `.section-content` du formulaire parent.
+.protocole-fields > * + * {
+  margin-top: $spacing-lg;
+}
+
+.required-star {
+  color: $secondary-terra-cotta;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.radio-field-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+
+  .radio-field-label {
+    font-size: $font-size-base;
+    color: $black;
+    min-width: 300px;
+  }
+}
+
+.radio-field-row-with-link {
+  flex-wrap: wrap;
+}
+
+.radio-inline {
+  display: flex;
+  gap: $spacing-lg;
+}
+
+.readonly-field {
+  margin-bottom: $spacing-sm;
+
+  .readonly-label {
+    display: block;
+    font-size: $font-size-base;
+    color: $gray-dark;
+    margin-bottom: $spacing-xs;
+  }
+
+  .readonly-value {
+    background-color: $gray-lighter;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    padding: $spacing-sm $spacing-md;
+    font-size: $font-size-base;
+    color: $gray-dark;
+    line-height: 1.6;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+
+    &.readonly-value-multiline {
+      min-height: 100px;
+      align-items: flex-start;
+      white-space: pre-wrap;
+    }
+  }
+}
+
+.campanule-option {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+
+  .campanule-option-name {
+    font-weight: $font-weight-medium;
+    color: $black;
+  }
+
+  .campanule-option-cible {
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+}
+
+.clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $gray-dark;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: $error-color;
+  }
+}
+
+.consulter-link {
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+  font-size: $font-size-base;
+  text-decoration: none;
+  border-bottom: 1px solid $primary-color;
+  cursor: pointer;
+  white-space: nowrap;
+  margin-left: $spacing-lg;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+@media (max-width: $breakpoint-tablet) {
+  .radio-field-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+
+    .radio-field-label {
+      min-width: auto;
+    }
+  }
+}

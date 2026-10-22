@@ -7,15 +7,17 @@ Une action se saisit via son formulaire dédié (bouton « Ajouter une action »
 - Le type d'action (obligatoire) choisi dans le référentiel GestRef ; et facultativement la catégorie d'action CT88, si celle-ci est différente de celle du référentiel GestRef ;
 - Le code de l'action, calculé automatiquement (ex. CS1) et affiché en direct ; le champ « Numéro fixé » permet d'imposer son numéro ;
 - L'intitulé (s'il reste vide, il est rempli automatiquement avec le type d'action GestRef à l'enregistrement), les métriques associées et la priorité ;
-- Pour une action d'inventaire ou de suivi : les détails de l'inventaire ou du suivi (objectif, cible, taxons ou habitats rattachés), le protocole et la bancarisation de la donnée ;
+- Pour une action d'inventaire ou de suivi : les détails de l'inventaire ou du suivi (objectif, cible, taxons ou habitats rattachés), les protocoles et la bancarisation de la donnée ;
 - La programmation : sites concernés, années, temps de travail, budget et mois prévus ; opérateurs, partenaires et financeurs ;
 - La localisation (emprise spatiale) — une case permet de reprendre l'emprise du ou des sites ; elle reste cochée à la réouverture de l'action, et la décocher retire les contours des sites pour revenir à l'emprise dessinée ou importée auparavant (carte vide s'il n'y en avait pas) ;
 - Les indicateurs de réponse : un intitulé (obligatoire), puis soit une métrique simple avec une valeur cible, soit une grille de scoring à 5 niveaux (case « Utiliser une grille de scoring »), construite comme celle des métriques des indicateurs état et pression ([§ 4.7](indicateurs-metriques.md)).
 
-Pour les actions de suivis, il est demandé de préciser si le protocole est standardisé ou non :
+Un suivi peut mobiliser plusieurs protocoles : la section « Protocoles » en présente un bloc chacun, le bouton « Ajouter un protocole » en ajoute un et l'icône corbeille retire un bloc (il en reste toujours un). Au-delà de trois protocoles, une mention rappelle que la fiche devient difficile à lire. Pour chaque protocole, il est demandé de préciser s'il est standardisé ou non :
 
 - oui : recherchez-le dans le catalogue des protocoles standardisés (Une distinction et les 5 protocoles MhéO), consultez sa fiche, puis précisez si vous le respectez strictement (sinon, pourquoi et avec quelles différences).
 - non : décrivez votre protocole (nom, ETP par cycle, description, objectif, période d'échantillonnage).
+
+Si l'action est rattachée à un inventaire ou suivi déjà saisi dans le module Inventaires, ses protocoles s'affichent en lecture seule : ils se modifient depuis la fiche du suivi.
 
 La fréquence (ex. 2 fois par an), intégrée pour les actions de suivis, peut être appliquée automatiquement aux années et aux mois avec le bouton « Appliquer aux années ».
 

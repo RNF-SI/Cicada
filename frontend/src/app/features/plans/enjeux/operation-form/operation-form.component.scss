@@ -1461,3 +1461,20 @@ app-form-field.finance-categorie {
   font-size: 1rem;
   font-weight: 700;
 }
+
+// #732 — blocs protocole saisis depuis l'action : séparés par un filet.
+app-protocole-action + app-protocole-action {
+  padding-top: $spacing-lg;
+  border-top: 1px solid $gray-lighter;
+}
+
+.protocole-add-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+}
+
+.protocole-limit-hint {
+  color: $gray-dark;
+}

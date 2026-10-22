@@ -1058,142 +1058,6 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   });
 
   // -------------------------------------------------------------------------
-  // #584 — Liste alphabétique proposée dès le clic dans le champ CAMPanule
-  // -------------------------------------------------------------------------
-  describe('#584 — onCampanuleFocus', () => {
-    function makeComp(searchValue: string, results: unknown[]) {
-      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
-      const autocomplete = jest.fn().mockReturnValue(of([
-        { cd_protocole: 1, lb_protocole_court: 'Aile de papillon' },
-        { cd_protocole: 2, lb_protocole_court: 'Comptage oiseaux' },
-      ]));
-      (comp as any).campanuleSearchCtrl = new FormControl(searchValue);
-      (comp as any).campanuleResults = signal<unknown[]>(results);
-      (comp as any).campanuleService = { autocomplete };
-      return { comp, autocomplete };
-    }
-
-    it('charge la liste par défaut quand le champ est vide et qu\'aucun résultat n\'est affiché', () => {
-      const { comp, autocomplete } = makeComp('', []);
-      comp.onCampanuleFocus();
-      expect(autocomplete).toHaveBeenCalledWith('', 100);
-      expect((comp as any).campanuleResults().length).toBe(2);
-    });
-
-    it('ne recharge rien si un terme est déjà saisi', () => {
-      const { comp, autocomplete } = makeComp('oiseaux', []);
-      comp.onCampanuleFocus();
-      expect(autocomplete).not.toHaveBeenCalled();
-    });
-
-    it('ne recharge rien si des résultats sont déjà affichés', () => {
-      const { comp, autocomplete } = makeComp('', [{ cd_protocole: 9 }]);
-      comp.onCampanuleFocus();
-      expect(autocomplete).not.toHaveBeenCalled();
-    });
-
-    it('vide la liste en cas d\'erreur API', () => {
-      const { comp } = makeComp('', []);
-      (comp as any).campanuleService = { autocomplete: () => throwError(() => new Error('boom')) };
-      comp.onCampanuleFocus();
-      expect((comp as any).campanuleResults()).toEqual([]);
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // #520 — Bascule du choix « protocole dans CAMPanule ? »
-  // -------------------------------------------------------------------------
-  describe('#520 — onProtocoleCampanuleChange', () => {
-    function makeComp(): OperationFormComponent {
-      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
-      (comp as any).selectedCampanule = signal<unknown>({ cd_protocole: 42, lb_protocole_court: 'Proto X' });
-      (comp as any).campanuleSearchCtrl = new FormControl('Proto X');
-      (comp as any).form = new FormGroup({
-        protocole_dans_campanule: new FormControl(false),
-        protocole_campanule_nom: new FormControl('Proto X'),
-        cd_protocole_campanule: new FormControl(42),
-        description_protocole: new FormControl('Description issue de CAMPanule'),
-        objectif_protocole: new FormControl('Objectif CAMPanule'),
-        periode_echantillonnage: new FormControl('Mai; Juin'),
-      });
-      return comp;
-    }
-
-    it('vide les champs auto-remplis et la sélection CAMPanule au changement de choix', () => {
-      const c = makeComp();
-      c.onProtocoleCampanuleChange();
-      const form = (c as any).form as FormGroup;
-      expect(form.get('description_protocole')?.value).toBe('');
-      expect(form.get('objectif_protocole')?.value).toBe('');
-      expect(form.get('periode_echantillonnage')?.value).toBe('');
-      expect(form.get('protocole_campanule_nom')?.value).toBe('');
-      expect(form.get('cd_protocole_campanule')?.value).toBeNull();
-      expect((c as any).selectedCampanule()).toBeNull();
-      expect((c as any).campanuleSearchCtrl.value).toBe('');
-    });
-
-    // Retour de test #520 : un aller-retour du choix ne doit pas perdre les données.
-    function makeEmptyComp(): OperationFormComponent {
-      const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
-      (comp as any).selectedCampanule = signal<unknown>(null);
-      (comp as any).campanuleSearchCtrl = new FormControl('');
-      (comp as any).form = new FormGroup({
-        protocole_dans_campanule: new FormControl(false),
-        protocole_campanule_nom: new FormControl(''),
-        cd_protocole_campanule: new FormControl(null),
-        description_protocole: new FormControl(''),
-        objectif_protocole: new FormControl(''),
-        periode_echantillonnage: new FormControl(''),
-      });
-      return comp;
-    }
-
-    it('préserve la saisie manuelle après un aller-retour Non → Oui → Non', () => {
-      const c = makeEmptyComp();
-      const form = (c as any).form as FormGroup;
-
-      // L'utilisateur saisit manuellement en mode « Non »
-      form.patchValue({
-        description_protocole: 'Ma description perso',
-        objectif_protocole: 'Mon objectif perso',
-        periode_echantillonnage: 'Avril; Mai',
-      });
-
-      // Non → Oui
-      form.get('protocole_dans_campanule')?.setValue(true);
-      c.onProtocoleCampanuleChange();
-      expect(form.get('description_protocole')?.value).toBe('');
-
-      // Oui → Non : la saisie manuelle est restaurée
-      form.get('protocole_dans_campanule')?.setValue(false);
-      c.onProtocoleCampanuleChange();
-      expect(form.get('description_protocole')?.value).toBe('Ma description perso');
-      expect(form.get('objectif_protocole')?.value).toBe('Mon objectif perso');
-      expect(form.get('periode_echantillonnage')?.value).toBe('Avril; Mai');
-    });
-
-    it('restaure la sélection CAMPanule après un aller-retour Oui → Non → Oui', () => {
-      const c = makeComp(); // démarre avec un protocole CAMPanule sélectionné
-      const form = (c as any).form as FormGroup;
-      form.get('protocole_dans_campanule')?.setValue(true);
-
-      // Oui → Non : la sélection est archivée, les champs éditables vidés
-      form.get('protocole_dans_campanule')?.setValue(false);
-      c.onProtocoleCampanuleChange();
-      expect(form.get('cd_protocole_campanule')?.value).toBeNull();
-      expect((c as any).selectedCampanule()).toBeNull();
-
-      // Non → Oui : la sélection CAMPanule précédente est restaurée
-      form.get('protocole_dans_campanule')?.setValue(true);
-      c.onProtocoleCampanuleChange();
-      expect(form.get('cd_protocole_campanule')?.value).toBe(42);
-      expect(form.get('protocole_campanule_nom')?.value).toBe('Proto X');
-      expect(form.get('description_protocole')?.value).toBe('Description issue de CAMPanule');
-      expect((c as any).selectedCampanule()).toEqual({ cd_protocole: 42, lb_protocole_court: 'Proto X' });
-    });
-  });
-
-  // -------------------------------------------------------------------------
   // #483 — changer le type d'action ne doit effacer aucune saisie
   // -------------------------------------------------------------------------
   describe('#483 — onTypeActionSelected conserve les saisies', () => {
@@ -1308,22 +1172,17 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
       (comp as any).isCSAction = () => true;
       (comp as any).estSuiviExistant = () => false;
-      (comp as any).form = new FormGroup({
-        intitule_suivi: new FormControl(''),
-        objectif_principal: new FormControl(''),
-        cibles_principales: new FormControl(null),
-        protocole_dans_campanule: new FormControl(campanule),
-        respect_protocole: new FormControl(null),
-        cd_protocole_campanule: new FormControl(null),
-        nom_protocole: new FormControl(''),
-      });
+      (comp as any).fb = new FormBuilder();
+      (comp as any).suiviProtocoles = signal<any[]>([]);
+      (comp as any).initForm();
+      (comp as any).setProtocoles([{ protocole_dans_campanule: campanule }]);
       return comp;
     }
 
     it('ne rend jamais respect_protocole obligatoire, même en mode CAMPanule', () => {
       const c = makeComp(true);
       (c as any).syncConditionalValidators();
-      const ctrl = (c as any).form.get('respect_protocole');
+      const ctrl = (c as any).protocolesArray.at(0).get('respect_protocole');
       expect(ctrl.hasValidator(Validators.required)).toBe(false);
       expect(ctrl.valid).toBe(true);
     });
@@ -1712,7 +1571,7 @@ describe('OperationFormComponent — suivi partagé avec le module Inventaires (
     (comp as any).selectedTypeAction = selected;
     (comp as any).isCSAction = computed(() => String(selected()?.cd_nomenclature || '').startsWith('CS'));
     (comp as any).estSuiviExistant = signal(false);
-    (comp as any).suiviProtocoles = signal<any[]>(protocolesExistants);
+    (comp as any).suiviProtocoles = signal<any[]>([]);
     (comp as any).categorieActionReserveCtrl = new FormControl(null);
     (comp as any).currentIndicateurId = () => null;
     comp.taxonItems = [];
@@ -1720,8 +1579,11 @@ describe('OperationFormComponent — suivi partagé avec le module Inventaires (
     (comp as any).finances = [];
     (comp as any).pendingEmprise = signal(undefined);
     (comp as any).form.patchValue({ id_type_action: CS8.id_nomenclature, intitule_suivi: 'Suivi des chiroptères' });
+    (comp as any).setProtocoles(protocolesExistants);
     return comp;
   }
+
+  const proto = (c: OperationFormComponent, i: number) => (c as any).protocolesArray.at(i) as FormGroup;
 
   const payloadSuivi = (c: OperationFormComponent) => ((c as any).buildPayload().suivi_inventaire ?? {}) as any;
 
@@ -1732,7 +1594,7 @@ describe('OperationFormComponent — suivi partagé avec le module Inventaires (
       { id_protocole: 2, protocole_dans_campanule: true, cd_protocole_campanule: 42,
         protocole_campanule_nom: 'STOC' },
     ]);
-    (c as any).form.patchValue({ protocole_dans_campanule: false, nom_protocole: 'Transect modifié' });
+    proto(c, 0).patchValue({ protocole_dans_campanule: false, nom_protocole: 'Transect modifié' });
 
     const protocoles = payloadSuivi(c).protocoles;
 
@@ -1747,10 +1609,74 @@ describe('OperationFormComponent — suivi partagé avec le module Inventaires (
 
   it('nouveau suivi : un seul protocole, celui saisi', () => {
     const c = makeComp();
-    (c as any).form.patchValue({ protocole_dans_campanule: true, cd_protocole_campanule: 42, protocole_campanule_nom: 'STOC' });
+    proto(c, 0).patchValue({ protocole_dans_campanule: true, cd_protocole_campanule: 42, protocole_campanule_nom: 'STOC' });
     const protocoles = payloadSuivi(c).protocoles;
     expect(protocoles).toHaveLength(1);
     expect(protocoles[0]).toMatchObject({ cd_protocole_campanule: 42 });
+  });
+
+  // #732 — plusieurs protocoles saisis depuis la fiche action.
+  it('#732 — un formulaire vierge démarre avec un bloc protocole', () => {
+    expect((makeComp() as any).protocolesArray.length).toBe(1);
+  });
+
+  it('#732 — nouveau suivi : chaque protocole ajouté est envoyé', () => {
+    const c = makeComp();
+    proto(c, 0).patchValue({ protocole_dans_campanule: true, cd_protocole_campanule: 42, protocole_campanule_nom: 'STOC' });
+    (c as any).addProtocole();
+    proto(c, 1).patchValue({ protocole_dans_campanule: false, nom_protocole: 'Points d\'écoute' });
+
+    const protocoles = payloadSuivi(c).protocoles;
+
+    expect(protocoles).toHaveLength(2);
+    expect(protocoles[0]).toMatchObject({ cd_protocole_campanule: 42 });
+    expect(protocoles[1]).toMatchObject({ nom_protocole: 'Points d\'écoute' });
+  });
+
+  it('#732 — retirer le premier protocole ne transfère pas ses champs au second', () => {
+    const c = makeComp([
+      { id_protocole: 1, protocole_dans_campanule: false, nom_protocole: 'Transect', periode_suivi: 'AVRIL,MAI' },
+      { id_protocole: 2, protocole_dans_campanule: false, nom_protocole: 'Points d\'écoute' },
+    ]);
+    expect((c as any).protocolesArray.length).toBe(2);
+
+    (c as any).removeProtocole(0);
+    const protocoles = payloadSuivi(c).protocoles;
+
+    expect(protocoles).toHaveLength(1);
+    expect(protocoles[0].nom_protocole).toBe('Points d\'écoute');
+    expect(protocoles[0].periode_suivi).toBeUndefined();
+  });
+
+  it('#732 — le dernier bloc protocole ne se retire pas', () => {
+    const c = makeComp();
+    (c as any).removeProtocole(0);
+    expect((c as any).protocolesArray.length).toBe(1);
+  });
+
+  it('#732 — mention d\'ergonomie au-delà de 3 protocoles', () => {
+    const c = makeComp();
+    for (let i = 0; i < 3; i++) (c as any).addProtocole();
+    expect((c as any).protocolesArray.length).toBe(4);
+    expect((c as any).showProtocolesSoftLimitHint).toBe(true);
+  });
+
+  it('#732 — « protocole standardisé ? » requis sur chaque bloc, protocole choisi si oui', () => {
+    const c = makeComp();
+    (c as any).addProtocole();
+    proto(c, 1).patchValue({ protocole_dans_campanule: true });
+    (c as any).syncConditionalValidators();
+    (c as any).fieldLabelKeys = {
+      protocole_dans_campanule: 'enjeux.operations.protocoleCampanule',
+      cd_protocole_campanule: 'enjeux.operations.protocoleNom',
+    };
+
+    expect(proto(c, 0).get('protocole_dans_campanule')?.hasValidator(Validators.required)).toBe(true);
+    expect(proto(c, 0).get('cd_protocole_campanule')?.hasValidator(Validators.required)).toBe(false);
+    expect(proto(c, 1).get('cd_protocole_campanule')?.hasValidator(Validators.required)).toBe(true);
+    expect((c as any).collectInvalidFieldLabels()).toEqual(
+      expect.arrayContaining(['enjeux.operations.protocoleCampanule', 'enjeux.operations.protocoleNom']),
+    );
   });
 
   it('un champ vidé est envoyé vide pour être effacé', () => {

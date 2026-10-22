@@ -9,7 +9,7 @@ import { Component, OnInit, inject, signal, computed, effect, ElementRef, Destro
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { FormArray, FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
@@ -37,12 +37,10 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { RhService } from '../../../../core/services/rh.service';
 import { Poste, CategorieDepense } from '../../../../core/models/rh.model';
-import { CampanuleService } from '../../../../core/services/campanule.service';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { ReorderService, OperationCodePreviewParams } from '../../../../core/services/reorder.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
 import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef, MetriqueFormData, MetriqueRef, Enjeu, Protocole } from '../../../../core/models/enjeu.model';
-import { CampanuleAutocomplete, campanuleProtocoleLabel } from '../../../../core/models/campanule.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import { FrequencyApplyDialogComponent, FrequencyApplyDialogResult } from '../../../../shared/components/modals/frequency-apply-dialog/frequency-apply-dialog.component';
@@ -56,7 +54,8 @@ import {
 } from '../../../../shared/utils/nomenclature-autocomplete.utils';
 import { serializeTaxonRefs, parseTaxonRefs } from '../../../../shared/utils/taxon-ref.utils';
 import { parseSuiviHabitats, serializeSuiviHabitats } from '../../../../shared/utils/suivi-habitats.utils';
-import { protocolesDepuisAction } from '../../../../shared/utils/suivi-protocoles.utils';
+import { protocolesDepuisAction, ProtocoleSaisiParAction } from '../../../../shared/utils/suivi-protocoles.utils';
+import { ProtocoleActionComponent } from './protocole-action/protocole-action.component';
 import { rhModeFor, salaryIsComputed, salaryOptionAvailable } from '../../../../shared/utils/operation-budget';
 import { ConfirmDialogComponent } from '../../../../shared/components/confirm-dialog/confirm-dialog.component';
 import {
@@ -129,6 +128,7 @@ export function buildGridTypeMetriqueOptions(
   standalone: true,
   imports: [
     CommonModule,
+    ProtocoleActionComponent,
     RouterLink,
     ReactiveFormsModule,
     FormsModule,
@@ -167,7 +167,6 @@ export class OperationFormComponent implements OnInit {
   private readonly enjeuService = inject(EnjeuService);
   private readonly adminService = inject(AdminService);
   private readonly rhService = inject(RhService);
-  private readonly campanuleService = inject(CampanuleService);
   private readonly inventaireService = inject(InventaireService);
   private readonly reorderService = inject(ReorderService);
   private readonly translate = inject(TranslateService);
@@ -902,15 +901,11 @@ export class OperationFormComponent implements OnInit {
   libelleDisplay = signal('');
 
 
-  // CAMPanule autocomplete
-  campanuleSearchCtrl = new FormControl('');
-  campanuleResults = signal<CampanuleAutocomplete[]>([]);
-  selectedCampanule = signal<CampanuleAutocomplete | null>(null);
-
   /**
-   * Protocoles du suivi lié (#252). Une action CS rattachée à un suivi
-   * existant affiche la liste complète en lecture seule ; la saisie d'un
-   * protocole depuis l'action ne concerne que la création d'un nouveau suivi.
+   * Protocoles du suivi lié, tels que relus de l'API (#252). Une action CS
+   * rattachée à un suivi existant les affiche en lecture seule ; sinon ils
+   * servent de base à la fusion des protocoles saisis (#732), pour garder les
+   * champs propres au module Inventaires.
    */
   suiviProtocoles = signal<Protocole[]>([]);
 
@@ -939,7 +934,6 @@ export class OperationFormComponent implements OnInit {
     this.initCodePreview();
     this.initSuiviLibelleSync();
     this.initTypeActionAutocomplete();
-    this.initCampanuleAutocomplete();
     this.initResponseGridAutosave();
     this.loadRouteParams();
   }
@@ -1049,17 +1043,8 @@ export class OperationFormComponent implements OnInit {
       cibles_principales: [null],
       cible_secondaire: [''],
       date_lancement_suivi: [null],
-      protocole_dans_campanule: [null],
-      protocole_campanule_nom: [''],
-      cd_protocole_campanule: [null],
-      nb_etp_cycle: [null],
-      nom_protocole: [''],
-      respect_protocole: [null],
-      justification_non_respect: [''],
-      differences_protocole: [''],
-      description_protocole: [''],
-      objectif_protocole: [''],
-      periode_echantillonnage: [''],
+      // #732 — un suivi peut porter plusieurs protocoles, saisis depuis l'action.
+      protocoles: this.fb.array<FormGroup>([]),
       outil_bancarisation: [null],
       outil_saisie: [null],
       transmission_donnee: [null],
@@ -1079,6 +1064,8 @@ export class OperationFormComponent implements OnInit {
       annee_min: [null],
       annee_max: [null],
     });
+    // Un formulaire vierge démarre avec un protocole (cas très majoritaire).
+    this.protocolesArray.push(this.createProtocoleGroup());
   }
 
   /** #476 — reflète le contrôle `metrique_ids` dans un signal pour alimenter les
@@ -1481,7 +1468,6 @@ export class OperationFormComponent implements OnInit {
         if (this.isReadOnly()) {
           this.form.disable();
           this.typeActionSearchCtrl.disable();
-          this.campanuleSearchCtrl.disable();
         }
         this.isLoadingData.set(false);
       },
@@ -1585,41 +1571,12 @@ export class OperationFormComponent implements OnInit {
         transmission_donnee: suivi.transmission_donnee ?? null,
       });
 
-      // #252 — liste complète des protocoles du suivi (affichée en lecture
-      // seule pour une action rattachée à un suivi existant).
-      this.suiviProtocoles.set(
+      // #252 / #732 — liste complète des protocoles du suivi : un bloc chacun.
+      this.setProtocoles(
         suivi.protocoles?.length
           ? suivi.protocoles
           : (suivi.protocole ? [suivi.protocole] : []),
       );
-
-      // Populate protocole fields from nested protocole
-      const proto = this.suiviProtocoles()[0];
-      if (proto) {
-        this.form.patchValue({
-          protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
-          protocole_campanule_nom: proto.protocole_campanule_nom || '',
-          cd_protocole_campanule: proto.cd_protocole_campanule || null,
-          nb_etp_cycle: proto.nb_etp_cycle ?? null,
-          nom_protocole: proto.nom_protocole || '',
-          respect_protocole: proto.respect_protocole ?? null,
-          justification_non_respect: proto.justification_non_respect || '',
-          differences_protocole: proto.differences_protocole || '',
-          description_protocole: proto.description_protocole || '',
-          objectif_protocole: proto.objectif_protocole || '',
-          periode_echantillonnage: proto.periode_echantillonnage || '',
-        });
-
-        // Restore CAMPanule autocomplete state
-        if (proto.cd_protocole_campanule && proto.protocole_campanule_nom) {
-          this.campanuleSearchCtrl.setValue(proto.protocole_campanule_nom, { emitEvent: false });
-          this.selectedCampanule.set({
-            cd_protocole: proto.cd_protocole_campanule,
-            search_name: proto.protocole_campanule_nom,
-            lb_protocole_court: proto.protocole_campanule_nom,
-          });
-        }
-      }
     }
 
     // Disable fields if est_suivi_existant
@@ -2191,22 +2148,13 @@ export class OperationFormComponent implements OnInit {
       suiviData['outil_saisie'] = rawFv.outil_saisie || '';
       suiviData['transmission_donnee'] = rawFv.transmission_donnee ?? null;
 
-      // #252 / #715 — la fiche action édite le premier protocole du suivi ; les
-      // suivants (saisis dans le module Inventaires) et les champs qu'elle ne
-      // connaît pas sont renvoyés tels quels.
-      const protocoles = protocolesDepuisAction(this.suiviProtocoles(), {
-        protocole_dans_campanule: rawFv.protocole_dans_campanule ?? null,
-        protocole_campanule_nom: rawFv.protocole_campanule_nom || '',
-        cd_protocole_campanule: rawFv.cd_protocole_campanule ?? null,
-        nb_etp_cycle: rawFv.nb_etp_cycle ?? null,
-        nom_protocole: (rawFv.nom_protocole || '').trim(),
-        respect_protocole: rawFv.respect_protocole ?? null,
-        justification_non_respect: (rawFv.justification_non_respect || '').trim(),
-        differences_protocole: (rawFv.differences_protocole || '').trim(),
-        description_protocole: (rawFv.description_protocole || '').trim(),
-        objectif_protocole: (rawFv.objectif_protocole || '').trim(),
-        periode_echantillonnage: (rawFv.periode_echantillonnage || '').trim(),
-      });
+      // #252 / #715 / #732 — chaque protocole saisi est fusionné avec le
+      // protocole existant de même id : les champs que la fiche action ne
+      // connaît pas (période de suivi, documentation…) sont conservés.
+      const protocoles = protocolesDepuisAction(
+        this.suiviProtocoles(),
+        this.protocolesArray.getRawValue().map((p) => this.protocoleSaisi(p)),
+      );
       if (protocoles) suiviData['protocoles'] = protocoles;
 
       if (Object.keys(suiviData).length > 0) {
@@ -2653,28 +2601,32 @@ export class OperationFormComponent implements OnInit {
    */
   private syncConditionalValidators(): void {
     const requireForCS = this.isCSAction() && !this.estSuiviExistant();
-    const protocoleCampanule = this.form.get('protocole_dans_campanule')?.value;
 
     this.applyRequiredValidator('intitule_suivi', requireForCS);
     // #461 — objectif principal + cible principale obligatoires pour une
     // action de type suivi (CS, nouveau suivi).
     this.applyRequiredValidator('objectif_principal', requireForCS);
     this.applyRequiredValidator('cibles_principales', requireForCS);
-    this.applyRequiredValidator('protocole_dans_campanule', requireForCS);
-    // #561 — « Respectez-vous strictement le protocole ? » n'est plus obligatoire
-    // (le champ reste affiché pour les protocoles CAMPanule mais sa saisie est facultative).
-    this.applyRequiredValidator('respect_protocole', false);
-    this.applyRequiredValidator(
-      'cd_protocole_campanule',
-      requireForCS && protocoleCampanule === true,
-    );
-    // #413 — le nom d'un protocole non-CAMPanule (nom local) est facultatif.
-    this.applyRequiredValidator('nom_protocole', false);
+    // #732 — chaque protocole porte ses propres validators conditionnels.
+    for (const group of this.protocolesArray?.controls ?? []) {
+      const protocoleCampanule = group.get('protocole_dans_campanule')?.value;
+      this.applyRequiredValidator('protocole_dans_campanule', requireForCS, group);
+      // #561 — « Respectez-vous strictement le protocole ? » n'est plus obligatoire
+      // (le champ reste affiché pour les protocoles CAMPanule mais sa saisie est facultative).
+      this.applyRequiredValidator('respect_protocole', false, group);
+      this.applyRequiredValidator(
+        'cd_protocole_campanule',
+        requireForCS && protocoleCampanule === true,
+        group,
+      );
+      // #413 — le nom d'un protocole non-CAMPanule (nom local) est facultatif.
+      this.applyRequiredValidator('nom_protocole', false, group);
+    }
   }
 
   /** Helper : ajoute ou retire Validators.required sur un contrôle, sans émettre. */
-  private applyRequiredValidator(controlName: string, required: boolean): void {
-    const ctrl = this.form.get(controlName);
+  private applyRequiredValidator(controlName: string, required: boolean, parent: FormGroup = this.form): void {
+    const ctrl = parent.get(controlName);
     if (!ctrl) return;
     if (required) {
       ctrl.setValidators([Validators.required]);
@@ -2724,6 +2676,13 @@ export class OperationFormComponent implements OnInit {
     for (const [name, control] of Object.entries(this.form.controls)) {
       if (control.invalid && this.fieldLabelKeys[name]) {
         labels.push(this.translate.instant(this.fieldLabelKeys[name]));
+      }
+    }
+    // #732 — champs invalides des blocs protocole, chaque libellé une fois.
+    for (const group of this.protocolesArray.controls) {
+      for (const [name, control] of Object.entries(group.controls)) {
+        const label = this.fieldLabelKeys[name] && this.translate.instant(this.fieldLabelKeys[name]);
+        if (control.invalid && label && !labels.includes(label)) labels.push(label);
       }
     }
     return labels;
@@ -2870,9 +2829,9 @@ export class OperationFormComponent implements OnInit {
       }
     });
 
-    // Switch CAMPanule (Oui/Non) change le champ requis (cd_protocole_campanule
-    // vs nom_protocole) → re-synchroniser les validators.
-    this.form.get('protocole_dans_campanule')?.valueChanges.subscribe(() => {
+    // Switch CAMPanule (Oui/Non) d'un protocole, ajout ou retrait d'un bloc :
+    // le protocole choisi devient (ou n'est plus) requis → re-synchroniser.
+    this.protocolesArray.valueChanges.subscribe(() => {
       this.syncConditionalValidators();
     });
   }
@@ -2915,42 +2874,12 @@ export class OperationFormComponent implements OnInit {
           transmission_donnee: detail.transmission_donnee ?? null,
         });
 
-        // #252 — le suivi peut porter plusieurs protocoles : on mémorise la
-        // liste complète (affichée en lecture seule) et on pré-remplit les
-        // champs à plat avec le premier, pour rester cohérent avec l'existant.
-        this.suiviProtocoles.set(
+        // #252 — le suivi peut porter plusieurs protocoles : tous affichés.
+        this.setProtocoles(
           detail.protocoles?.length
             ? detail.protocoles
             : (detail.protocole ? [detail.protocole] : []),
         );
-
-        // Populate protocole fields
-        const proto = this.suiviProtocoles()[0];
-        if (proto) {
-          this.form.patchValue({
-            protocole_dans_campanule: proto.protocole_dans_campanule ?? null,
-            protocole_campanule_nom: proto.protocole_campanule_nom || '',
-            cd_protocole_campanule: proto.cd_protocole_campanule || null,
-            nb_etp_cycle: proto.nb_etp_cycle ?? null,
-            nom_protocole: proto.nom_protocole || '',
-            respect_protocole: proto.respect_protocole ?? null,
-            justification_non_respect: proto.justification_non_respect || '',
-            differences_protocole: proto.differences_protocole || '',
-            description_protocole: proto.description_protocole || '',
-            objectif_protocole: proto.objectif_protocole || '',
-            periode_echantillonnage: proto.periode_echantillonnage || '',
-          });
-
-          // Restore CAMPanule autocomplete state
-          if (proto.cd_protocole_campanule && proto.protocole_campanule_nom) {
-            this.campanuleSearchCtrl.setValue(proto.protocole_campanule_nom, { emitEvent: false });
-            this.selectedCampanule.set({
-              cd_protocole: proto.cd_protocole_campanule,
-              search_name: proto.protocole_campanule_nom,
-              lb_protocole_court: proto.protocole_campanule_nom,
-            });
-          }
-        }
       },
     });
   }
@@ -3067,191 +2996,88 @@ export class OperationFormComponent implements OnInit {
   getActionDepth = getNomenclatureDepth;
 
   // ════════════════════════════════════════════════
-  // CAMPanule autocomplete
+  // Protocoles du suivi (FormArray) — #252 / #732
   // ════════════════════════════════════════════════
 
-  /** #584 — nombre de protocoles proposés quand aucun terme n'est saisi. */
-  private static readonly CAMPANULE_DEFAULT_LIMIT = 100;
+  get protocolesArray(): FormArray<FormGroup> {
+    return this.form.get('protocoles') as FormArray<FormGroup>;
+  }
 
-  private initCampanuleAutocomplete(): void {
-    this.campanuleSearchCtrl.valueChanges.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      // Une chaîne vide est acceptée : elle recharge la liste alphabétique (#584).
-      filter((val): val is string => typeof val === 'string'),
-      switchMap((search) => this.campanuleService.autocomplete(
-        search,
-        search ? 20 : OperationFormComponent.CAMPANULE_DEFAULT_LIMIT,
-      ))
-    ).subscribe({
-      next: (results) => this.campanuleResults.set(results),
-      error: () => this.campanuleResults.set([]),
+  /** Nombre de protocoles au-delà duquel on affiche une mention d'ergonomie. */
+  private static readonly PROTOCOLES_SOFT_LIMIT = 3;
+
+  get showProtocolesSoftLimitHint(): boolean {
+    return this.protocolesArray.length > OperationFormComponent.PROTOCOLES_SOFT_LIMIT;
+  }
+
+  /** Groupe d'un protocole, pré-rempli depuis un protocole relu de l'API. */
+  private createProtocoleGroup(p?: Protocole): FormGroup {
+    return this.fb.group({
+      // Protocole existant édité (null pour un protocole ajouté) : sert à la
+      // fusion des champs que la fiche action ne saisit pas, jamais envoyé.
+      id_protocole: [p?.id_protocole ?? null],
+      protocole_dans_campanule: [p?.protocole_dans_campanule ?? null],
+      protocole_campanule_nom: [p?.protocole_campanule_nom || ''],
+      cd_protocole_campanule: [p?.cd_protocole_campanule || null],
+      nb_etp_cycle: [p?.nb_etp_cycle ?? null],
+      nom_protocole: [p?.nom_protocole || ''],
+      respect_protocole: [p?.respect_protocole ?? null],
+      justification_non_respect: [p?.justification_non_respect || ''],
+      differences_protocole: [p?.differences_protocole || ''],
+      description_protocole: [p?.description_protocole || ''],
+      objectif_protocole: [p?.objectif_protocole || ''],
+      periode_echantillonnage: [p?.periode_echantillonnage || ''],
     });
   }
 
   /**
-   * #584 — Au clic dans le champ, on affiche d'emblée les protocoles par ordre
-   * alphabétique plutôt qu'une liste vide en attente de saisie.
+   * Remplace les blocs protocole par ceux du suivi (au moins un bloc vide :
+   * le cas d'un suivi à un seul protocole reste le plus courant).
    */
-  onCampanuleFocus(): void {
-    const search = this.campanuleSearchCtrl.value;
-    if (typeof search === 'string' && search.length > 0) return;
-    if (this.campanuleResults().length > 0) return;
-
-    this.campanuleService
-      .autocomplete('', OperationFormComponent.CAMPANULE_DEFAULT_LIMIT)
-      .subscribe({
-        next: (results) => this.campanuleResults.set(results),
-        error: () => this.campanuleResults.set([]),
-      });
-  }
-
-  /** Libellé d'affichage d'un protocole (nom court, sinon nom complet). #564 */
-  campanuleLabel(option: CampanuleAutocomplete): string {
-    return campanuleProtocoleLabel(option);
-  }
-
-  displayCampanuleFn(option: CampanuleAutocomplete | string): string {
-    if (!option) return '';
-    if (typeof option === 'string') return option;
-    return campanuleProtocoleLabel(option);
-  }
-
-  onCampanuleSelected(event: any): void {
-    const selected: CampanuleAutocomplete = event.option.value;
-    this.selectedCampanule.set(selected);
-    // Ne pas appeler setValue ici : Angular Material gère l'affichage via displayWith
-
-    this.form.patchValue({
-      protocole_campanule_nom: campanuleProtocoleLabel(selected),
-      cd_protocole_campanule: selected.cd_protocole,
-    });
-
-    // Fetch full protocol details to populate description/objectif/période
-    this.campanuleService.getProtocole(selected.cd_protocole).subscribe({
-      next: (detail) => {
-        this.form.patchValue({
-          description_protocole: detail.description || '',
-          objectif_protocole: detail.descr_objectif_prot || '',
-        });
-        if (detail.echantillonnages && detail.echantillonnages.length > 0) {
-          const periodes = detail.echantillonnages
-            .filter(e => e.periode_an)
-            .map(e => e.periode_an)
-            .join('; ');
-          if (periodes) {
-            this.form.patchValue({ periode_echantillonnage: periodes });
-          }
-        }
-      },
-    });
-  }
-
-  onCampanuleReset(): void {
-    this.selectedCampanule.set(null);
-    this.campanuleSearchCtrl.setValue('');
-    this.form.patchValue({
-      protocole_campanule_nom: '',
-      cd_protocole_campanule: null,
-      description_protocole: '',
-      objectif_protocole: '',
-      periode_echantillonnage: '',
-    });
-  }
-
-  /**
-   * #520 — Mémoire des valeurs saisies MANUELLEMENT (mode « Non ») pour ne pas
-   * les perdre lors d'un aller-retour du choix CAMPanule.
-   */
-  private manualProtocoleSnapshot: {
-    description_protocole: string;
-    objectif_protocole: string;
-    periode_echantillonnage: string;
-  } | null = null;
-
-  /**
-   * #520 — Mémoire de la sélection CAMPanule (mode « Oui ») pour la restaurer
-   * si l'on rebascule sur « Oui » sans avoir à re-rechercher le protocole.
-   */
-  private campanuleSnapshot: {
-    selected: CampanuleAutocomplete | null;
-    protocole_campanule_nom: string;
-    cd_protocole_campanule: number | null;
-    description_protocole: string;
-    objectif_protocole: string;
-    periode_echantillonnage: string;
-  } | null = null;
-
-  /**
-   * #520 — Au changement MANUEL du choix « le protocole est-il dans CAMPanule ? ».
-   *
-   * Les champs description / objectif / période sont partagés entre les deux
-   * modes. On garde donc deux « canaux » indépendants en mémoire :
-   *  - Oui → Non : on archive la sélection CAMPanule (elle ne doit pas rester
-   *    affichée dans les champs éditables — bug initial #520) et on restaure la
-   *    saisie manuelle précédente.
-   *  - Non → Oui : on archive la saisie manuelle et on restaure la sélection
-   *    CAMPanule précédente si elle existe.
-   *
-   * Ainsi un aller-retour du choix ne perd plus les données saisies (retour de
-   * test #520). Branché sur (change) du radio : ne se déclenche PAS au chargement
-   * en édition (patchValue), donc les données enregistrées ne sont pas écrasées.
-   */
-  onProtocoleCampanuleChange(): void {
-    if (this.isCampanule) {
-      // Non → Oui : archiver la saisie manuelle, restaurer la sélection CAMPanule
-      this.manualProtocoleSnapshot = {
-        description_protocole: this.form.get('description_protocole')?.value || '',
-        objectif_protocole: this.form.get('objectif_protocole')?.value || '',
-        periode_echantillonnage: this.form.get('periode_echantillonnage')?.value || '',
-      };
-      if (this.campanuleSnapshot) {
-        const snap = this.campanuleSnapshot;
-        this.selectedCampanule.set(snap.selected);
-        this.campanuleSearchCtrl.setValue(snap.protocole_campanule_nom, { emitEvent: false });
-        this.form.patchValue({
-          protocole_campanule_nom: snap.protocole_campanule_nom,
-          cd_protocole_campanule: snap.cd_protocole_campanule,
-          description_protocole: snap.description_protocole,
-          objectif_protocole: snap.objectif_protocole,
-          periode_echantillonnage: snap.periode_echantillonnage,
-        });
-      } else {
-        this.onCampanuleReset();
-      }
-    } else {
-      // Oui → Non : archiver la sélection CAMPanule, restaurer la saisie manuelle
-      this.campanuleSnapshot = {
-        selected: this.selectedCampanule(),
-        protocole_campanule_nom: this.form.get('protocole_campanule_nom')?.value || '',
-        cd_protocole_campanule: this.form.get('cd_protocole_campanule')?.value ?? null,
-        description_protocole: this.form.get('description_protocole')?.value || '',
-        objectif_protocole: this.form.get('objectif_protocole')?.value || '',
-        periode_echantillonnage: this.form.get('periode_echantillonnage')?.value || '',
-      };
-      this.selectedCampanule.set(null);
-      this.campanuleSearchCtrl.setValue('', { emitEvent: false });
-      const manual = this.manualProtocoleSnapshot;
-      this.form.patchValue({
-        protocole_campanule_nom: '',
-        cd_protocole_campanule: null,
-        description_protocole: manual?.description_protocole ?? '',
-        objectif_protocole: manual?.objectif_protocole ?? '',
-        periode_echantillonnage: manual?.periode_echantillonnage ?? '',
-      });
+  private setProtocoles(protocoles: Protocole[]): void {
+    this.suiviProtocoles.set(protocoles);
+    const array = this.protocolesArray;
+    array.clear({ emitEvent: false });
+    for (const p of protocoles.length ? protocoles : [undefined]) {
+      array.push(this.createProtocoleGroup(p), { emitEvent: false });
     }
+    // Suivi existant : ses protocoles se lisent, ils ne se saisissent pas ici.
+    if (this.estSuiviExistant()) array.disable({ emitEvent: false });
+    this.syncConditionalValidators();
   }
 
-  consulterProtocole(): void {
-    const cdProtocole = this.form.get('cd_protocole_campanule')?.value;
-    if (!cdProtocole) return;
+  addProtocole(): void {
+    this.protocolesArray.push(this.createProtocoleGroup());
+  }
 
-    this.dialog.open(ProtocoleCampanuleDialogComponent, {
-      width: '900px',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
-      data: { cdProtocole },
-    });
+  /** Retire un protocole (le dernier restant n'est pas supprimable). */
+  removeProtocole(index: number): void {
+    if (this.protocolesArray.length <= 1) return;
+    this.protocolesArray.removeAt(index);
+  }
+
+  /** Titre d'un bloc protocole : son nom, sinon « Protocole n ». */
+  protocoleTitre(index: number): string {
+    return this.protocoleNom(this.protocolesArray.at(index).getRawValue() as Protocole, index);
+  }
+
+  /** Valeur d'un bloc, champs texte nettoyés : un champ vide efface (#715). */
+  private protocoleSaisi(p: Record<string, any>): ProtocoleSaisiParAction {
+    const texte = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+    return {
+      id_protocole: p['id_protocole'] ?? null,
+      protocole_dans_campanule: p['protocole_dans_campanule'] ?? null,
+      protocole_campanule_nom: p['protocole_campanule_nom'] || '',
+      cd_protocole_campanule: p['cd_protocole_campanule'] ?? null,
+      nb_etp_cycle: p['nb_etp_cycle'] ?? null,
+      nom_protocole: texte(p['nom_protocole']),
+      respect_protocole: p['respect_protocole'] ?? null,
+      justification_non_respect: texte(p['justification_non_respect']),
+      differences_protocole: texte(p['differences_protocole']),
+      description_protocole: texte(p['description_protocole']),
+      objectif_protocole: texte(p['objectif_protocole']),
+      periode_echantillonnage: texte(p['periode_echantillonnage']),
+    };
   }
 
   // ─── Protocoles du suivi lié (lecture seule) — #252 ──────────
@@ -3274,22 +3100,6 @@ export class OperationFormComponent implements OnInit {
       p.nom_protocole?.trim() ||
       this.translate.instant('inventaires.form.protocoleIndex', { index: index + 1 })
     );
-  }
-
-  get isCampanule(): boolean {
-    return this.form.get('protocole_dans_campanule')?.value === true;
-  }
-
-  get isNotCampanule(): boolean {
-    return this.form.get('protocole_dans_campanule')?.value === false;
-  }
-
-  get isNonRespect(): boolean {
-    return this.form.get('respect_protocole')?.value === false;
-  }
-
-  get hasCampanuleSelected(): boolean {
-    return !!this.form.get('cd_protocole_campanule')?.value;
   }
 
   /** Build grouped nomenclature structure from flat options using definition field */
@@ -3354,27 +3164,21 @@ export class OperationFormComponent implements OnInit {
     const fields = [
       'objectif_principal', 'objectif_secondaire',
       'cibles_principales', 'cible_secondaire',
-      'date_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
-      'cd_protocole_campanule', 'nb_etp_cycle', 'nom_protocole',
-      'respect_protocole', 'justification_non_respect', 'differences_protocole',
-      'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
+      'date_lancement_suivi',
       'outil_bancarisation', 'outil_saisie', 'transmission_donnee',
       'intitule_suivi'
     ];
     for (const field of fields) {
       this.form.get(field)?.reset();
     }
-    this.suiviProtocoles.set([]);
+    this.setProtocoles([]);
   }
 
   private setSuiviFieldsEnabled(enabled: boolean): void {
     const fields = [
       'objectif_principal', 'objectif_secondaire',
       'cibles_principales', 'cible_secondaire',
-      'date_lancement_suivi', 'protocole_dans_campanule', 'protocole_campanule_nom',
-      'cd_protocole_campanule', 'nb_etp_cycle', 'nom_protocole',
-      'respect_protocole', 'justification_non_respect', 'differences_protocole',
-      'description_protocole', 'objectif_protocole', 'periode_echantillonnage',
+      'date_lancement_suivi', 'protocoles',
       'outil_bancarisation', 'outil_saisie', 'transmission_donnee'
     ];
     for (const field of fields) {

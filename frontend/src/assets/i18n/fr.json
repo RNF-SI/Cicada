@@ -4663,8 +4663,8 @@
       "estSuiviExistantLabel": "Inventaire ou suivi déjà saisi dans le module Mes inventaires et suivis ?",
       "intituleSuiviLabel": "Intitulé de l'inventaire ou suivi",
       "aucunSuiviDisponible": "Aucun suivi disponible - module à venir",
-      "protocoleTitle": "Protocole",
-      "protocolesMultiplesHint": "Ce suivi mobilise plusieurs protocoles. Ils se modifient depuis la fiche du suivi.",
+      "protocoleTitle": "Protocoles",
+      "protocolesMultiplesHint": "Les protocoles de ce suivi se modifient depuis sa fiche, dans le module Inventaires.",
       "descriptionProtocole": "Description du protocole",
       "objectifProtocole": "Détails de l'objectif du protocole",
       "periodeEchantillonnage": "Période d'échantillonnage",
@@ -5072,7 +5072,7 @@
       "dateLancement": "Date de lancement du suivi",
       "dateLancementPlaceholder": "JJ/MM/AAAA",
       "sections": {
-        "protocole": "Détails du protocole",
+        "protocole": "Détails des protocoles",
         "bancarisation": "Bancarisation et stockage de la donnée",
         "details": "Détails"
       },

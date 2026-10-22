@@ -1,0 +1,140 @@
+<div class="protocole-block" [formGroup]="group">
+  <!-- En-tête du bloc : titre + retrait (#732) -->
+  <div class="protocole-block-header">
+    <span class="protocole-block-title">{{ titre }}</span>
+    @if (retirable && !lectureSeule) {
+      <button type="button" class="icon-btn-flat protocole-remove-btn"
+        (click)="retirer.emit()"
+        [attr.aria-label]="'inventaires.form.retirerProtocole' | translate"
+        [title]="'inventaires.form.retirerProtocole' | translate">
+        <i class="fi fi-rr-trash"></i>
+      </button>
+    }
+  </div>
+
+  <div class="protocole-fields">
+    <!-- Protocole répertorié dans Campanule -->
+    <div class="radio-field-row">
+      <span class="radio-field-label">
+        {{ 'enjeux.operations.protocoleCampanule' | translate }}
+        <span class="required-star">*</span>
+      </span>
+      <mat-radio-group formControlName="protocole_dans_campanule" class="radio-inline"
+                       (change)="onProtocoleCampanuleChange()">
+        <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+        <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    <!-- ═══ MODE CAMPANULE (Oui) ═══ -->
+    @if (isCampanule) {
+      <div>
+        <label class="app-mat-label">{{ 'enjeux.operations.protocoleNom' | translate }}
+          <span class="required-star">*</span></label>
+        <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+          <mat-label></mat-label>
+          <input matInput
+            [formControl]="campanuleSearchCtrl"
+            [matAutocomplete]="campanuleAuto"
+            (focus)="onCampanuleFocus()"
+            [placeholder]="'enjeux.operations.campanuleSearchPlaceholder' | translate">
+          <mat-autocomplete #campanuleAuto="matAutocomplete"
+            [displayWith]="displayCampanuleFn"
+            (optionSelected)="onCampanuleSelected($event)">
+            @for (option of campanuleResults(); track option.cd_protocole) {
+              <mat-option [value]="option">
+                <div class="campanule-option">
+                  <span class="campanule-option-name">{{ campanuleLabel(option) }}</span>
+                  @if (option.cible) {
+                    <span class="campanule-option-cible">{{ option.cible }}</span>
+                  }
+                </div>
+              </mat-option>
+            }
+          </mat-autocomplete>
+          @if (hasCampanuleSelected && !lectureSeule) {
+            <button matSuffix type="button" class="clear-btn" (click)="onCampanuleReset()">
+              <i class="fi fi-rr-cross-small"></i>
+            </button>
+          }
+          <mat-hint>{{ 'enjeux.operations.campanuleSearchHint' | translate }}</mat-hint>
+        </mat-form-field>
+      </div>
+    }
+
+    <!-- ═══ MODE NON-CAMPANULE (Non) ═══ -->
+    @if (isNotCampanule) {
+      <!-- #413 — Nom du protocole (libre, facultatif) + aide nom local -->
+      <app-form-field [label]="'enjeux.operations.nomProtocole' | translate" [helpText]="'enjeux.operations.nomProtocoleNonCampanuleHint' | translate">
+        <input formControlName="nom_protocole">
+      </app-form-field>
+
+      <!-- Nombre d'ETP par cycle de collecte -->
+      <app-form-field [label]="'enjeux.operations.nbEtpCycle' | translate" [helpText]="'enjeux.operations.nbEtpCycleHint' | translate">
+        <input type="number" formControlName="nb_etp_cycle">
+      </app-form-field>
+    }
+
+    <!-- #414 — « Respect strict du protocole » réservé aux protocoles CAMPanule -->
+    @if (isCampanule) {
+      <div class="radio-field-row radio-field-row-with-link">
+        <span class="radio-field-label">
+          {{ 'enjeux.operations.respectProtocole' | translate }}
+        </span>
+        <mat-radio-group formControlName="respect_protocole" class="radio-inline">
+          <mat-radio-button [value]="true" color="primary">{{ 'common.yes' | translate }}</mat-radio-button>
+          <mat-radio-button [value]="false" color="primary">{{ 'common.no' | translate }}</mat-radio-button>
+        </mat-radio-group>
+        @if (hasCampanuleSelected) {
+          <a class="consulter-link" (click)="consulterProtocole()">
+            {{ 'enjeux.operations.consulterProtocole' | translate }}
+          </a>
+        }
+      </div>
+
+      <!-- Non-respect: Justification + Différences -->
+      @if (isNonRespect) {
+        <app-form-field [label]="'enjeux.operations.justificationNonRespect' | translate">
+          <textarea formControlName="justification_non_respect" rows="3"></textarea>
+        </app-form-field>
+
+        <app-form-field [label]="'enjeux.operations.differencesProtocole' | translate">
+          <textarea formControlName="differences_protocole" rows="3"></textarea>
+        </app-form-field>
+      }
+    }
+
+    <!-- Description, objectif, période : repris de CAMPanule (lecture) ou saisis -->
+    @if (isCampanule && hasCampanuleSelected) {
+      <div class="readonly-field">
+        <label class="readonly-label">{{ 'enjeux.operations.descriptionProtocole' | translate }}</label>
+        <div class="readonly-value readonly-value-multiline">
+          {{ group.get('description_protocole')?.value || '—' }}
+        </div>
+      </div>
+      <div class="readonly-field">
+        <label class="readonly-label">{{ 'enjeux.operations.objectifProtocole' | translate }}</label>
+        <div class="readonly-value">
+          {{ group.get('objectif_protocole')?.value || '—' }}
+        </div>
+      </div>
+      <div class="readonly-field">
+        <label class="readonly-label">{{ 'enjeux.operations.periodeEchantillonnage' | translate }}</label>
+        <div class="readonly-value">
+          {{ group.get('periode_echantillonnage')?.value || '—' }}
+        </div>
+      </div>
+    } @else if (isNotCampanule) {
+      <app-form-field [label]="'enjeux.operations.descriptionProtocole' | translate">
+        <textarea formControlName="description_protocole" rows="3"></textarea>
+      </app-form-field>
+      <app-form-field [label]="'enjeux.operations.objectifProtocole' | translate">
+        <textarea formControlName="objectif_protocole" rows="3"></textarea>
+      </app-form-field>
+      <app-form-field [label]="'enjeux.operations.periodeEchantillonnage' | translate">
+        <input formControlName="periode_echantillonnage"
+               [placeholder]="'enjeux.operations.periodeEchantillonnagePlaceholder' | translate">
+      </app-form-field>
+    }
+  </div>
+</div>
