@@ -28,6 +28,7 @@ from apps.plans.models_operations import (
 from apps.users.models import Role, Site
 
 from .base import BaseSeeder
+from ._coherence import MONTANTS_VIDES, aligner_suivis_sur_actions, couts_detailles
 
 
 
@@ -5285,7 +5286,14 @@ class EnjeuxSeeder(BaseSeeder):
             # #602/#606 — les modes « + type de poste » déclinent le temps de
             # travail par poste.
             op.declinaison_par_poste = v_mode in ('by_type_poste', 'by_org_type_poste')
-            op.save(update_fields=['ventilation_mode', 'declinaison_par_poste'])
+            # #763 — coûts détaillés (composants) seulement dans ces deux modes ;
+            # les autres stockent des enveloppes, la case reste donc décochée
+            # (cochée par défaut sur le modèle, elle décline aussi le temps par
+            # poste — #735 — et afficherait des montants absents).
+            op.declinaison_par_type_cout = op.declinaison_par_poste
+            op.cout_salarial_auto = True
+            op.save(update_fields=['ventilation_mode', 'declinaison_par_poste',
+                                   'declinaison_par_type_cout', 'cout_salarial_auto'])
 
             if op.annee_min and op.annee_max:
                 mens = enrich['mens'] if enrich else (
@@ -5306,17 +5314,24 @@ class EnjeuxSeeder(BaseSeeder):
 
                     # Adapt fields based on ventilation mode
                     defaults = {
+                        **MONTANTS_VIDES,
                         'periodicite': True,
                         'periodicite_mensuelle': mens,
                     }
                     if v_mode == 'none':
                         defaults['budget'] = budget
                         defaults['etp'] = etp
-                    elif v_mode in ('by_type', 'by_type_poste'):
+                    elif v_mode == 'by_type':
                         defaults['budget'] = budget
                         defaults['etp'] = etp
                         defaults['budget_fonctionnement'] = round(budget * 0.6, 2)
                         defaults['budget_investissement'] = round(budget * 0.4, 2)
+                    elif v_mode == 'by_type_poste':
+                        # #624/#763 — détail des coûts, enveloppes dérivées
+                        # (non stockées) ; le salarial vient des lignes RH.
+                        defaults['budget'] = budget
+                        defaults['etp'] = etp
+                        defaults.update(couts_detailles(budget))
                     else:
                         # by_org / by_org_type / by_org_type_poste : budget total
                         # = somme des données par organisme.
@@ -6025,7 +6040,7 @@ class EnjeuxSeeder(BaseSeeder):
                     OperationAnneeOrganisme.objects.update_or_create(
                         id_operation_annee=oa,
                         id_organisme=org,
-                        defaults=defaults,
+                        defaults={**MONTANTS_VIDES, **defaults},
                     )
                     orgs_created += 1
 
@@ -6571,6 +6586,11 @@ class EnjeuxSeeder(BaseSeeder):
         # branches — seul le facteur d'influence (#552) en avait un.
         self._seed_shared_ra_demo(plans)
         self._seed_shared_indicateur_demo(plans)
+
+        # #763 — suivis conformes à la règle #715 (action CS, même type).
+        aligner_suivis_sur_actions(
+            Operation.objects.filter(id_suivi__isnull=False)
+            .exclude(code_operation__startswith='CAM-VENT-'), self)
 
         result = {
             'enjeux': enjeux_created,

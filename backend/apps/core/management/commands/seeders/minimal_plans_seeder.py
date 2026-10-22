@@ -29,6 +29,7 @@ from apps.plans.models_operations import (
 )
 
 from .base import BaseSeeder
+from ._coherence import MONTANTS_VIDES, couts_detailles
 from ._geo_helpers import make_operation_geom
 from .plans_seeder import NOM_BROUAGE_ETENDU, NOM_SCANDOLA_ETENDU
 
@@ -853,7 +854,12 @@ class MinimalPlansSeeder(BaseSeeder):
             v_mode = ventilation_modes[idx % len(ventilation_modes)]
             op.ventilation_mode = v_mode
             op.declinaison_par_poste = v_mode in poste_modes
-            op.save(update_fields=['ventilation_mode', 'declinaison_par_poste'])
+            # #763 — coûts détaillés seulement dans les modes « + type de
+            # poste » (les autres stockent des enveloppes).
+            op.declinaison_par_type_cout = op.declinaison_par_poste
+            op.cout_salarial_auto = True
+            op.save(update_fields=['ventilation_mode', 'declinaison_par_poste',
+                                   'declinaison_par_type_cout', 'cout_salarial_auto'])
 
             if not op.annee_min or not op.annee_max:
                 continue
@@ -865,13 +871,18 @@ class MinimalPlansSeeder(BaseSeeder):
                 budget = profile['base'] + (offset * profile['var'] // 4)
                 etp = etp_base + (offset // 3)
 
-                defaults = {'periodicite': True}
+                defaults = {**MONTANTS_VIDES, 'periodicite': True}
                 if v_mode == 'none':
                     defaults['budget'] = budget
                     defaults['etp'] = etp
-                elif v_mode in ('by_type', 'by_type_poste'):
+                elif v_mode == 'by_type':
                     defaults['budget_fonctionnement'] = round(budget * 0.6, 2)
                     defaults['budget_investissement'] = round(budget * 0.4, 2)
+                    defaults['budget'] = budget
+                    defaults['etp'] = etp
+                elif v_mode == 'by_type_poste':
+                    # #763 — détail des coûts, enveloppes dérivées.
+                    defaults.update(couts_detailles(budget))
                     defaults['budget'] = budget
                     defaults['etp'] = etp
                 else:
@@ -884,6 +895,8 @@ class MinimalPlansSeeder(BaseSeeder):
                 )
 
                 # Ventilation par organismes
+                if v_mode not in ('by_org', 'by_org_type', 'by_org_type_poste'):
+                    OperationAnneeOrganisme.objects.filter(id_operation_annee=oa).delete()
                 if v_mode in ('by_org', 'by_org_type', 'by_org_type_poste') and organismes:
                     per_org_budget = budget / len(organismes)
                     per_org_etp = etp / len(organismes)
@@ -894,20 +907,22 @@ class MinimalPlansSeeder(BaseSeeder):
                                 'budget_investissement': None,
                                 'etp': round(per_org_etp, 2),
                             }
-                        else:
-                            # by_org_type(_poste) : fonct/invest + coûts additionnels (#600).
+                        elif v_mode == 'by_org_type':
                             org_defaults = {
                                 'budget_fonctionnement': round(per_org_budget * 0.6, 2),
                                 'budget_investissement': round(per_org_budget * 0.4, 2),
-                                'cout_stage': round(per_org_budget * 0.1, 2),
-                                'cout_prestataire': round(per_org_budget * 0.15, 2),
-                                'autre_cout': round(per_org_budget * 0.05, 2),
-                                'autre_cout_commentaire': 'Frais divers',
+                                'etp': round(per_org_etp, 2),
+                            }
+                        else:
+                            # by_org_type_poste : détail des coûts (#600), les
+                            # enveloppes en dérivent (#763 : plus de doublon).
+                            org_defaults = {
+                                **couts_detailles(per_org_budget),
                                 'etp': round(per_org_etp, 2),
                             }
                         OperationAnneeOrganisme.objects.update_or_create(
                             id_operation_annee=oa, id_organisme=org,
-                            defaults=org_defaults,
+                            defaults={**MONTANTS_VIDES, **org_defaults},
                         )
 
     def reset(self) -> int:

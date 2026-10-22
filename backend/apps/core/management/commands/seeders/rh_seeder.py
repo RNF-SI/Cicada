@@ -14,7 +14,7 @@ Les postes couvrent volontairement les cas de figure du modèle :
   - poste **non financé** (bénévoles).
 
 Les actions couvrent les trois façons de saisir la RH :
-  - `declinaison_par_poste=True` → une ligne par poste ;
+  - temps décliné par poste (`Operation.temps_par_poste()`) → une ligne par poste ;
   - ventilation budgétaire par organisme → une ligne par organisme ;
   - ni l'un ni l'autre → aucune ligne (la saisie RH est alors facultative).
 """
@@ -117,13 +117,13 @@ class RhSeeder(BaseSeeder):
         lignes_reel = 0
         nb_declinees = 0
         for idx, op in enumerate(operations):
-            # Une action sur trois détaille sa RH poste par poste ; les autres
-            # s'appuient sur la ventilation budgétaire par organisme.
-            declinee = idx % 3 == 0
+            # #763 — le temps se décline par poste quand la programmation
+            # l'impose (modes « + type de poste », coûts détaillés — #735) ;
+            # sinon il suit la ventilation budgétaire par organisme, ou reste
+            # facultatif. Pas de déclinaison « forcée » sur un autre mode : la
+            # fiche action ne saurait pas l'afficher.
+            declinee = op.temps_par_poste()
             par_organisme = not declinee and op.ventilation_mode in ('by_org', 'by_org_type')
-            if op.declinaison_par_poste != declinee:
-                op.declinaison_par_poste = declinee
-                op.save(update_fields=['declinaison_par_poste'])
             if declinee:
                 nb_declinees += 1
 

@@ -167,6 +167,13 @@ class RealisationsSeeder(BaseSeeder):
                     oa.budget_investissement, ratio
                 )
                 defaults['etp_realise'] = self._mul(oa.etp, ratio)
+            elif mode == 'by_type_poste':
+                # #763 — détail des coûts réalisés, miroir du prévisionnel ;
+                # le coût salarial réalisé vient des lignes RH (rh_seeder).
+                defaults['etp_realise'] = self._mul(oa.etp, ratio)
+                for champ in ('cout_stage', 'cout_prestataire', 'autre_cout',
+                              'cout_prestataire_invest', 'autre_cout_invest'):
+                    defaults[f'{champ}_realise'] = self._mul(getattr(oa, champ), ratio)
             # else: by_org / by_org_type → budget/etp portés par les organismes,
             # on laisse les champs annuels nulls.
 

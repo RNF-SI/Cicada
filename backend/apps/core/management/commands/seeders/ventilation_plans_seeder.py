@@ -55,6 +55,14 @@ réalisé (2 années passées), l'année en cours et du prévisionnel pur.
 suivi : la programmation y est figée (verrou #248) et le suivi est **en cours de
 saisie** — année courante − 2 complète, suivi de l'animation de l'année − 1 à
 saisir, année en cours entamée sur la seule action CS (cf. ``_VARIANTES``).
+
+#763 — deux plans « composites » mélangent les réglages dans un même plan :
+« Ventilation composite — programmation » (brouillon : modes, coûts détaillés
+ou non, coût salarial calculé ou saisi, programmation annuelle ou globale) et
+« Ventilation composite — suivi » (validé : réglages du suivi différents de la
+programmation, années saisies, partielles et non saisies). Sans type de budget,
+l'investissement de l'action type passe en fonctionnement (#735). Le test
+``test_seed_coherence_ventilation.py`` vérifie le tout contre les règles.
 """
 from datetime import date
 from decimal import Decimal
@@ -136,6 +144,55 @@ _VARIANTES_GLOBAL = [
     (_PLAN_PREFIX_GLOBAL, 'draft', ''),
     (_PLAN_PREFIX_GLOBAL_VALIDE, 'valide', 'VAL-'),
 ]
+
+# #763 — plans « composites » : dans un même plan, des actions aux réglages
+# différents. Chaque action reprend le contenu d'une action type (`modele`) ;
+# son libellé dit ce qui la distingue, pour s'y retrouver en recette.
+_PLAN_COMPOSITE_PROG = 'Ventilation composite — programmation'
+_PLAN_COMPOSITE_SUIVI = 'Ventilation composite — suivi'
+_CODE_COMPOSITE = 'COMPO'
+_CODE_COMPOSITE_SUIVI = 'COMPO-VAL'
+
+# Programmation (brouillon) : tous les modes, coûts détaillés ou non, coût
+# salarial calculé ou saisi, programmation annuelle ou globale.
+# (suffixe, modèle, mode, coûts détaillés, salarial auto, global, libellé)
+_COMPOSITE_PROG = [
+    ('P1', 'CS1', 'none', False, True, False, 'aucune ventilation, enveloppe annuelle'),
+    ('P2', 'IP1', 'none', True, True, False, 'aucune ventilation, coûts détaillés'),
+    ('P3', 'PA1', 'by_org', False, True, False, 'par organisme, enveloppes'),
+    ('P4', 'IP1', 'by_org', True, False, False,
+     'par organisme, coûts détaillés, coût salarial saisi'),
+    ('P5', 'CS1', 'by_type', False, True, True, 'par type de budget, programmation globale'),
+    ('P6', 'PA1', 'by_org_type', False, True, False, 'par organisme et type de budget'),
+    ('P7', 'IP1', 'by_type_poste', True, True, True,
+     'par type de budget et type de poste, programmation globale'),
+    ('P8', 'CS1', 'by_org_type_poste', True, False, False,
+     'ventilation maximale, coût salarial saisi'),
+]
+
+# Suivi (plan validé) : réglages du suivi différents de la programmation
+# (#741 / #760 / #722), années saisies, partielles et non saisies.
+# (suffixe, modèle, mode, coûts détaillés, salarial auto, réglages du suivi, libellé)
+_COMPOSITE_SUIVI = [
+    ('S1', 'CS1', 'none', False, True, {'declinaison_par_poste_realise': True},
+     'temps réalisé par poste, non décliné à la programmation'),
+    ('S2', 'IP1', 'by_type', False, True, {
+        'declinaison_par_type_cout_realise': True,
+        'declinaison_par_poste_realise': True,
+        'cout_salarial_auto_realise': True,
+    }, 'coûts détaillés au seul suivi'),
+    ('S3', 'CS1', 'by_org_type_poste', True, True, {'cout_salarial_auto_realise': False},
+     'coût salarial réalisé saisi'),
+    # #761 — ni réglage ni suivi : la saisie du suivi propose ceux du 1er
+    # suivi saisi du plan (S1).
+    ('S4', 'PA1', 'by_org', False, True, None, 'suivi à saisir, réglages proposés'),
+]
+# Suivi saisi, par ancienneté de l'année : année − 2 complète, année − 1
+# partielle, année en cours entamée ; S4 n'a aucun suivi.
+_COMPOSITE_SUIVI_SAISI = {2: {'S1', 'S2', 'S3'}, 1: {'S1', 'S2'}, 0: {'S1'}}
+
+_ORG_MODES = ('by_org', 'by_org_type', 'by_org_type_poste')
+_TYPE_MODES = ('by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste')
 
 # Mode dont les actions saisissent le coût salarial à la main (#600) plutôt que
 # de le laisser calculer depuis les jours × coût jour. Sert de support de recette
@@ -353,6 +410,28 @@ def _q(value: Decimal) -> Decimal:
     return value.quantize(Decimal('0.01'))
 
 
+def _sans_invest(action: dict) -> dict:
+    """
+    #735 (retour 21/10) — sans type de budget, ni le budget ni le temps de
+    travail ne distinguent l'investissement : tout passe en fonctionnement.
+    Les montants sont inchangés, seule leur catégorie l'est.
+    """
+    couts = {}
+    for org_key, c in action['couts'].items():
+        c = dict(c)
+        for invest, fonct in (('cout_prestataire_invest', 'cout_prestataire'),
+                              ('autre_cout_invest', 'autre_cout')):
+            if c.get(invest):
+                c[fonct] = str(_dec(c.get(fonct)) + _dec(c.pop(invest)))
+            c.pop(invest, None)
+        if c.get('autre_cout_invest_commentaire') and not c.get('autre_cout_commentaire'):
+            c['autre_cout_commentaire'] = c['autre_cout_invest_commentaire']
+        c.pop('autre_cout_invest_commentaire', None)
+        couts[org_key] = c
+    rh = [(cle, jours, _FONCT if cat == _INVEST else cat) for cle, jours, cat in action['rh']]
+    return {**action, 'couts': couts, 'rh': rh}
+
+
 class VentilationPlansSeeder(BaseSeeder):
     """Crée 1 plan de gestion par mode de ventilation, entièrement programmé."""
 
@@ -469,6 +548,49 @@ class VentilationPlansSeeder(BaseSeeder):
             plans.append(plan)
             self.log_item('plan', f'{plan.nom} ({len(_ACTIONS)} actions programmées globalement)')
 
+        # #763 — plans composites : réglages mélangés dans un même plan.
+        modeles = {a['suffix']: a for a in _ACTIONS}
+        composites = [
+            (_PLAN_COMPOSITE_PROG, 'draft', _CODE_COMPOSITE, None, [
+                (suffixe, modeles[modele], mode, {'decl': decl, 'auto': auto, 'globale': glob},
+                 libelle)
+                for suffixe, modele, mode, decl, auto, glob, libelle in _COMPOSITE_PROG
+            ]),
+            (_PLAN_COMPOSITE_SUIVI, 'valide', _CODE_COMPOSITE_SUIVI, _COMPOSITE_SUIVI_SAISI, [
+                (suffixe, modeles[modele], mode, {'decl': decl, 'auto': auto, 'suivi': suivi},
+                 libelle)
+                for suffixe, modele, mode, decl, auto, suivi, libelle in _COMPOSITE_SUIVI
+            ]),
+        ]
+        for nom, statut, code, suivi_saisi, actions in composites:
+            plan = self._create_plan(
+                nom, statut, '', site, admin, users, annee_debut, annee_fin, nomenclatures,
+                commentaire=(
+                    "Plan de démonstration (#763) : chaque action a ses propres "
+                    "réglages de ventilation, indiqués dans son libellé. Les totaux "
+                    "ne sont pas comparables à ceux des plans « Ventilation — … »."
+                ),
+            )
+            postes = self._create_postes(plan, org_map)
+            metrique = self._create_arborescence(plan, admin, years, nomenclatures)
+            for suffixe, modele, mode, reglages, libelle in actions:
+                action = {
+                    **modele, 'suffix': suffixe,
+                    'libelle': f"{modele['libelle']} — {libelle}",
+                }
+                op = self._create_operation(
+                    plan, nom, action, code, site, metrique, admin, years, nomenclatures,
+                )
+                self._program_operation(
+                    op, action, mode, postes, org_map, years, current_year,
+                    admin, nomenclatures, suivi_saisi, reglages,
+                )
+                if reglages.get('globale'):
+                    self._globaliser(op)
+                nb_ops += 1
+            plans.append(plan)
+            self.log_item('plan', f'{plan.nom} ({len(actions)} actions aux réglages différents)')
+
         self.log_summary(len(plans), 'plans « Ventilation » créés (brouillons + validés)')
         self.log_summary(nb_ops, 'actions programmées (budget + RH + suivi)')
         self.context.set('ventilation_plans', plans)
@@ -507,7 +629,8 @@ class VentilationPlansSeeder(BaseSeeder):
         # inéditable (formulaire invalide dès l'ouverture).
         noms['type_action'] = {
             cat: self._nomenclature('TYPE_ACTION', mn)
-            for cat, mn in (('CS', 'CS8'), ('IP', 'IP1'), ('PA', 'PA1'))
+            # #763 — l'action CS prend le type de son suivi (#715).
+            for cat, mn in (('CS', 'CS3'), ('IP', 'IP1'), ('PA', 'PA1'))
         }
         noms['finance'] = {
             code: self._nomenclature('CATEGORIE_FINANCE', code)
@@ -527,7 +650,7 @@ class VentilationPlansSeeder(BaseSeeder):
     # ------------------------------------------------------------------ plans
 
     def _create_plan(self, prefixe, statut, libelle_mode, site, admin, users,
-                     annee_debut, annee_fin, nomenclatures) -> PlanGestion:
+                     annee_debut, annee_fin, nomenclatures, commentaire=None) -> PlanGestion:
         """
         Plan porté par le site de démonstration : en brouillon (fiche action
         éditable) ou validé (suivi en cours de saisie, #720).
@@ -543,7 +666,7 @@ class VentilationPlansSeeder(BaseSeeder):
                 'surface': Decimal(str(site.surf_off)) if site.surf_off else None,
                 'id_type_document': nomenclatures.get('type_doc'),
                 'redacteur_nom': 'Jeu de démonstration CICADA',
-                'commentaire': (
+                'commentaire': commentaire or (
                     "Plan de démonstration : toutes les actions utilisent le mode "
                     f"de ventilation « {libelle_mode} ». Les 6 plans « Ventilation "
                     "— … » portent le même contenu (mêmes jours, mêmes coûts) : "
@@ -698,7 +821,9 @@ class VentilationPlansSeeder(BaseSeeder):
             return
         ancien = op.id_suivi
         suivi = SuiviInventaire.objects.create(
-            intitule=f"{config['intitule']} — {plan.nom.replace(prefixe, '')}",
+            intitule=(f"{config['intitule']} — {plan.nom.replace(prefixe, '')}"
+                      if plan.nom != prefixe
+                      else f"{config['intitule']} — {plan.nom} ({action['suffix']})"),
             id_pg=plan,
             integre_plan_gestion=True,
             suit_indicateur=True,
@@ -801,15 +926,26 @@ class VentilationPlansSeeder(BaseSeeder):
 
     def _program_operation(self, op, action, mode, postes, org_map, years,
                            current_year, admin, nomenclatures,
-                           suivi_saisi=None) -> None:
-        """Programme l'action année par année selon son mode de ventilation."""
+                           suivi_saisi=None, reglages=None) -> None:
+        """
+        Programme l'action année par année selon son mode de ventilation.
+
+        `reglages` (plans composites, #763) remplace les réglages déduits du
+        mode : `decl` (déclinaison par type de coût), `auto` (coût salarial
+        calculé) et `suivi` (réglages propres au suivi, #741 / #760).
+        """
+        reglages = reglages or {}
+        # #735 — sans type de budget, pas d'investissement (budget ni temps).
+        if mode not in _TYPE_MODES:
+            action = _sans_invest(action)
         op.ventilation_mode = mode
         op.declinaison_par_poste = mode in Operation.VENTILATION_POSTE_MODES
         # #600 — le détail des coûts (salarial / stage / prestataire / autres)
         # n'est saisi que dans les modes « + type de poste » de ce jeu d'essai :
         # les deux autres modes par type de budget stockent des enveloppes, la
         # case doit donc rester décochée pour afficher ce qui est enregistré.
-        op.declinaison_par_type_cout = mode in Operation.VENTILATION_POSTE_MODES
+        op.declinaison_par_type_cout = reglages.get(
+            'decl', mode in Operation.VENTILATION_POSTE_MODES)
         # #600/#641 — le mode de ventilation maximale sert aussi de démonstration
         # du coût salarial SAISI À LA MAIN : c'est le seul réglage du tableau
         # budgétaire qui n'était couvert par aucun plan du jeu d'essai, et donc
@@ -817,7 +953,7 @@ class VentilationPlansSeeder(BaseSeeder):
         # réglages de la dernière action saisie (#641). Le montant stocké est
         # exactement celui que le mode automatique calculerait (jours × coût
         # jour) : les 6 plans affichent donc toujours les mêmes totaux.
-        op.cout_salarial_auto = mode != _MODE_SALAIRE_MANUEL
+        op.cout_salarial_auto = reglages.get('auto', mode != _MODE_SALAIRE_MANUEL)
         op.save(update_fields=[
             'ventilation_mode', 'declinaison_par_poste',
             'declinaison_par_type_cout', 'cout_salarial_auto',
@@ -827,13 +963,20 @@ class VentilationPlansSeeder(BaseSeeder):
         # découler du suivi annuel posé ci-dessous (nettoie une éventuelle
         # surcharge laissée par un passage de `RealisationsSeeder`).
         OperationRealisationGlobale.objects.filter(id_operation=op).delete()
+        if reglages.get('suivi'):
+            # #741 / #760 — réglages du suivi, posés avant le réalisé qui en dépend.
+            OperationRealisationGlobale.objects.create(
+                id_operation=op, id_utilisateur_maj=admin, **reglages['suivi'])
+        op = Operation.objects.get(pk=op.pk)
 
         totaux = self._org_totaux(action, postes)
         total_fonct = sum((c['fonct'] for c in totaux.values()), Decimal('0'))
         total_invest = sum((c['invest'] for c in totaux.values()), Decimal('0'))
         jours_total = sum((_dec(j) for _, j, _ in action['rh']), Decimal('0'))
-        # Coût salarial par organisme, stocké seulement quand il est « saisi ».
-        salarial = self._salarial(action, postes) if not op.cout_salarial_auto else None
+        # Coût salarial par organisme, stocké seulement quand il est « saisi »
+        # (ce qui suppose des coûts détaillés).
+        salarial = (self._salarial(action, postes)
+                    if op.declinaison_par_type_cout and not op.cout_salarial_auto else None)
 
         debut, fin = action['annees']
         for year in years[debut:fin + 1]:
@@ -847,7 +990,7 @@ class VentilationPlansSeeder(BaseSeeder):
             if saisi:
                 self._create_realisation(
                     oa, op, action, mode, year, current_year, lignes_prev,
-                    admin, nomenclatures,
+                    admin, nomenclatures, postes, org_map,
                 )
             else:
                 # Suivi pas encore saisi : on efface celui d'un passage précédent.
@@ -868,31 +1011,40 @@ class VentilationPlansSeeder(BaseSeeder):
             'budget_fonctionnement': None,
             'budget_investissement': None,
         }
-        # Les composants de coût ne sont portés par l'année qu'en `by_type_poste`.
-        for champ in _COUT_FIELDS:
+        # Les composants de coût ne sont portés par l'année que lorsque les
+        # coûts sont détaillés hors ventilation par organisme.
+        for champ in (*_COUT_FIELDS, 'cout_salarial', 'cout_salarial_invest'):
             defaults[champ] = None
         defaults['autre_cout_commentaire'] = ''
         defaults['autre_cout_invest_commentaire'] = ''
+        par_org = mode in _ORG_MODES
+        detail = op.declinaison_par_type_cout
 
-        if mode == 'by_type':
-            defaults['budget_fonctionnement'] = _q(total_fonct)
-            defaults['budget_investissement'] = _q(total_invest)
-        elif mode == 'by_type_poste':
+        if not par_org and detail:
             # #624 — détail des coûts sur l'année, budgets fonct/invest dérivés
-            # (donc NON stockés) ; le coût salarial vient des lignes RH.
+            # (donc NON stockés) ; le coût salarial vient des lignes RH, ou est
+            # saisi (#600).
             fusion = self._fusion_couts(action)
             for champ in _COUT_FIELDS:
                 defaults[champ] = _q(_dec(fusion.get(champ))) if fusion.get(champ) else None
             defaults['autre_cout_commentaire'] = fusion.get('autre_cout_commentaire', '')
             defaults['autre_cout_invest_commentaire'] = fusion.get(
                 'autre_cout_invest_commentaire', '')
+            if salarial is not None:
+                fonct = sum((c.get(_FONCT, Decimal('0')) for c in salarial.values()), Decimal('0'))
+                invest = sum((c.get(_INVEST, Decimal('0')) for c in salarial.values()), Decimal('0'))
+                defaults['cout_salarial'] = _q(fonct) if fonct else None
+                defaults['cout_salarial_invest'] = _q(invest) if invest else None
+        elif mode == 'by_type':
+            defaults['budget_fonctionnement'] = _q(total_fonct)
+            defaults['budget_investissement'] = _q(total_invest)
 
         oa, _ = OperationAnnee.objects.update_or_create(
             id_operation=op, annee=year, defaults=defaults,
         )
 
         OperationAnneeOrganisme.objects.filter(id_operation_annee=oa).delete()
-        if mode not in ('by_org', 'by_org_type', 'by_org_type_poste'):
+        if not par_org:
             return oa
 
         for org_key, cell in totaux.items():
@@ -911,17 +1063,17 @@ class VentilationPlansSeeder(BaseSeeder):
                 'autre_cout_invest_commentaire': '',
                 'etp': None,
             }
-            if mode == 'by_org':
+            if not detail and mode == 'by_org':
                 # Un seul montant par organisme : le total, stocké côté
                 # fonctionnement (le mode ne distingue pas les types).
                 org_defaults['budget_fonctionnement'] = _q(cell['fonct'] + cell['invest'])
                 org_defaults['etp'] = _q(self._jours_org(action, org_key))
-            elif mode == 'by_org_type':
+            elif not detail:
                 org_defaults['budget_fonctionnement'] = _q(cell['fonct'])
                 org_defaults['budget_investissement'] = _q(cell['invest'])
                 org_defaults['etp'] = _q(self._jours_org(action, org_key))
             else:
-                # by_org_type_poste : composants de coût par organisme ; les
+                # Coûts détaillés : composants de coût par organisme ; les
                 # budgets fonct/invest sont dérivés (jamais stockés) et le temps
                 # de travail est décliné par poste, pas par organisme.
                 couts = action['couts'].get(org_key, {})
@@ -1033,7 +1185,8 @@ class VentilationPlansSeeder(BaseSeeder):
         OperationAnneeRH.objects.filter(id_operation_annee=oa).delete()
         lignes = []
 
-        if mode in Operation.VENTILATION_POSTE_MODES:
+        # #735 — modes « + type de poste » et coûts détaillés : temps par poste.
+        if oa.id_operation.temps_par_poste():
             for cle, jours, categorie in action['rh']:
                 lignes.append(OperationAnneeRH.objects.create(
                     id_operation_annee=oa,
@@ -1086,8 +1239,14 @@ class VentilationPlansSeeder(BaseSeeder):
     # ------------------------------------------------------------- réalisation
 
     def _create_realisation(self, oa, op, action, mode, year, current_year,
-                            lignes_prev, admin, nomenclatures) -> None:
-        """Suivi des années écoulées et de l'année en cours (rien au-delà)."""
+                            lignes_prev, admin, nomenclatures, postes, org_map) -> None:
+        """
+        Suivi des années écoulées et de l'année en cours (rien au-delà).
+
+        Le réalisé suit les réglages du SUIVI (#741 / #760), qui valent ceux de
+        la programmation sauf choix contraire : il peut être plus détaillé
+        qu'elle (coûts détaillés, temps par poste), jamais moins.
+        """
         anciennete = current_year - year
         if anciennete < 0 or anciennete >= len(_REALISATION_PAR_ANNEE):
             return
@@ -1118,20 +1277,31 @@ class VentilationPlansSeeder(BaseSeeder):
             'autre_cout_invest_commentaire_realise': '',
         }
 
-        if mode == 'none':
+        par_org = mode in _ORG_MODES
+        detail_reel = op.get_declinaison_par_type_cout_realise()
+        poste_reel = op.get_declinaison_par_poste_realise()
+
+        def composants(couts):
+            """Composants réalisés, au ratio de l'année (prévu non détaillé
+            compris : ils viennent du contenu de l'action, pas des lignes)."""
+            champs = {
+                f'{champ}_realise': _q(_dec(couts[champ]) * ratio)
+                for champ in _COUT_FIELDS if couts.get(champ)
+            }
+            champs['autre_cout_commentaire_realise'] = couts.get('autre_cout_commentaire', '')
+            champs['autre_cout_invest_commentaire_realise'] = couts.get(
+                'autre_cout_invest_commentaire', '')
+            return champs
+
+        if not par_org and detail_reel:
+            defaults.update(composants(self._fusion_couts(action)))
+        elif mode == 'none':
             defaults['budget_realise'] = _q(_dec(oa.budget) * ratio)
             defaults['etp_realise'] = _q(_dec(oa.etp) * ratio)
         elif mode == 'by_type':
             defaults['budget_fonctionnement_realise'] = _q(_dec(oa.budget_fonctionnement) * ratio)
             defaults['budget_investissement_realise'] = _q(_dec(oa.budget_investissement) * ratio)
             defaults['etp_realise'] = _q(_dec(oa.etp) * ratio)
-        elif mode == 'by_type_poste':
-            for champ in _COUT_FIELDS:
-                valeur = getattr(oa, champ)
-                if valeur is not None:
-                    defaults[f'{champ}_realise'] = _q(_dec(valeur) * ratio)
-            defaults['autre_cout_commentaire_realise'] = oa.autre_cout_commentaire
-            defaults['autre_cout_invest_commentaire_realise'] = oa.autre_cout_invest_commentaire
 
         realisation, _ = RealisationOperationAnnee.objects.update_or_create(
             id_operation_annee=oa, defaults=defaults,
@@ -1153,14 +1323,10 @@ class VentilationPlansSeeder(BaseSeeder):
                 'autre_cout_invest_realise': None,
                 'autre_cout_invest_commentaire_realise': '',
             }
-            if mode == 'by_org_type_poste':
-                for champ in _COUT_FIELDS:
-                    valeur = getattr(oao, champ)
-                    if valeur is not None:
-                        org_defaults[f'{champ}_realise'] = _q(_dec(valeur) * ratio)
-                org_defaults['autre_cout_commentaire_realise'] = oao.autre_cout_commentaire
-                org_defaults['autre_cout_invest_commentaire_realise'] = \
-                    oao.autre_cout_invest_commentaire
+            if detail_reel:
+                org_key = next((k for k, org in org_map.items()
+                                if org.pk == oao.id_organisme_id), 'principal')
+                org_defaults.update(composants(action['couts'].get(org_key, {})))
             else:
                 if oao.budget_fonctionnement is not None:
                     org_defaults['budget_fonctionnement_realise'] = _q(
@@ -1174,10 +1340,21 @@ class VentilationPlansSeeder(BaseSeeder):
                 id_operation_annee_organisme=oao, defaults=org_defaults,
             )
 
-        # Temps de travail réalisé : miroir des lignes prévues, au même ratio.
+        # Temps de travail réalisé : miroir des lignes prévues, au même ratio —
+        # ou par poste quand seul le suivi est décliné par poste (#760).
         RealisationOperationAnneeRH.objects.filter(
             id_realisation_operation_annee=realisation,
         ).delete()
+        if poste_reel and not op.temps_par_poste():
+            for cle, jours, categorie in action['rh']:
+                RealisationOperationAnneeRH.objects.create(
+                    id_realisation_operation_annee=realisation,
+                    id_poste=postes[cle],
+                    jours=_q(_dec(jours) * ratio),
+                    categorie_depense=categorie,
+                    finance=categorie != _BENEVOLAT,
+                )
+            lignes_prev = []
         for ligne in lignes_prev:
             RealisationOperationAnneeRH.objects.create(
                 id_realisation_operation_annee=realisation,
@@ -1189,10 +1366,11 @@ class VentilationPlansSeeder(BaseSeeder):
                 finance=ligne.finance,
             )
 
-        # #722 — coût salarial saisi : le réalisé est saisi lui aussi. On stocke
-        # ce que le calcul aurait donné (jours réalisés × coût jour), pour que
-        # les totaux restent identiques d'un plan de ventilation à l'autre.
-        if not op.cout_salarial_auto:
+        # #722 / #741 — coût salarial réalisé saisi (réalisé détaillé par type
+        # de coût). On stocke ce que le calcul aurait donné (jours réalisés ×
+        # coût jour), pour que les totaux restent identiques d'un plan de
+        # ventilation à l'autre.
+        if detail_reel and not op.get_cout_salarial_auto_realise():
             self._store_salarial_realise(realisation, oa)
 
     @staticmethod
@@ -1239,8 +1417,12 @@ class VentilationPlansSeeder(BaseSeeder):
         ] + [
             f"{VENTILATION_OP_CODE_PREFIX}{variante}{_CODE_GLOBAL}-{a['suffix']}"
             for _p, _s, variante in _VARIANTES_GLOBAL for a in _ACTIONS
+        ] + [
+            f"{VENTILATION_OP_CODE_PREFIX}{_CODE_COMPOSITE}-{a[0]}" for a in _COMPOSITE_PROG
+        ] + [
+            f"{VENTILATION_OP_CODE_PREFIX}{_CODE_COMPOSITE_SUIVI}-{a[0]}" for a in _COMPOSITE_SUIVI
         ]
-        prefixes = Q()
+        prefixes = Q(nom__in=[_PLAN_COMPOSITE_PROG, _PLAN_COMPOSITE_SUIVI])
         for prefixe, *_ in _VARIANTES_GLOBAL:
             prefixes |= Q(nom__startswith=prefixe)
         for prefixe, *_ in _VARIANTES:
@@ -1271,4 +1453,7 @@ class VentilationPlansSeeder(BaseSeeder):
             '(reprise du paramétrage de ventilation — #641)',
             f'  - 2 plans « {_PLAN_PREFIX_GLOBAL}… » (brouillon + validé) : actions '
             'programmées globalement sur leur période (#735), mêmes totaux',
+            f'  - « {_PLAN_COMPOSITE_PROG} » (brouillon, {len(_COMPOSITE_PROG)} actions aux '
+            f'réglages différents) et « {_PLAN_COMPOSITE_SUIVI} » (validé, '
+            f'{len(_COMPOSITE_SUIVI)} actions, réglages du suivi ≠ programmation) — #763',
         ]
