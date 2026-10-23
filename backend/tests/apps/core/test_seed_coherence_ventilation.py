@@ -13,7 +13,8 @@ passe chaque action au crible des règles de la programmation et du suivi :
 - coût salarial stocké seulement quand il est saisi (#600 / #722 / #741) ;
 - temps réalisé par poste selon la déclinaison du suivi (#760) ;
 - programmation globale : une ligne de période, des années sans montant (#735) ;
-- suivis : rattachés à une action CS, du même type d'action, avec protocole (#715).
+- suivis : rattachés à une action CS, du même type d'action, avec protocole (#715) ;
+- emprise réalisée distincte de la prévue sur les suivis saisis (carte #727).
 
 Il vérifie aussi que les plans composites couvrent les combinaisons attendues.
 """
@@ -164,6 +165,11 @@ def test_jeu_d_essai_coherent_et_idempotent():
                 id_operation_annee_organisme__id_operation_annee__id_operation=o,
                 cout_salarial_realise__gt=0).exists())
         for o in ops)
+    # #727 — la carte de la fiche de suivi montre prévu et réalisé.
+    reels = RealisationOperationAnnee.objects.filter(
+        id_operation_annee__id_operation__in=ops, geom_realisee__isnull=False)
+    assert reels.exists()
+    assert all(not r.geom_realisee.equals(r.id_operation_annee.id_operation.geom) for r in reels)
     # #761 — une action sans réglage ni suivi, qui se verra proposer ceux du plan.
     assert any(not o.reglages_suivi_definis() and not RealisationOperationAnnee.objects.filter(
         id_operation_annee__id_operation=o).exists() for o in ops)

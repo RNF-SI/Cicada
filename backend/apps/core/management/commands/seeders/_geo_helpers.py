@@ -64,3 +64,19 @@ def make_operation_geom(code_operation: str | None, idx: int = 0) -> MultiPolygo
 
     polygon = _square_polygon(center_lon, center_lat, half_size)
     return MultiPolygon(polygon, srid=4326)
+
+
+def make_realised_geom(prevue, ratio: float = 1.0) -> MultiPolygon | None:
+    """
+    Emprise réalisée d'une opération : un carré qui recouvre en partie
+    l'emprise prévue, décalé d'un tiers de sa largeur vers l'est, et dont la
+    taille suit le ratio réalisé de l'année. Prévu et réalisé restent ainsi
+    distincts sur la carte de la fiche de suivi (#727).
+    """
+    if prevue is None:
+        return None
+    xmin, ymin, xmax, ymax = prevue.extent
+    half_size = (xmax - xmin) / 2 * max(ratio, 0.3)
+    lon = (xmin + xmax) / 2 + (xmax - xmin) / 3
+    lat = (ymin + ymax) / 2
+    return MultiPolygon(_square_polygon(lon, lat, half_size), srid=4326)

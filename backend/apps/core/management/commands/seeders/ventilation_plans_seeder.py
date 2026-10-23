@@ -96,7 +96,7 @@ from apps.plans.models_operations import (
 from apps.users.models import CorOgSite, Site
 
 from .base import BaseSeeder
-from ._geo_helpers import make_operation_geom
+from ._geo_helpers import make_operation_geom, make_realised_geom
 
 
 # Site support des 6 plans : il porte 2 organismes gestionnaires (RNF + OFB),
@@ -1261,6 +1261,8 @@ class VentilationPlansSeeder(BaseSeeder):
             'operateurs_realises': action['operateurs'],
             'financeurs_realises': action['financeurs'],
             'id_utilisateur_maj': admin,
+            # Emprise réalisée distincte de la prévue (carte de la fiche de suivi, #727).
+            'geom_realisee': make_realised_geom(op.geom, float(ratio)),
             # Réinitialisés puis renseignés selon le mode.
             'budget_realise': None,
             'budget_fonctionnement_realise': None,
