@@ -636,5 +636,19 @@
         </div>
       </ng-template>
     </mat-tab>
+    <mat-tab>
+      <ng-template mat-tab-label>
+        <span class="tab-label">
+          <i class="fi fi-rr-key" aria-hidden="true"></i>
+          <span>{{ 'admin.settings.onglets.connexion' | translate }}</span>
+        </span>
+      </ng-template>
+      <ng-template matTabContent>
+        <div class="tab-panel">
+          <!-- #769 — connexion GeoNature / UsersHub réglée ici, sans terminal sur ce serveur. -->
+          <app-connexion-geonature></app-connexion-geonature>
+        </div>
+      </ng-template>
+    </mat-tab>
   </mat-tab-group>
 </div>

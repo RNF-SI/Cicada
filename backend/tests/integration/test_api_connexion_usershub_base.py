@@ -323,3 +323,164 @@ class TestVerifierUsersHub:
         settings.AUTH_PROVIDER = 'local'
         Role.objects.all().delete()
         assert self.lancer()[0] == 0
+
+
+# --- Réglage depuis Administration > Paramètres (#769) ---------------------------
+
+REGLAGES = '/api/auth/connexion-geonature/'
+
+
+def config_en_base(settings, **autres):
+    """Déplace la configuration du .env (settings) vers la ligne en base, mode non choisi."""
+    from apps.authentication import reglages
+    from apps.authentication.models import ConnexionGeoNature
+
+    ligne = ConnexionGeoNature(
+        pk=1, code_application='CICADA', db_host=settings.USERSHUB_DB_HOST, db_port=settings.USERSHUB_DB_PORT,
+        db_name=settings.USERSHUB_DB_NAME, db_user=settings.USERSHUB_DB_USER,
+        db_password_chiffre=reglages.chiffrer(settings.USERSHUB_DB_PASSWORD), libelle='RNF', **autres,
+    )
+    ligne.save()
+    for reglage in ('GEONATURE_AUTH_CODE_APPLICATION', 'USERSHUB_DB_HOST', 'USERSHUB_DB_NAME',
+                    'USERSHUB_DB_USER', 'USERSHUB_DB_PASSWORD'):
+        setattr(settings, reglage, '')
+    settings.GEONATURE_AUTH_LIBELLE = 'GeoNature'
+    # Ce qu'écrit l'installateur : l'écran doit pouvoir passer outre.
+    settings.AUTH_PROVIDER = 'local'
+    return ligne
+
+
+def super_admin(email='cdupont@reserve.fr'):
+    from tests.factories.users import SuperAdminFactory
+    admin = SuperAdminFactory(email=email)
+    client = APIClient()
+    client.force_authenticate(admin)
+    return admin, client
+
+
+class TestReglagesDepuisLesParametres:
+
+    def test_reserve_au_super_admin(self):
+        from tests.factories.users import AdminOrganismeFactory
+        client = APIClient()
+        client.force_authenticate(AdminOrganismeFactory())
+        assert client.get(REGLAGES).status_code == 403
+        assert client.post(REGLAGES + 'activer/', {}, format='json').status_code == 403
+
+    def test_mot_de_passe_chiffre_et_jamais_renvoye(self, settings):
+        config_en_base(settings)
+        _, client = super_admin()
+        res = client.patch(REGLAGES, {'db_password': 'Nouveau-Secret-1'}, format='json')
+        assert res.status_code == 200
+        assert res.json()['mot_de_passe_defini'] is True
+        assert 'Nouveau-Secret-1' not in res.content.decode()
+        assert 'Nouveau-Secret-1' not in client.get(REGLAGES).content.decode()
+        from apps.authentication.models import ConnexionGeoNature
+        assert 'Nouveau-Secret-1' not in ConnexionGeoNature.charger().db_password_chiffre
+
+    def test_valeur_du_env_verrouillee(self):
+        # La fixture pose la base dans settings, comme un .env renseigné.
+        _, client = super_admin()
+        etat = client.get(REGLAGES).json()
+        assert etat['origines']['db_host'] == 'environnement'
+        res = client.patch(REGLAGES, {'db_host': 'ailleurs.test'}, format='json')
+        assert res.status_code == 409
+        assert res.json()['code'] == 'valeur_environnement'
+
+    def test_localhost_devient_l_hote_docker(self, settings):
+        config_en_base(settings)
+        _, client = super_admin()
+        client.patch(REGLAGES, {'db_host': 'localhost'}, format='json')
+        assert client.get(REGLAGES).json()['valeurs']['db_host'] == 'host.docker.internal'
+
+    def test_activer_sans_redemarrage_et_l_ecran_prime_sur_le_env(self, settings):
+        config_en_base(settings)
+        ajouter_compte(146, 'cdupont', groupes=[900])
+        _, client = super_admin()
+        assert APIClient().get('/api/auth/mode/').json() == {'mode': 'local'}
+
+        res = client.post(REGLAGES + 'activer/', {}, format='json')
+
+        assert res.status_code == 200, res.json()
+        assert res.json()['chiffree'] is not None
+        # AUTH_PROVIDER=local dans le .env : le choix fait à l'écran l'emporte.
+        assert APIClient().get('/api/auth/mode/').json() == {'mode': 'geonature', 'libelle': 'RNF'}
+        assert connecter().status_code == 200
+
+    def test_activation_refusee_si_elle_enferme_celui_qui_active(self, settings):
+        config_en_base(settings)
+        _, client = super_admin('sans.compte.usershub@reserve.fr')
+        res = client.post(REGLAGES + 'activer/', {'confirmer': True}, format='json')
+        assert res.status_code == 409
+        assert res.json()['code'] == 'enfermement'
+        assert APIClient().get('/api/auth/mode/').json() == {'mode': 'local'}
+
+    def test_confirmation_quand_des_comptes_seront_refuses(self, settings):
+        config_en_base(settings)
+        ajouter_compte(146, 'cdupont', groupes=[900])
+        from tests.factories.users import RoleFactory
+        RoleFactory(email='sans.profil@reserve.fr')
+        _, client = super_admin()
+
+        res = client.post(REGLAGES + 'activer/', {}, format='json')
+        assert res.status_code == 409
+        assert res.json()['code'] == 'confirmation_requise'
+        assert res.json()['test']['bilan']['refuses'] >= 1
+
+        assert client.post(REGLAGES + 'activer/', {'confirmer': True}, format='json').status_code == 200
+
+    def test_activation_refusee_si_le_test_echoue_avec_une_cause_lisible(self, settings):
+        from apps.authentication import reglages
+        ligne = config_en_base(settings)
+        ligne.db_password_chiffre = reglages.chiffrer('mauvais')
+        ligne.save()
+        ajouter_compte(146, 'cdupont', groupes=[900])
+        _, client = super_admin()
+
+        test = client.post(REGLAGES + 'tester/', {}, format='json').json()
+        assert test['ok'] is False and test['erreur'] == 'mot_de_passe'
+
+        res = client.post(REGLAGES + 'activer/', {'confirmer': True}, format='json')
+        assert res.status_code == 400 and res.json()['code'] == 'test_echoue'
+
+    def test_application_absente(self, settings):
+        config_en_base(settings)
+        from apps.authentication.models import ConnexionGeoNature
+        ConnexionGeoNature.objects.filter(pk=1).update(code_application='INCONNUE')
+        _, client = super_admin()
+        test = client.post(REGLAGES + 'tester/', {}, format='json').json()
+        assert test['erreur'] == 'application_absente'
+
+    def test_modifier_en_service_est_teste_d_abord(self, settings):
+        config_en_base(settings, mode='geonature')
+        ajouter_compte(146, 'cdupont', groupes=[900])
+        _, client = super_admin()
+        res = client.patch(REGLAGES, {'db_password': 'faute-de-frappe'}, format='json')
+        assert res.status_code == 400 and res.json()['code'] == 'test_echoue'
+        # Rien n'a changé : la connexion marche toujours.
+        assert connecter().status_code == 200
+
+    def test_desactiver_et_journal(self, settings):
+        from apps.core.models import ActivityLog
+        config_en_base(settings)
+        ajouter_compte(146, 'cdupont', groupes=[900])
+        admin, client = super_admin()
+        # Compte créé par GeoNature : pas de mot de passe CICADA.
+        admin.set_unusable_password()
+        admin.save()
+        assert client.post(REGLAGES + 'activer/', {}, format='json').status_code == 200
+
+        res = client.post(REGLAGES + 'desactiver/', {}, format='json')
+        assert res.status_code == 409 and res.json()['code'] == 'mot_de_passe_requis'
+        assert client.post(REGLAGES + 'desactiver/', {'confirmer': True}, format='json').json()['mode'] == 'local'
+        assert APIClient().get('/api/auth/mode/').json() == {'mode': 'local'}
+        journal = ActivityLog.objects.filter(entity_type='instance').order_by('pk')
+        assert [j.action for j in journal] == ['activate', 'deactivate']
+        assert all(j.visibility == 'system' and j.actor == admin for j in journal)
+
+    def test_commande_de_secours(self, settings):
+        from django.core.management import call_command
+        config_en_base(settings, mode='geonature')
+        settings.AUTH_PROVIDER = 'geonature'
+        call_command('connexion_locale', stdout=__import__('io').StringIO())
+        assert APIClient().get('/api/auth/mode/').json() == {'mode': 'local'}

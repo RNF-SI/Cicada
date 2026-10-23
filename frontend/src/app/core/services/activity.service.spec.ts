@@ -48,7 +48,7 @@ describe('ActivityService', () => {
 
   const mockStats: ActivityStats = {
     total: 100,
-    by_type: { site: 50, plan: 30, user: 10, organisme: 5, validation: 5 },
+    by_type: { site: 50, plan: 30, user: 10, organisme: 5, validation: 5, instance: 0 },
     by_action: {
       create: 40,
       update: 30,

@@ -710,11 +710,11 @@ describe('AdminSettingsComponent', () => {
     const raccordement = (): Element | null =>
       fixture.nativeElement.querySelector('app-federation-raccordement');
 
-    it('affiche quatre onglets et ouvre « Apparence » par défaut', async () => {
+    it('affiche cinq onglets (dont « Connexion », #769) et ouvre « Apparence » par défaut', async () => {
       fixture.detectChanges();
       await fixture.whenStable();
 
-      expect(libellesOnglets().length).toBe(4);
+      expect(libellesOnglets().length).toBe(5);
       expect(component.ongletIndex()).toBe(0);
       expect(fixture.nativeElement.textContent).toContain('Image de la page d\'accueil');
     });

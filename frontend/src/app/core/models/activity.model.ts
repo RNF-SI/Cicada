@@ -3,7 +3,8 @@
  */
 
 // Types d'entites
-export type ActivityEntityType = 'site' | 'plan' | 'user' | 'organisme' | 'validation';
+/** `instance` : réglage de l'instance, ex. connexion GeoNature (#769, visibilité système). */
+export type ActivityEntityType = 'site' | 'plan' | 'user' | 'organisme' | 'validation' | 'instance';
 
 // Types d'actions
 export type ActivityAction =
@@ -185,6 +186,7 @@ export const ENTITY_TYPE_ICONS: Record<ActivityEntityType, string> = {
   user: 'fi-rr-user',
   organisme: 'fi-rr-building',
   validation: 'fi-rr-check-circle',
+  instance: 'fi-rr-settings',
 };
 
 /**

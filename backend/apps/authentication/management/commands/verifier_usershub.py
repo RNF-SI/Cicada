@@ -18,12 +18,11 @@ Usage :
 Code retour : 0 si aucun compte actif ne serait refusé, 1 sinon, 2 si la base
 UsersHub est injoignable ou non configurée.
 """
-from django.conf import settings
 from django.core.management.base import BaseCommand
 
+from apps.authentication import reglages
 from apps.authentication.providers import usershub_base
 from apps.authentication.providers.usershub import UsersHubIndisponible
-from apps.users.models import Role
 
 MOTIFS = {
     'absent': "aucun compte UsersHub (ni par son id, ni par son email)",
@@ -39,60 +38,31 @@ class Command(BaseCommand):
         parser.add_argument('--tous', action='store_true', help='Afficher aussi les comptes autorisés')
 
     def handle(self, *args, **options):
-        code = settings.GEONATURE_AUTH_CODE_APPLICATION
-        if not usershub_base.est_configuree():
-            self.stderr.write("Réglages manquants : GEONATURE_AUTH_CODE_APPLICATION, USERSHUB_DB_HOST, "
-                              "USERSHUB_DB_NAME, USERSHUB_DB_USER (et USERSHUB_DB_PASSWORD) dans le .env.")
+        r = reglages.actuels()
+        if not r.est_configuree():
+            self.stderr.write("Réglages manquants : code de l'application, hôte, base et compte de lecture "
+                              "(Administration > Paramètres > Connexion, ou GEONATURE_AUTH_CODE_APPLICATION "
+                              "et USERSHUB_DB_* dans le .env).")
             raise SystemExit(2)
-
-        comptes = list(Role.objects.filter(is_active=True, is_anonymized=False)
-                       .order_by('email').values('email', 'usershub_id_role', 'is_superuser'))
         try:
-            lignes = usershub_base.acces_des_comptes(
-                [c['usershub_id_role'] for c in comptes if c['usershub_id_role']],
-                [c['email'] for c in comptes if not c['usershub_id_role'] and c['email']],
-            )
+            bilan = usershub_base.bilan_des_comptes(r)
         except UsersHubIndisponible:
-            self.stderr.write(f"Base UsersHub injoignable ou lecture refusée ({settings.USERSHUB_DB_HOST}) : "
-                              "voir le journal (« Vérification UsersHub »).")
+            self.stderr.write(f"Base UsersHub injoignable ou lecture refusée ({r.db_host}) : "
+                              "voir le journal (« Vérification UsersHub »), ou le bouton « Tester » des paramètres.")
             raise SystemExit(2)
 
-        par_id = {ligne[0]: ligne for ligne in lignes}
-        par_email = {}
-        for ligne in lignes:
-            par_email.setdefault(ligne[1], []).append(ligne)
-
-        autorises, refuses = [], []
-        admins_autorises = 0
-        for compte in comptes:
-            if compte['usershub_id_role']:
-                trouve = par_id.get(compte['usershub_id_role'])
-            else:
-                # Retrouvé par email à la première connexion (compte_pour) :
-                # plusieurs comptes UsersHub au même email, celui qui se
-                # connecte décidera ; on retient le meilleur cas.
-                candidats = par_email.get((compte['email'] or '').lower(), [])
-                trouve = max(candidats, key=lambda l: (l[3], l[2]), default=None)
-            if trouve is None:
-                refuses.append((compte['email'], 'absent'))
-            elif not trouve[2]:
-                refuses.append((compte['email'], 'inactif'))
-            elif not trouve[3]:
-                refuses.append((compte['email'], 'sans_droit'))
-            else:
-                autorises.append(compte['email'])
-                admins_autorises += compte['is_superuser']
-
-        self.stdout.write(f"Application « {code} » — {len(comptes)} compte(s) CICADA actif(s) : "
-                          f"{len(autorises)} pourront se connecter, {len(refuses)} seraient refusés.")
-        self.stdout.write(f"Super-utilisateurs qui pourront se connecter : {admins_autorises}.")
+        self.stdout.write(f"Application « {r.code_application} » — {bilan['total']} compte(s) CICADA actif(s) : "
+                          f"{bilan['autorises']} pourront se connecter, {bilan['refuses']} seraient refusés.")
+        self.stdout.write(f"Super-utilisateurs qui pourront se connecter : {bilan['super_admins_autorises']}.")
+        refuses = [c for c in bilan['comptes'] if c['motif']]
         if refuses:
             self.stdout.write("\nSeraient refusés :")
-            for email, motif in refuses:
-                self.stdout.write(f"  {email} — {MOTIFS[motif]}")
+            for compte in refuses:
+                self.stdout.write(f"  {compte['email']} — {MOTIFS[compte['motif']]}")
+        autorises = [c for c in bilan['comptes'] if not c['motif']]
         if options['tous'] and autorises:
             self.stdout.write("\nAutorisés :")
-            for email in autorises:
-                self.stdout.write(f"  {email}")
+            for compte in autorises:
+                self.stdout.write(f"  {compte['email']}")
         if refuses:
             raise SystemExit(1)

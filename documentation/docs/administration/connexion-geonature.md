@@ -21,7 +21,20 @@ En mode `local`, l'instance ne lit jamais UsersHub.
 
 ## Réglages
 
-Proposés par l'installeur (section « Mode de connexion »), écrits dans `/var/lib/cicada/.env` :
+Deux façons de les poser (#769) :
+
+- **depuis l'interface** — *Administration › Paramètres › Connexion* (super admin) : champs, commande du compte de lecture à copier, bouton « Tester », bouton « Activer ». Rien à éditer ni à redémarrer sur le serveur CICADA : les réglages sont gardés en base (`ccd_commons.t_connexion_geonature`, mot de passe chiffré avec une clé dérivée de la `SECRET_KEY`, jamais renvoyé par l'API) et relus à chaque connexion ;
+- **par l'installeur ou le `.env`** (section « Mode de connexion »), écrits dans `/var/lib/cicada/.env`.
+
+**Précédence.** Le **mode** choisi à l'écran (« Activer » / « Revenir aux comptes CICADA ») prime sur `AUTH_PROVIDER` : l'installeur écrit toujours `AUTH_PROVIDER=local`, l'écran n'aurait sinon jamais d'effet. Les **autres réglages** viennent du `.env` quand ils y sont renseignés (autre chose que la valeur par défaut) : le champ est alors grisé à l'écran, et une saisie est refusée (409 `valeur_environnement`). Pour les régler à l'écran, retirer la variable du `.env` et recréer les conteneurs.
+
+**Garde-fous de l'activation** : refusée si le test échoue (400 `test_echoue`, avec une cause lisible — mot de passe refusé, ligne `pg_hba.conf` manquante, port filtré…) ou si le super admin qui active ne pourrait pas se connecter lui-même (409 `enfermement`) ; confirmation demandée quand des comptes actifs seront refusés (409 `confirmation_requise`). Connexion déjà active : une modification des réglages est testée avant d'être enregistrée. Activation et retour sont journalisés (historique d'activité, visibilité « système »).
+
+**Secours** : `python manage.py connexion_locale` (`sudo docker exec cicada_prod_web python manage.py connexion_locale`) remet les comptes CICADA sans redémarrage, en gardant les réglages UsersHub.
+
+API (super admin) : `GET`/`PATCH /api/auth/connexion-geonature/`, `POST …/tester/`, `…/activer/` (`{confirmer}`), `…/desactiver/` (`{confirmer}`).
+
+Variables du `.env` :
 
 | Variable | Rôle |
 |---|---|
@@ -151,6 +164,8 @@ Le schéma `utilisateurs` est créé par les migrations de pypnusershub ; c'est 
 | GeoNature `develop` | 3.3.1 | ✅ |
 
 ## Instances déjà en service {#instances-en-service}
+
+**Le plus simple (#769)** : mettre à jour, puis tout faire depuis *Administration › Paramètres › Connexion* — la commande du compte de lecture y est générée, « Tester » remplace `verifier_usershub`, « Activer » remplace l'édition du `.env` et le redémarrage. La procédure en ligne de commande ci-dessous reste valable.
 
 Jusqu'à la 0.1.63, CICADA pouvait aussi vérifier les comptes par l'API GeoNature (`GEONATURE_AUTH_SOURCE=api`, `GEONATURE_AUTH_URL`, `GEONATURE_AUTH_ID_APPLICATION`). Cette vérification est **retirée** : une instance en mode GeoNature mise à jour **sans** base UsersHub configurée n'a plus aucun moyen de connexion (avertissement `authentication.W004`, qui le signale, et refus 503). **Configurer la base avant la mise à jour**, ou juste après. Une instance en connexion locale n'est pas concernée.
 

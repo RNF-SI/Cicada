@@ -1,0 +1,199 @@
+<section class="settings-section connexion" data-testid="connexion-geonature">
+  <div class="section-header">
+    <h2 class="section-title">
+      <i class="fi fi-rr-key"></i>
+      {{ 'admin.settings.connexion.titre' | translate }}
+    </h2>
+    <p class="section-description">{{ 'admin.settings.connexion.description' | translate }}</p>
+  </div>
+
+  @if (chargement()) {
+    <mat-spinner diameter="32"></mat-spinner>
+  } @else if (etat(); as e) {
+    <!-- Mode en service -->
+    <div class="connexion-mode" data-testid="connexion-mode">
+      <span class="text-bold">{{ 'admin.settings.connexion.modeActuel' | translate }}</span>
+      @if (actif()) {
+        <app-tag variant="success" icon="fi-rr-check"
+                 [label]="'admin.settings.connexion.modes.geonature' | translate"></app-tag>
+      } @else {
+        <app-tag variant="neutral" [label]="'admin.settings.connexion.modes.local' | translate"></app-tag>
+      }
+      @if (e.modifie_par) {
+        <span class="text-mention">
+          {{ 'admin.settings.connexion.modifiePar' | translate: { qui: e.modifie_par, quand: (e.modifie_le | date: 'dd/MM/yyyy HH:mm') } }}
+        </span>
+      }
+    </div>
+
+    <!-- 1. UsersHub -->
+    <h4 class="connexion-sous-titre">{{ 'admin.settings.connexion.etape1.titre' | translate }}</h4>
+    <ul class="list-bullets">
+      <li>{{ 'admin.settings.connexion.etape1.application' | translate }}</li>
+      <li>{{ 'admin.settings.connexion.etape1.profil' | translate }}</li>
+      <li>{{ 'admin.settings.connexion.etape1.email' | translate }}</li>
+    </ul>
+
+    <!-- 2. Réglages -->
+    <h4 class="connexion-sous-titre">{{ 'admin.settings.connexion.etape2.titre' | translate }}</h4>
+    <form class="connexion-saisie" data-testid="connexion-saisie" (ngSubmit)="enregistrer()" novalidate autocomplete="off">
+      <app-form-field [label]="'admin.settings.connexion.champs.code_application' | translate" [required]="true"
+        [helpText]="(verrouille('code_application') ? 'admin.settings.connexion.valeurEnvironnement' : 'admin.settings.connexion.aide.code_application') | translate">
+        <input type="text" name="code_application" data-testid="champ-code_application" spellcheck="false"
+               placeholder="CICADA" [disabled]="verrouille('code_application')" [(ngModel)]="saisie.code_application" />
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.connexion.champs.db_host' | translate" [required]="true"
+        [helpText]="(verrouille('db_host') ? 'admin.settings.connexion.valeurEnvironnement' : 'admin.settings.connexion.aide.db_host') | translate">
+        <input type="text" name="db_host" data-testid="champ-db_host" spellcheck="false"
+               placeholder="10.0.30.12" [disabled]="verrouille('db_host')" [(ngModel)]="saisie.db_host" />
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.connexion.champs.db_port' | translate"
+        [helpText]="verrouille('db_port') ? ('admin.settings.connexion.valeurEnvironnement' | translate) : undefined">
+        <input type="number" name="db_port" data-testid="champ-db_port" min="1" max="65535"
+               [disabled]="verrouille('db_port')" [(ngModel)]="saisie.db_port" />
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.connexion.champs.db_name' | translate" [required]="true"
+        [helpText]="(verrouille('db_name') ? 'admin.settings.connexion.valeurEnvironnement' : 'admin.settings.connexion.aide.db_name') | translate">
+        <input type="text" name="db_name" data-testid="champ-db_name" spellcheck="false"
+               placeholder="geonature2db" [disabled]="verrouille('db_name')" [(ngModel)]="saisie.db_name" />
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.connexion.champs.db_user' | translate" [required]="true"
+        [helpText]="verrouille('db_user') ? ('admin.settings.connexion.valeurEnvironnement' | translate) : undefined">
+        <input type="text" name="db_user" data-testid="champ-db_user" spellcheck="false"
+               placeholder="cicada_usershub" [disabled]="verrouille('db_user')" [(ngModel)]="saisie.db_user" />
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.connexion.champs.db_password' | translate" [required]="true"
+        [helpText]="(verrouille('db_password') ? 'admin.settings.connexion.valeurEnvironnement' : 'admin.settings.connexion.aide.db_password') | translate">
+        <input type="password" name="db_password" data-testid="champ-db_password" autocomplete="new-password"
+               [placeholder]="(e.mot_de_passe_defini ? 'admin.settings.connexion.motDePasseDefini' : 'admin.settings.connexion.motDePasseAbsent') | translate"
+               [disabled]="verrouille('db_password')" [(ngModel)]="motDePasse" />
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.connexion.champs.db_sslmode' | translate"
+        [helpText]="(verrouille('db_sslmode') ? 'admin.settings.connexion.valeurEnvironnement' : 'admin.settings.connexion.aide.db_sslmode') | translate">
+        <select name="db_sslmode" data-testid="champ-db_sslmode" [disabled]="verrouille('db_sslmode')" [(ngModel)]="saisie.db_sslmode">
+          <option value="require">{{ 'admin.settings.connexion.ssl.require' | translate }}</option>
+          <option value="verify-full">{{ 'admin.settings.connexion.ssl.verifyFull' | translate }}</option>
+          <option value="prefer">{{ 'admin.settings.connexion.ssl.prefer' | translate }}</option>
+        </select>
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.connexion.champs.libelle' | translate"
+        [helpText]="(verrouille('libelle') ? 'admin.settings.connexion.valeurEnvironnement' : 'admin.settings.connexion.aide.libelle') | translate">
+        <input type="text" name="libelle" data-testid="champ-libelle" placeholder="RNF"
+               [disabled]="verrouille('libelle')" [(ngModel)]="saisie.libelle" />
+      </app-form-field>
+
+      <app-form-field [label]="'admin.settings.connexion.champs.organismes_exclus' | translate"
+        [helpText]="(verrouille('organismes_exclus') ? 'admin.settings.connexion.valeurEnvironnement' : 'admin.settings.connexion.aide.organismes_exclus') | translate">
+        <input type="text" name="organismes_exclus" data-testid="champ-organismes_exclus" placeholder="-1,2"
+               [disabled]="verrouille('organismes_exclus')" [(ngModel)]="saisie.organismes_exclus" />
+      </app-form-field>
+
+      <div class="connexion-actions">
+        <button mat-flat-button color="primary" type="submit" data-testid="bouton-enregistrer"
+                [disabled]="enCours() || !modifie()">
+          <i class="fi fi-rr-disk"></i>
+          {{ 'admin.settings.connexion.enregistrer' | translate }}
+        </button>
+      </div>
+    </form>
+
+    <!-- 3. Compte de lecture -->
+    <h4 class="connexion-sous-titre">{{ 'admin.settings.connexion.etape3.titre' | translate }}</h4>
+    <p class="text-mention">{{ 'admin.settings.connexion.etape3.description' | translate }}</p>
+    @if (!surCeServeur()) {
+      <app-form-field [label]="'admin.settings.connexion.etape3.adresse' | translate"
+                      [helpText]="'admin.settings.connexion.etape3.adresseAide' | translate">
+        <input type="text" name="adresse_cicada" data-testid="champ-adresse-cicada" placeholder="10.0.20.13"
+               [(ngModel)]="adresseCicada" />
+      </app-form-field>
+    }
+    <div class="connexion-commande">
+      <pre data-testid="commande-lecture">{{ commande() }}</pre>
+      <button mat-stroked-button type="button" data-testid="bouton-copier" (click)="copierCommande()">
+        <i class="fi fi-rr-copy"></i>
+        {{ 'admin.settings.connexion.etape3.copier' | translate }}
+      </button>
+    </div>
+    <p class="text-mention">{{ 'admin.settings.connexion.etape3.ensuite' | translate }}</p>
+
+    <!-- 4. Test et activation -->
+    <h4 class="connexion-sous-titre">{{ 'admin.settings.connexion.etape4.titre' | translate }}</h4>
+    <div class="connexion-actions">
+      <button mat-stroked-button type="button" data-testid="bouton-tester" [disabled]="enCours() || modifie()" (click)="tester()">
+        @if (enCours()) {
+          <mat-spinner diameter="18" class="bouton-spinner"></mat-spinner>
+        } @else {
+          <i class="fi fi-rr-stethoscope"></i>
+        }
+        {{ 'admin.settings.connexion.tester' | translate }}
+      </button>
+      @if (actif()) {
+        <button mat-button type="button" data-testid="bouton-desactiver" [disabled]="enCours()" (click)="desactiver()">
+          <i class="fi fi-rr-undo"></i>
+          {{ 'admin.settings.connexion.desactiver' | translate }}
+        </button>
+      } @else {
+        <button mat-flat-button color="primary" type="button" data-testid="bouton-activer"
+                [disabled]="enCours() || modifie() || !e.configuree" (click)="activer()">
+          <i class="fi fi-rr-power"></i>
+          {{ 'admin.settings.connexion.activer' | translate }}
+        </button>
+      }
+    </div>
+    @if (modifie()) {
+      <p class="text-mention">{{ 'admin.settings.connexion.enregistrerAvant' | translate }}</p>
+    }
+
+    @if (erreur()) {
+      <p class="connexion-erreur" role="alert" data-testid="connexion-erreur">
+        <i class="fi fi-rr-triangle-warning"></i>
+        {{ erreur() }}
+      </p>
+    }
+
+    @if (test(); as t) {
+      <div class="info-block" [class.info-block-success]="t.ok && t.vous?.autorise !== false"
+           [class.info-block-error]="!t.ok || t.vous?.autorise === false" data-testid="connexion-test">
+        <div class="info-block-content">
+          @if (!t.ok) {
+            <p class="info-block-content-title">{{ 'admin.settings.connexion.resultat.echec' | translate }}</p>
+            <p class="info-block-content-text" data-testid="test-message">{{ t.message }}</p>
+          } @else {
+            <p class="info-block-content-title">{{ 'admin.settings.connexion.resultat.ok' | translate }}</p>
+            <ul class="list-bullets">
+              <li>{{ (t.chiffree ? 'admin.settings.connexion.resultat.chiffree' : 'admin.settings.connexion.resultat.enClair') | translate }}</li>
+              @if (t.bilan; as b) {
+                <li data-testid="test-bilan">{{ 'admin.settings.connexion.resultat.bilan' | translate: { autorises: b.autorises, total: b.total, refuses: b.refuses } }}</li>
+                <li>{{ 'admin.settings.connexion.resultat.superAdmins' | translate: { nombre: b.super_admins_autorises } }}</li>
+              }
+              @if (t.vous; as v) {
+                <li class="text-bold" data-testid="test-vous">
+                  {{ (v.autorise ? 'admin.settings.connexion.resultat.vousOui' : 'admin.settings.connexion.resultat.vousNon') | translate: { motif: motif(v.motif) } }}
+                </li>
+              }
+            </ul>
+            @if (comptesRefuses().length) {
+              <details class="connexion-refuses">
+                <summary>{{ 'admin.settings.connexion.resultat.voirRefuses' | translate: { nombre: comptesRefuses().length } }}</summary>
+                <ul>
+                  @for (c of comptesRefuses(); track c.email) {
+                    <li>{{ c.email }} — {{ motif(c.motif) }}</li>
+                  }
+                </ul>
+              </details>
+            }
+          }
+        </div>
+      </div>
+    }
+
+    <p class="text-mention connexion-secours">{{ 'admin.settings.connexion.secours' | translate }}</p>
+  }
+</section>

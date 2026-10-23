@@ -751,7 +751,104 @@
         "apparence": "Apparence",
         "exports": "Exports",
         "fonctionnalites": "Fonctionnalités",
-        "exploration": "Exploration fédérée"
+        "exploration": "Exploration fédérée",
+        "connexion": "Connexion"
+      },
+      "connexion": {
+        "titre": "Connexion par GeoNature / UsersHub",
+        "description": "Les utilisateurs se connectent avec leur compte GeoNature. CICADA lit la base UsersHub en lecture seule et ne laisse entrer que les comptes qui ont un profil sur l'application CICADA. Tout se règle ici, sans éditer de fichier ni redémarrer CICADA.",
+        "modeActuel": "Connexion en service :",
+        "modes": {
+          "local": "Comptes CICADA (email + mot de passe)",
+          "geonature": "Comptes GeoNature / UsersHub"
+        },
+        "modifiePar": "Dernière modification par {{qui}} le {{quand}}",
+        "etape1": {
+          "titre": "1. Dans UsersHub",
+          "application": "Une application CICADA existe (notez son code, colonne code_application : c'est lui qui compte, pas le nom).",
+          "profil": "Les comptes ou les groupes qui doivent entrer ont un profil sur cette application (n'importe lequel). Les droits dans CICADA se règlent dans CICADA.",
+          "email": "Chaque compte UsersHub a la même adresse email que son compte CICADA : sinon, un second compte, vide, serait créé à sa première connexion."
+        },
+        "etape2": {
+          "titre": "2. La base UsersHub"
+        },
+        "champs": {
+          "code_application": "Code de l'application CICADA",
+          "db_host": "Hôte de la base",
+          "db_port": "Port",
+          "db_name": "Nom de la base",
+          "db_user": "Compte de lecture",
+          "db_password": "Mot de passe du compte de lecture",
+          "db_sslmode": "Chiffrement de la connexion",
+          "libelle": "Nom affiché sur la page de connexion",
+          "organismes_exclus": "Organismes UsersHub à ignorer"
+        },
+        "aide": {
+          "code_application": "Colonne code_application de l'application dans UsersHub.",
+          "db_host": "Une seule adresse. « localhost » si GeoNature est installé sur ce serveur.",
+          "db_name": "En général la base de GeoNature (geonature2db, geonature_global…).",
+          "db_password": "Affiché par la commande de l'étape 3. Jamais réaffiché ici.",
+          "db_sslmode": "Exigé dès que la base est sur un autre serveur : les empreintes des mots de passe passent sur le réseau.",
+          "libelle": "Le bouton s'appellera « Identifiant RNF ».",
+          "organismes_exclus": "id_organisme UsersHub qui ne sont pas de vrais organismes (« Autre », tests…), séparés par des virgules."
+        },
+        "ssl": {
+          "require": "Exigé (require)",
+          "verifyFull": "Exigé, avec vérification du certificat (verify-full)",
+          "prefer": "Non exigé (prefer) — base sur ce serveur uniquement"
+        },
+        "valeurEnvironnement": "Fixé par la configuration du serveur (/var/lib/cicada/.env) : retirez la variable et recréez les conteneurs pour le régler ici.",
+        "motDePasseDefini": "•••••••• (défini — laisser vide pour le garder)",
+        "motDePasseAbsent": "Non défini",
+        "enregistrer": "Enregistrer",
+        "enregistre": "Réglages enregistrés",
+        "enregistrerAvant": "Enregistrez vos modifications avant de tester ou d'activer.",
+        "etape3": {
+          "titre": "3. Créer le compte de lecture",
+          "description": "Pour lire UsersHub, CICADA a besoin d'un compte PostgreSQL (pas d'un compte UsersHub). Il ne lit que quelques colonnes et ne peut rien modifier. Il se crée une seule fois, en root, sur le serveur de la base UsersHub : CICADA n'a pas, et ne doit pas avoir, ce droit. Copiez la commande ci-dessous et lancez-la sur ce serveur.",
+          "adresse": "Adresse de ce serveur CICADA vue par la base",
+          "adresseAide": "Seule cette adresse sera autorisée à se connecter, en connexion chiffrée.",
+          "copier": "Copier",
+          "ensuite": "La commande affiche le mot de passe du compte de lecture : reportez-le à l'étape 2 et enregistrez. N'utilisez pas le compte de GeoNature : il peut tout modifier dans la base."
+        },
+        "commandeCopiee": "Commande copiée",
+        "etape4": {
+          "titre": "4. Tester puis activer"
+        },
+        "tester": "Tester",
+        "activer": "Activer la connexion GeoNature",
+        "active": "Connexion GeoNature activée",
+        "desactiver": "Revenir aux comptes CICADA",
+        "desactive": "Connexion par comptes CICADA rétablie",
+        "confirmerActivation": {
+          "titre": "Activer la connexion GeoNature ?",
+          "message": "{{autorises}} compte(s) pourront se connecter, mais {{refuses}} compte(s) CICADA actif(s) seront refusés (pas de compte UsersHub, compte désactivé ou pas de profil sur l'application). La connexion par mot de passe CICADA sera fermée.",
+          "bouton": "Activer quand même"
+        },
+        "confirmerDesactivation": {
+          "titre": "Revenir aux comptes CICADA ?",
+          "message": "La connexion par GeoNature sera fermée. Les comptes créés par GeoNature n'ont pas de mot de passe CICADA : ils passeront par « Mot de passe oublié ». Les réglages de la base UsersHub sont conservés.",
+          "bouton": "Revenir aux comptes CICADA"
+        },
+        "resultat": {
+          "echec": "Le test a échoué",
+          "ok": "La base UsersHub répond",
+          "chiffree": "Connexion chiffrée (TLS).",
+          "enClair": "Connexion non chiffrée : à réserver à une base installée sur ce serveur.",
+          "bilan": "{{autorises}} compte(s) CICADA actif(s) sur {{total}} pourront se connecter ; {{refuses}} seront refusés.",
+          "superAdmins": "Super administrateurs qui pourront se connecter : {{nombre}}.",
+          "vousOui": "Votre compte pourra se connecter.",
+          "vousNon": "Votre compte ne pourra pas se connecter ({{motif}}) : l'activation sera refusée tant que ce n'est pas réglé dans UsersHub.",
+          "voirRefuses": "Voir les {{nombre}} compte(s) refusé(s)"
+        },
+        "motifs": {
+          "absent": "pas de compte UsersHub avec cet email",
+          "inactif": "compte UsersHub désactivé",
+          "sans_droit": "pas de profil sur l'application"
+        },
+        "secours": "En cas de blocage (base injoignable, profil retiré par erreur), la connexion par comptes CICADA se rétablit sur le serveur avec : python manage.py connexion_locale.",
+        "erreurChargement": "Impossible de lire les réglages de connexion.",
+        "erreurInconnue": "Une erreur est survenue. Réessayez."
       },
       "banner": {
         "title": "Couleur du bandeau",
@@ -3664,7 +3761,8 @@
       "plan": "Plan de gestion",
       "user": "Utilisateur",
       "organisme": "Organisme",
-      "validation": "Demande de validation"
+      "validation": "Demande de validation",
+      "instance": "Instance"
     },
     "actions": {
       "create": "Création",

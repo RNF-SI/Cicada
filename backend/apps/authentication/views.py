@@ -31,6 +31,7 @@ from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
 from apps.users.models import Role, Site, BibOrganismes
 from apps.plans.models import PlanGestion
 from .models import ImpersonationLog
+from . import reglages
 from .providers import ConnexionLocaleActive, GEONATURE, mode_connexion, usershub
 from .serializers import (
     reponse_connexion,
@@ -144,7 +145,7 @@ class ModeConnexionView(APIView):
     )
     def get(self, request):
         if mode_connexion() == GEONATURE:
-            return Response({'mode': GEONATURE, 'libelle': settings.GEONATURE_AUTH_LIBELLE})
+            return Response({'mode': GEONATURE, 'libelle': reglages.actuels().libelle})
         return Response({'mode': 'local'})
 
 

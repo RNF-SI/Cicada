@@ -19,6 +19,12 @@ from .views import (
     impersonation_logs_view,
     public_stats_view
 )
+from .views_connexion import (
+    ConnexionGeoNatureActiverView,
+    ConnexionGeoNatureDesactiverView,
+    ConnexionGeoNatureReglagesView,
+    ConnexionGeoNatureTestView,
+)
 from apps.notifications.views import (
     public_registration_view,
     check_registration_status_view
@@ -31,6 +37,12 @@ urlpatterns = [
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('login-geonature/', ConnexionGeoNatureView.as_view(), name='login_geonature'),
     path('mode/', ModeConnexionView.as_view(), name='mode_connexion'),
+    # #769 — connexion GeoNature réglée depuis les paramètres (super admin)
+    path('connexion-geonature/', ConnexionGeoNatureReglagesView.as_view(), name='connexion_geonature'),
+    path('connexion-geonature/tester/', ConnexionGeoNatureTestView.as_view(), name='connexion_geonature_tester'),
+    path('connexion-geonature/activer/', ConnexionGeoNatureActiverView.as_view(), name='connexion_geonature_activer'),
+    path('connexion-geonature/desactiver/', ConnexionGeoNatureDesactiverView.as_view(),
+         name='connexion_geonature_desactiver'),
     path('refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('logout/', logout_view, name='logout'),
 

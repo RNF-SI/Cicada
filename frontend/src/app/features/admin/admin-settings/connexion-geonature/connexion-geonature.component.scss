@@ -1,0 +1,78 @@
+@import 'variables';
+
+.connexion-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.connexion-sous-titre {
+  margin: $spacing-lg 0 $spacing-xs;
+  color: $primary-color;
+}
+
+.connexion-saisie {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: $spacing-sm $spacing-md;
+
+  .connexion-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+.connexion-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin: $spacing-sm 0;
+
+  i {
+    margin-right: $spacing-xxs;
+  }
+}
+
+.connexion-commande {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: $spacing-sm;
+
+  pre {
+    flex: 1 1 400px;
+    margin: 0;
+    padding: $spacing-sm;
+    background: $gray-lighter;
+    color: $black;
+    border-radius: $border-radius-sm;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 0.85rem;
+  }
+}
+
+.connexion-erreur {
+  color: $error-color;
+  margin: $spacing-sm 0;
+}
+
+.connexion-refuses {
+  margin-top: $spacing-xs;
+
+  ul {
+    max-height: 240px;
+    overflow-y: auto;
+    margin: $spacing-xs 0 0;
+  }
+}
+
+.connexion-secours {
+  margin-top: $spacing-lg;
+}
+
+.bouton-spinner {
+  display: inline-block;
+  margin-right: $spacing-xxs;
+}

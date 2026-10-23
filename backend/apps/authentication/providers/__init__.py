@@ -1,23 +1,25 @@
 """
 Mode de connexion de l'instance (#689).
 
-Un seul mode à la fois (``AUTH_PROVIDER``) : soit les comptes CICADA, soit un
+Un seul mode à la fois (réglé dans Administration > Paramètres, sinon
+``AUTH_PROVIDER`` — #769) : soit les comptes CICADA, soit un
 système externe (GeoNature / UsersHub, plus tard OIDC). Un mode externe vérifie
 l'identité ailleurs puis rattache la personne à un compte CICADA ; la session
 reste celle de CICADA (mêmes JWT).
 """
-from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import BasePermission
 
-LOCAL = 'local'
-GEONATURE = 'geonature'
+from .. import reglages
+
+LOCAL = reglages.LOCAL
+GEONATURE = reglages.GEONATURE
 
 
 def mode_connexion():
     """'geonature' si l'instance se connecte par GeoNature, 'local' sinon."""
-    return GEONATURE if settings.AUTH_PROVIDER == GEONATURE else LOCAL
+    return reglages.actuels().mode
 
 
 def connexion_locale_active():
@@ -27,7 +29,7 @@ def connexion_locale_active():
 def message_connexion_externe():
     return _("Sur cette instance, la connexion se fait uniquement avec votre compte %(libelle)s. "
              "Si vous n'en avez pas, demandez-en un avec l'adresse email de votre compte CICADA.") % {
-        'libelle': settings.GEONATURE_AUTH_LIBELLE}
+        'libelle': reglages.actuels().libelle}
 
 
 class InscriptionLocaleOuverte(BasePermission):

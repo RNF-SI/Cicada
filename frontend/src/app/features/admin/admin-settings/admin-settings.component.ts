@@ -18,13 +18,14 @@ import { SettingsService, SiteConfiguration, ImagePosition } from '../../../core
 import { CheckboxComponent } from '../../../shared/components/checkbox/checkbox.component';
 import { FormFieldComponent } from '../../../shared/components/form-field/form-field.component';
 import { FederationRaccordementComponent } from './federation-raccordement/federation-raccordement.component';
+import { ConnexionGeoNatureComponent } from './connexion-geonature/connexion-geonature.component';
 import { ConfirmDialogComponent, ConfirmDialogData } from '../../../shared/components/confirm-dialog/confirm-dialog.component';
 
 /**
  * Onglets thématiques de la page, dans l'ordre d'affichage. La valeur est
  * celle du paramètre d'URL `?onglet=` : un lien partagé rouvre le bon onglet.
  */
-export const ONGLETS_PARAMETRES = ['apparence', 'exports', 'fonctionnalites', 'exploration'] as const;
+export const ONGLETS_PARAMETRES = ['apparence', 'exports', 'fonctionnalites', 'exploration', 'connexion'] as const;
 export type OngletParametres = (typeof ONGLETS_PARAMETRES)[number];
 
 import { ExplorationService } from '../../../core/services/exploration.service';
@@ -45,7 +46,8 @@ import { ExplorationService } from '../../../core/services/exploration.service';
     TranslateModule,
     CheckboxComponent,
     FormFieldComponent,
-    FederationRaccordementComponent
+    FederationRaccordementComponent,
+    ConnexionGeoNatureComponent
 ],
   templateUrl: './admin-settings.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

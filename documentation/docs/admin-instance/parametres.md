@@ -13,7 +13,19 @@ La page s'ouvre depuis Administration > Paramètres, ou directement par « Param
 - **Rédiger les conditions générales d'utilisation** (onglet « Fonctionnalités », section « Conditions générales d'utilisation ») : des CGU par défaut sont fournies, à adapter (format Markdown : `# Titre`, `## Sous-titre`, `- liste`, `**gras**`, `[lien](https://…)`). Chaque utilisateur doit les accepter à sa connexion. **Enregistrer un texte modifié publie une nouvelle version** (confirmation demandée) : tous les utilisateurs devront l'accepter de nouveau. La page publique `/cgu` affiche la version en vigueur ;
 - **Fixer la taille maximale d'un document** (onglet « Fonctionnalités », section « Documents des plans de gestion ») : de 1 à 1024 Mo, 20 Mo par défaut. Elle vaut pour les fichiers joints au plan et aux enjeux ; un fichier plus lourd est refusé ;
 - **Ouvrir l'API publique des métadonnées des plans** : permet à une application tierce de gestion documentaire de lire les métadonnées des plans (jamais leur contenu, leur budget ni les brouillons) ;
+- **Brancher la connexion sur GeoNature / UsersHub** (onglet « Connexion ») : les utilisateurs se connectent alors avec leur compte GeoNature, et seuls ceux qui ont un profil sur l'application CICADA dans UsersHub entrent. Voir ci-dessous ;
 - **Partager les plans avec l'exploration nationale** : voir ci-dessous.
+
+<p class="lead">Connexion par GeoNature / UsersHub :</p>
+
+L'onglet « Connexion » guide le branchement en quatre étapes, sans fichier à modifier ni redémarrage :
+
+1. **Dans UsersHub** : créer l'application CICADA (son **code** compte, pas son nom), donner un profil sur cette application aux comptes ou aux groupes qui doivent entrer, et vérifier que chacun a la même adresse email que dans CICADA ;
+2. **Renseigner la base UsersHub** : code de l'application, hôte, nom de la base, compte et mot de passe de lecture, chiffrement (exigé dès que la base est sur un autre serveur), nom affiché sur la page de connexion. Le mot de passe n'est jamais réaffiché. Un champ grisé est fixé par la configuration du serveur ;
+3. **Créer le compte de lecture** : l'écran affiche la commande à copier, à faire lancer **une fois** sur le serveur de la base UsersHub par son administrateur (CICADA n'a pas le droit de créer ce compte lui-même). Elle affiche le mot de passe à reporter à l'étape 2 ;
+4. **Tester, puis activer** : « Tester » vérifie la connexion et indique combien de comptes pourront se connecter, combien seront refusés (et pourquoi), et si **votre** compte pourra se connecter. « Activer » est refusé si le test échoue ou si votre propre compte ne pourrait pas entrer ; si des comptes seront refusés, une confirmation est demandée.
+
+Une fois activée, la connexion par mot de passe CICADA, l'inscription et « Mot de passe oublié » sont fermées. « Revenir aux comptes CICADA » les rouvre (les comptes créés par GeoNature passent alors par « Mot de passe oublié »). Ajouter ou retirer un groupe dans UsersHub vaut dès la connexion suivante. Détails techniques : [Connexion par un GeoNature / UsersHub](../administration/connexion-geonature.md).
 
 <p class="lead">Mise à jour :</p>
 

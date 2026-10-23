@@ -22,11 +22,12 @@ retirée : GeoNature n'y contrôle jamais le droit sur CICADA.
 import logging
 from dataclasses import dataclass, field
 
-from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.utils.translation import gettext_lazy as _
 
 from apps.users.models import BibOrganismes, Role
+
+from .. import reglages
 
 logger = logging.getLogger(__name__)
 
@@ -47,15 +48,15 @@ class UsersHubIndisponible(UsersHubErreur):
         super().__init__(
             message or _("Le service de connexion %(libelle)s est indisponible. "
                          "Réessayez plus tard ou connectez-vous avec votre email.")
-            % {'libelle': settings.GEONATURE_AUTH_LIBELLE},
+            % {'libelle': reglages.actuels().libelle},
             status_code=502,
         )
 
 
 def est_active():
     """Mode 'geonature' choisi ET base UsersHub configurée."""
-    from . import GEONATURE, mode_connexion, usershub_base
-    return mode_connexion() == GEONATURE and usershub_base.est_configuree()
+    r = reglages.actuels()
+    return r.mode == reglages.GEONATURE and r.est_configuree()
 
 
 def verifier(login, password):
@@ -82,7 +83,7 @@ def verifier_email(identite):
         raise UsersHubErreur(
             _("Votre compte %(libelle)s n'a pas d'adresse email : il ne peut pas être "
               "utilisé pour se connecter à CICADA. Contactez l'administrateur de %(libelle)s.")
-            % {'libelle': settings.GEONATURE_AUTH_LIBELLE},
+            % {'libelle': reglages.actuels().libelle},
             status_code=403,
         )
 
@@ -105,7 +106,7 @@ def organisme_pour(identite):
     d'organisme, si c'est un pseudo-organisme exclu, ou si sa fiche est absente.
     """
     id_organisme = identite.id_organisme
-    if id_organisme is None or int(id_organisme) in settings.GEONATURE_AUTH_ORGANISMES_EXCLUS:
+    if id_organisme is None or int(id_organisme) in reglages.actuels().organismes_exclus:
         return None
 
     fiche = identite.fiche_organisme

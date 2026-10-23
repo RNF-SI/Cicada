@@ -575,6 +575,7 @@ class ActivityLog(models.Model):
         ('user', _('Utilisateur')),
         ('organisme', _('Organisme')),
         ('validation', _('Demande de validation')),
+        ('instance', _('Instance')),
     ]
 
     ACTION_TYPES = [
