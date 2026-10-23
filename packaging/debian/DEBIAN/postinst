@@ -70,6 +70,9 @@ restart_stack_if_configured() {
 
 # --- Création des répertoires ---
 mkdir -p "$CICADA_DIR/data" "$CONFIG_DIR" "/var/log/cicada"
+# #764 — certificat de l'autorité de la base UsersHub (USERSHUB_DB_SSLROOTCERT),
+# monté en lecture seule dans le conteneur web.
+mkdir -p "$CONFIG_DIR/usershub"
 
 # Dossier d'échange avec le conteneur web (bouton « Mettre à jour ») : monté
 # dans le conteneur, où l'application tourne sous l'utilisateur « cicada »

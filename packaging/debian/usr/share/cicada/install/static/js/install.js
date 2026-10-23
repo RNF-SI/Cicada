@@ -555,23 +555,115 @@ function toggleFederationFields() {
 
 function toggleGeoNatureAuthFields() {
     // #689 — un seul mode de connexion : les réglages GeoNature ne s'affichent
-    // (et ne sont exigés) que si ce mode est choisi.
+    // (et ne sont exigés) que si ce mode est choisi. #764 — puis selon la
+    // source : base UsersHub ou API GeoNature.
     const enabled = document.getElementById('auth_provider_geonature');
     const fields = document.getElementById('geonature_auth_fields');
-    const url = document.getElementById('geonature_auth_url');
-    const idApp = document.getElementById('geonature_auth_id_application');
-    const libelle = document.getElementById('geonature_auth_libelle');
-    const exclus = document.getElementById('geonature_auth_organismes_exclus');
     if (!enabled || !fields) return;
-
     const actif = enabled.checked;
+    const parBase = actif && document.getElementById('geonature_auth_source_base').checked;
+    const champs = id => document.getElementById(id);
+    const api = ['geonature_auth_url', 'geonature_auth_id_application'].map(champs);
+    const base = ['usershub_db_host', 'usershub_db_port', 'usershub_db_name', 'usershub_db_user',
+                  'usershub_db_password', 'geonature_auth_code_application'].map(champs);
+
     fields.classList.toggle('hidden', !actif);
-    [url, idApp, libelle].forEach(function (champ) {
-        if (champ) champ.required = actif;
-    });
+    champs('usershub_base_fields').classList.toggle('hidden', !parBase);
+    champs('geonature_api_fields').classList.toggle('hidden', !actif || parBase);
+    const libelle = champs('geonature_auth_libelle');
+    if (libelle) libelle.required = actif;
+    api.forEach(c => { if (c) c.required = actif && !parBase; });
+    base.forEach(c => { if (c) c.required = parBase; });
     if (!actif) {
-        [url, idApp, exclus].forEach(function (champ) {
-            if (champ) champ.value = '';
+        api.concat([champs('geonature_auth_organismes_exclus'), champs('usershub_db_password')])
+            .forEach(c => { if (c) c.value = ''; });
+    }
+}
+
+let usershubCommandTimer;
+function scheduleUsersHubCommand() {
+    clearTimeout(usershubCommandTimer);
+    usershubCommandTimer = setTimeout(updateUsersHubCommand, 400);
+}
+
+// #764 — commande de création du compte de lecture, à lancer sur le serveur
+// de la base UsersHub (comme cicada-prepare-db pour la base de CICADA).
+async function updateUsersHubCommand() {
+    const code = document.getElementById('usershub_command');
+    const where = document.getElementById('usershub_command_where');
+    const clientSpan = document.getElementById('usershub_command_client');
+    if (!code) return;
+    const value = id => document.getElementById(id).value.trim();
+    const host = value('usershub_db_host');
+    const base = value('usershub_db_name');
+    if (!host || !base) {
+        where.textContent = 'Créez le compte de lecture : indiquez d\'abord l\'hôte et la base ci-dessus.';
+        code.textContent = '—';
+        return;
+    }
+    let clientIp = null;
+    let local = false;
+    try {
+        const r = await fetch('/api/db-client-ip?host=' + encodeURIComponent(host));
+        const info = await r.json();
+        clientIp = info.client_ip;
+        local = info.local;
+    } catch (e) { /* réseau : on garde l'adresse de la page */ }
+    const options = ['--db ' + base];
+    const port = value('usershub_db_port');
+    const role = value('usershub_db_user');
+    const app = value('geonature_auth_code_application');
+    if (port && port !== '5432') options.push('--port ' + port);
+    if (role && role !== 'cicada_usershub') options.push('--role ' + role);
+    if (app && app !== 'CICADA') options.push('--code ' + app);
+    if (local) {
+        where.innerHTML = 'Créez le compte de lecture : sur <strong>ce serveur</strong>, lancez :';
+        code.textContent = 'sudo cicada-usershub-lecture --docker-local ' + options.join(' ');
+        clientSpan.textContent = 'les conteneurs de CICADA';
+        return;
+    }
+    where.innerHTML = 'Créez le compte de lecture : sur le <strong>serveur de la base UsersHub</strong>, en root, lancez :';
+    const self = clientIp || window.location.hostname;
+    options.push('--client ' + (clientIp || '<ip-de-ce-serveur>'));
+    code.textContent = 'curl -fsSL http://' + self + ':' + (window.location.port || '4567')
+        + '/usershub-lecture.sh | sudo bash -s -- ' + options.join(' ');
+    clientSpan.textContent = 'ce serveur (' + (clientIp || 'adresse inconnue : vérifiez l\'hôte') + ')';
+}
+
+async function testUsersHub() {
+    const list = document.getElementById('test_usershub_results');
+    const btn = document.getElementById('test_usershub_btn');
+    const value = id => document.getElementById(id).value;
+    list.innerHTML = '<li class="check-pending">Test en cours…</li>';
+    btn.disabled = true;
+    try {
+        const r = await fetch('/api/test-usershub', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                usershub_db_host: value('usershub_db_host'), usershub_db_port: value('usershub_db_port'),
+                usershub_db_name: value('usershub_db_name'), usershub_db_user: value('usershub_db_user'),
+                usershub_db_password: value('usershub_db_password'),
+                usershub_db_sslmode: value('usershub_db_sslmode'),
+                geonature_auth_code_application: value('geonature_auth_code_application'),
+            }),
         });
+        const checks = (await r.json()).checks || [];
+        list.innerHTML = '';
+        checks.forEach(c => {
+            const li = document.createElement('li');
+            li.className = 'check-' + c.status;
+            li.textContent = c.label;
+            if (c.detail) {
+                const detail = document.createElement('small');
+                detail.textContent = c.detail;
+                li.appendChild(detail);
+            }
+            list.appendChild(li);
+        });
+    } catch (e) {
+        list.innerHTML = '<li class="check-error">Test impossible : ' + e.message + '</li>';
+    } finally {
+        btn.disabled = false;
     }
 }

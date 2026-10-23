@@ -203,6 +203,20 @@ class InstallService:
                     errors.append("Le champ smtp_user est requis lorsque l'authentification SMTP est activée.")
                 if not data.get('smtp_password'):
                     errors.append("Le champ smtp_password est requis lorsque l'authentification SMTP est activée.")
+        if data.get('auth_provider') == 'geonature':
+            if data.get('geonature_auth_source', 'base') == 'base':
+                for champ, libelle in (('usershub_db_host', "l'hôte de la base UsersHub"),
+                                       ('usershub_db_name', 'le nom de la base UsersHub'),
+                                       ('usershub_db_user', 'le compte de lecture UsersHub'),
+                                       ('usershub_db_password', 'le mot de passe du compte de lecture UsersHub'),
+                                       ('geonature_auth_code_application',
+                                        "le code de l'application CICADA dans UsersHub")):
+                    if not str(data.get(champ) or '').strip():
+                        errors.append(f"Indiquez {libelle}.")
+                if re.search(r'[,\s]', (data.get('usershub_db_host') or '').strip()):
+                    errors.append("Hôte de la base UsersHub : une seule adresse.")
+            elif not (data.get('geonature_auth_url') and data.get('geonature_auth_id_application')):
+                errors.append("Indiquez l'adresse de l'API GeoNature et l'identifiant de l'application CICADA.")
         if data.get('federation_enabled'):
             identifiant = (data.get('federation_instance_id') or '').strip()
             if not identifiant:
@@ -338,6 +352,10 @@ class InstallService:
         # Variables GeoNature toujours écrites (vides en mode local) : une ligne
         # vide se complète après coup, une ligne absente ne se devine pas.
         geonature = data.get('auth_provider') == 'geonature'
+        # #764 — comptes vérifiés dans la base UsersHub (droit sur l'application
+        # CICADA) ou par l'API GeoNature (droit sur GeoNature seulement).
+        par_base = geonature and data.get('geonature_auth_source', 'base') == 'base'
+        usershub_host = (data.get('usershub_db_host') or '').strip() if par_base else ''
         env_lines.extend([
             "",
             f"AUTH_PROVIDER={'geonature' if geonature else 'local'}",
@@ -345,6 +363,16 @@ class InstallService:
             f"GEONATURE_AUTH_ID_APPLICATION={str(data.get('geonature_auth_id_application') or '').strip() if geonature else ''}",
             f"GEONATURE_AUTH_LIBELLE={(data.get('geonature_auth_libelle') or 'GeoNature').strip() if geonature else 'GeoNature'}",
             f"GEONATURE_AUTH_ORGANISMES_EXCLUS={(data.get('geonature_auth_organismes_exclus') or '').replace(' ', '') if geonature else ''}",
+            f"GEONATURE_AUTH_SOURCE={'base' if par_base else 'api'}",
+            f"GEONATURE_AUTH_CODE_APPLICATION={(data.get('geonature_auth_code_application') or '').strip() if par_base else ''}",
+            # Base sur ce serveur : joint par les conteneurs via host.docker.internal
+            f"USERSHUB_DB_HOST={self.container_db_host(usershub_host) if usershub_host else ''}",
+            f"USERSHUB_DB_PORT={str(data.get('usershub_db_port') or 5432).strip() if par_base else 5432}",
+            f"USERSHUB_DB_NAME={(data.get('usershub_db_name') or '').strip() if par_base else ''}",
+            f"USERSHUB_DB_USER={(data.get('usershub_db_user') or '').strip() if par_base else ''}",
+            f"USERSHUB_DB_PASSWORD={data.get('usershub_db_password') or '' if par_base else ''}",
+            f"USERSHUB_DB_SSLMODE={self.usershub_sslmode(data, usershub_host) if usershub_host else 'prefer'}",
+            f"USERSHUB_DB_SSLROOTCERT={'/etc/cicada/usershub/ca.crt' if usershub_host and self.usershub_sslmode(data, usershub_host).startswith('verify') else ''}",
         ])
 
         if use_traefik:
@@ -676,6 +704,17 @@ class InstallService:
         match = re.search(r'\binet (\d+\.\d+\.\d+\.\d+)/', out)
         return match.group(1) if match else '172.17.0.1'
 
+    SSLMODES = ('prefer', 'require', 'verify-ca', 'verify-full')
+
+    def usershub_sslmode(self, data, host):
+        """Chiffrement de la connexion à la base UsersHub : exigé dès qu'elle est
+        sur un autre serveur (les empreintes des mots de passe passent sur le
+        réseau), sauf choix explicite du formulaire."""
+        choix = (data.get('usershub_db_sslmode') or '').strip().lower()
+        if choix in self.SSLMODES:
+            return choix
+        return 'prefer' if self.is_local_db(host) else 'require'
+
     def container_db_host(self, host):
         """Hôte PostgreSQL tel que les conteneurs doivent le joindre."""
         return self.HOST_ALIAS if self.is_local_db(host) else host
@@ -802,6 +841,87 @@ class InstallService:
                                'detail': 'Lancez cicada-prepare-db sur le serveur de base.'})
         return checks
 
+    def test_usershub(self, data):
+        """Vérifie la base UsersHub telle que CICADA la lira (#764) : connexion
+        avec le compte de lecture, droits sur chaque colonne utile, existence de
+        l'application. Retourne une liste de {status, label, detail}."""
+        host = (data.get('usershub_db_host') or '').strip()
+        code = (data.get('geonature_auth_code_application') or '').strip()
+        try:
+            port = int(data.get('usershub_db_port') or 5432)
+        except (TypeError, ValueError):
+            return [{'status': 'error', 'label': 'Port invalide', 'detail': ''}]
+        if not host or re.search(r'[,\s]', host):
+            return [{'status': 'error', 'label': "Indiquez une seule adresse pour la base UsersHub", 'detail': ''}]
+        try:
+            import psycopg
+        except ImportError:
+            return [{'status': 'error', 'label': "Module psycopg absent de l'installateur",
+                     'detail': 'Réinstallez le paquet : sudo apt install --reinstall cicada'}]
+        # Base sur ce serveur : tester par le pont Docker, comme les conteneurs.
+        target = self.docker_gateway() if self.is_local_db(host) else host
+        try:
+            # Même chiffrement que CICADA (USERSHUB_DB_SSLMODE écrit dans le .env).
+            sslmode = self.usershub_sslmode(data, host)
+            conn = psycopg.connect(host=target, port=port, dbname=(data.get('usershub_db_name') or '').strip(),
+                                   user=(data.get('usershub_db_user') or '').strip(),
+                                   password=data.get('usershub_db_password') or '', connect_timeout=8,
+                                   sslmode='require' if sslmode.startswith('verify') else sslmode)
+        except psycopg.OperationalError as e:
+            msg = str(e).strip().splitlines()[-1] if str(e).strip() else str(e)
+            if 'pg_hba.conf' in msg.lower():
+                hint = "Ce serveur n'est pas autorisé dans pg_hba.conf de la base UsersHub : lancez la commande cicada-usershub-lecture affichée ci-dessus."
+            elif 'ssl' in msg.lower():
+                hint = ("La base UsersHub n'accepte pas de connexion chiffrée : activez ssl = on dans postgresql.conf "
+                        "(cicada-usershub-lecture le vérifie), ou choisissez « non exigé » si le réseau est sûr.")
+            else:
+                hint = "Vérifiez l'adresse, le port, le compte et son mot de passe (affichés par cicada-usershub-lecture)."
+            return [{'status': 'error', 'label': 'Connexion à la base UsersHub impossible', 'detail': f'{msg}\n{hint}'}]
+        checks = []
+        if sslmode != 'prefer':
+            chiffree = bool(conn.pgconn.ssl_in_use)
+            checks.append({'status': 'ok' if chiffree else 'error',
+                           'label': 'Connexion chiffrée (TLS)' if chiffree else 'Connexion non chiffrée',
+                           'detail': '' if chiffree else "Activez ssl = on sur le serveur PostgreSQL de UsersHub."})
+        lectures = (
+            ('comptes', "SELECT id_role, groupe, identifiant, email, nom_role, prenom_role, id_organisme, "
+                        "pass, pass_plus, active FROM utilisateurs.t_roles WHERE false"),
+            ('groupes', "SELECT id_role_groupe, id_role_utilisateur FROM utilisateurs.cor_roles WHERE false"),
+            ('droits', "SELECT id_role, id_application FROM utilisateurs.cor_role_app_profil WHERE false"),
+            ('organismes', "SELECT id_organisme, uuid_organisme, nom_organisme, adresse_organisme, cp_organisme, "
+                           "ville_organisme, tel_organisme, fax_organisme, email_organisme, url_organisme "
+                           "FROM utilisateurs.bib_organismes WHERE false"),
+        )
+        with conn:
+            checks.append({'status': 'ok', 'label': 'Connexion à la base UsersHub réussie', 'detail': ''})
+            refus = []
+            for nom, requete in lectures:
+                try:
+                    conn.execute(requete)
+                except psycopg.Error as e:
+                    conn.rollback()
+                    refus.append(f"{nom} ({type(e).__name__})")
+            if refus:
+                checks.append({'status': 'error', 'label': 'Lecture refusée : ' + ', '.join(refus),
+                               'detail': 'Relancez cicada-usershub-lecture sur le serveur de la base UsersHub.'})
+            else:
+                checks.append({'status': 'ok', 'label': 'Comptes, groupes, droits et organismes lisibles', 'detail': ''})
+            try:
+                app = conn.execute("SELECT id_application FROM utilisateurs.t_applications "
+                                   "WHERE code_application = %s", (code,)).fetchone()
+            except psycopg.Error as e:
+                conn.rollback()
+                checks.append({'status': 'error', 'label': f'Applications illisibles ({type(e).__name__})',
+                               'detail': 'Relancez cicada-usershub-lecture sur le serveur de la base UsersHub.'})
+            else:
+                if app:
+                    checks.append({'status': 'ok', 'label': f'Application « {code} » trouvée (n° {app[0]})', 'detail': ''})
+                else:
+                    checks.append({'status': 'error', 'label': f'Aucune application « {code} » dans UsersHub',
+                                   'detail': "Créez-la dans UsersHub (Applications), puis donnez-lui un profil "
+                                             "pour les groupes autorisés."})
+        return checks
+
     @staticmethod
     def format_db_errors(blocking):
         lines = ["La base PostgreSQL n'est pas prête :"]
@@ -822,6 +942,12 @@ class InstallService:
         shebang, _, rest = script.partition('\n')
         return (f"{shebang}\n# init.sql de CICADA {self.get_version()}, inclus par l'installateur\n"
                 f"INIT_SQL_CONTENT=$(cat <<'{marker}'\n{init_sql.rstrip()}\n{marker}\n)\n{rest}")
+
+    USERSHUB_LECTURE_SCRIPT = Path('/usr/bin/cicada-usershub-lecture')
+
+    def usershub_lecture_script(self):
+        """cicada-usershub-lecture tel quel : il porte lui-même son SQL."""
+        return self.USERSHUB_LECTURE_SCRIPT.read_text()
 
     def _container_state(self, docker_cmd, name):
         """État d'un conteneur : santé s'il a un healthcheck (starting, healthy,

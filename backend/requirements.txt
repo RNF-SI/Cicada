@@ -4,6 +4,8 @@ djangorestframework==3.17.2
 djangorestframework-simplejwt==5.5.1
 django-filter==25.2
 psycopg[binary]==3.1.19
+# Connexion UsersHub par sa base (#764) : empreintes bcrypt de pypnusershub
+bcrypt==4.2.1
 django-cors-headers==4.9.0
 
 # PostGIS : GeoDjango charge directement la libgdal systeme (gdal-bin /

@@ -22,6 +22,10 @@ Rien n'est synchronisé en dehors des connexions : un nouvel organisme UsersHub
 apparaît dans CICADA à la première connexion d'un de ses membres.
 
 Le jeton GeoNature ne sert qu'à l'étape 2 et n'est jamais conservé.
+
+Source 'base' (#764, ``GEONATURE_AUTH_SOURCE=base``) : les étapes 1 et 2 sont
+remplacées par une lecture de la base UsersHub (``usershub_base.py``), qui
+contrôle le droit sur l'application CICADA ; l'étape 3 est la même.
 """
 import logging
 from dataclasses import dataclass, field
@@ -57,11 +61,28 @@ class UsersHubIndisponible(UsersHubErreur):
         )
 
 
+def par_la_base():
+    """Comptes vérifiés dans la base UsersHub (#764) plutôt que par l'API GeoNature."""
+    return settings.GEONATURE_AUTH_SOURCE == 'base'
+
+
 def est_active():
-    """Mode 'geonature' choisi ET réglages présents."""
+    """Mode 'geonature' choisi ET réglages de la source choisie présents."""
     from . import GEONATURE, mode_connexion
-    return (mode_connexion() == GEONATURE
-            and bool(settings.GEONATURE_AUTH_URL and settings.GEONATURE_AUTH_ID_APPLICATION))
+    if mode_connexion() != GEONATURE:
+        return False
+    if par_la_base():
+        from . import usershub_base
+        return usershub_base.est_configuree()
+    return bool(settings.GEONATURE_AUTH_URL and settings.GEONATURE_AUTH_ID_APPLICATION)
+
+
+def verifier(login, password):
+    """Vérifie le compte UsersHub par la source configurée ; rend une IdentiteUsersHub."""
+    if par_la_base():
+        from . import usershub_base
+        return usershub_base.authentifier(login, password)
+    return authentifier(login, password)
 
 
 @dataclass
@@ -73,6 +94,10 @@ class IdentiteUsersHub:
     prenom: str = ''
     id_organisme: int | None = None
     jeton: str = field(default='', repr=False)
+    # 'api' : organisme lu par l'API GeoNature avec le jeton ; 'base' : fiche
+    # déjà lue dans la base UsersHub (None si absente ou exclue).
+    source: str = 'api'
+    fiche_organisme: dict | None = field(default=None, repr=False)
 
 
 # ---------------------------------------------------------------------------
@@ -139,6 +164,12 @@ def authentifier(login, password):
         logger.error("Connexion GeoNature : réponse de login illisible")
         raise UsersHubIndisponible()
 
+    verifier_email(identite)
+    return identite
+
+
+def verifier_email(identite):
+    """Un compte UsersHub sans email ne peut pas devenir un compte CICADA."""
     if not identite.email or '@' not in identite.email:
         raise UsersHubErreur(
             _("Votre compte %(libelle)s n'a pas d'adresse email : il ne peut pas être "
@@ -146,7 +177,6 @@ def authentifier(login, password):
             % {'libelle': settings.GEONATURE_AUTH_LIBELLE},
             status_code=403,
         )
-    return identite
 
 
 def lire_organisme(id_organisme, jeton):
@@ -206,7 +236,10 @@ def organisme_pour(identite):
     if id_organisme is None or int(id_organisme) in settings.GEONATURE_AUTH_ORGANISMES_EXCLUS:
         return None
 
-    fiche = lire_organisme(id_organisme, identite.jeton)
+    if identite.source == 'base':
+        fiche = identite.fiche_organisme
+    else:
+        fiche = lire_organisme(id_organisme, identite.jeton)
     if fiche is None:
         return None
 

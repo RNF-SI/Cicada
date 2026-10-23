@@ -14,6 +14,7 @@ cd packaging/vm-bench
 ./bench.sh run external-db-localhost --os debian13 --keep
 ./bench.sh run upgrade --from-deb ~/cicada_0.1.47_amd64.deb   # mise à jour depuis un paquet publié
 ./bench.sh run external-db-remote --manuel        # tout prêt, vous remplissez le formulaire
+./bench.sh run usershub-base --backend-image /tmp/backend.tar   # backend construit en local (docker save)
 ./bench.sh shell                                  # entrer dans la VM (état du dernier run)
 ./bench.sh base --role tracking                   # préparer une VM (cicada, db, hub, tracking)
 ./bench.sh clean [--all]                          # arrêter / supprimer les VM
@@ -84,6 +85,7 @@ problèmes d'une installation, pas seulement le premier.
 | `tracking` | **serveur de suivi** (VM « tracking ») : vraie API de suivi (`tracking-api/`, déployée selon son `INSTALLATION.md`) + dépôt APT signé (`packaging/apt-repo/`). installation par `install.sh` depuis le dépôt (guide, étape 1), source APT et clé fournies par le paquet, enregistrement, heartbeat et timer nocturne, publication d'une nouvelle version, bouton « Mettre à jour » → updater (apt + Docker), heartbeat suivant | #226 |
 | `federation` | **de A à Z, 3 VM** : base sur un serveur séparé + hub d'exploration déployé selon `documentation/docs/administration/hub.md` (image GHCR, compose de prod, Apache, `enroler_instance`). Jetons saisis dans le formulaire, relais activé ; refus de publier sans consentement, puis publication, plans reçus par le hub, recherche de l'instance servie par le hub avec la provenance | #636 |
 | `external-db-localhost` | PostgreSQL installé sur le serveur CICADA lui-même (hors Docker), `localhost` saisi : `cicada-prepare-db --docker-local`, installation, connexion des conteneurs (`host.docker.internal`) | #223 |
+| `usershub-base` | **connexion par la base UsersHub** : GeoNature et sa base (PostgreSQL hors Docker) sur le serveur CICADA. `cicada-usershub-lecture --docker-local` (refus puis succès selon `listen_addresses`, droits par colonne), « Tester la base UsersHub », installation, puis vraies connexions : profil par un groupe, md5, droit GeoNature seul, aucun droit, désactivé, base arrêtée (502). Le backend non publié se passe par `--backend-image` | #764 |
 | `upgrade` | installe `--from-deb` (ancien paquet, ex. l'artefact CI 0.1.47), crée des données, puis `dpkg -i` du paquet testé comme sur le staging et la prod : redéploiement, images, migrations, données conservées | #222 |
 | `behind-apache` | Apache de l'hôte devant CICADA + « GeoNature » sur `:8000` : vhost de l'ancien guide (consigné) puis vhost du guide actuel (contrôlé) | #231 |
 | `remove` | installation standard puis `apt remove` : plus aucun conteneur, volume de la base conservé | — |

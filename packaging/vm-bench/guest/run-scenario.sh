@@ -29,6 +29,9 @@ EXPECT_REFUSAL=""
 # Exploration fédérée : un scénario avec hub met FED_ENABLED=true
 FED_ENABLED=false
 FED_RELAY=false
+# Connexion par GeoNature / UsersHub : la connexion locale (mot de passe) est
+# fermée, le super-admin du formulaire doit alors se voir refuser (403).
+LOCAL_LOGIN=open
 scenario_checks()  { :; }
 # shellcheck source=/dev/null
 . "$BENCH_DIR/scenarios/$SCENARIO.sh"
@@ -312,7 +315,13 @@ login_code="$(curl -s -o "$BENCH_DIR/login.json" -w '%{http_code}' --max-time 20
     -H 'Content-Type: application/json' -H "Host: $DOMAIN" \
     -d "{\"username\":\"$ADMIN_EMAIL\",\"password\":\"$ADMIN_PASSWORD\"}" \
     "http://127.0.0.1:$FRONTEND_PORT/api/auth/login/")"
-if [ "$login_code" = 200 ] && grep -q '"access"' "$BENCH_DIR/login.json"; then
+if [ "$LOCAL_LOGIN" = closed ]; then
+    if [ "$login_code" = 403 ]; then
+        pkg_record PASS "Connexion locale fermée (mode GeoNature / UsersHub)" "$(head -c 160 "$BENCH_DIR/login.json")"
+    else
+        pkg_record FAIL "Connexion locale fermée (mode GeoNature / UsersHub)" "HTTP $login_code $(head -c 200 "$BENCH_DIR/login.json" 2>/dev/null)"
+    fi
+elif [ "$login_code" = 200 ] && grep -q '"access"' "$BENCH_DIR/login.json"; then
     pkg_record PASS "Connexion du super-admin créé par le formulaire"
 else
     pkg_record FAIL "Connexion du super-admin créé par le formulaire" "HTTP $login_code $(head -c 200 "$BENCH_DIR/login.json" 2>/dev/null)"

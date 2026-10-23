@@ -44,6 +44,32 @@ GEONATURE_AUTH_ORGANISMES_EXCLUS = {
     int(x) for x in os.environ.get('GEONATURE_AUTH_ORGANISMES_EXCLUS', '').split(',')
     if x.strip().lstrip('-').isdigit()
 }
+# Comment les comptes UsersHub sont vérifiés (#764) :
+# - 'api' (défaut) : par l'API du GeoNature ci-dessus. GeoNature ne contrôle
+#   que le droit sur LUI-MÊME (son CODE_APPLICATION), jamais sur CICADA — et
+#   pas du tout avec pypnusershub <= 3.2 (bug : tout compte entre) ;
+# - 'base' : CICADA lit la base UsersHub (lecture seule) et contrôle le droit
+#   sur SON application (GEONATURE_AUTH_CODE_APPLICATION). GEONATURE_AUTH_URL
+#   ne sert alors plus.
+GEONATURE_AUTH_SOURCE = os.environ.get('GEONATURE_AUTH_SOURCE', 'api').strip().lower() or 'api'
+GEONATURE_AUTH_CODE_APPLICATION = os.environ.get('GEONATURE_AUTH_CODE_APPLICATION', '').strip()
+# Base UsersHub (en général celle de GeoNature), compte en lecture seule
+# limité aux colonnes utiles : packaging/debian/usr/bin/cicada-usershub-lecture.
+USERSHUB_DB_HOST = os.environ.get('USERSHUB_DB_HOST', '').strip()
+USERSHUB_DB_PORT = int(os.environ.get('USERSHUB_DB_PORT', '5432') or 5432)
+USERSHUB_DB_NAME = os.environ.get('USERSHUB_DB_NAME', '').strip()
+USERSHUB_DB_USER = os.environ.get('USERSHUB_DB_USER', '').strip()
+USERSHUB_DB_PASSWORD = os.environ.get('USERSHUB_DB_PASSWORD', '')
+# Chiffrement de la connexion (valeurs de libpq). « prefer » (défaut) chiffre si
+# le serveur le propose, sans l'exiger : suffisant quand la base est sur le même
+# serveur. Base distante : « require » au moins, « verify-full » avec
+# USERSHUB_DB_SSLROOTCERT (certificat de l'autorité, monté dans le conteneur)
+# pour vérifier aussi le nom du serveur.
+USERSHUB_DB_SSLMODE = os.environ.get('USERSHUB_DB_SSLMODE', 'prefer').strip().lower() or 'prefer'
+USERSHUB_DB_SSLROOTCERT = os.environ.get('USERSHUB_DB_SSLROOTCERT', '').strip()
+# Schéma des tables UsersHub (« utilisateurs » partout ; réglable pour les tests,
+# la base de CICADA ayant elle aussi un schéma « utilisateurs »).
+USERSHUB_DB_SCHEMA = os.environ.get('USERSHUB_DB_SCHEMA', 'utilisateurs').strip() or 'utilisateurs'
 
 # ---------------------------------------------------------------------------
 # Identité de l'instance (#636 — exploration fédérée)

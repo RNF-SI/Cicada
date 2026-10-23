@@ -1,0 +1,373 @@
+#!/bin/bash
+# =============================================================================
+# cicada-usershub-lecture — Compte de lecture UsersHub pour la connexion de
+# CICADA (#764), SUR LE SERVEUR DE LA BASE GEONATURE / USERSHUB
+#
+# À lancer en root sur la machine qui héberge la base de GeoNature. Crée un
+# compte PostgreSQL qui ne peut lire QUE les colonnes dont la connexion a
+# besoin (compte, empreintes du mot de passe, actif, groupes, droits par
+# application, fiche d'organisme), et autorise le serveur CICADA à s'y
+# connecter. Aucune écriture, aucune autre table, aucune autre colonne.
+# Idempotent : relancé, il garde le mot de passe (sauf --password).
+#
+# Depuis le formulaire d'installation de CICADA :
+#   curl -fsSL http://<serveur-cicada>:4567/usershub-lecture.sh | sudo bash -s -- --db geonature2db --client <ip-cicada>
+# Base GeoNature sur le serveur CICADA lui-même :
+#   sudo cicada-usershub-lecture --db geonature2db --docker-local
+# Instance déjà installée, base sur un autre serveur : copier ce seul fichier
+# (/usr/bin/cicada-usershub-lecture) sur le serveur de base et le lancer.
+#
+# Ne redémarre pas PostgreSQL : seul un rechargement de la configuration est
+# fait (pas de coupure pour GeoNature).
+# =============================================================================
+set -euo pipefail
+
+DB_NAME=""
+ROLE="cicada_usershub"
+PASSWORD=""
+PORT="5432"
+SCHEMA="utilisateurs"
+CODE="CICADA"
+CLIENTS=()
+DOCKER_LOCAL=false
+SANS_SSL=false
+PRINT_SQL=false
+# Plages d'adresses par défaut des réseaux Docker (cf. cicada-prepare-db)
+DOCKER_NETWORKS="172.16.0.0/12"
+
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BLUE='\033[0;34m'; NC='\033[0m'
+ok()   { echo -e "  ${GREEN}✓${NC} $1"; }
+warn() { echo -e "  ${YELLOW}!${NC} $1"; }
+fail() { echo -e "  ${RED}✗${NC} $1"; }
+die()  { fail "$1"; [ -n "${2:-}" ] && echo -e "\n$2"; exit 1; }
+
+# Droits du compte : seule source, jouée par ce script ou affichée par --sql
+# pour qui préfère la lancer lui-même (variables psql role, mdp, schema).
+GRANTS_SQL=$(cat <<'SQL'
+SELECT format('CREATE ROLE %I LOGIN', :'role')
+WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = :'role') \gexec
+SELECT format('ALTER ROLE %I WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD %L', :'role', :'mdp')
+WHERE :'mdp' <> '' \gexec
+SELECT format('GRANT CONNECT ON DATABASE %I TO %I', current_database(), :'role') \gexec
+SELECT format('GRANT USAGE ON SCHEMA %I TO %I', :'schema', :'role') \gexec
+SELECT format('GRANT SELECT (id_role, groupe, identifiant, email, nom_role, prenom_role, id_organisme, '
+              'pass, pass_plus, active) ON %I.t_roles TO %I', :'schema', :'role') \gexec
+SELECT format('GRANT SELECT (id_role_groupe, id_role_utilisateur) ON %I.cor_roles TO %I',
+              :'schema', :'role') \gexec
+SELECT format('GRANT SELECT (id_role, id_application) ON %I.cor_role_app_profil TO %I',
+              :'schema', :'role') \gexec
+SELECT format('GRANT SELECT (id_application, code_application) ON %I.t_applications TO %I',
+              :'schema', :'role') \gexec
+SELECT format('GRANT SELECT (id_organisme, uuid_organisme, nom_organisme, adresse_organisme, cp_organisme, '
+              'ville_organisme, tel_organisme, fax_organisme, email_organisme, url_organisme) '
+              'ON %I.bib_organismes TO %I', :'schema', :'role') \gexec
+SQL
+)
+
+# Colonnes lues par CICADA (apps/authentication/providers/usershub_base.py)
+REQUIRED_COLUMNS="t_roles:id_role,groupe,identifiant,email,nom_role,prenom_role,id_organisme,pass,pass_plus,active
+cor_roles:id_role_groupe,id_role_utilisateur
+cor_role_app_profil:id_role,id_application
+t_applications:id_application,code_application
+bib_organismes:id_organisme,uuid_organisme,nom_organisme,adresse_organisme,cp_organisme,ville_organisme,tel_organisme,fax_organisme,email_organisme,url_organisme"
+
+usage() {
+    cat <<EOF
+Usage : sudo cicada-usershub-lecture --db BASE --client IP_CICADA [options]
+        sudo cicada-usershub-lecture --db BASE --docker-local [options]
+        cicada-usershub-lecture --sql
+
+Crée le compte de lecture UsersHub de CICADA sur ce serveur de base.
+
+  --db BASE             Base de GeoNature / UsersHub (ex. geonature2db)
+  --client IP[/MASQUE]  Serveur CICADA autorisé à se connecter (répétable).
+                        Ajoute une ligne à pg_hba.conf pour cette base et ce
+                        compte uniquement. Sans --client : rien n'est ouvert.
+  --docker-local        La base est sur le serveur CICADA lui-même : autorise
+                        ses conteneurs ($DOCKER_NETWORKS). Hôte « localhost ».
+  --sans-ssl            Autoriser les --client sans chiffrement (réseau privé
+                        sûr uniquement). Par défaut, une base distante n'est
+                        ouverte qu'en TLS (hostssl) et demande ssl = on.
+  --role NOM            Compte de lecture (défaut : $ROLE)
+  --password MDP        Son mot de passe (défaut : généré et affiché ; gardé
+                        si le compte existe déjà)
+  --code CODE           code_application de CICADA dans UsersHub (défaut : $CODE)
+  --schema NOM          Schéma de UsersHub (défaut : $SCHEMA)
+  --port PORT           Port PostgreSQL (défaut : $PORT)
+  --sql                 Afficher seulement le SQL des droits (à lancer soi-même :
+                        psql -d BASE -v role=… -v mdp='…' -v schema=utilisateurs)
+  -h, --help            Cette aide
+EOF
+    exit 0
+}
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --db)       DB_NAME="$2"; shift 2 ;;
+        --client)   CLIENTS+=("$2"); shift 2 ;;
+        # samehost : une connexion de ce serveur à sa propre adresse Docker part
+        # de son adresse principale (cf. cicada-prepare-db).
+        --docker-local) DOCKER_LOCAL=true; CLIENTS+=("$DOCKER_NETWORKS" samehost); shift ;;
+        --sans-ssl) SANS_SSL=true; shift ;;
+        --role)     ROLE="$2"; shift 2 ;;
+        --password) PASSWORD="$2"; shift 2 ;;
+        --code)     CODE="$2"; shift 2 ;;
+        --schema)   SCHEMA="$2"; shift 2 ;;
+        --port)     PORT="$2"; shift 2 ;;
+        --sql)      PRINT_SQL=true; shift ;;
+        -h|--help)  usage ;;
+        *) echo "Option inconnue : $1"; usage ;;
+    esac
+done
+
+if [ "$PRINT_SQL" = true ]; then
+    printf '\\set ON_ERROR_STOP on\n%s\n' "$GRANTS_SQL"
+    exit 0
+fi
+
+[ -n "$DB_NAME" ] || die "Indiquez la base de GeoNature : --db <nom> (ex. --db geonature2db)"
+for v in "$DB_NAME" "$ROLE" "$SCHEMA"; do
+    [[ "$v" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || die "Nom invalide : $v (lettres, chiffres, _)"
+done
+
+echo -e "\n${BLUE}=== Compte de lecture UsersHub pour CICADA ===${NC}\n"
+
+[ "$(id -u)" -eq 0 ] || die "À lancer en root : sudo cicada-usershub-lecture … (ou depuis un shell root)"
+id postgres >/dev/null 2>&1 || die "Utilisateur système « postgres » introuvable : PostgreSQL est-il installé sur cette machine ?" \
+    "Ce script se lance sur le serveur qui héberge la base de GeoNature."
+
+pg() { runuser -u postgres -- psql -p "$PORT" -v ON_ERROR_STOP=1 -Atq "$@"; }
+
+echo "Vérifications :"
+pg -c 'select 1' >/dev/null 2>&1 || die "PostgreSQL ne répond pas sur le port $PORT" "Vérifiez : sudo systemctl status postgresql"
+ok "PostgreSQL $(pg -c 'show server_version' | awk '{print $1}') répond (port $PORT)"
+
+[ "$(pg -c "select count(*) from pg_database where datname='$DB_NAME'")" = 1 ] || die "Base « $DB_NAME » introuvable" \
+    "Bases présentes : $(pg -c "select string_agg(datname, ', ') from pg_database where not datistemplate")"
+
+[ "$(pg -d "$DB_NAME" -c "select count(*) from information_schema.tables
+      where table_schema='$SCHEMA' and table_name='t_roles'")" = 1 ] || die "Pas de table $SCHEMA.t_roles dans « $DB_NAME »" \
+    "Est-ce bien la base de GeoNature / UsersHub ? Autre schéma : --schema <nom>."
+# Toutes les colonnes lues par CICADA : une absente ferait échouer chaque
+# connexion (502), autant le dire ici.
+MISSING=""
+while IFS=: read -r table cols; do
+    for col in ${cols//,/ }; do
+        n="$(pg -d "$DB_NAME" -c "select count(*) from information_schema.columns
+             where table_schema='$SCHEMA' and table_name='$table' and column_name='$col'")"
+        [ "$n" = 1 ] || MISSING="$MISSING $table.$col"
+    done
+done <<< "$REQUIRED_COLUMNS"
+[ -z "$MISSING" ] || die "Colonnes UsersHub absentes dans « $DB_NAME » (schéma $SCHEMA) :$MISSING" \
+    "Est-ce bien la base de GeoNature / UsersHub ? Autre schéma : --schema <nom>."
+ok "Tables UsersHub trouvées ($SCHEMA, base $DB_NAME)"
+
+APP="$(pg -d "$DB_NAME" -v c="$CODE" -v s="$SCHEMA" <<'SQL'
+SELECT format('SELECT id_application FROM %I.t_applications WHERE code_application = %L', :'s', :'c') \gexec
+SQL
+)"
+if [ -n "$APP" ]; then
+    COMPTES="$(pg -d "$DB_NAME" -v a="$APP" -v s="$SCHEMA" <<'SQL'
+SELECT format($q$
+  SELECT count(*) FROM %1$I.t_roles u
+  WHERE u.groupe IS NOT TRUE AND u.active IS NOT FALSE AND EXISTS (
+    SELECT 1 FROM %1$I.cor_role_app_profil p
+    WHERE p.id_application = %2$s AND (p.id_role = u.id_role OR p.id_role IN (
+      SELECT g.id_role_groupe FROM %1$I.cor_roles g WHERE g.id_role_utilisateur = u.id_role)))
+$q$, :'s', :'a') \gexec
+SQL
+)"
+    ok "Application « $CODE » trouvée (n° $APP) : $COMPTES compte(s) actif(s) y ont un profil"
+    [ "$COMPTES" != 0 ] || warn "Personne ne pourra se connecter tant qu'aucun compte (ou groupe) n'a de profil sur « $CODE » dans UsersHub."
+else
+    warn "Aucune application « $CODE » dans UsersHub : créez-la (UsersHub > Applications), puis donnez un profil aux groupes autorisés."
+fi
+
+LISTEN="$(pg -c 'show listen_addresses')"
+if [ ${#CLIENTS[@]} -gt 0 ] && { [ "$LISTEN" = "localhost" ] || [ "$LISTEN" = "127.0.0.1" ] || [ -z "$LISTEN" ]; }; then
+    die "PostgreSQL n'écoute que localement (listen_addresses = '$LISTEN') : CICADA ne pourra pas s'y connecter" \
+        "Dans $(pg -c 'show config_file'), mettez par exemple :\n  listen_addresses = '*'\npuis redémarrez PostgreSQL (sudo systemctl restart postgresql).\n⚠️  Le redémarrage coupe brièvement GeoNature : choisissez le moment, puis relancez ce script."
+fi
+if [ "$DOCKER_LOCAL" = true ]; then
+    GATEWAY="$(ip -4 -o addr show docker0 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | head -1 || true)"
+    GATEWAY="${GATEWAY:-172.17.0.1}"
+    case ",${LISTEN// /}," in
+        *,\*,*|*,0.0.0.0,*|*,"$GATEWAY",*) ;;
+        *) die "PostgreSQL n'écoute pas sur l'interface Docker de ce serveur ($GATEWAY) : listen_addresses = '$LISTEN'" \
+            "Dans $(pg -c 'show config_file'), mettez :\n  listen_addresses = '*'\npuis redémarrez PostgreSQL (sudo systemctl restart postgresql).\n⚠️  Le redémarrage coupe brièvement GeoNature : choisissez le moment, puis relancez ce script." ;;
+    esac
+fi
+ok "listen_addresses = '$LISTEN'"
+
+# Serveurs CICADA distants : CICADA vérifie les mots de passe lui-même, les
+# empreintes passent donc sur le réseau. Lignes « hostssl » : PostgreSQL refuse
+# alors toute connexion en clair de ce compte, quel que soit le réglage côté
+# CICADA. Les conteneurs du serveur lui-même (--docker-local) restent en
+# « host » : rien ne sort de la machine.
+DISTANTS=false
+for client in "${CLIENTS[@]}"; do
+    [ "$DOCKER_LOCAL" = true ] && { [ "$client" = "$DOCKER_NETWORKS" ] || [ "$client" = samehost ]; } && continue
+    DISTANTS=true
+done
+SSL="$(pg -c 'show ssl')"
+if [ "$DISTANTS" = true ] && [ "$SANS_SSL" = false ]; then
+    [ "$SSL" = on ] || die "PostgreSQL n'accepte pas de connexion chiffrée (ssl = $SSL) : la base distante ne sera pas ouverte" \
+        "Dans $(pg -c 'show config_file'), mettez :\n  ssl = on\n  ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'      (ou le certificat du serveur)\n  ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'\npuis rechargez : sudo -u postgres psql -c 'select pg_reload_conf()'   (pas de redémarrage)\nRéseau privé sûr uniquement : relancez avec --sans-ssl."
+    ok "ssl = on : la base distante ne sera ouverte qu'en connexion chiffrée"
+    HBA_TYPE=hostssl
+elif [ "$DISTANTS" = true ]; then
+    warn "--sans-ssl : connexion en clair autorisée (empreintes des mots de passe lisibles sur le réseau)"
+    HBA_TYPE=host
+else
+    HBA_TYPE=host
+fi
+
+echo -e "\nCompte de lecture :"
+if [ "$(pg -c "select count(*) from pg_roles where rolname='$ROLE'")" = 1 ] && [ -z "$PASSWORD" ]; then
+    # Relance (ex. autoriser un autre serveur) : ne pas casser l'instance qui
+    # utilise déjà ce compte.
+    PASSWORD_KEPT=true
+    ok "Compte « $ROLE » déjà présent : mot de passe inchangé (--password pour le redéfinir)"
+else
+    if [ -z "$PASSWORD" ]; then
+        PASSWORD="$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | cut -c1-24)"
+        PASSWORD_GENERATED=true
+    fi
+fi
+SUPER="$(pg -c "select rolsuper from pg_roles where rolname='$ROLE'")"
+[ "$SUPER" != t ] || die "« $ROLE » est un super-utilisateur : choisissez un autre nom de compte (--role)"
+# Mot de passe vide = inchangé (le SQL ne fait alors pas d'ALTER … PASSWORD)
+if [ "${PASSWORD_KEPT:-false}" = true ]; then MDP_SQL=""; else MDP_SQL="$PASSWORD"; fi
+if out="$(printf '%s\n' "$GRANTS_SQL" | pg -d "$DB_NAME" -v role="$ROLE" -v mdp="$MDP_SQL" -v schema="$SCHEMA" 2>&1)"; then
+    ok "Compte « $ROLE » : lecture seule des colonnes utiles de $SCHEMA"
+else
+    die "Échec de la création du compte" "$out"
+fi
+
+if [ ${#CLIENTS[@]} -gt 0 ]; then
+    echo -e "\nAccès réseau (pg_hba.conf) :"
+    HBA="$(pg -c 'show hba_file')"
+    for client in "${CLIENTS[@]}"; do
+        type=host
+        [ "$DOCKER_LOCAL" = true ] && { [ "$client" = "$DOCKER_NETWORKS" ] || [ "$client" = samehost ]; } || type="$HBA_TYPE"
+        [[ "$client" == */* || "$client" == samehost ]] || client="$client/32"
+        line="$type    $DB_NAME    $ROLE    $client    scram-sha-256"
+        if grep -qE "^$type[[:space:]]+$DB_NAME[[:space:]]+$ROLE[[:space:]]+${client//./\\.}[[:space:]]" "$HBA"; then
+            ok "$client déjà autorisé ($type)"
+        elif [ "$type" = hostssl ] && grep -qE "^host[[:space:]]+$DB_NAME[[:space:]]+$ROLE[[:space:]]+${client//./\\.}[[:space:]]" "$HBA"; then
+            # Ligne en clair d'un passage précédent : elle passerait avant.
+            sed -i -E "s|^(host[[:space:]]+$DB_NAME[[:space:]]+$ROLE[[:space:]]+${client//./\\.}[[:space:]])|# remplacée par hostssl (cicada-usershub-lecture) : \\1|" "$HBA"
+            printf '# CICADA, lecture UsersHub (cicada-usershub-lecture, %s)\n%s\n' "$(date +%F)" "$line" >> "$HBA"
+            ok "$client : ligne en clair remplacée par hostssl"
+        else
+            printf '# CICADA, lecture UsersHub (cicada-usershub-lecture, %s)\n%s\n' "$(date +%F)" "$line" >> "$HBA"
+            ok "$client autorisé pour $ROLE sur $DB_NAME"
+        fi
+    done
+    ERRORS="$(pg -c "select count(*) from pg_hba_file_rules where error is not null")"
+    [ "$ERRORS" = 0 ] || die "pg_hba.conf contient des erreurs : rien n'a été rechargé" \
+        "$(pg -c "select line_number, error from pg_hba_file_rules where error is not null")"
+    pg -c 'select pg_reload_conf()' >/dev/null
+    ok "Configuration rechargée (sans redémarrage)"
+    # pg_hba.conf s'applique dans l'ordre : une ligne plus haut qui vise aussi
+    # ce compte depuis cette adresse et refuse le mot de passe (« reject »,
+    # « peer », « cert »…) l'emporterait sur la nôtre.
+    for client in "${CLIENTS[@]}"; do
+        [ "$client" != samehost ] || continue
+        AVANT="$(pg -c "select line_number || ' (' || auth_method || ')' from pg_hba_file_rules
+            where type like 'host%' and error is null
+              and auth_method not in ('scram-sha-256', 'md5', 'password', 'trust')
+              and ('all' = any(database) or '$DB_NAME' = any(database))
+              and ('all' = any(user_name) or '$ROLE' = any(user_name))
+              and (address = 'all' or (address ~ '^[0-9a-f.:]+$' and family(inet(address)) = family(inet('$client'))
+                   and (inet(host(inet('$client'))) & inet(netmask)) = (inet(address) & inet(netmask))))
+              and line_number < (select min(line_number) from pg_hba_file_rules
+                                 where '$DB_NAME' = any(database) and '$ROLE' = any(user_name))
+            order by line_number limit 1")"
+        [ -z "$AVANT" ] || warn "Pour $client, la ligne $AVANT de pg_hba.conf passe avant la nôtre : si elle ne convient pas, déplacez notre ligne au-dessus."
+    done
+fi
+
+echo -e "\nVérification avec le compte $ROLE :"
+VERIF_SQL="SELECT count(*) FROM $SCHEMA.t_applications"
+for t in "t_roles:id_role, identifiant, pass_plus, active" "cor_roles:id_role_groupe" \
+         "cor_role_app_profil:id_application" "bib_organismes:uuid_organisme"; do
+    VERIF_SQL="$VERIF_SQL; SELECT ${t#*:} FROM $SCHEMA.${t%%:*} WHERE false"
+done
+if [ "${PASSWORD_KEPT:-false}" = true ]; then
+    ok "Mot de passe inchangé : vérification de connexion non faite"
+else
+    if [ "$DOCKER_LOCAL" = true ]; then VIA="$GATEWAY"; VIA_LABEL="l'interface Docker ($GATEWAY), comme le feront les conteneurs"
+    else VIA="127.0.0.1"; VIA_LABEL="127.0.0.1"; fi
+    if out="$(PGPASSWORD="$PASSWORD" psql -h "$VIA" -p "$PORT" -U "$ROLE" -d "$DB_NAME" -v ON_ERROR_STOP=1 -Atq -c "$VERIF_SQL" 2>&1)"; then
+        ok "Connexion par $VIA_LABEL et lecture réussies"
+    elif [ "$DOCKER_LOCAL" = true ] || ! echo "$out" | grep -q 'pg_hba.conf'; then
+        die "Vérification refusée par $VIA_LABEL" "$out"
+    else
+        warn "Connexion locale (127.0.0.1) refusée par pg_hba.conf : normal si seul le serveur CICADA est autorisé"
+    fi
+    if PGPASSWORD="$PASSWORD" psql -h "${VIA}" -p "$PORT" -U "$ROLE" -d "$DB_NAME" -Atq \
+         -c "SELECT api_key FROM $SCHEMA.t_roles LIMIT 1" >/dev/null 2>&1 \
+       || PGPASSWORD="$PASSWORD" psql -h "${VIA}" -p "$PORT" -U "$ROLE" -d "$DB_NAME" -Atq \
+         -c "SELECT * FROM $SCHEMA.t_roles LIMIT 1" >/dev/null 2>&1; then
+        die "Le compte « $ROLE » lit plus que les colonnes prévues" \
+            "Il a reçu d'autres droits (ex. GRANT SELECT ON ALL TABLES, rôle membre d'un autre). Choisissez un autre compte (--role)."
+    fi
+fi
+
+if [ "$DOCKER_LOCAL" = true ] && command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q '^Status: active'; then
+    if ufw status 2>/dev/null | grep -qE "^$PORT(/tcp)?[[:space:]]+ALLOW[[:space:]]+(Anywhere|${DOCKER_NETWORKS//./\\.})"; then
+        ok "Pare-feu (ufw) : port $PORT ouvert aux conteneurs"
+    else
+        warn "Pare-feu (ufw) actif : il bloquera peut-être les conteneurs. Pour l'ouvrir à eux seuls :"
+        echo "      sudo ufw allow from $DOCKER_NETWORKS to any port $PORT proto tcp"
+    fi
+fi
+
+if [ "$DOCKER_LOCAL" = true ]; then
+    HOST_TO_ENTER="localhost"; HOST_ENV="host.docker.internal"
+    HOST_NOTE="(base sur le serveur CICADA : jointe par host.docker.internal)"
+else
+    HOST_TO_ENTER="$(ip -4 route get 1.1.1.1 2>/dev/null | sed -n 's/.* src \([0-9.]*\).*/\1/p' || true)"
+    HOST_TO_ENTER="${HOST_TO_ENTER:-$(hostname -I 2>/dev/null | awk '{print $1}' || true)}"
+    HOST_ENV="${HOST_TO_ENTER:-<adresse de ce serveur>}"
+    HOST_NOTE="(une seule adresse : celle par laquelle le serveur CICADA joint celui-ci)"
+fi
+if [ "${PASSWORD_GENERATED:-false}" = true ]; then SHOW_PWD="${BLUE}$PASSWORD${NC}  (généré : notez-le)"
+elif [ "${PASSWORD_KEPT:-false}" = true ]; then SHOW_PWD="(inchangé : celui déjà utilisé par ce compte)"; PASSWORD="<mot de passe actuel>"
+else SHOW_PWD="(celui passé avec --password)"; fi
+
+echo -e "\n${GREEN}========================================${NC}"
+echo -e "${GREEN}  Compte de lecture UsersHub prêt${NC}"
+echo -e "${GREEN}========================================${NC}\n"
+echo "  Formulaire d'installation (« Par la base UsersHub ») :"
+echo ""
+echo -e "    Hôte          : ${BLUE}${HOST_TO_ENTER:-<adresse de ce serveur>}${NC}  $HOST_NOTE"
+echo -e "    Port          : ${BLUE}$PORT${NC}"
+echo -e "    Base          : ${BLUE}$DB_NAME${NC}"
+echo -e "    Compte        : ${BLUE}$ROLE${NC}"
+echo -e "    Mot de passe  : $SHOW_PWD"
+echo -e "    Code appli.   : ${BLUE}$CODE${NC}"
+[ "$HBA_TYPE" != hostssl ] || echo -e "    Chiffrement   : ${BLUE}exigé (require)${NC}  (automatique pour une base distante)"
+echo ""
+echo "  Instance déjà installée : dans /var/lib/cicada/.env du serveur CICADA"
+echo ""
+echo "    AUTH_PROVIDER=geonature"
+echo "    GEONATURE_AUTH_SOURCE=base"
+echo "    GEONATURE_AUTH_CODE_APPLICATION=$CODE"
+echo "    USERSHUB_DB_HOST=$HOST_ENV"
+echo "    USERSHUB_DB_PORT=$PORT"
+echo "    USERSHUB_DB_NAME=$DB_NAME"
+echo "    USERSHUB_DB_USER=$ROLE"
+echo "    USERSHUB_DB_PASSWORD=$PASSWORD"
+[ "$SCHEMA" = utilisateurs ] || echo "    USERSHUB_DB_SCHEMA=$SCHEMA"
+[ "$HBA_TYPE" != hostssl ] || echo "    USERSHUB_DB_SSLMODE=require"
+echo ""
+echo "  puis, sur le serveur CICADA :"
+echo "    sudo bash -c '. /usr/share/cicada/compose-files.sh && cd /usr/share/cicada && docker compose \$(compose_files_args) --env-file /var/lib/cicada/.env up -d web'"
+echo "  (voir « Instances déjà en service » dans la documentation : vérifier avant de basculer)"
+if [ ${#CLIENTS[@]} -eq 0 ]; then
+    echo ""
+    warn "Aucun serveur autorisé (--client) : CICADA ne pourra se connecter que si pg_hba.conf l'autorise déjà."
+fi
+echo ""

@@ -368,8 +368,7 @@
                     de son compte CICADA (inscription et mot de passe oublié dans l'application).</p>
                     <p><strong>GeoNature / UsersHub</strong> (cas de RNF) : on se connecte uniquement avec
                     son compte UsersHub. Le compte CICADA est créé à la première connexion et rattaché à
-                    son organisme UsersHub ; un compte CICADA existant est retrouvé par son email.
-                    <strong>GeoNature 2.17.0 minimum.</strong></p>
+                    son organisme UsersHub ; un compte CICADA existant est retrouvé par son email.</p>
                 </div>
                 <div class="form-group">
                     <label class="checkbox-label">
@@ -383,6 +382,70 @@
                 </div>
                 <div id="geonature_auth_fields" class="hidden">
                     <div class="form-group">
+                        <label>Vérification des comptes *</label>
+                        <label class="checkbox-label">
+                            <input type="radio" id="geonature_auth_source_base" name="geonature_auth_source" value="base" checked onchange="toggleGeoNatureAuthFields()">
+                            <span>Par la base UsersHub (recommandé)</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="radio" name="geonature_auth_source" value="api" onchange="toggleGeoNatureAuthFields()">
+                            <span>Par l'API GeoNature</span>
+                        </label>
+                        <small class="form-help">Par la base, CICADA vérifie que le compte a un droit sur <strong>l'application CICADA</strong> dans UsersHub (directement ou par un groupe). Par l'API, GeoNature ne vérifie que le droit sur <strong>GeoNature lui-même</strong>, et rien du tout avec un GeoNature dont pypnusershub est antérieur à 3.3.</small>
+                    </div>
+                    <div id="usershub_base_fields">
+                        <div class="form-group">
+                            <label for="usershub_db_host">Hôte de la base UsersHub *</label>
+                            <input type="text" id="usershub_db_host" name="usershub_db_host" placeholder="10.0.20.21" oninput="scheduleUsersHubCommand()">
+                            <small class="form-help">Une seule adresse ; « localhost » si la base est sur ce serveur.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="usershub_db_port">Port *</label>
+                            <input type="number" id="usershub_db_port" name="usershub_db_port" oninput="scheduleUsersHubCommand()" value="5432" min="1" max="65535">
+                        </div>
+                        <div class="form-group">
+                            <label for="usershub_db_name">Nom de la base *</label>
+                            <input type="text" id="usershub_db_name" name="usershub_db_name" oninput="scheduleUsersHubCommand()" placeholder="geonature2db">
+                        </div>
+                        <div class="form-group">
+                            <label for="usershub_db_user">Compte de lecture *</label>
+                            <input type="text" id="usershub_db_user" name="usershub_db_user" oninput="scheduleUsersHubCommand()" value="cicada_usershub">
+                        </div>
+                        <div class="form-group">
+                            <label for="usershub_db_password">Mot de passe du compte de lecture *</label>
+                            <div class="password-field">
+                                <input type="password" id="usershub_db_password" name="usershub_db_password">
+                                <button type="button" class="btn-icon" onclick="togglePasswordVisibility('usershub_db_password', this)" title="Afficher/Masquer">&#128065;</button>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="usershub_db_sslmode">Chiffrement de la connexion</label>
+                            <select id="usershub_db_sslmode" name="usershub_db_sslmode">
+                                <option value="" selected>Automatique : exigé si la base est sur un autre serveur</option>
+                                <option value="require">Exigé (require)</option>
+                                <option value="verify-full">Exigé, avec vérification du certificat (verify-full)</option>
+                                <option value="prefer">Non exigé (prefer) — base sur ce serveur ou réseau privé sûr</option>
+                            </select>
+                            <small class="form-help">CICADA vérifie lui-même les mots de passe : avec une base distante, leurs empreintes passent sur le réseau. « verify-full » demande le certificat de l'autorité dans <code>/etc/cicada/usershub/ca.crt</code> et <code>USERSHUB_DB_SSLROOTCERT=/etc/cicada/usershub/ca.crt</code> dans le .env.</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="geonature_auth_code_application">Code de l'application CICADA dans UsersHub *</label>
+                            <input type="text" id="geonature_auth_code_application" name="geonature_auth_code_application" oninput="scheduleUsersHubCommand()" placeholder="CICADA">
+                            <small class="form-help">Colonne <code>code_application</code> de <code>utilisateurs.t_applications</code>. Seuls les comptes qui ont un profil sur cette application (directement ou par un groupe) pourront se connecter.</small>
+                        </div>
+                        <div class="info-box">
+                            <p id="usershub_command_where">Créez le compte de lecture : indiquez d'abord l'hôte et la base ci-dessus.</p>
+                        </div>
+                        <div class="code-box">
+                            <code id="usershub_command">—</code>
+                            <button type="button" class="btn-icon" onclick="copyText('usershub_command', this)" title="Copier">&#128203;</button>
+                        </div>
+                        <small class="form-help">Le script crée un compte PostgreSQL qui ne lit que les colonnes utiles (compte, empreintes du mot de passe, groupes, droits par application, fiche d'organisme), autorise <span id="usershub_command_client">ce serveur</span> dans <code>pg_hba.conf</code>, vérifie la connexion et affiche le mot de passe à reporter ci-dessus. Il ne redémarre pas PostgreSQL.</small>
+                        <button type="button" class="btn-generate" id="test_usershub_btn" onclick="testUsersHub()">Tester la base UsersHub</button>
+                        <ul id="test_usershub_results" class="check-list"></ul>
+                    </div>
+                    <div id="geonature_api_fields" class="hidden">
+                    <div class="form-group">
                         <label for="geonature_auth_url">Adresse de l'API GeoNature *</label>
                         <input type="url" id="geonature_auth_url" name="geonature_auth_url" placeholder="https://geonature.reserves-naturelles.org/api">
                         <small class="form-help">Valeur <code>API_ENDPOINT</code> de la configuration GeoNature (souvent terminée par « /api »). CICADA y appelle /auth/login et /users/organism/&lt;id&gt;.</small>
@@ -390,6 +453,8 @@
                     <div class="form-group">
                         <label for="geonature_auth_id_application">Identifiant de l'application CICADA dans UsersHub *</label>
                         <input type="number" id="geonature_auth_id_application" name="geonature_auth_id_application" placeholder="14">
+                        <small class="form-help">GeoNature 2.17.0 minimum.</small>
+                    </div>
                     </div>
                     <div class="form-group">
                         <label for="geonature_auth_libelle">Nom affiché sur la page de connexion *</label>

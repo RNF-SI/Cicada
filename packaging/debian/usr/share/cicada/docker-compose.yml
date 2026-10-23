@@ -69,6 +69,16 @@ services:
       - GEONATURE_AUTH_ID_APPLICATION=${GEONATURE_AUTH_ID_APPLICATION:-}
       - GEONATURE_AUTH_LIBELLE=${GEONATURE_AUTH_LIBELLE:-GeoNature}
       - GEONATURE_AUTH_ORGANISMES_EXCLUS=${GEONATURE_AUTH_ORGANISMES_EXCLUS:-}
+      # Comptes UsersHub vérifiés dans sa base plutôt que par l'API GeoNature (#764)
+      - GEONATURE_AUTH_SOURCE=${GEONATURE_AUTH_SOURCE:-api}
+      - GEONATURE_AUTH_CODE_APPLICATION=${GEONATURE_AUTH_CODE_APPLICATION:-}
+      - USERSHUB_DB_HOST=${USERSHUB_DB_HOST:-}
+      - USERSHUB_DB_PORT=${USERSHUB_DB_PORT:-5432}
+      - USERSHUB_DB_NAME=${USERSHUB_DB_NAME:-}
+      - USERSHUB_DB_USER=${USERSHUB_DB_USER:-}
+      - USERSHUB_DB_PASSWORD=${USERSHUB_DB_PASSWORD:-}
+      - USERSHUB_DB_SSLMODE=${USERSHUB_DB_SSLMODE:-prefer}
+      - USERSHUB_DB_SSLROOTCERT=${USERSHUB_DB_SSLROOTCERT:-}
       # --- API de suivi RNF (#696) ---
       # Sans ces deux lignes, ni l'URL de l'API de suivi ni le jeton de
       # l'instance n'atteignaient le conteneur : l'encart RGPD de la page
@@ -81,6 +91,9 @@ services:
       # postinst avant le premier démarrage), en lecture seule : il authentifie
       # la demande d'adhésion au hub et la lecture des infos RGPD.
       - /etc/cicada/instance_token:/etc/cicada/instance_token:ro
+      # #764 — certificat de l'autorité de la base UsersHub distante
+      # (USERSHUB_DB_SSLROOTCERT=/etc/cicada/usershub/ca.crt, sslmode verify-full).
+      - /etc/cicada/usershub:/etc/cicada/usershub:ro
       - media_files:/app/media
       - static_files:/app/static
       # #384 — bind-mount des logs sur l'hôte (/var/log/cicada) pour qu'ils

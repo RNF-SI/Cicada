@@ -25,6 +25,8 @@
 #                     votre navigateur (implique --keep)
 #   --no-degraded     ne pas simuler un serveur « degraded » (voir guest/run-scenario.sh)
 #   --no-prepull      ne pas pré-télécharger les images Docker dans la base
+#   --backend-image TAR  image backend (docker save) chargée dans la VM : un
+#                     scénario peut ainsi tester un backend non encore publié
 #
 # Les résultats vont dans packaging/vm-bench/results/<date>-<scenario>-<os>/.
 # Code retour : 0 si tous les contrôles passent, 1 sinon.
@@ -38,6 +40,7 @@ PROJECT_ROOT="$(cd "$PACKAGING_DIR/.." && pwd)"
 OS="debian12"
 DEB=""
 FROM_DEB=""
+BACKEND_IMAGE=""
 KEEP=false
 DEGRADED=true
 MANUAL=false
@@ -288,6 +291,10 @@ run_scenario() {
     if [ -n "$FROM_DEB" ]; then
         multipass transfer "$FROM_DEB" "$vm:$GUEST_DIR/cicada-initial.deb"
     fi
+    if [ -n "$BACKEND_IMAGE" ]; then
+        info "Transfert de l'image backend $(basename "$BACKEND_IMAGE")"
+        multipass transfer "$BACKEND_IMAGE" "$vm:$GUEST_DIR/backend-image.tar"
+    fi
 
     local tvm="" tracking_ip=""
     if grep -q '^# TRACKING_VM: oui' "$scenario_file"; then
@@ -483,6 +490,7 @@ while [ $# -gt 0 ]; do
         --os)          OS="$2"; shift 2 ;;
         --deb)         DEB="$(realpath "$2")"; shift 2 ;;
         --from-deb)    FROM_DEB="$(realpath "$2")"; shift 2 ;;
+        --backend-image) BACKEND_IMAGE="$(realpath "$2")"; shift 2 ;;
         --keep)        KEEP=true; shift ;;
         --manuel)      MANUAL=true; KEEP=true; shift ;;
         --no-degraded) DEGRADED=false; shift ;;

@@ -32,6 +32,13 @@ def prepare_db_script():
     return Response(install_service.prepare_db_script(), mimetype='text/x-shellscript')
 
 
+@app.route('/usershub-lecture.sh')
+def usershub_lecture_script():
+    """Script du compte de lecture UsersHub (#764), à lancer sur le serveur de la
+    base GeoNature (curl … | sudo bash -s -- --db <base> --client <ip>)."""
+    return Response(install_service.usershub_lecture_script(), mimetype='text/x-shellscript')
+
+
 @app.route('/api/db-client-ip')
 def db_client_ip():
     """Adresse de cette machine vue depuis le serveur de base indiqué."""
@@ -41,6 +48,13 @@ def db_client_ip():
         # PostgreSQL installé sur ce serveur : préparation par --docker-local
         'local': install_service.is_local_db(host),
     })
+
+
+@app.route('/api/test-usershub', methods=['POST'])
+def test_usershub():
+    if install_service.is_installed():
+        return jsonify({'error': 'Déjà installé'}), 403
+    return jsonify({'checks': install_service.test_usershub(request.json or {})})
 
 
 @app.route('/api/test-db', methods=['POST'])
