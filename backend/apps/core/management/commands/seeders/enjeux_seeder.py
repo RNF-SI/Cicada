@@ -6587,10 +6587,15 @@ class EnjeuxSeeder(BaseSeeder):
         self._seed_shared_ra_demo(plans)
         self._seed_shared_indicateur_demo(plans)
 
-        # #763 — suivis conformes à la règle #715 (action CS, même type).
-        aligner_suivis_sur_actions(
-            Operation.objects.filter(id_suivi__isnull=False)
-            .exclude(code_operation__startswith='CAM-VENT-'), self)
+        # #763 — suivis conformes à la règle #715 (action CS, même type), sur
+        # les seules actions des plans du jeu d'essai : une instance de recette
+        # porte aussi les plans de vrais utilisateurs, que le seed ne touche pas.
+        plans_seed = {p.pk for p in plans}
+        aligner_suivis_sur_actions(Operation.objects.filter(pk__in=[
+            op.pk for op in Operation.objects.filter(id_suivi__isnull=False)
+            .exclude(code_operation__startswith='CAM-VENT-')
+            if getattr(op.get_plan_de_gestion(), 'pk', None) in plans_seed
+        ]), self)
 
         result = {
             'enjeux': enjeux_created,

@@ -23,6 +23,7 @@ from datetime import date
 import pytest
 from django.core.management import call_command
 
+from apps.core.models import Nomenclature
 from apps.plans.models import PlanGestion
 from apps.plans.models_operations import (
     Operation, OperationAnnee, OperationAnneeOrganisme, RealisationOperationAnnee,
@@ -30,6 +31,11 @@ from apps.plans.models_operations import (
 )
 from apps.plans.rh_total import est_temps_total_unique
 from apps.plans.serializers_operations import OperationCreateSerializer
+from tests.factories.enjeux import (
+    EnjeuFactory, IndicateurFactory, MetriqueFactory, NiveauExigenceFactory,
+    ObjectifLongTermeFactory, OperationFactory, SuiviInventaireFactory,
+)
+from tests.factories.plans import PlanGestionFactory
 
 pytestmark = [pytest.mark.django_db]
 
@@ -57,6 +63,19 @@ def _actions(plan):
 
 def _rempli(obj, champ):
     return getattr(obj, champ, None) not in (None, 0)
+
+
+def _action_d_un_vrai_utilisateur():
+    """Action hors jeu d'essai, volontairement non conforme (suivi sur une
+    action qui n'est pas CS) : le seed ne doit pas y toucher."""
+    plan = PlanGestionFactory(nom="Plan d'un vrai utilisateur")
+    metrique = MetriqueFactory(id_indicateur=IndicateurFactory(id_ne=NiveauExigenceFactory(
+        id_olt=ObjectifLongTermeFactory(id_enjeu=EnjeuFactory(id_pg=plan)))))
+    non_cs = Nomenclature.objects.filter(
+        id_type__mnemonique='TYPE_ACTION').exclude(cd_nomenclature__startswith='CS').exclude(
+        mnemonique__startswith='CS').first()
+    return OperationFactory(metriques=[metrique], id_type_action=non_cs,
+                            id_suivi=SuiviInventaireFactory(), code_operation='HORS-SEED-01')
 
 
 def incoherences(operations):
@@ -135,10 +154,15 @@ def incoherences(operations):
 def test_jeu_d_essai_coherent_et_idempotent():
     _seed()
     nb_operations = Operation.objects.count()
+    hors_seed = _action_d_un_vrai_utilisateur()
     _seed()
-    assert Operation.objects.count() == nb_operations
+    assert Operation.objects.count() == nb_operations + 1
 
-    assert incoherences(Operation.objects.all()) == []
+    # Une instance de recette porte aussi les plans de vrais utilisateurs.
+    hors_seed.refresh_from_db()
+    assert hors_seed.id_suivi_id is not None
+
+    assert incoherences(Operation.objects.exclude(pk=hors_seed.pk)) == []
 
     # Composite de programmation : toutes les variantes dans un même plan.
     prog = PlanGestion.objects.get(nom=PLAN_COMPOSITE_PROG)
