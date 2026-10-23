@@ -204,19 +204,16 @@ class InstallService:
                 if not data.get('smtp_password'):
                     errors.append("Le champ smtp_password est requis lorsque l'authentification SMTP est activée.")
         if data.get('auth_provider') == 'geonature':
-            if data.get('geonature_auth_source', 'base') == 'base':
-                for champ, libelle in (('usershub_db_host', "l'hôte de la base UsersHub"),
-                                       ('usershub_db_name', 'le nom de la base UsersHub'),
-                                       ('usershub_db_user', 'le compte de lecture UsersHub'),
-                                       ('usershub_db_password', 'le mot de passe du compte de lecture UsersHub'),
-                                       ('geonature_auth_code_application',
-                                        "le code de l'application CICADA dans UsersHub")):
-                    if not str(data.get(champ) or '').strip():
-                        errors.append(f"Indiquez {libelle}.")
-                if re.search(r'[,\s]', (data.get('usershub_db_host') or '').strip()):
-                    errors.append("Hôte de la base UsersHub : une seule adresse.")
-            elif not (data.get('geonature_auth_url') and data.get('geonature_auth_id_application')):
-                errors.append("Indiquez l'adresse de l'API GeoNature et l'identifiant de l'application CICADA.")
+            for champ, libelle in (('usershub_db_host', "l'hôte de la base UsersHub"),
+                                   ('usershub_db_name', 'le nom de la base UsersHub'),
+                                   ('usershub_db_user', 'le compte de lecture UsersHub'),
+                                   ('usershub_db_password', 'le mot de passe du compte de lecture UsersHub'),
+                                   ('geonature_auth_code_application',
+                                    "le code de l'application CICADA dans UsersHub")):
+                if not str(data.get(champ) or '').strip():
+                    errors.append(f"Indiquez {libelle}.")
+            if re.search(r'[,\s]', (data.get('usershub_db_host') or '').strip()):
+                errors.append("Hôte de la base UsersHub : une seule adresse.")
         if data.get('federation_enabled'):
             identifiant = (data.get('federation_instance_id') or '').strip()
             if not identifiant:
@@ -353,17 +350,14 @@ class InstallService:
         # vide se complète après coup, une ligne absente ne se devine pas.
         geonature = data.get('auth_provider') == 'geonature'
         # #764 — comptes vérifiés dans la base UsersHub (droit sur l'application
-        # CICADA) ou par l'API GeoNature (droit sur GeoNature seulement).
-        par_base = geonature and data.get('geonature_auth_source', 'base') == 'base'
+        # CICADA).
+        par_base = geonature
         usershub_host = (data.get('usershub_db_host') or '').strip() if par_base else ''
         env_lines.extend([
             "",
             f"AUTH_PROVIDER={'geonature' if geonature else 'local'}",
-            f"GEONATURE_AUTH_URL={(data.get('geonature_auth_url') or '').strip().rstrip('/') if geonature else ''}",
-            f"GEONATURE_AUTH_ID_APPLICATION={str(data.get('geonature_auth_id_application') or '').strip() if geonature else ''}",
             f"GEONATURE_AUTH_LIBELLE={(data.get('geonature_auth_libelle') or 'GeoNature').strip() if geonature else 'GeoNature'}",
             f"GEONATURE_AUTH_ORGANISMES_EXCLUS={(data.get('geonature_auth_organismes_exclus') or '').replace(' ', '') if geonature else ''}",
-            f"GEONATURE_AUTH_SOURCE={'base' if par_base else 'api'}",
             f"GEONATURE_AUTH_CODE_APPLICATION={(data.get('geonature_auth_code_application') or '').strip() if par_base else ''}",
             # Base sur ce serveur : joint par les conteneurs via host.docker.internal
             f"USERSHUB_DB_HOST={self.container_db_host(usershub_host) if usershub_host else ''}",

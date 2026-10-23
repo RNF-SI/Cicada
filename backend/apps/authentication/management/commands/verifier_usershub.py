@@ -1,17 +1,15 @@
 """
-Avant de passer une instance en service à GEONATURE_AUTH_SOURCE=base (#764) :
-qui, parmi les comptes CICADA actifs, pourra encore se connecter ?
+Avant de passer une instance en connexion GeoNature (#764) — ou de la mettre à
+jour depuis l'ancienne vérification par l'API GeoNature, retirée : qui, parmi
+les comptes CICADA actifs, pourra se connecter ?
 
-En source « api », GeoNature ne contrôle pas le droit sur CICADA (et rien du
-tout avec pypnusershub <= 3.2) : des comptes sont donc entrés sans profil sur
-l'application. En source « base », ils seront refusés (403). Cette commande les
-liste, sans rien modifier, pour leur donner le profil dans UsersHub AVANT la
-bascule.
+L'API GeoNature ne contrôlait pas le droit sur CICADA (et rien du tout avec
+pypnusershub <= 3.2) : des comptes sont donc entrés sans profil sur
+l'application. Ils seront refusés (403). Cette commande les liste, sans rien
+modifier, pour leur donner le profil dans UsersHub avant.
 
 Elle lit la base UsersHub avec les réglages USERSHUB_DB_* et
-GEONATURE_AUTH_CODE_APPLICATION, quelle que soit la source en service : on
-peut les renseigner, relancer web (sans effet tant que la source reste
-« api »), vérifier, puis basculer.
+GEONATURE_AUTH_CODE_APPLICATION, quel que soit le mode de connexion en service.
 
 Usage :
     python manage.py verifier_usershub          # bilan + comptes refusés
@@ -89,7 +87,7 @@ class Command(BaseCommand):
                           f"{len(autorises)} pourront se connecter, {len(refuses)} seraient refusés.")
         self.stdout.write(f"Super-utilisateurs qui pourront se connecter : {admins_autorises}.")
         if refuses:
-            self.stdout.write("\nRefusés en source « base » :")
+            self.stdout.write("\nSeraient refusés :")
             for email, motif in refuses:
                 self.stdout.write(f"  {email} — {MOTIFS[motif]}")
         if options['tous'] and autorises:

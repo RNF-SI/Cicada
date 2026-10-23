@@ -28,15 +28,16 @@ AUTH_PROVIDER = os.environ.get('AUTH_PROVIDER', 'local').strip().lower() or 'loc
 # ---------------------------------------------------------------------------
 # Connexion par un GeoNature / UsersHub (#689, #691) — AUTH_PROVIDER='geonature'
 # ---------------------------------------------------------------------------
-# Lus seulement en mode 'geonature' ; en mode 'local', l'instance n'appelle
-# jamais GeoNature.
-# GeoNature >= 2.17.0 requis pour rattacher le compte à son organisme
-# (GET <API>/users/organism/<id>) ; en dessous, la connexion fonctionne sans.
-# Adresse de l'API GeoNature (son API_ENDPOINT), ex. https://geonature.exemple.fr/api
-GEONATURE_AUTH_URL = os.environ.get('GEONATURE_AUTH_URL', '').strip().rstrip('/')
-GEONATURE_AUTH_ID_APPLICATION = os.environ.get('GEONATURE_AUTH_ID_APPLICATION', '').strip()
+# Lus seulement en mode 'geonature'. CICADA lit la base UsersHub (en général
+# celle de GeoNature) en lecture seule, comme pypnusershub le fait pour
+# GeoNature, et ne laisse entrer que les comptes qui ont un profil sur SON
+# application (GEONATURE_AUTH_CODE_APPLICATION), directement ou par un groupe.
+# L'ancienne vérification par l'API GeoNature (GEONATURE_AUTH_URL,
+# GEONATURE_AUTH_ID_APPLICATION, GEONATURE_AUTH_SOURCE) est retirée (#764) :
+# GeoNature n'y contrôlait jamais le droit sur CICADA.
 # Libellé du bouton de connexion (« RNF », « GeoNature »…).
 GEONATURE_AUTH_LIBELLE = os.environ.get('GEONATURE_AUTH_LIBELLE', 'GeoNature').strip()
+# Délai de connexion à la base UsersHub (secondes).
 GEONATURE_AUTH_TIMEOUT = int(os.environ.get('GEONATURE_AUTH_TIMEOUT', '10'))
 # id_organisme UsersHub qui ne sont pas de vrais organismes (« Autre », « ALL »,
 # comptes de test…) : le compte entre sans organisme. Ex. « -1,2,303,339 ».
@@ -44,14 +45,7 @@ GEONATURE_AUTH_ORGANISMES_EXCLUS = {
     int(x) for x in os.environ.get('GEONATURE_AUTH_ORGANISMES_EXCLUS', '').split(',')
     if x.strip().lstrip('-').isdigit()
 }
-# Comment les comptes UsersHub sont vérifiés (#764) :
-# - 'api' (défaut) : par l'API du GeoNature ci-dessus. GeoNature ne contrôle
-#   que le droit sur LUI-MÊME (son CODE_APPLICATION), jamais sur CICADA — et
-#   pas du tout avec pypnusershub <= 3.2 (bug : tout compte entre) ;
-# - 'base' : CICADA lit la base UsersHub (lecture seule) et contrôle le droit
-#   sur SON application (GEONATURE_AUTH_CODE_APPLICATION). GEONATURE_AUTH_URL
-#   ne sert alors plus.
-GEONATURE_AUTH_SOURCE = os.environ.get('GEONATURE_AUTH_SOURCE', 'api').strip().lower() or 'api'
+# Code de l'application CICADA dans UsersHub (colonne code_application).
 GEONATURE_AUTH_CODE_APPLICATION = os.environ.get('GEONATURE_AUTH_CODE_APPLICATION', '').strip()
 # Base UsersHub (en général celle de GeoNature), compte en lecture seule
 # limité aux colonnes utiles : packaging/debian/usr/bin/cicada-usershub-lecture.

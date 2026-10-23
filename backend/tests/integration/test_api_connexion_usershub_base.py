@@ -1,7 +1,6 @@
 """
 Connexion UsersHub par la base (#764) : CICADA lit la base UsersHub et contrôle
-le droit sur SON application, là où l'API GeoNature ne contrôle que le droit
-sur GeoNature (et rien du tout avec pypnusershub <= 3.2).
+le droit sur SON application, ce que l'API GeoNature (retirée) ne faisait pas.
 
 Pas de simulation : un schéma UsersHub minimal est créé dans la base de test
 (la base de CICADA a déjà un schéma « utilisateurs », d'où USERSHUB_DB_SCHEMA),
@@ -86,11 +85,9 @@ def base_usershub(settings):
         cx.execute(SCHEMA_SQL)
     base = connection.settings_dict
     settings.AUTH_PROVIDER = 'geonature'
-    settings.GEONATURE_AUTH_SOURCE = 'base'
     settings.GEONATURE_AUTH_CODE_APPLICATION = 'CICADA'
     settings.GEONATURE_AUTH_LIBELLE = 'RNF'
     settings.GEONATURE_AUTH_ORGANISMES_EXCLUS = {2}
-    settings.GEONATURE_AUTH_URL = ''  # inutile en source 'base'
     settings.USERSHUB_DB_HOST = base['HOST'] or 'localhost'
     settings.USERSHUB_DB_PORT = int(base['PORT'] or 5432)
     settings.USERSHUB_DB_NAME = base['NAME']
@@ -195,7 +192,7 @@ class TestCompteUsersHub:
 
 
 class TestRattachement:
-    """La suite est celle de la source 'api' (#689, #691) : même compte, même organisme."""
+    """Compte et organisme CICADA (#689, #691), à partir de la fiche lue dans la base."""
 
     def test_compte_et_organisme_crees(self):
         ajouter_compte(146, 'cdupont', groupes=[900])
@@ -239,6 +236,15 @@ class TestPanneEtConfiguration:
         from apps.authentication.checks import verifier_mode_connexion
         settings.USERSHUB_DB_HOST = ''
         assert 'authentication.W004' in [p.id for p in verifier_mode_connexion(None)]
+
+    def test_ancienne_verification_par_l_api_signalee(self, settings, monkeypatch):
+        # Instance mise à jour sans avoir configuré la base : l'avertissement
+        # dit que GEONATURE_AUTH_URL ne sert plus.
+        from apps.authentication.checks import verifier_mode_connexion
+        settings.USERSHUB_DB_HOST = ''
+        monkeypatch.setenv('GEONATURE_AUTH_URL', 'https://geonature.test/api')
+        w004 = [p for p in verifier_mode_connexion(None) if p.id == 'authentication.W004']
+        assert w004 and 'GEONATURE_AUTH_URL' in w004[0].msg
 
     @pytest.mark.parametrize('hote, sslmode, attendu', [
         ('10.0.200.11', 'prefer', True),       # base distante, connexion en clair possible
@@ -312,8 +318,8 @@ class TestVerifierUsersHub:
         settings.GEONATURE_AUTH_TIMEOUT = 2
         assert self.lancer()[0] == 2
 
-    def test_fonctionne_meme_en_source_api(self, settings):
-        # On vérifie AVANT de basculer : la source en service n'importe pas.
-        settings.GEONATURE_AUTH_SOURCE = 'api'
+    def test_fonctionne_meme_en_mode_local(self, settings):
+        # On vérifie AVANT de passer en mode GeoNature : le mode en service n'importe pas.
+        settings.AUTH_PROVIDER = 'local'
         Role.objects.all().delete()
         assert self.lancer()[0] == 0

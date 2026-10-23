@@ -192,7 +192,7 @@ def test_la_mise_a_jour_relance_l_installateur():
 # --- Connexion UsersHub par la base (#764) --------------------------------------
 
 USERSHUB_BASE = {
-    'frontend_port': '8080', 'auth_provider': 'geonature', 'geonature_auth_source': 'base',
+    'frontend_port': '8080', 'auth_provider': 'geonature',
     'geonature_auth_libelle': 'RNF', 'geonature_auth_code_application': 'CICADA',
     'usershub_db_host': '10.0.20.21', 'usershub_db_port': '5432', 'usershub_db_name': 'geonature2db',
     'usershub_db_user': 'cicada_usershub', 'usershub_db_password': 'mdp-lecture',
@@ -205,7 +205,8 @@ def test_usershub_par_la_base_ecrit_sa_configuration(service, tmp_path):
     assert result['success'] is True, result
     env = read_env(tmp_path)
     assert env['AUTH_PROVIDER'] == 'geonature'
-    assert env['GEONATURE_AUTH_SOURCE'] == 'base'
+    # Vérification par l'API GeoNature retirée : ses réglages ne sont plus écrits.
+    assert 'GEONATURE_AUTH_SOURCE' not in env and 'GEONATURE_AUTH_URL' not in env
     assert env['GEONATURE_AUTH_CODE_APPLICATION'] == 'CICADA'
     assert env['USERSHUB_DB_HOST'] == '10.0.20.21'
     assert env['USERSHUB_DB_PASSWORD'] == 'mdp-lecture'
@@ -251,15 +252,13 @@ def test_usershub_par_la_base_champs_requis(service):
     assert any("code de l'application" in e for e in result['errors'])
 
 
-def test_usershub_par_l_api_garde_l_ancien_reglage(service, tmp_path):
-    service.run_installation({**BASE, 'frontend_port': '8080', 'auth_provider': 'geonature',
-                              'geonature_auth_source': 'api', 'geonature_auth_url': 'https://gn.test/api',
-                              'geonature_auth_id_application': '18', 'geonature_auth_libelle': 'RNF'})
+def test_formulaire_sans_verification_par_l_api():
+    """#764 — seule la lecture de la base UsersHub reste proposée."""
+    html = (INSTALL_DIR / 'templates/install.html').read_text()
+    js = (INSTALL_DIR / 'static/js/install.js').read_text()
 
-    env = read_env(tmp_path)
-    assert env['GEONATURE_AUTH_SOURCE'] == 'api'
-    assert env['GEONATURE_AUTH_URL'] == 'https://gn.test/api'
-    assert env['USERSHUB_DB_HOST'] == ''
+    for disparu in ('geonature_auth_source', 'geonature_auth_url', 'geonature_auth_id_application'):
+        assert disparu not in html and disparu not in js
 
 
 def test_mode_local_n_ecrit_aucune_base_usershub(service, tmp_path):

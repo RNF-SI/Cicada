@@ -555,27 +555,22 @@ function toggleFederationFields() {
 
 function toggleGeoNatureAuthFields() {
     // #689 — un seul mode de connexion : les réglages GeoNature ne s'affichent
-    // (et ne sont exigés) que si ce mode est choisi. #764 — puis selon la
-    // source : base UsersHub ou API GeoNature.
+    // (et ne sont exigés) que si ce mode est choisi. #764 — comptes vérifiés
+    // dans la base UsersHub.
     const enabled = document.getElementById('auth_provider_geonature');
     const fields = document.getElementById('geonature_auth_fields');
     if (!enabled || !fields) return;
     const actif = enabled.checked;
-    const parBase = actif && document.getElementById('geonature_auth_source_base').checked;
     const champs = id => document.getElementById(id);
-    const api = ['geonature_auth_url', 'geonature_auth_id_application'].map(champs);
     const base = ['usershub_db_host', 'usershub_db_port', 'usershub_db_name', 'usershub_db_user',
                   'usershub_db_password', 'geonature_auth_code_application'].map(champs);
 
     fields.classList.toggle('hidden', !actif);
-    champs('usershub_base_fields').classList.toggle('hidden', !parBase);
-    champs('geonature_api_fields').classList.toggle('hidden', !actif || parBase);
     const libelle = champs('geonature_auth_libelle');
     if (libelle) libelle.required = actif;
-    api.forEach(c => { if (c) c.required = actif && !parBase; });
-    base.forEach(c => { if (c) c.required = parBase; });
+    base.forEach(c => { if (c) c.required = actif; });
     if (!actif) {
-        api.concat([champs('geonature_auth_organismes_exclus'), champs('usershub_db_password')])
+        [champs('geonature_auth_organismes_exclus'), champs('usershub_db_password')]
             .forEach(c => { if (c) c.value = ''; });
     }
 }

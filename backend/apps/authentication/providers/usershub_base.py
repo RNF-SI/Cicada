@@ -1,12 +1,14 @@
 """
 Vérification des comptes UsersHub en lisant directement sa base (#764).
 
-Par l'API GeoNature (``usershub.py``, source 'api'), le droit sur l'application
-CICADA n'est jamais contrôlé : pypnusershub vérifie le droit sur le GeoNature
-lui-même (son ``CODE_APPLICATION``), l'``id_application`` transmis devant
-seulement exister — et jusqu'à pypnusershub 3.2.x, à cause d'un bug, il ne
-vérifie rien du tout. Aucune route de GeoNature ne permet de contrôler le droit
-sur une autre application que la sienne.
+C'est la seule façon de vérifier un compte GeoNature. Par l'API GeoNature
+(``POST /auth/login``, retirée), le droit sur l'application CICADA n'était
+jamais contrôlé : pypnusershub vérifie le droit sur le GeoNature lui-même (son
+``CODE_APPLICATION``), l'``id_application`` transmis devant seulement exister
+— et jusqu'à pypnusershub 3.2.x, à cause d'un bug, il ne vérifie rien du tout.
+Aucune route de GeoNature ne permet de contrôler le droit sur une autre
+application que la sienne. pypnusershub, bibliothèque Flask, ne s'intègre pas
+à Django.
 
 Ici CICADA refait, en lecture seule, ce que fait pypnusershub 3.3
 (``LocalProvider.authenticate`` + ``User.filter_by_app``), mais sur l'application
@@ -20,7 +22,7 @@ de CICADA (``GEONATURE_AUTH_CODE_APPLICATION``) :
    groupe (``cor_role_app_profil`` + ``cor_roles``) ;
 4. la fiche de l'organisme est lue dans ``bib_organismes``.
 
-La suite (compte et organisme CICADA) est celle de la source 'api'.
+La suite (compte et organisme CICADA) est dans ``usershub.py``.
 
 Le compte PostgreSQL n'a besoin que de SELECT sur quelques colonnes : script
 ``packaging/debian/usr/bin/cicada-usershub-lecture`` (vérifié par
@@ -40,8 +42,6 @@ from psycopg import sql
 from .usershub import IdentiteUsersHub, UsersHubErreur, UsersHubIndisponible, verifier_email
 
 logger = logging.getLogger(__name__)
-
-SOURCE = 'base'
 
 CHAMPS_FICHE_ORGANISME = (
     'uuid_organisme', 'nom_organisme', 'adresse_organisme', 'cp_organisme', 'ville_organisme',
@@ -201,7 +201,6 @@ def authentifier(login, password):
         nom=(nom or '').strip(),
         prenom=(prenom or '').strip(),
         id_organisme=id_organisme,
-        source=SOURCE,
         fiche_organisme=fiche,
     )
     verifier_email(identite)

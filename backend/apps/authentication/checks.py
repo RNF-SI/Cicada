@@ -1,10 +1,12 @@
 """
 Vérifications au démarrage du mode de connexion (#689).
 
-Une instance en mode GeoNature sans adresse ni application n'a plus AUCUN
+Une instance en mode GeoNature sans base UsersHub configurée n'a plus AUCUN
 moyen de connexion (le mot de passe CICADA est coupé) : on le signale au
 démarrage plutôt qu'à la première personne qui essaie de se connecter.
 """
+import os
+
 from django.conf import settings
 from django.core.checks import Warning, register
 
@@ -23,21 +25,20 @@ def verifier_mode_connexion(app_configs, **kwargs):
             hint=f"Valeurs possibles : {', '.join(MODES)}.",
             id='authentication.W001',
         ))
-    source = settings.GEONATURE_AUTH_SOURCE
-    if mode == 'geonature' and source not in ('api', 'base'):
-        problemes.append(Warning(
-            f"GEONATURE_AUTH_SOURCE={source!r} inconnue : personne ne peut se connecter.",
-            hint="Valeurs possibles : api (par l'API GeoNature), base (par la base UsersHub, #764).",
-            id='authentication.W003',
-        ))
-    if mode == 'geonature' and source == 'base':
+    if mode == 'geonature':
         from .providers import usershub_base
         if not usershub_base.est_configuree():
+            # Instance mise à jour depuis l'ancienne vérification par l'API
+            # GeoNature (retirée, #764) : ses réglages ne servent plus.
+            ancienne_api = bool(os.environ.get('GEONATURE_AUTH_URL', '').strip())
             problemes.append(Warning(
-                "AUTH_PROVIDER=geonature, GEONATURE_AUTH_SOURCE=base, mais la base UsersHub ou le code "
-                "de l'application n'est pas renseigné : personne ne peut se connecter.",
-                hint="Renseigner USERSHUB_DB_HOST, USERSHUB_DB_NAME, USERSHUB_DB_USER, USERSHUB_DB_PASSWORD "
-                     "et GEONATURE_AUTH_CODE_APPLICATION dans /var/lib/cicada/.env.",
+                "AUTH_PROVIDER=geonature, mais la base UsersHub ou le code de l'application "
+                "n'est pas renseigné : personne ne peut se connecter."
+                + (" La vérification par l'API GeoNature (GEONATURE_AUTH_URL) n'existe plus."
+                   if ancienne_api else ""),
+                hint="Créer le compte de lecture sur le serveur de la base (cicada-usershub-lecture), "
+                     "puis renseigner USERSHUB_DB_HOST, USERSHUB_DB_NAME, USERSHUB_DB_USER, "
+                     "USERSHUB_DB_PASSWORD et GEONATURE_AUTH_CODE_APPLICATION dans /var/lib/cicada/.env.",
                 id='authentication.W004',
             ))
         elif (settings.USERSHUB_DB_SSLMODE in ('disable', 'allow', 'prefer')
@@ -51,13 +52,4 @@ def verifier_mode_connexion(app_configs, **kwargs):
                      "dans /var/lib/cicada/.env, et ssl = on côté PostgreSQL.",
                 id='authentication.W005',
             ))
-    elif mode == 'geonature' and not (settings.GEONATURE_AUTH_URL and settings.GEONATURE_AUTH_ID_APPLICATION):
-        # Avertissement et pas erreur : une erreur bloquerait migrate et le
-        # démarrage, donc tout le site (pages publiques comprises).
-        problemes.append(Warning(
-            "AUTH_PROVIDER=geonature mais GEONATURE_AUTH_URL ou GEONATURE_AUTH_ID_APPLICATION est vide : "
-            "personne ne peut se connecter.",
-            hint="Renseigner les deux dans /var/lib/cicada/.env, ou revenir à AUTH_PROVIDER=local.",
-            id='authentication.W002',
-        ))
     return problemes

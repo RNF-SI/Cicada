@@ -121,7 +121,6 @@ scenario_db_answers() {
   "db_user": "cicada_user",
   "db_password": "Bench-Db-Pass-1",
   "auth_provider": "geonature",
-  "geonature_auth_source": "base",
   "geonature_auth_libelle": "Banc",
   "geonature_auth_code_application": "CICADA",
   "usershub_db_host": "localhost",
@@ -140,7 +139,7 @@ login_uh() {  # login_uh IDENTIFIANT MOTDEPASSE → code HTTP (réponse dans log
 }
 
 scenario_checks() {
-    check "GEONATURE_AUTH_SOURCE=base dans le .env" grep -qx 'GEONATURE_AUTH_SOURCE=base' /var/lib/cicada/.env
+    check "code de l'application dans le .env" grep -qx 'GEONATURE_AUTH_CODE_APPLICATION=CICADA' /var/lib/cicada/.env
     check "USERSHUB_DB_HOST=host.docker.internal dans le .env" grep -qx 'USERSHUB_DB_HOST=host.docker.internal' /var/lib/cicada/.env
     check "Le conteneur web joint la base UsersHub de l'hôte" bash -c \
         "docker exec cicada_prod_web python -c \"

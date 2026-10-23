@@ -1,22 +1,23 @@
 """
 Connexion par un GeoNature / UsersHub (#689) et rattachement à l'organisme (#691).
 
-GeoNature est simulé : on remplace les appels HTTP du module par des réponses
-préparées. Ce qui est vérifié, c'est ce que CICADA fait de ces réponses.
+La lecture de la base UsersHub est simulée (``usershub_base.authentifier``,
+testé contre un vrai schéma dans test_api_connexion_usershub_base.py) : ce qui
+est vérifié ici, c'est ce que CICADA fait de l'identité lue — mode de
+connexion, compte, organisme.
 """
 import uuid
 from unittest import mock
 
 import pytest
-import requests
 from rest_framework.test import APIClient
 
+from apps.authentication.providers.usershub import IdentiteUsersHub
 from apps.users.models import BibOrganismes, Role
 from tests.factories.users import AdminOrganismeFactory, OrganismeFactory, RoleFactory
 
 URL = '/api/auth/login-geonature/'
-GN = 'https://geonature.test/api'
-MODULE = 'apps.authentication.providers.usershub.requests'
+LECTURE = 'apps.authentication.providers.usershub_base.authentifier'
 
 pytestmark = [pytest.mark.django_db, pytest.mark.integration]
 
@@ -24,8 +25,11 @@ pytestmark = [pytest.mark.django_db, pytest.mark.integration]
 @pytest.fixture(autouse=True)
 def geonature_configure(settings):
     settings.AUTH_PROVIDER = 'geonature'
-    settings.GEONATURE_AUTH_URL = GN
-    settings.GEONATURE_AUTH_ID_APPLICATION = '14'
+    settings.GEONATURE_AUTH_CODE_APPLICATION = 'CICADA'
+    settings.USERSHUB_DB_HOST = 'usershub.test'
+    settings.USERSHUB_DB_NAME = 'geonature'
+    settings.USERSHUB_DB_USER = 'cicada_usershub'
+    settings.USERSHUB_DB_PASSWORD = 'x'
     settings.GEONATURE_AUTH_LIBELLE = 'RNF'
     settings.GEONATURE_AUTH_ORGANISMES_EXCLUS = {-1, 2}
 
@@ -36,36 +40,25 @@ def sans_throttle(settings):
     cache.clear()
 
 
-def reponse(status_code=200, json=None):
-    r = mock.Mock(status_code=status_code)
-    r.json.return_value = json
-    return r
-
-
-def utilisateur_gn(**kwargs):
-    user = {
-        'id_role': 146, 'identifiant': 'cdupont', 'email': 'claire.dupont@reserve.fr',
-        'nom_role': 'Dupont', 'prenom_role': 'Claire', 'id_organisme': 3,
-    }
-    user.update(kwargs)
-    return {'token': 'jeton-gn', 'expires': '2026-10-14T10:00:00', 'user': user}
-
-
 def fiche_organisme(uuid_organisme, nom='Réserves Naturelles de France', **kwargs):
-    fiche = {'id_organisme': 3, 'uuid_organisme': str(uuid_organisme), 'nom_organisme': nom,
+    fiche = {'uuid_organisme': str(uuid_organisme), 'nom_organisme': nom,
              'ville_organisme': 'Dijon', 'cp_organisme': '21000'}
     fiche.update(kwargs)
     return fiche
 
 
-def connecter(login_json, organisme_json=None, organisme_status=200):
-    """Simule GeoNature et poste une connexion. Renvoie (réponse CICADA, mock requests)."""
-    with mock.patch(MODULE) as req:
-        req.RequestException = requests.RequestException
-        req.post.return_value = login_json if isinstance(login_json, mock.Mock) else reponse(200, login_json)
-        req.get.return_value = reponse(organisme_status, organisme_json)
+def identite(fiche=None, **kwargs):
+    valeurs = {'id_role': 146, 'identifiant': 'cdupont', 'email': 'claire.dupont@reserve.fr',
+               'nom': 'Dupont', 'prenom': 'Claire', 'id_organisme': 3, 'fiche_organisme': fiche}
+    valeurs.update(kwargs)
+    return IdentiteUsersHub(**valeurs)
+
+
+def connecter(compte_usershub):
+    """Simule la lecture de UsersHub et poste une connexion. Renvoie (réponse, mock)."""
+    with mock.patch(LECTURE, return_value=compte_usershub) as lecture:
         res = APIClient().post(URL, {'login': 'cdupont', 'password': 'secret'}, format='json')
-    return res, req
+    return res, lecture
 
 
 class TestUnSeulModeDeConnexion:
@@ -119,57 +112,19 @@ class TestUnSeulModeDeConnexion:
         assert res.status_code == 200
 
     def test_mode_geonature_sans_reglages(self, settings):
-        settings.GEONATURE_AUTH_URL = ''
+        settings.USERSHUB_DB_HOST = ''
         res = APIClient().post(URL, {'login': 'x', 'password': 'y'}, format='json')
         assert res.status_code == 503
 
-
-class TestAppelsAGeoNature:
-    def test_mot_de_passe_relaye_et_jeton_utilise_pour_l_organisme(self):
-        u = uuid.uuid4()
-        res, req = connecter(utilisateur_gn(), fiche_organisme(u))
+    def test_identifiants_transmis_a_la_lecture(self):
+        res, lecture = connecter(identite(fiche_organisme(uuid.uuid4())))
         assert res.status_code == 200
-        req.post.assert_called_once()
-        assert req.post.call_args.args[0] == f'{GN}/auth/login'
-        assert req.post.call_args.kwargs['json'] == {'login': 'cdupont', 'password': 'secret', 'id_application': '14'}
-        assert req.get.call_args.args[0] == f'{GN}/users/organism/3'
-        assert req.get.call_args.kwargs['headers'] == {'Accept': 'application/json', 'Authorization': 'Bearer jeton-gn'}
-        # Sans cet en-tête, GeoNature répond à un refus par une redirection.
-        assert req.post.call_args.kwargs['headers'] == {'Accept': 'application/json'}
-
-    def test_mauvais_mot_de_passe(self):
-        res, _ = connecter(reponse(401, None))
-        assert res.status_code == 401
-        assert not Role.objects.filter(usershub_id_role=146).exists()
-
-    def test_redirection_vers_la_page_de_connexion_vaut_refus(self):
-        r = reponse(302, None)
-        r.headers = {'Location': 'https://geonature.test/#/login?next=…'}
-        res, _ = connecter(r)
-        assert res.status_code == 401
-
-    def test_autre_redirection_signale_une_adresse_mal_reglee(self):
-        r = reponse(301, None)
-        r.headers = {'Location': 'https://geonature.test/api/auth/login'}
-        res, _ = connecter(r)
-        assert res.status_code == 502
-
-    def test_geonature_injoignable(self):
-        with mock.patch(MODULE) as req:
-            req.RequestException = requests.RequestException
-            req.post.side_effect = requests.ConnectionError()
-            res = APIClient().post(URL, {'login': 'cdupont', 'password': 'secret'}, format='json')
-        assert res.status_code == 502
-
-    def test_compte_sans_email_refuse(self):
-        res, _ = connecter(utilisateur_gn(email=None))
-        assert res.status_code == 403
-        assert not Role.objects.filter(usershub_id_role=146).exists()
+        lecture.assert_called_once_with('cdupont', 'secret')
 
 
 class TestCompte:
     def test_nouveau_compte_cree_avec_jetons_cicada(self):
-        res, _ = connecter(utilisateur_gn(), fiche_organisme(uuid.uuid4()))
+        res, _ = connecter(identite(fiche_organisme(uuid.uuid4())))
         assert res.status_code == 200
         corps = res.json()
         assert corps['access'] and corps['refresh']
@@ -185,7 +140,7 @@ class TestCompte:
         existant = AdminOrganismeFactory(email='Claire.Dupont@reserve.fr', id_organisme=organisme)
         existant.set_password('MotDePasseLocal1!')
         existant.save()
-        res, _ = connecter(utilisateur_gn(), fiche_organisme(organisme.uuid_organisme))
+        res, _ = connecter(identite(fiche_organisme(organisme.uuid_organisme)))
         assert res.status_code == 200
         existant.refresh_from_db()
         assert existant.usershub_id_role == 146
@@ -194,7 +149,7 @@ class TestCompte:
 
     def test_compte_relie_retrouve_par_id_meme_si_email_change(self):
         relie = RoleFactory(email='ancien@reserve.fr', usershub_id_role=146)
-        res, _ = connecter(utilisateur_gn(), fiche_organisme(uuid.uuid4()))
+        res, _ = connecter(identite(fiche_organisme(uuid.uuid4())))
         assert res.status_code == 200
         relie.refresh_from_db()
         assert relie.email == 'claire.dupont@reserve.fr'
@@ -202,12 +157,12 @@ class TestCompte:
 
     def test_email_pris_par_un_compte_relie_a_un_autre_usershub(self):
         RoleFactory(email='claire.dupont@reserve.fr', usershub_id_role=999)
-        res, _ = connecter(utilisateur_gn(), fiche_organisme(uuid.uuid4()))
+        res, _ = connecter(identite(fiche_organisme(uuid.uuid4())))
         assert res.status_code == 409
 
     def test_compte_desactive_refuse(self):
         RoleFactory(email='claire.dupont@reserve.fr', active=False)
-        res, _ = connecter(utilisateur_gn(), fiche_organisme(uuid.uuid4()))
+        res, _ = connecter(identite(fiche_organisme(uuid.uuid4())))
         assert res.status_code == 403
 
 
@@ -216,14 +171,14 @@ class TestOrganisme:
         # L'id_organisme UsersHub (3) n'a rien à voir avec l'id CICADA : seul l'uuid compte.
         organisme = OrganismeFactory(uuid_organisme=uuid.uuid4(), nom_organisme='RNF')
         avant = BibOrganismes.objects.count()
-        res, _ = connecter(utilisateur_gn(), fiche_organisme(organisme.uuid_organisme))
+        res, _ = connecter(identite(fiche_organisme(organisme.uuid_organisme)))
         assert res.status_code == 200
         assert BibOrganismes.objects.count() == avant
         assert Role.objects.get(usershub_id_role=146).id_organisme == organisme
 
     def test_organisme_inconnu_cree(self):
         u = uuid.uuid4()
-        res, _ = connecter(utilisateur_gn(), fiche_organisme(u, nom='CEN Exemple'))
+        res, _ = connecter(identite(fiche_organisme(u, nom='CEN Exemple')))
         assert res.status_code == 200
         organisme = BibOrganismes.objects.get(uuid_organisme=u)
         assert organisme.nom_organisme == 'CEN Exemple'
@@ -235,24 +190,21 @@ class TestOrganisme:
         ancien = OrganismeFactory(uuid_organisme=uuid.uuid4())
         nouveau = OrganismeFactory(uuid_organisme=uuid.uuid4())
         compte = RoleFactory(email='claire.dupont@reserve.fr', id_organisme=ancien)
-        connecter(utilisateur_gn(), fiche_organisme(nouveau.uuid_organisme))
+        connecter(identite(fiche_organisme(nouveau.uuid_organisme)))
         compte.refresh_from_db()
         assert compte.id_organisme == nouveau
 
     def test_pseudo_organisme_exclu(self):
         avant = BibOrganismes.objects.count()
-        res, req = connecter(utilisateur_gn(id_organisme=-1), fiche_organisme(uuid.uuid4(), nom='Autre'))
+        res, _ = connecter(identite(fiche_organisme(uuid.uuid4(), nom='Autre'), id_organisme=-1))
         assert res.status_code == 200
-        req.get.assert_not_called()
         assert BibOrganismes.objects.count() == avant
         assert Role.objects.get(usershub_id_role=146).id_organisme is None
 
-    @pytest.mark.parametrize('status_code', [404, 500])
-    def test_organisme_illisible_n_empeche_pas_d_entrer_et_ne_retire_rien(self, status_code):
-        # 404 : GeoNature antérieur à 2.17.0 (la route n'existe pas).
+    def test_fiche_absente_n_empeche_pas_d_entrer_et_ne_retire_rien(self):
         organisme = OrganismeFactory(uuid_organisme=uuid.uuid4())
         compte = RoleFactory(email='claire.dupont@reserve.fr', id_organisme=organisme)
-        res, _ = connecter(utilisateur_gn(), None, organisme_status=status_code)
+        res, _ = connecter(identite(None))
         assert res.status_code == 200
         compte.refresh_from_db()
         assert compte.id_organisme == organisme
@@ -265,7 +217,7 @@ class TestPremiereConnexion:
 
         organisme = OrganismeFactory(uuid_organisme=uuid.uuid4())
         admin = AdminOrganismeFactory(id_organisme=organisme)
-        res, _ = connecter(utilisateur_gn(), fiche_organisme(organisme.uuid_organisme))
+        res, _ = connecter(identite(fiche_organisme(organisme.uuid_organisme)))
         assert res.status_code == 200
         notif = Notification.objects.get(notification_type='user_first_login')
         assert notif.recipient == admin

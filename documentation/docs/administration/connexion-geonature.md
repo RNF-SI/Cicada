@@ -1,6 +1,6 @@
 # Connexion par un GeoNature / UsersHub
 
-Issues : #689 (connexion), #691 (organismes).
+Issues : #689 (connexion), #691 (organismes), #764 (vérification par la base UsersHub).
 
 Une instance CICADA a **un seul mode de connexion**, choisi à l'installation (`AUTH_PROVIDER`) — jamais deux en parallèle :
 
@@ -9,14 +9,15 @@ Une instance CICADA a **un seul mode de connexion**, choisi à l'installation (`
 | `local` (défaut) | comptes CICADA (email + mot de passe) | ouverts |
 | `geonature` | comptes d'un GeoNature / UsersHub, **uniquement** (cas de RNF) | fermés (403), masqués dans l'interface |
 
-En mode `local`, l'instance n'appelle jamais GeoNature.
+En mode `local`, l'instance ne lit jamais UsersHub.
 
-**Ce que Cicada appelle** : l'API du **GeoNature**, jamais l'application UsersHub. `POST <API>/auth/login` est fournie par pypnusershub (le module d'authentification de UsersHub, embarqué dans GeoNature) ; `GET <API>/users/organism/<id>` par GeoNature. Les comptes et organismes lus sont ceux des tables UsersHub (schéma `utilisateurs`) que GeoNature partage.
+**Comment CICADA vérifie un compte** : il lit la base UsersHub (en général celle de GeoNature), **en lecture seule**, comme pypnusershub le fait pour GeoNature, et ne laisse entrer que les comptes qui ont un profil sur **l'application CICADA** dans UsersHub. GeoNature lui-même n'est jamais appelé : ni sa version ni sa disponibilité n'entrent en jeu. Détail : [Vérification par la base UsersHub](#verification-par-la-base-usershub).
 
 ## Prérequis
 
-- **GeoNature 2.17.0 ou plus récent.** Cette version ajoute `GET <API>/users/organism/<id>` (fiche d'un organisme) et impose `pypnusershub >= 3.2.0`, qui accepte le jeton en `Authorization: Bearer`. Avec une version plus ancienne, la connexion fonctionne mais le compte n'est **pas** rattaché à son organisme.
-- Une application CICADA déclarée dans UsersHub (son `id_application`).
+- Une application CICADA déclarée dans UsersHub (son **code**, colonne `code_application`, librement choisi), et un profil sur cette application pour les groupes ou les comptes qui doivent entrer.
+- Une adresse email sur chaque compte UsersHub.
+- Un compte de lecture sur le serveur de la base UsersHub, créé par `cicada-usershub-lecture` ([ci-dessous](#verification-par-la-base-usershub)).
 
 ## Réglages
 
@@ -25,15 +26,14 @@ Proposés par l'installeur (section « Mode de connexion »), écrits dans `/var
 | Variable | Rôle |
 |---|---|
 | `AUTH_PROVIDER` | `local` ou `geonature` |
-| `GEONATURE_AUTH_URL` | adresse de l'**API** GeoNature = la valeur `API_ENDPOINT` de sa configuration (ex. `https://geonature.exemple.fr/api` derrière Apache ; `http://127.0.0.1:5000` en développement) |
-| `GEONATURE_AUTH_ID_APPLICATION` | `id_application` de CICADA dans UsersHub |
 | `GEONATURE_AUTH_LIBELLE` | nom affiché sur la page de connexion : « RNF » → « Identifiant RNF » |
 | `GEONATURE_AUTH_ORGANISMES_EXCLUS` | `id_organisme` UsersHub qui ne sont pas de vrais organismes (« Autre », « ALL », tests), séparés par des virgules |
-| `GEONATURE_AUTH_TIMEOUT` | délai des appels à GeoNature, en secondes (défaut 10) |
+| `GEONATURE_AUTH_TIMEOUT` | délai de connexion à la base UsersHub, en secondes (défaut 10) |
+| `GEONATURE_AUTH_CODE_APPLICATION`, `USERSHUB_DB_*` | application CICADA et base UsersHub : voir [Vérification par la base UsersHub](#verification-par-la-base-usershub) |
 
 Après modification : `docker compose up -d web`.
 
-`AUTH_PROVIDER=geonature` sans `GEONATURE_AUTH_URL` ni `GEONATURE_AUTH_ID_APPLICATION` = **plus personne ne peut se connecter** : avertissement `authentication.W002` au démarrage, et la page de connexion répond « connexion non configurée » (503).
+`AUTH_PROVIDER=geonature` sans base UsersHub ni code d'application = **plus personne ne peut se connecter** : avertissement `authentication.W004` au démarrage, et la page de connexion répond « connexion non configurée » (503).
 
 ## Changer de mode après l'installation
 
@@ -45,18 +45,17 @@ Modifier `AUTH_PROVIDER` dans `/var/lib/cicada/.env` puis `docker compose up -d 
 
 ## Déroulé d'une connexion
 
-1. La page de connexion demande l'identifiant et le mot de passe du compte <libellé>. Le mot de passe saisi part au **serveur** CICADA, qui le relaie à GeoNature (`POST <API>/auth/login`) ; le navigateur ne parle jamais à GeoNature, et le mot de passe n'est ni stocké ni journalisé.
-2. GeoNature renvoie l'`id_role`, l'email, le nom et l'`id_organisme` de la personne.
-3. Avec le jeton reçu, CICADA lit la fiche de l'organisme (`GET <API>/users/organism/<id>`) pour obtenir son **`uuid_organisme`**. Le jeton n'est pas conservé.
-4. **Compte** : retrouvé par `usershub_id_role`, sinon par email, sinon créé (rôle « utilisateur », actif, sans mot de passe CICADA).
-5. **Organisme** : retrouvé par `uuid_organisme`, sinon créé. Le compte y est rattaché (UsersHub fait foi).
-6. CICADA délivre ses propres jetons, comme pour une connexion classique.
+1. La page de connexion demande l'identifiant et le mot de passe du compte <libellé>. Le mot de passe saisi part au **serveur** CICADA, qui le vérifie contre l'empreinte lue dans la base UsersHub ; le navigateur ne parle jamais à cette base, et le mot de passe n'est ni stocké ni journalisé.
+2. CICADA lit dans la base UsersHub l'`id_role`, l'email, le nom, le droit sur l'application CICADA et la fiche de l'organisme (dont son **`uuid_organisme`**).
+3. **Compte** : retrouvé par `usershub_id_role`, sinon par email, sinon créé (rôle « utilisateur », actif, sans mot de passe CICADA).
+4. **Organisme** : retrouvé par `uuid_organisme`, sinon créé. Le compte y est rattaché (UsersHub fait foi).
+5. CICADA délivre ses propres jetons, comme pour une connexion classique.
 
 Rien n'est synchronisé en dehors des connexions : un organisme UsersHub apparaît dans CICADA à la première connexion d'un de ses membres, un changement d'organisme est pris en compte à la connexion suivante.
 
 ### Pourquoi l'uuid et pas l'id de l'organisme
 
-`id_organisme` est une séquence propre à chaque base : le même organisme a un id différent dans GeoNature et dans CICADA. `uuid_organisme`, lui, est conservé quand les organismes sont repris de GeoNature. C'est la seule clé commune.
+`id_organisme` est une séquence propre à chaque base : le même organisme a un id différent dans UsersHub et dans CICADA. `uuid_organisme`, lui, est conservé quand les organismes sont repris de GeoNature. C'est la seule clé commune.
 
 ## Ce qui ne vient jamais de UsersHub
 
@@ -74,37 +73,30 @@ Les **droits CICADA** : rôle (admin d'organisme, rédacteur général, super ad
 | Situation | Résultat |
 |---|---|
 | Identifiant ou mot de passe faux | refus (401) |
-| GeoNature injoignable | refus (502) : **personne ne peut se connecter** tant que GeoNature est indisponible |
+| Base UsersHub injoignable, ou droits du compte de lecture insuffisants | refus (502) : **personne ne peut se connecter** tant que la base est indisponible |
 | Compte UsersHub sans email | refus (403) |
+| Compte UsersHub désactivé, ou sans profil sur l'application CICADA | refus (403) |
 | Compte CICADA désactivé ou en attente de validation | refus (403) |
 | Email déjà porté par un compte relié à un autre compte UsersHub | refus (409), à régler par un administrateur |
-| Organisme illisible (panne, GeoNature < 2.17) | connexion acceptée, organisme inchangé, erreur journalisée |
+| Organisme absent de `bib_organismes` | connexion acceptée, organisme inchangé |
 | Organisme exclu | connexion acceptée, sans organisme |
 
 ## ⚠️ Qui peut se connecter {#qui-peut-se-connecter}
 
-Ça dépend de la façon dont les comptes sont vérifiés (`GEONATURE_AUTH_SOURCE`, #764) :
+Les comptes qui ont un profil sur **l'application CICADA** dans UsersHub, directement ou par un groupe (ex. `Grp_all`). Le profil choisi (Lecteur ou autre) n'importe pas : les droits dans CICADA (rôle, référents, plans) se règlent dans CICADA. Un changement de groupe ou de profil vaut dès la connexion suivante, sans redémarrage. Retirer un droit bloque les nouvelles connexions ; une session déjà ouverte reste valable jusqu'à l'expiration de son jeton (7 jours au plus).
 
-| Source | Qui entre | Ce qui est vérifié |
-|---|---|---|
-| **`base`** (recommandé) | les comptes qui ont un profil sur **l'application CICADA** dans UsersHub, directement ou par un groupe (ex. Grp_all) | CICADA lit la base UsersHub lui-même ([ci-dessous](#verification-par-la-base-usershub)) |
-| `api`, GeoNature avec **pypnusershub ≤ 3.2.x** | **tout compte UsersHub** dont le mot de passe est bon, quels que soient ses droits | rien : bug du filtre par application (requête corrélée qui ne garde qu'une condition toujours vraie). Constaté sur GeoNature global RNF (3.2.2) |
-| `api`, GeoNature avec **pypnusershub ≥ 3.3.0** (20/10/2026) | les comptes qui ont un droit sur **GeoNature lui-même** (son `CODE_APPLICATION`, ex. `GNG`) | le droit sur l'application CICADA n'est **jamais** lu : `id_application` doit seulement exister |
-
-Par l'API, le profil sur l'application CICADA dans UsersHub ne sert donc **à rien**, et le passage de GeoNature à pypnusershub 3.3 peut retirer l'accès à une grande partie des utilisateurs du jour au lendemain (RNF : 249 comptes avec un droit sur GNG, ~920 sur CICADA). Aucune route de GeoNature ne permet de contrôler le droit sur une autre application que la sienne : d'où la source `base`.
+**Pourquoi pas l'API GeoNature** (vérification retirée, #764) : `POST <API>/auth/login` ne contrôle jamais le droit sur une autre application que GeoNature lui-même. Avec pypnusershub ≤ 3.2.x, il ne contrôle même rien (bug du filtre par application : tout compte UsersHub dont le mot de passe est bon entre — constaté sur GeoNature global RNF, 3.2.2) ; avec pypnusershub ≥ 3.3.0, il contrôle le droit sur **GeoNature** (son `CODE_APPLICATION`), l'`id_application` transmis devant seulement exister. Le profil sur l'application CICADA ne servait donc à rien, et une montée de version de GeoNature pouvait retirer l'accès à une grande partie des utilisateurs du jour au lendemain. Aucune route de GeoNature ne permet de contrôler le droit sur une autre application que la sienne, et pypnusershub, bibliothèque Flask, ne s'intègre pas à Django : CICADA refait donc sa vérification.
 
 ## Vérification par la base UsersHub {#verification-par-la-base-usershub}
 
-`GEONATURE_AUTH_SOURCE=base` : CICADA lit la base UsersHub (en général celle de GeoNature), **en lecture seule**, et refait ce que fait pypnusershub 3.3, mais sur son application :
+CICADA lit la base UsersHub (en général celle de GeoNature), **en lecture seule**, et refait ce que fait pypnusershub 3.3, mais sur son application :
 
 1. compte retrouvé par son `identifiant` (`utilisateurs.t_roles`, hors groupes) ;
 2. mot de passe vérifié : bcrypt (`pass_plus`), sinon ancien md5 (`pass`). pypnusershub réécrit un md5 juste en bcrypt ; CICADA non (lecture seule) ;
 3. profil sur l'application dont le code est `GEONATURE_AUTH_CODE_APPLICATION`, porté par le compte ou par un de ses groupes (`cor_role_app_profil` + `cor_roles`) — sinon refus 403 « n'a pas accès à CICADA » ;
-4. fiche de l'organisme lue dans `bib_organismes`. La suite (compte et organisme CICADA) est la même qu'avec l'API.
+4. fiche de l'organisme lue dans `bib_organismes`.
 
-GeoNature n'intervient plus : ni sa version, ni sa disponibilité. `GEONATURE_AUTH_URL` et `GEONATURE_AUTH_ID_APPLICATION` sont ignorés.
-
-**Compte de lecture** — créé **sur le serveur de la base UsersHub**, en root, par `cicada-usershub-lecture` (installé par le paquet, comme `cicada-prepare-db`). Le formulaire d'installation affiche la commande exacte :
+**Compte de lecture** — pour lire ces tables, CICADA a besoin d'un compte **PostgreSQL** (pas d'un compte UsersHub : rien n'est à créer dans l'interface de UsersHub). Un compte à part plutôt que celui de GeoNature, qui peut tout modifier : celui-ci ne lit que quelques colonnes et ne peut rien écrire. C'est ce que fait toute application qui lit UsersHub (pypnusershub dans GeoNature utilise la connexion de GeoNature ; d'autres outils RNF passent par `postgres_fdw` avec un compte dédié). Il est créé **sur le serveur de la base UsersHub**, en root, par `cicada-usershub-lecture` (installé par le paquet, comme `cicada-prepare-db`). Le formulaire d'installation affiche la commande exacte :
 
 ```bash
 # Base sur un autre serveur (cas de RNF) : le script est servi par l'installateur
@@ -125,7 +117,6 @@ Le script peut être relancé : il garde alors le mot de passe (`--password` pou
 
 | Variable | Rôle |
 |---|---|
-| `GEONATURE_AUTH_SOURCE` | `base` |
 | `GEONATURE_AUTH_CODE_APPLICATION` | `code_application` de CICADA dans `utilisateurs.t_applications` (ex. `CICADA`) |
 | `USERSHUB_DB_HOST` / `USERSHUB_DB_PORT` / `USERSHUB_DB_NAME` | base UsersHub |
 | `USERSHUB_DB_USER` / `USERSHUB_DB_PASSWORD` | le compte de lecture |
@@ -161,9 +152,9 @@ Le schéma `utilisateurs` est créé par les migrations de pypnusershub ; c'est 
 
 ## Instances déjà en service {#instances-en-service}
 
-**Une mise à jour ne change rien.** Sans `GEONATURE_AUTH_SOURCE` dans le `.env`, la source reste `api`, comme avant. Aucune action n'est donc obligatoire, mais le défaut de contrôle reste en place (voir [Qui peut se connecter](#qui-peut-se-connecter)). Une instance en connexion locale n'est pas concernée.
+Jusqu'à la 0.1.63, CICADA pouvait aussi vérifier les comptes par l'API GeoNature (`GEONATURE_AUTH_SOURCE=api`, `GEONATURE_AUTH_URL`, `GEONATURE_AUTH_ID_APPLICATION`). Cette vérification est **retirée** : une instance en mode GeoNature mise à jour **sans** base UsersHub configurée n'a plus aucun moyen de connexion (avertissement `authentication.W004`, qui le signale, et refus 503). **Configurer la base avant la mise à jour**, ou juste après. Une instance en connexion locale n'est pas concernée.
 
-Pour passer une instance en service à la vérification par la base, sans couper la connexion :
+Pour passer une instance en service à la vérification par la base :
 
 1. **Dans UsersHub** : l'application CICADA existe (noter son `code_application`) et les groupes qui doivent entrer y ont un profil.
 2. **Sur le serveur de la base UsersHub**, créer le compte de lecture. L'installateur reste joignable après l'installation (port 4567) et sert toujours le script :
@@ -171,29 +162,26 @@ Pour passer une instance en service à la vérification par la base, sans couper
    curl -fsSL http://<serveur-cicada>:4567/usershub-lecture.sh | sudo bash -s -- --db <base> --client <ip-cicada>
    ```
    Sinon, copier `/usr/bin/cicada-usershub-lecture` (un seul fichier, SQL compris) sur ce serveur et le lancer avec les mêmes options.
-3. **Dans `/var/lib/cicada/.env`**, ajouter les lignes affichées par le script (`GEONATURE_AUTH_CODE_APPLICATION`, `USERSHUB_DB_*`), **sans toucher encore à `GEONATURE_AUTH_SOURCE`**, puis relancer web :
+3. **Dans `/var/lib/cicada/.env`**, ajouter les lignes affichées par le script (`GEONATURE_AUTH_CODE_APPLICATION`, `USERSHUB_DB_*`). Avant de relancer web, **vérifier** qui pourra se connecter : la commande fonctionne quel que soit le mode en service, et peut se lancer dans un conteneur temporaire qui lit le nouveau `.env` :
+   ```bash
+   sudo bash -c '. /usr/share/cicada/compose-files.sh && cd /usr/share/cicada && docker compose $(compose_files_args) --env-file /var/lib/cicada/.env run --rm --no-deps --entrypoint python web manage.py verifier_usershub'
+   ```
+   La commande lit la base UsersHub et liste les comptes CICADA actifs qui seront **refusés** : pas de compte UsersHub (ni par son id, ni par son email), compte désactivé, ou pas de profil sur l'application. Elle indique aussi combien de super-utilisateurs pourront se connecter. Donner les profils manquants dans UsersHub, puis relancer la commande. Codes retour : 0 = personne n'est refusé, 1 = des comptes seraient refusés, 2 = base injoignable.
+4. **Relancer web** :
    ```bash
    sudo bash -c '. /usr/share/cicada/compose-files.sh && cd /usr/share/cicada && docker compose $(compose_files_args) --env-file /var/lib/cicada/.env up -d web'
    ```
-   La source restant `api`, rien ne change pour les utilisateurs.
-4. **Vérifier avant de basculer** :
-   ```bash
-   docker exec cicada_prod_web python manage.py verifier_usershub
-   ```
-   La commande lit la base UsersHub et liste les comptes CICADA actifs qui seraient **refusés** une fois la bascule faite : pas de compte UsersHub (ni par son id, ni par son email), compte désactivé, ou pas de profil sur l'application. Elle indique aussi combien de super-utilisateurs pourront encore se connecter. Donner les profils manquants dans UsersHub, puis relancer la commande. Codes retour : 0 = personne n'est refusé, 1 = des comptes seraient refusés, 2 = base injoignable.
-5. **Basculer** : `GEONATURE_AUTH_SOURCE=base` dans le `.env`, puis relancer web (même commande). Tester avec un compte qui a le profil (200), puis avec un compte qui ne l'a pas (« n'a pas accès à CICADA »).
-6. **Retour arrière** : `GEONATURE_AUTH_SOURCE=api` et relancer web. Les comptes CICADA ne sont pas touchés : le lien `usershub_id_role` est le même dans les deux sources.
+   Tester avec un compte qui a le profil (200), puis avec un compte qui ne l'a pas (« n'a pas accès à CICADA »). Les anciennes lignes `GEONATURE_AUTH_URL`, `GEONATURE_AUTH_ID_APPLICATION` et `GEONATURE_AUTH_SOURCE` peuvent être supprimées. Les comptes CICADA ne sont pas touchés : le lien `usershub_id_role` est le même.
 
 Parcours rejoué sur le banc VM (`packaging/vm-bench`, scénario `usershub-base`) : GeoNature et sa base sur le serveur CICADA, compte créé par le script, test du formulaire, installation, puis vraies connexions (profil par un groupe, md5, droit GeoNature seul, aucun droit, compte désactivé, base arrêtée → 502).
 
 ## ⚠️ Limites — solution transitoire, cible : Keycloak (#690)
 
-Cicada ne peut pas utiliser pypnusershub directement : c'est une bibliothèque **Flask**, liée à l'application GeoNature, inutilisable dans Django. Cicada passe donc soit par la base UsersHub (source `base`), soit par les **requêtes HTTP de l'API GeoNature** (source `api`), ce qui a un coût (les deux premiers points ne concernent que l'API) :
+Cicada ne peut pas utiliser pypnusershub directement : c'est une bibliothèque **Flask**, liée à l'application GeoNature, inutilisable dans Django. Cicada refait donc la vérification en lisant la base UsersHub, ce qui a un coût :
 
-- **Dépendance à la disponibilité de GeoNature** : GeoNature arrêté ou en maintenance = plus personne ne se connecte à Cicada (le mode est exclusif).
-- **Dépendance à la version et au format de l'API** : routes `/auth/login` et `/users/organism/<id>`, forme de la réponse, comportement en cas de refus (redirection 302 sans `Accept: application/json`). Rien de cela n'est un contrat public : une mise à jour de GeoNature peut casser la connexion. À revérifier à chaque montée de version de GeoNature (essai contre la préprod).
-- **Pas de contrôle d'accès par application** (voir plus haut) : tout compte GeoNature entre.
-- **Le mot de passe transite par le serveur Cicada** : la personne le saisit dans Cicada, qui le relaie. Avec Keycloak (OpenID Connect), elle le saisit sur la page du fournisseur d'identité et Cicada ne le voit jamais.
+- **Un accès à la base UsersHub** : compte de lecture, ligne `pg_hba.conf`, port ouvert depuis le serveur CICADA (une fois, à l'installation).
+- **Dépendance au schéma `utilisateurs`** : tables et colonnes lues (vérifiées de pypnusershub 1.6 à 3.3, [Versions testées](#versions-testees)). À revérifier quand une version de pypnusershub modifie ce schéma.
+- **Le mot de passe transite par le serveur Cicada**, qui le compare à l'empreinte. Avec Keycloak (OpenID Connect), la personne le saisit sur la page du fournisseur d'identité et Cicada ne le voit jamais.
 - **Pas de session partagée** : se connecter à GeoNature ne connecte pas à Cicada, et inversement.
 
 La cible est un **fournisseur d'identité standard (Keycloak, OpenID Connect, #690)**, qui lève ces limites. Le rattachement compte / organisme posé ici (`usershub_id_role`, uuid d'organisme) sera réutilisé : seul le moyen de vérifier l'identité changera. Il suffira d'ajouter un mode `AUTH_PROVIDER=oidc`.
@@ -202,20 +190,19 @@ La cible est un **fournisseur d'identité standard (Keycloak, OpenID Connect, #6
 
 Avant d'activer la connexion, réaligner les 4 organismes créés à la main dans CICADA qui doublonnent un organisme UsersHub : `scripts/rnf/2026-10-realignement-uuid-organismes.sql` (hors dépôt ; une seule fois). C'est un bloc `DO` unique, utilisable depuis DBeaver comme depuis psql : lancé tel quel (`appliquer := false`), il affiche le rapport avant/après puis s'interrompt sur « SIMULATION terminée » sans rien écrire ; passer `appliquer := true` après relecture. Sans ce réalignement, la première connexion d'un agent RNF créerait un second « Réserves Naturelles de France » et lui ferait perdre l'accès aux plans de son organisme.
 
-**En service depuis le 15/10/2026** (réalignement appliqué le 14/10) :
+**En service depuis le 15/10/2026** (réalignement appliqué le 14/10), par l’API GeoNature, puis par la base UsersHub (bascule du 23/10/2026) :
 
 | Réglage | Valeur |
 |---|---|
-| `GEONATURE_AUTH_URL` | `https://geonature.reserves-naturelles.org/api` (GeoNature 2.17.5) |
-| `GEONATURE_AUTH_ID_APPLICATION` | `18` |
+| `GEONATURE_AUTH_CODE_APPLICATION` | `CICADA` (application n° 18 ; jusqu'à la release, profil donné au seul `Grp_cicada` ; à la release, à `grp_all`) |
+| `USERSHUB_DB_HOST` / `USERSHUB_DB_NAME` | `10.0.30.12` / `geonature_global` (serveur de bases du GeoNature global, GeoNature 2.17.5) |
+| `USERSHUB_DB_SSLMODE` | `require` (ligne `hostssl` pour `10.0.20.13`, le serveur CICADA) |
 | `GEONATURE_AUTH_LIBELLE` | `RNF` |
-
-`API_ENDPOINT` et la version se lisent sans authentification : `curl -s <URL_APPLICATION>/api/gn_commons/config` (clés `API_ENDPOINT`, `GEONATURE_VERSION`). Vérifier aussi que **le serveur CICADA** joint cette adresse (`curl -o /dev/null -w '%{http_code}' <API>/gn_commons/config` → 200) : si GeoNature partage l'IP publique de l'instance et que le pare-feu ne fait pas de *NAT reflection*, il faut une résolution interne du nom (cf. [Hub d'exploration fédérée](hub.md), « DNS interne »).
 
 ## Code
 
-- `backend/apps/authentication/providers/usershub.py` — appels GeoNature, rattachement compte / organisme
+- `backend/apps/authentication/providers/usershub_base.py` — lecture de la base UsersHub ; `usershub.py` — rattachement compte / organisme ; commande `verifier_usershub`
 - `POST /api/auth/login-geonature/`, `GET /api/auth/mode/` — `apps/authentication/views.py` ; fermeture des routes locales : `ConnexionLocaleActive` (`providers/__init__.py`) ; vérification au démarrage : `apps/authentication/checks.py`
 - `Role.usershub_id_role` — migration `users/0012`
 - Frontend : `features/auth/login.component.*`, `AuthService.login(…, mode)` / `getLoginMode()`, `connexionLocaleGuard` (inscription, mot de passe oublié)
-- Tests : `backend/tests/integration/test_api_connexion_geonature.py`, `login.component.spec.ts`
+- Tests : `backend/tests/integration/test_api_connexion_usershub_base.py` (vrai schéma UsersHub), `test_api_connexion_geonature.py` (mode, compte, organisme), `login.component.spec.ts` ; installateur : `packaging/tests/test_install_service.py`

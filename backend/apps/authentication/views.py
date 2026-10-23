@@ -180,10 +180,11 @@ class ConnexionGeoNatureView(APIView):
             200: JetonsConnexionSchema,
             400: OpenApiResponse(response=DetailSchema, description="Identifiant ou mot de passe manquant."),
             401: OpenApiResponse(response=DetailSchema, description="Identifiants refusés par UsersHub."),
-            403: OpenApiResponse(response=DetailSchema, description="Compte désactivé, sans email, ou sans accès à l'application CICADA (source 'base', #764)."),
+            403: OpenApiResponse(response=DetailSchema, description="Compte désactivé, sans email, ou sans accès à l'application CICADA dans UsersHub (#764)."),
             404: OpenApiResponse(response=DetailSchema, description="Connexion GeoNature non activée sur cette instance."),
             429: REPONSE_429,
-            503: OpenApiResponse(response=DetailSchema, description="Annuaire GeoNature non configuré ou injoignable."),
+            502: OpenApiResponse(response=DetailSchema, description="Base UsersHub injoignable."),
+            503: OpenApiResponse(response=DetailSchema, description="Base UsersHub non configurée."),
         },
     )
     def post(self, request):
@@ -191,8 +192,8 @@ class ConnexionGeoNatureView(APIView):
             return Response({'detail': "Connexion GeoNature non activée sur cette instance."},
                             status=status.HTTP_404_NOT_FOUND)
         if not usershub.est_active():
-            logger.error("AUTH_PROVIDER=geonature sans les réglages de sa source (GEONATURE_AUTH_SOURCE=%s)",
-                         settings.GEONATURE_AUTH_SOURCE)
+            logger.error("AUTH_PROVIDER=geonature sans base UsersHub configurée (USERSHUB_DB_*, "
+                         "GEONATURE_AUTH_CODE_APPLICATION)")
             return Response({'detail': "La connexion n'est pas configurée sur cette instance. "
                                        "Contactez son administrateur."},
                             status=status.HTTP_503_SERVICE_UNAVAILABLE)

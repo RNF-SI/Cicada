@@ -73,11 +73,11 @@ services:
       - CICADA_EXPLORATION_SOURCE=${CICADA_EXPLORATION_SOURCE:-local}
       # Mode de connexion (#689) : 'local' (comptes CICADA) OU 'geonature', jamais les deux.
       - AUTH_PROVIDER=${AUTH_PROVIDER:-local}
+      # Ancienne vérification par l'API GeoNature, retirée (#764) : lue seulement
+      # pour l'avertissement de démarrage authentication.W004.
       - GEONATURE_AUTH_URL=${GEONATURE_AUTH_URL:-}
-      - GEONATURE_AUTH_ID_APPLICATION=${GEONATURE_AUTH_ID_APPLICATION:-}
       - GEONATURE_AUTH_LIBELLE=${GEONATURE_AUTH_LIBELLE:-GeoNature}
       - GEONATURE_AUTH_ORGANISMES_EXCLUS=${GEONATURE_AUTH_ORGANISMES_EXCLUS:-}
-      - GEONATURE_AUTH_SOURCE=${GEONATURE_AUTH_SOURCE:-api}
       - GEONATURE_AUTH_CODE_APPLICATION=${GEONATURE_AUTH_CODE_APPLICATION:-}
       - USERSHUB_DB_HOST=${USERSHUB_DB_HOST:-}
       - USERSHUB_DB_PORT=${USERSHUB_DB_PORT:-5432}
