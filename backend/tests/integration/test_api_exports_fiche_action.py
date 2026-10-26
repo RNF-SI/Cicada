@@ -456,3 +456,74 @@ class TestProgrammationMensuelleToutesDurees:
     @pytest.mark.parametrize('duree, extension', [(5, 1), (5, 2), (10, 2), (11, 1)])
     def test_plan_prolonge(self, duree, extension):
         self._verifier(2020, 2020 + duree - 1, extension)
+
+
+@pytest.mark.django_db
+class TestCadreSelonLaBranche:
+    """#766 — les libellés du cadre suivent la branche de l'arborescence à
+    laquelle l'action est rattachée (indicateur d'état → NE → OLT, ou
+    indicateur de pression → RA → OO), et non sa catégorie (CS ou non)."""
+
+    @pytest.fixture
+    def plan_branches(self):
+        from tests.factories.enjeux import ObjectifOperationnelFactory, ResultatAttenduFactory
+
+        plan = PlanGestionFactory(annee_debut=2024, annee_fin=2026)
+        t_etat = _nomenclature('TYPE_INDICATEUR', 'ETAT', 'État')
+        t_press = _nomenclature('TYPE_INDICATEUR', 'PRESSION', 'Pression')
+        ip = _nomenclature('CATEGORIE_ACTION_RESERVE', 'IP', 'Interventions')
+        cs = _nomenclature('CATEGORIE_ACTION_RESERVE', 'CS', 'Connaissance et suivi')
+        enjeu = EnjeuFactory(id_pg=plan)
+
+        ne = NiveauExigenceFactory(
+            libelle='Surface ≥ 120 ha',
+            id_olt=ObjectifLongTermeFactory(id_enjeu=enjeu, libelle='Maintenir les habitats'))
+        ind_etat = IndicateurFactory(id_ne=ne, type_indicateur=t_etat,
+                                     nom_indicateur='Surface en bon état')
+        met_etat = MetriqueFactory(id_indicateur=ind_etat, nom_metrique='Surface (ha)')
+
+        ra = ResultatAttenduFactory(
+            libelle='Moins de 10 % de dégâts',
+            id_oo=ObjectifOperationnelFactory(id_enjeu=enjeu, libelle='Limiter les dégâts'))
+        ind_press = IndicateurFactory(id_ne=None, id_resultat_attendu=ra, type_indicateur=t_press,
+                                      nom_indicateur='Dégâts constatés')
+        met_press = MetriqueFactory(id_indicateur=ind_press, nom_metrique='Dégâts (%)')
+
+        OperationFactory(metriques=[met_etat], id_categorie_action_reserve=ip,
+                         code_operation='IP-OLT', libelle='Gestion sur OLT')
+        OperationFactory(metriques=[met_press], id_categorie_action_reserve=cs,
+                         code_operation='CS-OO', libelle='Suivi sur OO')
+        return plan
+
+    @staticmethod
+    def _labels(ws):
+        return {ws.cell(r, 1).value: ws.cell(r, 4).value for r in range(1, ws.max_row + 1)
+                if ws.cell(r, 1).value}
+
+    def test_excel_action_ip_sur_olt(self, plan_branches):
+        wb = load_workbook(io.BytesIO(fiche.build_fiche_action_workbook(plan_branches)))
+        vals = self._labels(wb['IP-OLT'])
+        assert vals["Indicateur d'état"] == 'Surface en bon état'
+        assert vals["Niveau d'exigence"] == 'Surface ≥ 120 ha'
+        assert vals['OLT'] == 'Maintenir les habitats'
+        assert 'Indicateur de pression' not in vals
+        assert 'Objectif opérationnel' not in vals
+
+    def test_excel_action_cs_sur_oo(self, plan_branches):
+        wb = load_workbook(io.BytesIO(fiche.build_fiche_action_workbook(plan_branches)))
+        vals = self._labels(wb['CS-OO'])
+        assert vals['Indicateur de pression'] == 'Dégâts constatés'
+        assert vals['Résultats attendus'] == 'Moins de 10 % de dégâts'
+        assert vals['Objectif opérationnel'] == 'Limiter les dégâts'
+        assert "Indicateur d'état" not in vals
+
+    def test_word_action_ip_sur_olt(self, plan_branches):
+        from docx import Document
+        from apps.plans.services_export_fiche_action_word import build_fiche_action_docx
+        doc = Document(io.BytesIO(build_fiche_action_docx(plan_branches)))
+        lignes = {row.cells[-1].text: row.cells[0].text
+                  for t in doc.tables for row in t.rows}
+        assert lignes['Surface en bon état'] == "Indicateur d'état"
+        assert lignes['Maintenir les habitats'] == 'OLT'
+        assert lignes['Dégâts constatés'] == 'Indicateur de pression'
+        assert lignes['Limiter les dégâts'] == 'Objectif opérationnel'

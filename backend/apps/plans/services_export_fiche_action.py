@@ -525,11 +525,14 @@ def _cadre(op):
                  if not _is_reponse(m.id_indicateur)]
     inds = _linked_indicateurs(op)
     indicateurs, exigences, objectifs, enjeux = [], [], [], []
+    etat = pression = False
     for ind in inds:
         if not _is_reponse(ind):
             indicateurs.append(_txt(ind.nom_indicateur))
         ne = getattr(ind, "id_ne", None)
         ra = getattr(ind, "id_resultat_attendu", None)
+        etat = etat or bool(ne)
+        pression = pression or bool(ra)
         if ne:
             exigences.append(_txt(ne.libelle))
             olt = getattr(ne, "id_olt", None)
@@ -559,7 +562,30 @@ def _cadre(op):
         "exigences": uniq(exigences),
         "objectifs": uniq(objectifs),
         "enjeux": uniq(enjeux),
+        "etat": etat,
+        "pression": pression,
     }
+
+
+def cadre_labels(cadre, is_cs):
+    """Libellés des lignes « indicateur / NE-RA / OLT-OO » du cadre (#766).
+
+    Ils suivent la branche de l'arborescence où l'action est rattachée —
+    indicateur d'état → niveau d'exigence → OLT, ou indicateur de pression →
+    résultat attendu → OO — et non sa catégorie. Une action rattachée aux deux
+    branches nomme les deux ; sans rattachement, la catégorie départage
+    (CS = branche état).
+    """
+    etat, pression = cadre.get("etat"), cadre.get("pression")
+    if not etat and not pression:
+        etat, pression = is_cs, not is_cs
+    if etat and pression:
+        return ("Indicateur d'état / de pression",
+                "Niveau d'exigence / Résultats attendus",
+                "OLT / Objectif opérationnel")
+    if etat:
+        return ("Indicateur d'état", "Niveau d'exigence", "OLT")
+    return ("Indicateur de pression", "Résultats attendus", "Objectif opérationnel")
 
 
 # ---------------------------------------------------------------------------
@@ -982,9 +1008,10 @@ def _render_action(ws, op, years, *, is_cs, code_local=""):
     w.section("1) Cadre de l'action")
     cadre = _cadre(op)
     w.kv("Métriques", " ; ".join(cadre["metriques"]))
-    w.kv("Indicateur d'état" if is_cs else "Indicateur de pression", " ; ".join(cadre["indicateurs"]))
-    w.kv("Niveau d'exigence" if is_cs else "Résultats attendus", " ; ".join(cadre["exigences"]))
-    w.kv("OLT" if is_cs else "Objectif opérationnel", " ; ".join(cadre["objectifs"]))
+    l_ind, l_exig, l_obj = cadre_labels(cadre, is_cs)
+    w.kv(l_ind, " ; ".join(cadre["indicateurs"]))
+    w.kv(l_exig, " ; ".join(cadre["exigences"]))
+    w.kv(l_obj, " ; ".join(cadre["objectifs"]))
     w.kv("Enjeu", " ; ".join(cadre["enjeux"]))
 
     # ---- 2) Détails de l'opération ----

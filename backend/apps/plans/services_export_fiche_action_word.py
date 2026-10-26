@@ -258,11 +258,12 @@ def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
     # ---- 1) Cadre de l'action ----
     d.section("1) Cadre de l'action")
     cadre = fiche._cadre(op)
+    l_ind, l_exig, l_obj = fiche.cadre_labels(cadre, is_cs)
     d.kv([
         ("Métriques", " ; ".join(cadre["metriques"])),
-        ("Indicateur d'état" if is_cs else "Indicateur de pression", " ; ".join(cadre["indicateurs"])),
-        ("Niveau d'exigence" if is_cs else "Résultats attendus", " ; ".join(cadre["exigences"])),
-        ("OLT" if is_cs else "Objectif opérationnel", " ; ".join(cadre["objectifs"])),
+        (l_ind, " ; ".join(cadre["indicateurs"])),
+        (l_exig, " ; ".join(cadre["exigences"])),
+        (l_obj, " ; ".join(cadre["objectifs"])),
         ("Enjeu", " ; ".join(cadre["enjeux"])),
     ])
 
