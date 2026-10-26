@@ -112,20 +112,18 @@
   flex-direction: column;
   gap: $spacing-xxs;
 
+  // #716 — texte continu, icônes en ligne : en flex, chaque bout de texte
+  // devenait un bloc et la phrase se coupait n'importe où.
   .instructions-line {
-    display: flex;
-    align-items: center;
-    gap: $spacing-xs;
-    flex-wrap: wrap;
+    display: block;
 
     strong {
       font-weight: $font-weight-semibold;
     }
 
-    // #768 — texte traduit dans un <span> : il garde la ligne de son icône.
-    > span {
-      flex: 1 1 0;
-      min-width: 0;
+    i {
+      vertical-align: -0.1em;
+      margin-right: $spacing-xxs;
     }
   }
 
@@ -148,7 +146,9 @@
 .map-legend {
   position: absolute;
   top: $spacing-sm;
-  left: $spacing-sm;
+  // #716 — à droite des outils Leaflet (zoom, tracer, crayon, poubelle) :
+  // posée à gauche, elle recouvrait le zoom et le bouton « Tracer un contour ».
+  left: $spacing-xxl;
   z-index: 500;
   display: flex;
   flex-direction: column;
