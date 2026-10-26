@@ -2261,9 +2261,13 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       });
   }
 
-  /** #585 — Vrai si l'action est rattachée à plusieurs métriques (élément partagé). */
+  /**
+   * #585 — Vrai si l'action est rattachée à plusieurs métriques (élément partagé).
+   * #765 — compte les mêmes métriques que « Métriques associées » : celles d'un
+   * indicateur de réponse mesurent l'action, elles ne la rattachent pas.
+   */
   isOperationShared(op: Operation): boolean {
-    return (op.metriques?.length ?? 0) > 1;
+    return this.visibleMetriques(op).length > 1;
   }
 
   /**

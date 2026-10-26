@@ -3060,8 +3060,21 @@ describe('EnjeuxListComponent — partage/copie d\'une action (#585)', () => {
 
   it('isOperationShared ne vaut que pour une action liée à plusieurs métriques', () => {
     expect(component.isOperationShared({ metriques: [] } as never)).toBe(false);
-    expect(component.isOperationShared({ metriques: [{ id_metrique: 1 }] } as never)).toBe(false);
-    expect(component.isOperationShared({ metriques: [{ id_metrique: 1 }, { id_metrique: 2 }] } as never)).toBe(true);
+    // #765 — métriques nommées : le badge compte les métriques affichées.
+    expect(component.isOperationShared({ metriques: [{ id_metrique: 1, nom_metrique: 'A' }] } as never)).toBe(false);
+    expect(component.isOperationShared({
+      metriques: [{ id_metrique: 1, nom_metrique: 'A' }, { id_metrique: 2, nom_metrique: 'B' }],
+    } as never)).toBe(true);
+  });
+
+  it('#765 — une métrique d\'indicateur de réponse ne rend pas l\'action « liée à plusieurs métriques »', () => {
+    const op = {
+      metriques: [
+        { id_metrique: 1, nom_metrique: 'Surface en bon état (ha)', indicateur_type: 'ETAT' },
+        { id_metrique: 2, nom_metrique: 'Clôtures posées', indicateur_type: 'REPONSE' },
+      ],
+    } as never;
+    expect(component.isOperationShared(op)).toBe(false);
   });
 });
 
