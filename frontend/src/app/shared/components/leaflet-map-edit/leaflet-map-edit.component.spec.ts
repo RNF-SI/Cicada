@@ -97,3 +97,25 @@ describe('LeafletMapEditComponent — import de fichier (#687)', () => {
     expect(process).toHaveBeenCalled();
   });
 });
+
+// #768 — les outils de dessin restaient en anglais (« Draw a polygon », « Finish ») :
+// leaflet-draw pose ses textes sur `window.L`, pas sur le module importé.
+describe('LeafletMapEditComponent — textes des outils de dessin (#768)', () => {
+  const avant = (window as any).L;
+  afterEach(() => { (window as any).L = avant; });
+
+  it('traduit les outils de leaflet-draw posés sur window.L', () => {
+    const drawLocal = {
+      draw: { toolbar: { buttons: { polygon: 'Draw a polygon' }, finish: { text: 'Finish' } }, handlers: {} },
+      edit: { toolbar: { buttons: { edit: 'Edit layers', editDisabled: 'No layers to edit', remove: 'Delete layers', removeDisabled: 'No layers to delete' } }, handlers: {} },
+    };
+    (window as any).L = { drawLocal };
+    const comp = Object.create(LeafletMapEditComponent.prototype) as any;
+    comp.configureDrawLocale();
+    expect(drawLocal.draw.toolbar.buttons.polygon).toBe('Tracer un contour');
+    expect(drawLocal.draw.toolbar.finish.text).toBe('Terminer');
+    expect(drawLocal.edit.toolbar.buttons.edit).toBe('Modifier le contour');
+    expect(drawLocal.edit.toolbar.buttons.editDisabled).toBe('Aucun contour à modifier : tracez-en un d\'abord');
+    expect(drawLocal.edit.toolbar.buttons.remove).toBe('Supprimer le contour');
+  });
+});

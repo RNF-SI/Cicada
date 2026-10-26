@@ -38,7 +38,7 @@
       "empty": "Aucune emprise définie",
       "startDraw": "Dessiner / importer",
       "stopDraw": "Terminer",
-      "drawHint": "Dessinez un polygone sur la carte, ou importez un fichier (.geojson, .json ou .zip de shapefile en WGS84)."
+      "drawHint": "Cliquez sur « Tracer un contour » en haut à gauche de la carte, ou sur « Importer » en haut à droite pour charger un fichier (.geojson, .json ou .zip de shapefile)."
     },
     "status": {
       "active": "Actif",
@@ -110,7 +110,15 @@
     "reset": "Réinitialiser",
     "yes": "Oui",
     "no": "Non",
-    "requiredFields": "Les champs avec * sont obligatoires"
+    "requiredFields": "Les champs avec * sont obligatoires",
+    "carte": {
+      "importer": "Importer",
+      "instructions": {
+        "tracer": "<strong>« Tracer un contour »</strong> (en haut à gauche), puis cliquez point par point ; double-cliquez pour fermer.",
+        "modifier": "Contour tracé : <strong>crayon</strong> pour le modifier, <strong>poubelle</strong> pour le supprimer.",
+        "importer": "<strong>« Importer »</strong> (en haut à droite) : GeoJSON ou shapefile (.zip)."
+      }
+    }
   },
   "auth": {
     "login": {

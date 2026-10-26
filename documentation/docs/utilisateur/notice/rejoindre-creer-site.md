@@ -37,7 +37,7 @@ Il existe deux possibilités pour intégrer la donnée géospatiale d'un site lo
     - Shapefile : fichier ZIP contenant .shp, .shx, .dbf et .prj
 - Vous pouvez dessiner le contour via les outils d'édition sur la carte (Figure 19).
 
-Cliquez sur éditer une forme géométrique puis cliquez pour ajouter vos points pour délimiter votre zone. Enfin, pour finaliser le contour de votre site, double cliquez sur le dernier point.
+Cliquez sur le bouton **« Tracer un contour »** (icône polygone, sur fond bleu-vert, en haut à gauche de la carte), puis cliquez point par point pour délimiter votre zone. Pour finaliser le contour de votre site, double-cliquez sur le dernier point (ou cliquez sur le premier). Le bouton voisin « Placer un marqueur » pose le point de référence du site. Une fois le contour tracé, le **crayon** sert à le modifier et la **poubelle** à le supprimer : tant qu'aucun contour n'existe, ces deux boutons sont grisés.
 
 <figure markdown="span">
 ![Visuels d'édition cartographique de la création d'un site](../../assets/figures/fig19.webp){ loading=lazy }

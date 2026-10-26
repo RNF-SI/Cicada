@@ -28,6 +28,8 @@
         } @else {
           <i class="fi fi-rr-folder-upload"></i>
         }
+        <!-- #768 — libellé visible : l'icône seule passait inaperçue. -->
+        <span class="toolbar-btn-label">{{ 'common.carte.importer' | translate }}</span>
       </button>
       <div class="toolbar-separator"></div>
     }
@@ -57,10 +59,23 @@
         <strong>supprimer</strong> une géométrie via les outils en haut à gauche, puis cliquez sur la forme ou le marqueur à modifier ou supprimer.
       </span>
     } @else if (geometryType === 'polygon') {
+      <!-- #768 — le bandeau montrait un crayon : on cliquait sur le crayon de la
+           barre (modifier un contour existant) au lieu de « Tracer un contour ». -->
       <span class="instructions-line">
-        <i class="fi fi-rr-pencil"></i>
-        Dessinez le contour : cliquez point par point, puis double-cliquez ou cliquez sur le 1er point pour fermer
+        <i class="fi fi-rr-draw-polygon"></i>
+        <span [innerHTML]="'common.carte.instructions.tracer' | translate"></span>
       </span>
+      <span class="instructions-line instructions-edit">
+        <i class="fi fi-rr-pencil"></i>
+        <i class="fi fi-rr-trash"></i>
+        <span [innerHTML]="'common.carte.instructions.modifier' | translate"></span>
+      </span>
+      @if (enableGeometryImport && showImportButton) {
+        <span class="instructions-line instructions-edit">
+          <i class="fi fi-rr-folder-upload"></i>
+          <span [innerHTML]="'common.carte.instructions.importer' | translate"></span>
+        </span>
+      }
     } @else {
       <span class="instructions-line">
         <i class="fi fi-rr-marker"></i>

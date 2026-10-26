@@ -77,6 +77,17 @@
   i {
     font-size: 1.1rem;
   }
+
+  // #768 — libellé visible à côté de l'icône : l'icône seule passait inaperçue.
+  width: auto;
+  gap: $spacing-xxs;
+  padding: 0 $spacing-xs;
+  align-self: flex-end;
+
+  .toolbar-btn-label {
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+  }
 }
 
 .toolbar-separator {
@@ -109,6 +120,12 @@
 
     strong {
       font-weight: $font-weight-semibold;
+    }
+
+    // #768 — texte traduit dans un <span> : il garde la ligne de son icône.
+    > span {
+      flex: 1 1 0;
+      min-width: 0;
     }
   }
 
@@ -273,6 +290,28 @@
   .leaflet-draw-draw-marker {
     &:hover::before,
     &.leaflet-draw-toolbar-button-enabled::before { color: $white; }
+  }
+
+  // #768 — « Tracer un contour » (et « Placer un marqueur ») sont les actions
+  // principales : fond primary d'office, pour ne pas les confondre avec le
+  // crayon (modifier un contour existant).
+  .leaflet-draw-toolbar a.leaflet-draw-draw-polygon,
+  .leaflet-draw-toolbar a.leaflet-draw-draw-marker {
+    background-color: $primary-color;
+    &::before { color: $white; }
+  }
+
+  // #768 — crayon et poubelle sans contour à modifier : leaflet-draw les marque
+  // `leaflet-disabled`, mais rien ne le montrait — ils semblaient cliquables.
+  .leaflet-draw-toolbar a.leaflet-disabled {
+    background-color: $gray-lighter;
+    cursor: not-allowed;
+
+    &::before { color: $gray-dark; }
+
+    &:hover {
+      background-color: $gray-lighter;
+    }
   }
 
   // Édition / suppression (fond jaune au survol/actif → glyphe reste foncé lisible)

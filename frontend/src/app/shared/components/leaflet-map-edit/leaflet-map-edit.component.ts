@@ -291,7 +291,10 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
    */
   private configureDrawLocale(): void {
     try {
-      const drawLocal = (L as any).drawLocal;
+      // #768 — leaflet-draw pose ses textes sur le `L` global (window.L), pas
+      // sur l'espace de noms du module importé : lus sur celui-ci, ils restaient
+      // en anglais (« Draw a polygon », « Finish »…).
+      const drawLocal = (window as any).L?.drawLocal ?? (L as any).drawLocal;
       if (!drawLocal) return;
 
       // Toolbar draw
@@ -309,7 +312,7 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
           drawLocal.draw.toolbar.undo.text = 'Supprimer le dernier point';
         }
         if (drawLocal.draw.toolbar.buttons) {
-          drawLocal.draw.toolbar.buttons.polygon = 'Dessiner un polygone';
+          drawLocal.draw.toolbar.buttons.polygon = 'Tracer un contour';
           drawLocal.draw.toolbar.buttons.rectangle = 'Dessiner un rectangle';
           drawLocal.draw.toolbar.buttons.marker = 'Placer un marqueur';
         }
@@ -348,10 +351,10 @@ export class LeafletMapEditComponent implements OnInit, AfterViewInit, OnChanges
           drawLocal.edit.toolbar.actions.clearAll.text = 'Tout effacer';
         }
         if (drawLocal.edit.toolbar.buttons) {
-          drawLocal.edit.toolbar.buttons.edit = 'Modifier les formes';
-          drawLocal.edit.toolbar.buttons.editDisabled = 'Aucune forme à modifier';
-          drawLocal.edit.toolbar.buttons.remove = 'Supprimer les formes';
-          drawLocal.edit.toolbar.buttons.removeDisabled = 'Aucune forme à supprimer';
+          drawLocal.edit.toolbar.buttons.edit = 'Modifier le contour';
+          drawLocal.edit.toolbar.buttons.editDisabled = 'Aucun contour à modifier : tracez-en un d\'abord';
+          drawLocal.edit.toolbar.buttons.remove = 'Supprimer le contour';
+          drawLocal.edit.toolbar.buttons.removeDisabled = 'Aucun contour à supprimer';
         }
       }
 
