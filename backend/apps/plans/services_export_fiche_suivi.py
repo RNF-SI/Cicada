@@ -6,10 +6,11 @@ seules les actions dont le suivi est saisi cette année-là sont exportées. Dep
 la saisie du suivi, la fiche de l'action pour l'année ouverte (même vide).
 
 Chaque fiche met en regard, colonne « Prévu » / colonne « Réalisé » :
-identification (enjeu, OLT / OO), niveau de réalisation et mois, opérateurs et
-financeurs, temps de travail par poste, budget par poste de dépense,
-indicateurs de réponse (valeur cible / valeur saisie), emprise prévue et
-réalisée sur une même carte, commentaires.
+identification (enjeu, indicateur d'état ou de pression, OLT / OO), niveau de
+réalisation, opérateurs et financeurs, temps de travail par poste, budget par
+poste de dépense, indicateurs de réponse (valeur cible / valeur saisie),
+résultat de l'indicateur d'état ou de pression (grille des scores), emprise
+prévue et réalisée sur une même carte, commentaires.
 
 Réutilise le rédacteur, le cadre et la carte de la fiche action
 (`services_export_fiche_action`) et les postes de dépense de l'export budget
@@ -31,10 +32,13 @@ from openpyxl.utils import get_column_letter
 from . import services_export_fiche_action as fa
 
 _ZERO = Decimal(0)
-_NCOLS = 5           # A:C libellé · D prévu · E réalisé
+# A:C libellé · D:F prévu · G:I réalisé. Six colonnes de données : une par
+# palier de la grille des scores (indéterminé + 5 niveaux, #727).
+_NCOLS = 9
+_PREVU, _REALISE = (4, 6), (7, 9)
 _SANS_OBJET = "/"    # prévu annuel d'une action programmée globalement (#749)
-_MOIS = ["janv.", "févr.", "mars", "avr.", "mai", "juin",
-         "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+_SCORE_COLS = [(0, "Indéterminé", "FFDADADA")] + [
+    (lvl, fa._SCORE_LABELS[lvl], fa._SCORE_FILLS[lvl]) for lvl in range(1, 6)]
 
 
 # ---------------------------------------------------------------------------
@@ -70,14 +74,6 @@ def actions_suivies(plan, annee, operation_ids=None):
     return ops, codes
 
 
-def _mois(flags) -> str:
-    if not isinstance(flags, dict):
-        return "—"
-    mois = [_MOIS[int(m) - 1] for m, v in sorted(flags.items(), key=lambda kv: int(kv[0]))
-            if v and str(m).isdigit() and 1 <= int(m) <= 12]
-    return ", ".join(mois) or "—"
-
-
 def _rh_lignes(op, oa, real):
     """{cible: (jours prévus, jours réalisés)}, dans l'ordre de rencontre."""
     from .services_export_budget_rh import _rh_cible
@@ -103,12 +99,38 @@ def _derniere_mesure(met, annee):
             .order_by("-date_mesure", "-date_ajout").first())
 
 
+def _metriques_du_cadre(op):
+    """Métriques des indicateurs d'état / de pression de l'action (#727) :
+    celles que l'action vise, sinon toutes celles de l'indicateur."""
+    visees = {m.pk for m in op.metriques.all()}
+    out = []
+    for ind in fa._linked_indicateurs(op):
+        if fa._is_reponse(ind):
+            continue
+        mets = list(ind.metriques.all())
+        mets = [m for m in mets if m.pk in visees] or mets
+        out.extend((ind, m) for m in mets)
+    return out
+
+
+def _score(mesure, met):
+    """Palier 0 (indéterminé) à 5 d'une mesure, calculé comme à l'écran."""
+    # serializers_enjeux d'abord : importer views_indicateurs à froid bute
+    # sur le cycle serializers_indicateurs ↔ serializers_enjeux.
+    from . import serializers_enjeux  # noqa: F401
+    from .views_indicateurs import _mesure_to_score
+    try:
+        return _mesure_to_score(mesure, met) or 0
+    except Exception:
+        return 0
+
+
 # ---------------------------------------------------------------------------
 # Rendu
 # ---------------------------------------------------------------------------
 
 def _cmp(w, label, prevu, realise, *, total=False):
-    """Ligne « libellé (A:C) | prévu (D) | réalisé (E) »."""
+    """Ligne « libellé (A:C) | prévu (D:F) | réalisé (G:I) »."""
     ws = w.ws
     fill = fa._TOTAL_FILL if total else fa._SUBLABEL_FILL
     ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
@@ -116,7 +138,8 @@ def _cmp(w, label, prevu, realise, *, total=False):
     lc.fill = PatternFill("solid", fgColor=fill)
     lc.font = fa._F_TOTAL if total else fa._F_SUBLABEL
     lc.alignment = fa._AL_L
-    for col, v in ((4, prevu), (5, realise)):
+    for (col, fin), v in ((_PREVU, prevu), (_REALISE, realise)):
+        ws.merge_cells(start_row=w.r, start_column=col, end_row=w.r, end_column=fin)
         c = ws.cell(w.r, col, v if v not in (None, "") else "—")
         c.font = fa._F_TOTAL if total else fa._F_VALUE
         c.alignment = fa._AL_R if isinstance(v, str) and v[:1].isdigit() else fa._AL_L
@@ -134,7 +157,8 @@ def _cmp_header(w, label="", prevu="Prévu", realise="Réalisé"):
     lc.fill = PatternFill("solid", fgColor=fa._LABEL_FILL)
     lc.font = fa._F_LABEL
     lc.alignment = fa._AL_L
-    for col, text in ((4, prevu), (5, realise)):
+    for (col, fin), text in ((_PREVU, prevu), (_REALISE, realise)):
+        ws.merge_cells(start_row=w.r, start_column=col, end_row=w.r, end_column=fin)
         c = ws.cell(w.r, col, text)
         c.fill = PatternFill("solid", fgColor=fa._YEARHDR_FILL)
         c.font = fa._F_YEAR
@@ -142,6 +166,45 @@ def _cmp_header(w, label="", prevu="Prévu", realise="Réalisé"):
     for col in range(1, _NCOLS + 1):
         ws.cell(w.r, col).border = fa._B
     w.r += 1
+
+
+def _grille_scores(w, titre, lignes):
+    """Grille « métrique × palier » (#727) : la mesure de l'année est rangée
+    dans la colonne de son score. `lignes` : [(libellé, palier, texte)]."""
+    ws = w.ws
+    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
+    lc = ws.cell(w.r, 1, titre)
+    lc.fill = PatternFill("solid", fgColor=fa._LABEL_FILL)
+    lc.font = fa._F_LABEL
+    lc.alignment = fa._AL_L
+    for i, (_lvl, label, fill) in enumerate(_SCORE_COLS):
+        c = ws.cell(w.r, 4 + i, label)
+        c.fill = PatternFill("solid", fgColor=fill)
+        c.font = fa._F_SCOREHDR
+        c.alignment = fa._AL_C
+    for col in range(1, _NCOLS + 1):
+        ws.cell(w.r, col).border = fa._B
+    ws.row_dimensions[w.r].height = 22
+    w.r += 1
+    for label, palier, texte in lignes:
+        ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
+        lc = ws.cell(w.r, 1, label)
+        lc.fill = PatternFill("solid", fgColor=fa._SUBLABEL_FILL)
+        lc.font = fa._F_SUBLABEL
+        lc.alignment = fa._AL_L
+        if palier is None:
+            ws.merge_cells(start_row=w.r, start_column=4, end_row=w.r, end_column=_NCOLS)
+            c = ws.cell(w.r, 4, texte)
+            c.font = fa._F_VALUE
+            c.alignment = fa._AL_C
+        else:
+            c = ws.cell(w.r, 4 + palier, texte)
+            c.font = fa._F_VALUE
+            c.alignment = fa._AL_C
+            c.fill = PatternFill("solid", fgColor=_SCORE_COLS[palier][2])
+        for col in range(1, _NCOLS + 1):
+            ws.cell(w.r, col).border = fa._B
+        w.r += 1
 
 
 def _titre(w, texte, sous_titre):
@@ -162,13 +225,18 @@ def _render(ws, plan, op, annee, code):
     from .services_export_budget_rh import _budget_postes
     from .services_export_finance import build_action_finance, poste_entry_factory
 
-    for col, width in ((1, 14), (2, 14), (3, 14), (4, 34), (5, 34)):
-        ws.column_dimensions[get_column_letter(col)].width = width
+    for col in range(1, _NCOLS + 1):
+        ws.column_dimensions[get_column_letter(col)].width = 14 if col <= 3 else 12
+    # L'impression tient en largeur de page (comme la fiche action, #721).
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
     w = fa._Writer(ws, _NCOLS)
     oa = _annee(op, annee)
     real = _realisation(oa)
     globale = bool(getattr(op, "programmation_globale", False))
     cadre = fa._cadre(op)
+    l_ind, _l_exig, l_obj = fa.cadre_labels(cadre, fa._is_cs(op))
 
     _titre(w, f"FICHE DE SUIVI — {code} {fa._txt(op.libelle)} — {annee}".replace("  ", " "),
            f"Plan de gestion : {fa._txt(plan.nom)}")
@@ -177,7 +245,10 @@ def _render(ws, plan, op, annee, code):
     w.section("Identification de l'action")
     w.kv("Code action", code or "—")
     w.kv("Enjeu / FCR", " ; ".join(cadre["enjeux"]) or "—")
-    w.kv("OLT / OO", " ; ".join(cadre["objectifs"]) or "—")
+    # #727 (retour 23/10) — rappel de l'indicateur d'état ou de pression, et
+    # ligne d'objectif nommée selon la branche (#766).
+    w.kv(l_ind, " ; ".join(cadre["indicateurs"]) or "—")
+    w.kv(l_obj, " ; ".join(cadre["objectifs"]) or "—")
     priorite = getattr(op, "id_priorite", None)
     w.kv("Priorité", fa._txt(getattr(priorite, "label", "")) or "—")
     if globale:
@@ -193,9 +264,6 @@ def _render(ws, plan, op, annee, code):
     niveau = getattr(real, "id_niveau_realisation", None) if real else None
     w.kv("Niveau de réalisation", fa._txt(getattr(niveau, "label", "")) or "Non saisi")
     _cmp_header(w)
-    _cmp(w, "Mois de réalisation",
-         _mois(getattr(oa, "periodicite_mensuelle", None)) if oa else "—",
-         _mois(getattr(real, "periodicite_mensuelle_realisee", None)) if real else "—")
     _cmp(w, "Opérateurs", fa._txt(op.operateurs), fa._txt(getattr(real, "operateurs_realises", "")))
     _cmp(w, "Financeurs", fa._txt(op.financeurs), fa._txt(getattr(real, "financeurs_realises", "")))
 
@@ -238,6 +306,22 @@ def _render(ws, plan, op, annee, code):
                  f"{fa._txt(mesure.valeur)}{unite}" if mesure and fa._txt(mesure.valeur) else "—")
     else:
         w.kv("Indicateurs de réponse", "Aucun indicateur de réponse rattaché à l'action")
+
+    # --- Résultat de l'indicateur d'état / de pression (#727) ---
+    w.section(f"Résultat : {l_ind[0].lower()}{l_ind[1:]} en {annee}")
+    lignes = []
+    for ind, met in _metriques_du_cadre(op):
+        label = f"{fa._txt(met.nom_metrique)} ({fa._txt(ind.nom_indicateur)})"
+        mesure = _derniere_mesure(met, annee)
+        if mesure is None or not fa._txt(mesure.valeur):
+            lignes.append((label, None, f"Aucune mesure en {annee}"))
+            continue
+        unite = f" {fa._txt(met.unite)}" if fa._txt(getattr(met, "unite", "")) else ""
+        lignes.append((label, _score(mesure, met), f"{annee} : {fa._txt(mesure.valeur)}{unite}"))
+    if lignes:
+        _grille_scores(w, f"Scores des indicateurs ({l_ind.replace('Indicateur ', '')})", lignes)
+    else:
+        w.kv(l_ind, "Aucun indicateur d'état ou de pression rattaché à l'action")
 
     # --- Emprise ---
     w.section("Emprise")

@@ -22,6 +22,7 @@ from apps.plans.services_export_fiche_suivi import build_fiche_suivi_workbook
 from tests.factories.enjeux import (
     EnjeuFactory, IndicateurFactory, MesureFactory, MetriqueFactory, NiveauExigenceFactory,
     NomenclatureNiveauRealisationFactory, NomenclatureTypeIndicateurFactory,
+    NomenclatureTypeMetriqueFactory,
     ObjectifLongTermeFactory, ObjectifOperationnelFactory, OperationFactory,
     ResultatAttenduFactory,
 )
@@ -39,8 +40,18 @@ def plan(db):
     etat = NomenclatureTypeIndicateurFactory(cd_nomenclature='ETAT', mnemonique='ETAT', label='État')
     reponse = NomenclatureTypeIndicateurFactory(
         cd_nomenclature='REPONSE', mnemonique='REPONSE', label='Réponse')
-    met_etat = MetriqueFactory(id_indicateur=IndicateurFactory(
-        id_ne=NiveauExigenceFactory(id_olt=olt), type_indicateur=etat))
+    texte = NomenclatureTypeMetriqueFactory(cd_nomenclature='TEXTE', mnemonique='TEXTE',
+                                            label='Texte')
+    met_etat = MetriqueFactory(
+        id_indicateur=IndicateurFactory(id_ne=NiveauExigenceFactory(id_olt=olt),
+                                        type_indicateur=etat,
+                                        nom_indicateur="État des prairies"),
+        nom_metrique="Cortège floristique", type_metrique=texte, unite='',
+        score_1_label="Dégradé", score_2_label="Appauvri", score_3_label="Moyen",
+        score_4_label="Bon état", score_5_label="Optimal")
+    # #727 — une mesure dans l'année de la fiche, une autre l'année suivante.
+    MesureFactory(id_metrique=met_etat, valeur="Bon état", date_mesure=date(2024, 6, 1))
+    MesureFactory(id_metrique=met_etat, valeur="Optimal", date_mesure=date(2025, 6, 1))
     oo = ObjectifOperationnelFactory(id_enjeu=enjeu, libelle="Restaurer la fauche tardive")
     met_rep = MetriqueFactory(
         id_indicateur=IndicateurFactory(id_ne=None, nom_indicateur="Surface fauchée",
@@ -109,21 +120,45 @@ class TestClasseur:
         assert "Partiellement réalisée" in _row(rows, "Niveau de réalisation")
         operateurs = _row(rows, "Opérateurs")
         assert "Garde technicien" in operateurs and "Garde + stagiaire" in operateurs
+        # #727 — prévu en D:F (index 3), réalisé en G:I (index 6) : la fiche
+        # s'élargit à 9 colonnes pour la grille des scores (6 paliers).
         garde = next(r for r in rows if r[0] == "Garde technicien")
-        assert "10" in garde[3] and "8" in garde[4]
+        assert "10" in garde[3] and "8" in garde[6]
         salarial = _row(rows, "Coût salarial — fonctionnement")
-        assert salarial[3] == "3 000 €" and salarial[4] == "2 400 €"
+        assert salarial[3] == "3 000 €" and salarial[6] == "2 400 €"
         total = _row(rows, "Total budget")
-        assert total[3] == "3 500 €" and total[4] == "2 800 €"
+        assert total[3] == "3 500 €" and total[6] == "2 800 €"
         indic = _row(rows, "Hectares fauchés (Surface fauchée)")
         # Valeur cible / valeur saisie, suivies de l'unité de la métrique.
-        assert indic[3].startswith("12") and indic[4].startswith("9")
+        assert indic[3].startswith("12") and indic[6].startswith("9")
         assert "Fauche décalée en août." in _row(rows, "Commentaires")
         flat = [c for r in rows for c in r if isinstance(c, str)]
         assert any("Maintenir les prairies humides" in c for c in flat)
         # #766 — l'OO ne vient que de l'indicateur de réponse : il n'est plus
         # repris dans la ligne OLT, qui suit la branche de l'indicateur d'état.
         assert not any("Restaurer la fauche tardive" in c for c in flat)
+
+    def test_rappel_de_l_indicateur_d_etat(self, plan):
+        """#727 (retour 23/10) — l'indicateur d'état est rappelé en tête, et la
+        ligne d'objectif est nommée selon la branche (OLT)."""
+        _wb, rows = _texts(build_fiche_suivi_workbook(plan, 2024))
+        assert "État des prairies" in _row(rows, "Indicateur d'état")
+        assert "Maintenir les prairies humides" in _row(rows, "OLT")
+
+    def test_mois_de_realisation_retire(self, plan):
+        _wb, rows = _texts(build_fiche_suivi_workbook(plan, 2024))
+        assert not any("Mois de réalisation" in r for r in rows)
+
+    def test_resultat_de_l_indicateur_d_etat(self, plan):
+        """#727 — grille des scores : la mesure de l'année de la fiche, rangée
+        dans la colonne de son score ; pas celle d'une autre année."""
+        _wb, rows = _texts(build_fiche_suivi_workbook(plan, 2024))
+        entete = _row(rows, "Indéterminé")
+        assert entete[3:9] == ["Indéterminé", "Très mauvais", "Mauvais", "Moyen", "Bon",
+                               "Très bon"]
+        ligne = _row(rows, "Cortège floristique (État des prairies)")
+        assert ligne[7] == "2024 : Bon état"          # colonne « Bon »
+        assert not any(isinstance(c, str) and "Optimal" in c for c in ligne)
 
     def test_fiche_d_une_action_meme_sans_suivi(self, plan):
         wb, rows = _texts(build_fiche_suivi_workbook(plan, 2024, operation_ids=[plan._sans_suivi.pk]))

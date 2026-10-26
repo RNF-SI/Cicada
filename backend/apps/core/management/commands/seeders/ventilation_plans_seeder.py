@@ -391,6 +391,13 @@ _ENJEU = {
     'unite': 'ha',
     'cible': '≥ 120 ha',
     'mesures': ['112', '116', '119'],  # une par année écoulée (2 passées + courante)
+    # #727 — grille de scores (croissante) : les mesures tombent en « Moyen »
+    # puis « Bon », de quoi remplir la grille de résultat de la fiche de suivi.
+    'grille': {
+        'score_1_sup': 80, 'score_2_inf': 80, 'score_2_sup': 100,
+        'score_3_inf': 100, 'score_3_sup': 115, 'score_4_inf': 115,
+        'score_4_sup': 120, 'score_5_inf': 120,
+    },
 }
 
 _COUT_FIELDS = (
@@ -758,6 +765,7 @@ class VentilationPlansSeeder(BaseSeeder):
                 'sens_variation': 'CROISSANT',
                 'etat_reference': _ENJEU['cible'],
                 'id_utilisateur_ajout': admin,
+                **_ENJEU['grille'],
             },
         )
         for offset, valeur in enumerate(_ENJEU['mesures']):
