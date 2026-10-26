@@ -520,32 +520,44 @@ def _cadre(op):
     ont leur propre rubrique en bas de fiche et n'ont rien à faire dans la ligne
     « Indicateur d'état / de pression ». Leur chaîne NE/RA → OLT/OO → enjeu reste
     parcourue : elle porte le contexte de l'action.
+
+    #766 — les lignes NE/RA et OLT/OO ne reprennent que la chaîne des
+    indicateurs affichés dans le cadre (celle des indicateurs de réponse
+    seulement s'il n'y en a pas d'autre) : sous « OLT », pas d'OO venu d'un
+    indicateur de réponse. Les enjeux restent lus sur toutes les chaînes.
     """
     metriques = [_txt(m.nom_metrique) for m in op.metriques.all()
                  if not _is_reponse(m.id_indicateur)]
     inds = _linked_indicateurs(op)
     indicateurs, exigences, objectifs, enjeux = [], [], [], []
-    etat = pression = False
+    # #766 — branche(s) de l'action, lue(s) sur les indicateurs affichés dans
+    # le cadre (état / pression) ; ceux de réponse ne départagent qu'à défaut.
+    cadres = [i for i in inds if not _is_reponse(i)] or inds
+    etat = any(getattr(i, "id_ne", None) for i in cadres)
+    pression = any(getattr(i, "id_resultat_attendu", None) for i in cadres)
     for ind in inds:
         if not _is_reponse(ind):
             indicateurs.append(_txt(ind.nom_indicateur))
         ne = getattr(ind, "id_ne", None)
         ra = getattr(ind, "id_resultat_attendu", None)
-        etat = etat or bool(ne)
-        pression = pression or bool(ra)
+        affiche = ind in cadres
         if ne:
-            exigences.append(_txt(ne.libelle))
+            if affiche:
+                exigences.append(_txt(ne.libelle))
             olt = getattr(ne, "id_olt", None)
             if olt:
-                objectifs.append(_txt(olt.libelle))
+                if affiche:
+                    objectifs.append(_txt(olt.libelle))
                 enj = getattr(olt, "id_enjeu", None)
                 if enj:
                     enjeux.append(_txt(enj.libelle) or _txt(enj.intitule_court))
         if ra:
-            exigences.append(_txt(ra.libelle))
+            if affiche:
+                exigences.append(_txt(ra.libelle))
             oo = getattr(ra, "id_oo", None)
             if oo:
-                objectifs.append(_txt(oo.libelle))
+                if affiche:
+                    objectifs.append(_txt(oo.libelle))
                 for enj in oo_enjeux(oo):
                     enjeux.append(_txt(enj.libelle) or _txt(enj.intitule_court))
 

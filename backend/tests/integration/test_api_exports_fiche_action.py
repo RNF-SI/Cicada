@@ -489,7 +489,13 @@ class TestCadreSelonLaBranche:
                                       nom_indicateur='Dégâts constatés')
         met_press = MetriqueFactory(id_indicateur=ind_press, nom_metrique='Dégâts (%)')
 
-        OperationFactory(metriques=[met_etat], id_categorie_action_reserve=ip,
+        # Indicateur de réponse rattaché à l'OO : il a sa propre rubrique et ne
+        # doit pas faire basculer le cadre de l'action IP en « état / pression ».
+        t_rep = _nomenclature('TYPE_INDICATEUR', 'REPONSE', 'Réponse')
+        met_rep = MetriqueFactory(id_indicateur=IndicateurFactory(
+            id_ne=None, id_resultat_attendu=ra, type_indicateur=t_rep,
+            nom_indicateur='Clôtures posées'))
+        OperationFactory(metriques=[met_etat, met_rep], id_categorie_action_reserve=ip,
                          code_operation='IP-OLT', libelle='Gestion sur OLT')
         OperationFactory(metriques=[met_press], id_categorie_action_reserve=cs,
                          code_operation='CS-OO', libelle='Suivi sur OO')

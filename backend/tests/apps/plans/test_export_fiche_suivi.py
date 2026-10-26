@@ -121,7 +121,9 @@ class TestClasseur:
         assert "Fauche décalée en août." in _row(rows, "Commentaires")
         flat = [c for r in rows for c in r if isinstance(c, str)]
         assert any("Maintenir les prairies humides" in c for c in flat)
-        assert any("Restaurer la fauche tardive" in c for c in flat)
+        # #766 — l'OO ne vient que de l'indicateur de réponse : il n'est plus
+        # repris dans la ligne OLT, qui suit la branche de l'indicateur d'état.
+        assert not any("Restaurer la fauche tardive" in c for c in flat)
 
     def test_fiche_d_une_action_meme_sans_suivi(self, plan):
         wb, rows = _texts(build_fiche_suivi_workbook(plan, 2024, operation_ids=[plan._sans_suivi.pk]))
