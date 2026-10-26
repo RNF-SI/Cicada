@@ -117,3 +117,44 @@ class TestRhSuivi:
     def test_pas_dans_le_previsionnel(self, plan):
         wb = load_workbook(io.BytesIO(build_rh_previsionnel_workbook(plan)))
         assert SHEET not in wb.sheetnames
+
+
+SYNTHESE = "Synthèse par action"
+
+
+def _synthese(data: bytes):
+    wb = load_workbook(io.BytesIO(data))
+    assert SYNTHESE in wb.sheetnames, wb.sheetnames
+    return [[c.value for c in row] for row in wb[SYNTHESE].iter_rows()]
+
+
+@pytest.mark.django_db
+class TestSyntheseParAction:
+    """#754 (retour 23/10) — une ligne par action, budget total (fonctionnement
+    + investissement) ou temps total, prévu / réalisé par année et TOTAL."""
+
+    def test_budget_suivi(self, plan):
+        OperationAnnee.objects.filter(id_operation__libelle="Fauche tardive").update(
+            autre_cout_invest=Decimal('200'))
+        rows = _synthese(build_budget_suivi_workbook(plan))
+        entete = next(r for r in rows if "Libellé de l'action" in r)
+        for col in ("Enjeu / FCR", "OLT", "OO", "Code simplifié", "Code action PG"):
+            assert col in entete
+        assert "Poste de dépense" not in entete
+        actions = [r for r in rows if "Fauche tardive" in r]
+        assert len(actions) == 1   # une seule ligne par action
+        ligne = actions[0]
+        assert "Maintenir les prairies humides" in ligne
+        # 3 000 salarial + 500 prestataire + 200 investissement ; réalisé 2 400 + 400.
+        assert "3 700" in ligne and "2 800" in ligne
+        assert any(r[0] == "TOTAL" for r in rows)
+
+    def test_rh_suivi(self, plan):
+        rows = _synthese(build_rh_suivi_workbook(plan))
+        ligne = next(r for r in rows if "Fauche tardive" in r)
+        nombres = [float(c) for c in ligne if isinstance(c, str) and c.replace('.', '', 1).isdigit()]
+        assert 10.0 in nombres and 8.0 in nombres
+
+    def test_pas_dans_les_previsionnels(self, plan):
+        for build in (build_budget_previsionnel_workbook, build_rh_previsionnel_workbook):
+            assert SYNTHESE not in load_workbook(io.BytesIO(build(plan))).sheetnames

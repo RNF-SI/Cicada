@@ -472,7 +472,10 @@ def build_rh_suivi_workbook(plan) -> bytes:
 
     if pf.par_poste_suivi:
         _rh_par_poste_sheet(wb, pf, used, suivi=True)
-    # #754 — détail par action et par poste (ou temps total / organisme).
+    # #754 — synthèse (une ligne par action), puis détail par action et par
+    # poste (ou temps total / organisme).
+    _synthese_sheet(wb, pf, used, fmt=_fmt_jours, prev_attr="jours", real_attr="rjours",
+                    subtitle="RESSOURCES HUMAINES — SUIVI (jours) — synthèse par action")
     _rh_detail_sheet(wb, pf, used)
     return _save(wb)
 
@@ -554,8 +557,14 @@ def _build_budget_workbook(plan, *, suivi) -> bytes:
     # ses types de coût (sinon elle ne ferait que répéter le TOTAL).
     if pf.has_cost_detail:
         _budget_par_poste_sheet(wb, pf, used, suivi=suivi)
-    # #754 — détail par action et par poste de dépense, avec OLT / OO.
+    # #754 — synthèse (une ligne par action, fonctionnement + investissement),
+    # puis détail par action et par poste de dépense, avec OLT / OO.
     if suivi:
+        # #735 — sans type de budget, ni « fonctionnement » ni « investissement ».
+        perimetre = ("fonctionnement + investissement, tous organismes"
+                     if pf.has_type_budget else "tous organismes")
+        _synthese_sheet(wb, pf, used, fmt=_fmt_euro, prev_attr="tot", real_attr="rtot",
+                        subtitle=f"BUDGET SUIVI (€) — synthèse par action ({perimetre})")
         _budget_detail_sheet(wb, pf, used)
     return _save(wb)
 
@@ -689,20 +698,24 @@ def _plan_cost_by_year_real(pf, attr):
 # ---------------------------------------------------------------------------
 
 DETAIL_SHEET = "Détail par action"
+SYNTHESE_SHEET = "Synthèse par action"
 
 
 class _DetailMatrix:
     """Enjeu/FCR | OLT | OO | Code simplifié | Code action PG | Libellé | <détail>
-    | (Prévu, Réalisé) par année | TOTAL (Prévu, Réalisé)."""
+    | (Prévu, Réalisé) par année | TOTAL (Prévu, Réalisé).
 
-    def __init__(self, ws, years, *, fmt, detail_header):
+    Sans `detail_header`, pas de colonne de détail : une ligne par action
+    (feuille « Synthèse par action »)."""
+
+    def __init__(self, ws, years, *, fmt, detail_header=None):
         self.ws, self.years, self.fmt = ws, years, fmt
         self.headers = ["Enjeu / FCR", "OLT", "OO", "Code simplifié", "Code action PG",
-                        "Libellé de l'action", detail_header]
+                        "Libellé de l'action"] + ([detail_header] if detail_header else [])
         self.base = len(self.headers) + 1
         self.ncols = len(self.headers) + 2 * len(years) + 2
         self.r = 1
-        for c, w in enumerate((18, 28, 28, 11, 13, 36, 30), 1):
+        for c, w in enumerate((18, 28, 28, 11, 13, 36, 30)[:len(self.headers)], 1):
             ws.column_dimensions[get_column_letter(c)].width = w
         for c in range(self.base, self.ncols + 1):
             ws.column_dimensions[get_column_letter(c)].width = 10
@@ -735,7 +748,8 @@ class _DetailMatrix:
         ws, r = self.ws, self.r
         fill = _TOTAL_FILL if total else None
         font = _F_TOTAL if total else _F_CELL
-        for col, v in enumerate([*ident, detail], 1):
+        values = [*ident, detail] if len(self.headers) > len(ident) else list(ident)
+        for col, v in enumerate(values, 1):
             _set(ws, r, col, v, fill=fill, font=font, align=_AL_C if col in (4, 5) else _AL_L)
         tp = tr = _ZERO
         for i, y in enumerate(self.years):
@@ -824,6 +838,24 @@ def _budget_detail_sheet(wb, pf, used):
             m.row(ident, "Total action",
                   {y: af.year_total(y).tot for y in pf.years},
                   {y: af.year_total(y).rtot for y in pf.years}, total=True)
+    m.freeze()
+
+
+def _synthese_sheet(wb, pf, used, *, fmt, prev_attr, real_attr, subtitle):
+    """#754 (retour 23/10) — une ligne par action : son total (fonctionnement +
+    investissement, ou jours), prévu / réalisé par année, puis le TOTAL du plan.
+    Mêmes cellules que la feuille TOTAL (`af.year_total`), sans découpage."""
+    m = _DetailMatrix(wb.create_sheet(_title(SYNTHESE_SHEET, used)), pf.years, fmt=fmt)
+    m.head(_plan_title(pf.plan), subtitle)
+    pr, rr = [], []
+    for af in pf.actions:
+        prev = {y: getattr(af.year_total(y), prev_attr) for y in pf.years}
+        real = {y: getattr(af.year_total(y), real_attr) for y in pf.years}
+        if any(prev.values()) or any(real.values()):
+            m.row(_ident(af), None, prev, real)
+            pr.append(prev); rr.append(real)
+    m.row(["TOTAL", "", "", "", "", ""], None,
+          _sum_years(pr, pf.years), _sum_years(rr, pf.years), total=True)
     m.freeze()
 
 

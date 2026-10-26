@@ -124,9 +124,11 @@ class TestPlanSansVentilation:
         assert "fonctionnement" not in texte
         assert "investissement" not in texte
         assert "non ventilé" not in texte
-        # #754 — les exports de SUIVI ajoutent le détail par action.
+        # #754 — les exports de SUIVI ajoutent la synthèse puis le détail par
+        # action (retour 23/10 : une ligne par action).
         suivi = builder in (build_budget_suivi_workbook, build_rh_suivi_workbook)
-        assert wb.sheetnames == (["TOTAL", "Détail par action"] if suivi else ["TOTAL"])
+        assert wb.sheetnames == (["TOTAL", "Synthèse par action", "Détail par action"]
+                                 if suivi else ["TOTAL"])
 
     def test_totaux_inchanges(self, plan):
         _none_sans_detail(plan)
