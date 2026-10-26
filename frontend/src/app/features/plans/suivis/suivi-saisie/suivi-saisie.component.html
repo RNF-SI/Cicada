@@ -782,8 +782,8 @@
                 </tr>
                 <!-- #609 — « Périodicité réalisée » supprimée : dérivée du niveau. -->
 
-                <!-- Lignes par organisme -->
-                @for (org of organismesList(); track org.id_organisme; let orgIdx = $index) {
+                <!-- Lignes par organisme — #762 : reliées par identifiant (`orgGroup`), pas par position. -->
+                @for (org of organismesList(); track org.id_organisme) {
                   <tr class="org-header-row">
                     <td [attr.colspan]="years().length + 1">{{ org.nom }}</td>
                   </tr>
@@ -793,7 +793,7 @@
                          (coût salarial auto, prestataire, autres) fonct + invest.
                          #614 — chaque coût est précédé de son PRÉVISIONNEL, pour
                          garder la comparaison prévu / réalisé sous les yeux. -->
-                    <ng-container [formGroupName]="orgIdx">
+                    <ng-container [formGroup]="orgGroup(org.id_organisme)">
                       <!-- Fonctionnement -->
                       @if (showInvest()) {
                       <tr class="budget-subheader">
@@ -1012,7 +1012,7 @@
                       @for (y of years(); track y) {
                         <td [class.active]="y === selectedYear()">
                           @if (y === selectedYear()) {
-                            <ng-container [formGroupName]="orgIdx">
+                            <ng-container [formGroup]="orgGroup(org.id_organisme)">
                               <input type="number" min="0" step="0.01"
                                      formControlName="budget_fonctionnement_realise" placeholder="€" />
                             </ng-container>
@@ -1036,7 +1036,7 @@
                         @for (y of years(); track y) {
                           <td [class.active]="y === selectedYear()">
                             @if (y === selectedYear()) {
-                              <ng-container [formGroupName]="orgIdx">
+                              <ng-container [formGroup]="orgGroup(org.id_organisme)">
                                 <input type="number" min="0" step="0.01"
                                        formControlName="budget_investissement_realise" placeholder="€" />
                               </ng-container>

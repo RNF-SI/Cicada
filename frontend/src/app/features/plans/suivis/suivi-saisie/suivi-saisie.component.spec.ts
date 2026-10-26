@@ -1209,6 +1209,46 @@ describe('SuiviSaisieComponent — lecture d\'une année enregistrée (#762)', (
     const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
     expect(html).toContain('@for (ctrl of rhLignesFA.controls; track ctrl;');
   });
+
+  // Retour 23/10 : après « Effacer », les champs par organisme restaient grisés
+  // en saisie (ou modifiables en lecture) — reliés par position aux anciennes lignes.
+  it('budget par organisme : ligne retrouvée par identifiant, relue après reconstruction', () => {
+    const c = Object.create(SuiviSaisieComponent.prototype) as any;
+    c.fb = new FormBuilder();
+    c.form = c.fb.group({ organismes: c.fb.array([]) });
+    c.isOrgVentilation = () => true;
+    const oa = (budget: number | null) => ({
+      organismes: [
+        { id_operation_annee_organisme: 11, id_organisme: 5, realisation: { budget_fonctionnement_realise: budget } },
+        { id_operation_annee_organisme: 12, id_organisme: 9, realisation: null },
+      ],
+    });
+    c.hydrateOrganismesArray(oa(100));
+    const avant = c.orgGroup(9);
+    expect(avant.get('id_operation_annee_organisme').value).toBe(12);
+    expect(c.orgGroup(5).get('budget_fonctionnement_realise').value).toBe(100);
+
+    c.hydrateOrganismesArray(oa(null));
+    expect(c.orgGroup(9)).not.toBe(avant);
+    expect(c.orgGroup(9)).toBe(c.organismesFA.at(1));
+    expect(c.orgGroup(5).get('budget_fonctionnement_realise').value).toBeNull();
+  });
+
+  it('budget par organisme : organisme sans ligne l\'année active → champs grisés', () => {
+    const c = Object.create(SuiviSaisieComponent.prototype) as any;
+    c.fb = new FormBuilder();
+    c.form = c.fb.group({ organismes: c.fb.array([]) });
+    c.orgGroupAbsent = c.orgRealisationGroup(null);
+    c.orgGroupAbsent.disable();
+    expect(c.orgGroup(42).disabled).toBe(true);
+    expect(c.organismesFA.length).toBe(0);
+  });
+
+  it('gabarit : blocs par organisme reliés par `orgGroup`, plus par position', () => {
+    const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    expect(html).not.toContain('[formGroupName]="orgIdx"');
+    expect(html.match(/\[formGroup\]="orgGroup\(org\.id_organisme\)"/g)?.length).toBe(3);
+  });
 });
 
 // -----------------------------------------------------------------------------

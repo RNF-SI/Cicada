@@ -1636,34 +1636,58 @@ export class SuiviSaisieComponent implements OnInit {
 
     if (!this.isOrgVentilation() || !oa?.organismes?.length) return;
 
-    for (const oao of oa.organismes) {
-      const r = oao.realisation;
-      fa.push(this.fb.group({
-        id_operation_annee_organisme: [oao.id_operation_annee_organisme],
-        id_organisme: [oao.id_organisme],
-        organisme_nom: [oao.organisme_nom ?? ''],
-        // Planifié (lecture seule, exposé au template)
-        plan_budget_fonctionnement: [oao.budget_fonctionnement],
-        plan_budget_investissement: [oao.budget_investissement],
-        plan_etp: [oao.etp],
-        // Réalisé (éditable)
-        budget_fonctionnement_realise: [r?.budget_fonctionnement_realise ?? null],
-        budget_investissement_realise: [r?.budget_investissement_realise ?? null],
-        etp_realise: [r?.etp_realise ?? null],
-        // #722 — coût salarial réalisé saisi.
-        cout_salarial_realise: [r?.cout_salarial_realise ?? null],
-        cout_salarial_invest_realise: [r?.cout_salarial_invest_realise ?? null],
-        // #600 Q2b — coût stage réalisé (fonctionnement).
-        cout_stage_realise: [r?.cout_stage_realise ?? null],
-        // #608 — détail des coûts réalisés (mode ventilation maximale).
-        cout_prestataire_realise: [r?.cout_prestataire_realise ?? null],
-        autre_cout_realise: [r?.autre_cout_realise ?? null],
-        autre_cout_commentaire_realise: [r?.autre_cout_commentaire_realise ?? ''],
-        cout_prestataire_invest_realise: [r?.cout_prestataire_invest_realise ?? null],
-        autre_cout_invest_realise: [r?.autre_cout_invest_realise ?? null],
-        autre_cout_invest_commentaire_realise: [r?.autre_cout_invest_commentaire_realise ?? ''],
-      }));
-    }
+    for (const oao of oa.organismes) fa.push(this.orgRealisationGroup(oao));
+  }
+
+  /** Ligne de saisie d'un organisme : prévu (lecture) + réalisé (éditable). */
+  private orgRealisationGroup(oao: OperationAnneeOrganisme | null): FormGroup {
+    const r = oao?.realisation;
+    return this.fb.group({
+      id_operation_annee_organisme: [oao?.id_operation_annee_organisme],
+      id_organisme: [oao?.id_organisme],
+      organisme_nom: [oao?.organisme_nom ?? ''],
+      // Planifié (lecture seule, exposé au template)
+      plan_budget_fonctionnement: [oao?.budget_fonctionnement],
+      plan_budget_investissement: [oao?.budget_investissement],
+      plan_etp: [oao?.etp],
+      // Réalisé (éditable)
+      budget_fonctionnement_realise: [r?.budget_fonctionnement_realise ?? null],
+      budget_investissement_realise: [r?.budget_investissement_realise ?? null],
+      etp_realise: [r?.etp_realise ?? null],
+      // #722 — coût salarial réalisé saisi.
+      cout_salarial_realise: [r?.cout_salarial_realise ?? null],
+      cout_salarial_invest_realise: [r?.cout_salarial_invest_realise ?? null],
+      // #600 Q2b — coût stage réalisé (fonctionnement).
+      cout_stage_realise: [r?.cout_stage_realise ?? null],
+      // #608 — détail des coûts réalisés (mode ventilation maximale).
+      cout_prestataire_realise: [r?.cout_prestataire_realise ?? null],
+      autre_cout_realise: [r?.autre_cout_realise ?? null],
+      autre_cout_commentaire_realise: [r?.autre_cout_commentaire_realise ?? ''],
+      cout_prestataire_invest_realise: [r?.cout_prestataire_invest_realise ?? null],
+      autre_cout_invest_realise: [r?.autre_cout_invest_realise ?? null],
+      autre_cout_invest_commentaire_realise: [r?.autre_cout_invest_commentaire_realise ?? ''],
+    });
+  }
+
+  /** #762 — organisme sans ligne l'année active : champs grisés, jamais enregistrés. */
+  private readonly orgGroupAbsent: FormGroup = (() => {
+    const g = this.orgRealisationGroup(null);
+    g.disable();
+    return g;
+  })();
+
+  /**
+   * #762 — ligne de saisie d'un organisme pour l'année active, retrouvée par
+   * son identifiant. Le gabarit s'y relie par `[formGroup]` et non par position
+   * (`formGroupName`) : après « Effacer », les lignes sont reconstruites sans
+   * changer d'année, et les champs restaient reliés aux anciennes — hors du
+   * formulaire, donc ni verrouillés ni rouverts, et jamais enregistrés. La
+   * position ne correspondait pas non plus quand la liste des organismes
+   * (toutes années) diffère de celle de l'année.
+   */
+  orgGroup(orgId: number): FormGroup {
+    return this.organismesFA.controls.find(c => c.get('id_organisme')?.value === orgId)
+      ?? this.orgGroupAbsent;
   }
 
   // --- Totaux calculés pour le tableau ventilé (figma écran 05) ---

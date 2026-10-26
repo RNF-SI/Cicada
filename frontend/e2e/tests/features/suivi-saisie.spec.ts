@@ -289,6 +289,59 @@ test.describe('Suivi - Saisie page', () => {
     await expect(niveau).toBeDisabled();
   });
 
+  test('#762 — budget par organisme : verrou lecture / saisie après effacement', async ({ referentPage }) => {
+    // Après « Effacer », les lignes par organisme sont reconstruites sans changer
+    // d'année : leurs champs restaient reliés aux anciennes lignes — grisés en
+    // saisie, toujours modifiables en lecture, et jamais enregistrés.
+    const plan = await findVentilationValidee(referentPage, 'par organisme');
+    const op = await findOperationByCode(referentPage, plan.id_pg, '-CS1');
+    expect(op.ventilation_mode).toBe('by_org');
+    const y = new Date().getFullYear();
+    const oa = op.operation_annees.find((o: any) => o.annee === y + 1);
+    const niveau = referentPage.locator('select[formcontrolname="id_niveau_realisation"]');
+    const orgBudget = referentPage.locator('.realisation-matrix input[formcontrolname="budget_fonctionnement_realise"]');
+    const toolbar = referentPage.locator('.saisie-toolbar');
+    const enregistrer = async () => {
+      await niveau.selectOption({ index: 1 });
+      await referentPage.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+      await expect(toolbar.getByRole('button', { name: 'Modifier' })).toBeVisible({ timeout: 6000 });
+    };
+    const tousGrises = async (grise: boolean) => {
+      expect(await orgBudget.count()).toBeGreaterThan(0);
+      for (const d of await orgBudget.evaluateAll((els: HTMLInputElement[]) => els.map(e => e.disabled))) {
+        expect(d).toBe(grise);
+      }
+    };
+
+    try {
+      await referentPage.goto(`/plans/${plan.slug}/suivi-actions/saisie/${op.id_operation}/${y + 1}`);
+      await expect(orgBudget.first()).toBeEnabled({ timeout: 15000 });
+      await orgBudget.first().fill('123');
+      await enregistrer();
+      await tousGrises(true);
+
+      // Effacer → retour en saisie : tous les champs par organisme rouverts, vides.
+      await toolbar.getByRole('button', { name: `Effacer la saisie de ${y + 1}` }).click();
+      await referentPage.locator('mat-dialog-container').getByRole('button', { name: 'Effacer' }).click();
+      await expect(toolbar).toHaveCount(0, { timeout: 6000 });
+      await tousGrises(false);
+      await expect(orgBudget.first()).toHaveValue('');
+
+      // Ressaisie puis enregistrement : lecture, puis « Modifier » rouvre tout.
+      await orgBudget.first().fill('45');
+      await enregistrer();
+      await tousGrises(true);
+      await toolbar.getByRole('button', { name: 'Modifier' }).click();
+      await tousGrises(false);
+
+      // La valeur saisie après effacement a bien été enregistrée.
+      await referentPage.reload();
+      await expect(orgBudget.first()).toHaveValue(/^45(\.0+)?$/, { timeout: 15000 });
+    } finally {
+      await apiPost(referentPage, 'plans/realisations/effacer/', { id_operation_annee: oa.id_operation_annee });
+    }
+  });
+
   test('#760 — case « Déclinaison par type de poste » du temps de travail réalisé', async ({ referentPage }) => {
     const y = new Date().getFullYear();
     const caseLabel = 'Déclinaison par type de poste';
