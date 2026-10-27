@@ -47,7 +47,12 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
     plan_id: 1, plan_nom: 'Plan test', annee_min: 2026, annee_max: 2027,
     taux_realisation: counts(3, 5),
     by_categorie_action: [{ ...counts(1, 2), code: 'CS', label: 'Connaissance et suivi' }],
-    by_enjeu: [{ ...counts(2, 3), enjeu_id: 7, libelle: 'Enjeu 7' }],
+    by_enjeu: [{ ...counts(2, 3), enjeu_id: 7, libelle: 'Prairies humides', categorie: 'ENJEU', code: 'Enjeu 1' }],
+    enjeux: [
+      { enjeu_id: 7, libelle: 'Prairies humides', categorie: 'ENJEU', code: 'Enjeu 1' },
+      { enjeu_id: 8, libelle: 'Gouvernance', categorie: 'FCR', code: 'FCR 1' },
+    ],
+    organismes: [{ id_organisme: 3, nom: 'RNF' }],
     budget: {
       fonctionnement: { previsionnel: 1000, realise: 800 },
       investissement: { previsionnel: 500, realise: 0 },
@@ -64,7 +69,7 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
     plan_id: 1, plan_nom: 'Plan test', periode_min: null, periode_max: null,
     total_indicateurs: 4, indicateurs_evalues: 3, taux_evaluation_pct: 75,
     score_distribution: [{ score: 4, label: 'Bon', count: 3 }],
-    by_enjeu: [{ enjeu_id: 7, libelle: 'Enjeu 7', moyenne: 4, count: 3 }],
+    by_enjeu: [{ enjeu_id: 7, libelle: 'Prairies humides', categorie: 'ENJEU', code: 'Enjeu 1', moyenne: 4, count: 3 }],
   } as BilanIndicateursResponse;
 
   const series = {
@@ -129,9 +134,10 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
     expect(cell('plans.suivis.bilan.export.annee')?.[1]).toBe(2027);
   });
 
-  it('nomme l’enjeu filtré plutôt que « tous les enjeux »', () => {
-    component.onEnjeuFilterChange([7]);
-    expect(cell('plans.suivis.bilan.filterEnjeu')?.[1]).toBe('Enjeu 7');
+  it('nomme les enjeux filtrés plutôt que « tous les enjeux »', () => {
+    component.onEnjeuFilterChange([7, 8]);
+    expect(cell('plans.suivis.bilan.filterEnjeu')?.[1])
+      .toBe('Enjeu 1 — Prairies humides, FCR 1 — Gouvernance');
   });
 
   it('exporte les résultats des indicateurs et des actions dans le même fichier', () => {
@@ -152,7 +158,7 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
 
   it('applique le filtre enjeu à l’onglet Indicateurs (#639)', () => {
     component.onEnjeuFilterChange([7]);
-    expect(realisationService.bilanIndicateurs).toHaveBeenCalledWith(1, { enjeu_id: 7 });
+    expect(realisationService.bilanIndicateurs).toHaveBeenCalledWith(1, { enjeu_ids: [7] });
   });
 
   it('recharge les indicateurs sans filtre à la réinitialisation', () => {
@@ -160,6 +166,47 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
     realisationService.bilanIndicateurs.mockClear();
     component.filters.reset();
     expect(realisationService.bilanIndicateurs).toHaveBeenCalledWith(1, {});
+  });
+
+  describe('filtres et libellés (#753)', () => {
+    it('filtre sur plusieurs enjeux / FCR', () => {
+      component.onEnjeuFilterChange([7, 8]);
+      expect(realisationService.bilan).toHaveBeenLastCalledWith(1, { enjeu_ids: [7, 8] });
+      expect(realisationService.bilanIndicateurs).toHaveBeenLastCalledWith(1, { enjeu_ids: [7, 8] });
+    });
+
+    it('propose tous les enjeux du plan, numérotés, même une fois filtré', () => {
+      component.onEnjeuFilterChange([7]);
+      expect(component.enjeuFilterOptions().map(o => o.label)).toEqual([
+        'Enjeu 1 — Prairies humides', 'FCR 1 — Gouvernance',
+      ]);
+    });
+
+    it('branche le filtre organismes', () => {
+      expect(component.organismeFilterOptions()).toEqual([{ value: 3, label: 'RNF' }]);
+      component.onOrganismeFilterChange([3]);
+      expect(realisationService.bilan).toHaveBeenLastCalledWith(1, { organisme_ids: [3] });
+    });
+
+    it('branche le filtre par type d’indicateur (état / pression)', () => {
+      expect(component.typeIndicateurOptions().map(o => o.value)).toEqual(['ETAT', 'PRESSION']);
+      component.onTypeIndicateurFilterChange(['PRESSION']);
+      expect(realisationService.bilanIndicateurs).toHaveBeenLastCalledWith(1, { types: ['PRESSION'] });
+    });
+
+    it('nomme les enjeux « Enjeu n » dans les graphiques, le nom complet en infobulle', () => {
+      expect(component.niveauByEnjeuBars()[0]).toEqual(
+        expect.objectContaining({ label: 'Enjeu 1', title: 'Prairies humides' }));
+      expect(component.radarAxes()[0]).toEqual(
+        expect.objectContaining({ label: 'Enjeu 1', title: 'Prairies humides' }));
+    });
+
+    it('titre « Évaluation » la répartition des scores, « Taux de réalisation » le fait / pas fait', () => {
+      const titres = rows().map(r => r[0]);
+      const evaluation = titres.indexOf('plans.suivis.bilan.indic.evalTitle');
+      expect(evaluation).toBeGreaterThan(-1);
+      expect(rows()[evaluation + 1][0]).toBe('plans.suivis.bilan.indic.score');
+    });
   });
 
   it('rappelle la période couverte en portée mi-parcours', () => {
@@ -247,7 +294,7 @@ describe('PlanBilanComponent — portée du bilan', () => {
       planifiee_realisee: 0, planifiee_partielle: 0, planifiee_non_realisee: 0,
       non_planifiee_realisee: 0, non_planifiee_partielle: 0,
     },
-    by_categorie_action: [], by_enjeu: [],
+    by_categorie_action: [], by_enjeu: [], enjeux: [], organismes: [],
     budget: {
       fonctionnement: { previsionnel: 0, realise: 0 },
       investissement: { previsionnel: 0, realise: 0 },
@@ -339,7 +386,7 @@ describe('PlanBilanComponent — portée du bilan', () => {
     component.setScope('mi_parcours');
 
     expect(realisationService.bilan).toHaveBeenLastCalledWith(
-      1, { annee_min: 2020, annee_max: 2024, enjeu_id: 7 },
+      1, { annee_min: 2020, annee_max: 2024, enjeu_ids: [7] },
     );
   });
 

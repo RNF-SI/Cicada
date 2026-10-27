@@ -89,9 +89,15 @@ La page globale d'une action récapitule sa réalisation, son budget et son temp
 
 ## 4.9.3. Le bilan de la gestion
 
-Le « **Bilan de la gestion** » **synthétise les résultats du suivi du plan de gestion**, selon trois temporalités : Global, Mi-parcours (première moitié du plan) ou Annuel (une année choisie), et peut être filtré par enjeu / FCR. Les différents graphiques ou chiffres clefs sont générés automatiquement en fonction des éléments de suivi saisis (suivi des indicateurs via le tableau de bord et suivi des actions de gestion).
+Le « **Bilan de la gestion** » **synthétise les résultats du suivi du plan de gestion**, selon trois temporalités : Global, Mi-parcours (première moitié du plan) ou Annuel (une année choisie). Trois filtres, à choix multiple, affinent la lecture :
 
-- **Onglet Indicateurs** : répartition des scores, évaluation des indicateurs, évolution de la moyenne (avec minimum, maximum et écart-type) et graphique radar par enjeu.
+- **Enjeux/FCR** : un ou plusieurs enjeux et FCR ; les graphiques « par enjeu » ne montrent alors que ceux-là ;
+- **Organismes** (onglet Actions) : les actions ventilées à ces organismes, avec le budget et le temps de travail de leur seule part ;
+- **Type d'indicateur** (onglet Indicateurs) : indicateurs d'état, de pression, ou les deux (par défaut).
+
+Dans les graphiques, les enjeux sont désignés par leur numéro (« Enjeu 1 », « FCR 1 »…), comme dans l'arborescence ; le nom complet s'affiche au survol. Les différents graphiques ou chiffres clefs sont générés automatiquement en fonction des éléments de suivi saisis (suivi des indicateurs via le tableau de bord et suivi des actions de gestion).
+
+- **Onglet Indicateurs** (indicateurs d'état et de pression) : évaluation des indicateurs (répartition des scores), taux de réalisation (indicateurs évalués ou non), évolution de la moyenne (avec minimum, maximum et écart-type) et graphique radar par enjeu / FCR.
 - **Onglet Actions** : budget prévisionnel et réel (détaillé en fonctionnement et investissement si au moins une action du plan ventile par type de budget), jours de RH, taux de réalisation, niveau de réalisation par catégorie d'action, par enjeu et par année.
 - « **Exporter les résultats** » : les résultats chiffrés (fichier CSV, lisible dans Excel) ou les graphiques (image JPG), selon les filtres en cours.
 

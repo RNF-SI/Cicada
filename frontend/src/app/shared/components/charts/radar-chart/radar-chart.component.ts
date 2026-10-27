@@ -6,7 +6,7 @@ import {
 import { RadarAxis, nextChartUid, smoothPath } from '../chart.types';
 
 interface RadarPoint { x: number; y: number; color: string; value: number; label: string; }
-interface RadarAxisVm { x2: number; y2: number; labelX: number; labelY: number; anchor: string; label: string; }
+interface RadarAxisVm { x2: number; y2: number; labelX: number; labelY: number; anchor: string; label: string; title?: string; }
 
 interface RadarVm {
   /** Largeur du viewBox : disque + couronne de libellés de part et d'autre. */
@@ -69,7 +69,7 @@ interface RadarVm {
         <!-- Axes + libellés -->
         @for (a of vm.axes; track a.label) {
           <svg:line [attr.x1]="vm.cx" [attr.y1]="vm.cy" [attr.x2]="a.x2" [attr.y2]="a.y2" class="radar-axis"></svg:line>
-          <svg:text [attr.x]="a.labelX" [attr.y]="a.labelY" [attr.text-anchor]="a.anchor" class="radar-axis-label">{{ a.label }}</svg:text>
+          <svg:text [attr.x]="a.labelX" [attr.y]="a.labelY" [attr.text-anchor]="a.anchor" class="radar-axis-label">@if (a.title) {<svg:title>{{ a.title }}</svg:title>}{{ a.label }}</svg:text>
         }
 
         <!-- Polygone des valeurs -->
@@ -137,6 +137,7 @@ export class RadarChartComponent implements OnChanges {
         labelY: cy + (outer + 14) * sin + 4,
         anchor,
         label: d.label,
+        title: d.title,
       };
     });
 

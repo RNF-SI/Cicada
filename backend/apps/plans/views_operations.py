@@ -1246,7 +1246,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
           - score_distribution : counts par score 1-5 + sans donnée
           - by_enjeu : moyenne des scores par enjeu (pour le radar)
 
-        Filtres : ?enjeu_id= et la fenêtre d'années de la portée
+        Filtres : ?enjeu_id= (plusieurs : `1,2`), ?types=ETAT,PRESSION (#753 —
+        indicateurs d'état et de pression, par défaut les deux) et la fenêtre
+        d'années de la portée
         (?annee= / ?annee_min=&annee_max=, cf. `_periode_from_request`). Dans
         une fenêtre, chaque métrique est évaluée sur sa dernière mesure *de la
         période* : un indicateur mesuré uniquement hors période compte comme
@@ -1267,18 +1269,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             from .views_indicateurs import _mesure_to_score
             return _mesure_to_score(mesure, m) or 0
 
-        indicators_qs = Indicateur.objects.filter(
-            id_ne__id_olt__id_enjeu__id_pg=plan,
-        ).select_related(
-            'id_ne__id_olt__id_enjeu',
-        ).prefetch_related('metriques__mesures', 'metriques__score_blocks').distinct()
-
-        # #639 — le filtre « Enjeux/FCR » de la page Bilan doit aussi porter sur
-        # l'onglet Indicateurs (il ne s'appliquait qu'aux agrégations d'actions),
-        # sans quoi les graphiques — et leur export — ignorent le filtre en cours.
-        enjeu_id = request.query_params.get('enjeu_id')
-        if enjeu_id:
-            indicators_qs = indicators_qs.filter(id_ne__id_olt__id_enjeu=enjeu_id)
+        # #639 — le filtre « Enjeux/FCR » de la page Bilan porte aussi sur
+        # l'onglet Indicateurs. #753 — branches état ET pression, enjeux
+        # multiples, filtre par type d'indicateur.
+        from . import bilan_filtres as bf
+        enjeux_plan = bf.enjeux_du_plan(plan)
+        indicateurs = bf.indicateurs_du_plan(
+            plan, bf.types_param(request), bf.ids_param(request, 'enjeu_id'))
 
         # Portée : Global (aucune borne) / Mi-parcours (période) / Annuel.
         y0, y1, _annuel = self._periode_from_request(request)
@@ -1290,9 +1287,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             1: 'Très mauvais', 2: 'Mauvais', 3: 'Moyen', 4: 'Bon', 5: 'Très bon', 0: 'Sans donnée',
         }
         by_enjeu_scores = defaultdict(list)
-        by_enjeu_meta = {}
 
-        for ind in indicators_qs:
+        for ind, ind_enjeux in indicateurs:
             total += 1
             ind_scores = []
             for m in ind.metriques.all():
@@ -1306,23 +1302,20 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 avg = round(sum(ind_scores) / len(ind_scores))
                 score_dist[avg] += 1
                 evalues += 1
-                if ind.id_ne and ind.id_ne.id_olt and ind.id_ne.id_olt.id_enjeu:
-                    enjeu = ind.id_ne.id_olt.id_enjeu
-                    by_enjeu_scores[enjeu.id_enjeu].append(avg)
-                    by_enjeu_meta[enjeu.id_enjeu] = enjeu.libelle
+                for eid in ind_enjeux:
+                    by_enjeu_scores[eid].append(avg)
             else:
                 score_dist[0] += 1
 
+        # #753 — ordre de l'arborescence, code « Enjeu n » / « FCR n ».
         radar = [
             {
-                'enjeu_id': eid,
-                'libelle': by_enjeu_meta[eid],
-                'moyenne': round(sum(scores) / len(scores), 2),
-                'count': len(scores),
+                **e,
+                'moyenne': round(sum(by_enjeu_scores[e['enjeu_id']]) / len(by_enjeu_scores[e['enjeu_id']]), 2),
+                'count': len(by_enjeu_scores[e['enjeu_id']]),
             }
-            for eid, scores in by_enjeu_scores.items()
+            for e in enjeux_plan if by_enjeu_scores.get(e['enjeu_id'])
         ]
-        radar.sort(key=lambda x: x['libelle'])
 
         return Response({
             'plan_id': int(plan_id),
@@ -1391,9 +1384,13 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(PlanGestion, pk=plan_id)
         assert_suivi_access(request.user, plan, lecture=True)  # #610/#740 — lecture des suivis
 
-        # Filtres optionnels
-        enjeu_id = request.query_params.get('enjeu_id')
-        organisme_id = request.query_params.get('organisme_id')
+        # Filtres optionnels — #753 : enjeux / FCR et organismes à choix
+        # multiple (`?enjeu_id=1,2`), règles partagées dans `bilan_filtres`.
+        from . import bilan_filtres as bf
+        enjeu_ids = bf.ids_param(request, 'enjeu_id')
+        organisme_ids = bf.ids_param(request, 'organisme_id')
+        retenues = bf.operations_retenues(plan, enjeu_ids, organisme_ids)
+        enjeux_plan = bf.enjeux_du_plan(plan)
         # Fenêtre d'années de la portée (cf. `_periode_from_request`) :
         #  - ?annee=                  → vue « annuel ». Sans ce filtre, le bilan
         #    agrégeait toutes les années → une action « Terminée » en 2026
@@ -1418,16 +1415,15 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         ).prefetch_related(
             'id_operation_annee__organismes',
             'id_operation_annee__organismes__realisation',
-            'id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu',
+            *(f'id_operation_annee__id_operation__{p}' for p in bf.OPERATION_PREFETCH),
             # #560 — lignes RH prévisionnelles / réalisées pour l'agrégation du travail
             'id_operation_annee__rh_lignes',
             'rh_lignes',
         ).distinct()
 
-        if enjeu_id:
+        if retenues is not None:
             realisations_qs = realisations_qs.filter(
-                id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu_id=enjeu_id
-            ).distinct()
+                id_operation_annee__id_operation__in=retenues).distinct()
 
         if y0 is not None:
             realisations_qs = realisations_qs.filter(id_operation_annee__annee__gte=y0)
@@ -1447,7 +1443,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         by_categorie = defaultdict(_empty_counts)  # { (code, label): counts }
         categorie_meta = {}  # code -> label
         by_enjeu = defaultdict(_empty_counts)      # { enjeu_id: counts }
-        enjeu_meta = {}                            # enjeu_id -> libelle
+        plan_enjeu_ids = {e['enjeu_id'] for e in enjeux_plan}
+
+        def enjeux_de(op):
+            eids = bf.enjeux_operation(op) & plan_enjeu_ids
+            return eids & set(enjeu_ids) if enjeu_ids else eids
         taux_global = _empty_counts()
 
         budget_previsionnel_fonct = Decimal('0')
@@ -1471,10 +1471,12 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'ABANDONNE': 'abandonne', 'REPORTE': 'reporte',
         }
 
+        annees_suivies = set()   # #753 — (action, année) suivies, filtre organismes
         for r in realisations_qs:
             oa = r.id_operation_annee
             op = oa.id_operation
             seen_op_ids.add(op.id_operation)
+            annees_suivies.add((op.id_operation, oa.annee))
 
             # --- Comptage niveau (vue ANNUELLE uniquement) ---
             # En vue globale, le comptage est fait une fois par opération après
@@ -1498,18 +1500,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     by_categorie[cat_code][skey] += 1
 
                 # Enjeux : une op peut être rattachée à plusieurs métriques → plusieurs enjeux.
-                # On compte une fois par enjeu rattaché.
-                enjeux_set = set()
-                for m in op.metriques.all():
-                    try:
-                        enjeu = m.id_indicateur.id_ne.id_olt.id_enjeu
-                        if enjeu is None:
-                            continue
-                        enjeux_set.add(enjeu.id_enjeu)
-                        enjeu_meta[enjeu.id_enjeu] = enjeu.libelle
-                    except Exception:
-                        continue
-                for eid in enjeux_set:
+                # On compte une fois par enjeu rattaché (#753 : branches état et
+                # pression ; seuls les enjeux filtrés).
+                for eid in enjeux_de(op):
                     by_enjeu[eid][key] += 1
                     by_enjeu[eid]['total'] += 1
                     if skey:
@@ -1576,6 +1569,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             ).select_related(
                 'id_categorie_action_reserve', 'id_type_action',
                 'realisation_globale', 'realisation_globale__id_niveau_realisation',
+                'id_indicateur__type_indicateur', 'id_indicateur__id_ne__id_olt',
+                'id_indicateur__id_resultat_attendu__id_oo',
             ).prefetch_related(
                 Prefetch(
                     'operation_annees',
@@ -1583,7 +1578,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                         'realisation', 'realisation__id_niveau_realisation',
                     ),
                 ),
-                'metriques__id_indicateur__id_ne__id_olt__id_enjeu',
+                *bf.OPERATION_PREFETCH,
             )
             has_periode = y0 is not None or y1 is not None
             for op in ops_global:
@@ -1615,17 +1610,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 if skey:
                     by_categorie[cat_code][skey] += 1
 
-                enjeux_set = set()
-                for m in op.metriques.all():
-                    try:
-                        enjeu = m.id_indicateur.id_ne.id_olt.id_enjeu
-                        if enjeu is None:
-                            continue
-                        enjeux_set.add(enjeu.id_enjeu)
-                        enjeu_meta[enjeu.id_enjeu] = enjeu.libelle
-                    except Exception:
-                        continue
-                for eid in enjeux_set:
+                for eid in enjeux_de(op):
                     by_enjeu[eid][key] += 1
                     by_enjeu[eid]['total'] += 1
                     if skey:
@@ -1644,13 +1629,21 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             ],
             key=lambda x: x['code'],
         )
-        by_enjeu_list = sorted(
-            [
-                {'enjeu_id': eid, 'libelle': enjeu_meta[eid], **counts}
-                for eid, counts in by_enjeu.items()
-            ],
-            key=lambda x: x['libelle'],
-        )
+        # #753 — ordre de l'arborescence, code « Enjeu n » / « FCR n ».
+        by_enjeu_list = [
+            {**e, **by_enjeu[e['enjeu_id']]}
+            for e in enjeux_plan if e['enjeu_id'] in by_enjeu
+        ]
+
+        # #753 — filtre organismes : budget et temps de travail de leur seule
+        # part, lus dans les cellules des exports budget / RH.
+        if organisme_ids:
+            part = bf.budget_rh_organismes(
+                annees_suivies, organisme_ids, avec_globale=is_global_view)
+            budget_previsionnel_fonct, budget_previsionnel_invest = part['prev_fonct'], part['prev_invest']
+            budget_realise_fonct, budget_realise_invest = part['real_fonct'], part['real_invest']
+            rh_prev_finance, rh_prev_non_finance = part['prev_fin'], part['prev_non_fin']
+            rh_reel_finance, rh_reel_non_finance = part['real_fin'], part['real_non_fin']
 
         budget_total_prev = budget_previsionnel_fonct + budget_previsionnel_invest
         budget_total_real = budget_realise_fonct + budget_realise_invest
@@ -1672,6 +1665,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             'taux_realisation': taux_global,
             'by_categorie_action': by_categorie_list,
             'by_enjeu': by_enjeu_list,
+            # #753 — repères stables des filtres (indépendants du filtre en cours).
+            'enjeux': enjeux_plan,
+            'organismes': bf.organismes_du_plan(plan),
             'budget': {
                 'par_type': budget_par_type,
                 'fonctionnement': {
@@ -1712,7 +1708,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             `statuts` (croisé planifiée × réalisée, celui que tracent les barres
             empilées du Bilan — voir `_statut_key`)
 
-        Filtres optionnels : ?enjeu_id= (comme /bilan/) et la fenêtre d'années de
+        Filtres optionnels : ?enjeu_id=, ?organisme_id=, ?types= (comme /bilan/ et
+        /bilan-indicateurs/, #753) et la fenêtre d'années de
         la portée (?annee_min=&annee_max=) — en portée « Mi-parcours », les
         séries s'arrêtent au milieu du plan au lieu de couvrir toute sa durée.
         Le scoping suit get_queryset.
@@ -1727,7 +1724,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         plan = get_object_or_404(PlanGestion, pk=plan_id)
         # Agrégations calculées hors get_queryset() : contrôle d'accès explicite.
         assert_suivi_access(request.user, plan, lecture=True)  # #610/#740 — lecture des suivis
-        enjeu_id = request.query_params.get('enjeu_id')
+        from . import bilan_filtres as bf
+        enjeu_ids = bf.ids_param(request, 'enjeu_id')
+        organisme_ids = bf.ids_param(request, 'organisme_id')
 
         years = plan.annees_plan()  # #672 — prolongation comprise
         # Portée : restreint les séries à la fenêtre demandée (Mi-parcours).
@@ -1739,13 +1738,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # ------------------------------------------------------------------
         # 1) Évolution des scores d'indicateurs par année
         # ------------------------------------------------------------------
-        indicators_qs = Indicateur.objects.filter(
-            id_ne__id_olt__id_enjeu__id_pg=plan,
-        ).select_related('id_ne__id_olt__id_enjeu').prefetch_related(
-            'metriques__mesures', 'metriques__score_blocks',
-        ).distinct()
-        if enjeu_id:
-            indicators_qs = indicators_qs.filter(id_ne__id_olt__id_enjeu_id=enjeu_id)
+        indicators_qs = [ind for ind, _e in bf.indicateurs_du_plan(
+            plan, bf.types_param(request), enjeu_ids)]
 
         # Par année : une valeur continue par indicateur (moyenne de ses métriques,
         # chacune évaluée sur sa dernière mesure de l'année).
@@ -1790,10 +1784,10 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         ).prefetch_related(
             'id_operation_annee__rh_lignes', 'rh_lignes',
         )
-        if enjeu_id:
+        retenues = bf.operations_retenues(plan, enjeu_ids, organisme_ids)
+        if retenues is not None:
             realisations_qs = realisations_qs.filter(
-                id_operation_annee__id_operation__metriques__id_indicateur__id_ne__id_olt__id_enjeu_id=enjeu_id
-            ).distinct()
+                id_operation_annee__id_operation__in=retenues).distinct()
 
         niveau_map = {
             'NON_DEMARRE': 'non_demarre', 'EN_COURS': 'en_cours',
@@ -1806,12 +1800,14 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         rh_prev = [0.0] * n
         rh_real = [0.0] * n
         seen_oa = set()
+        annees_suivies = set()   # #753 — (action, année) suivies, filtre organismes
 
         for r in realisations_qs:
             oa = r.id_operation_annee
             i = year_index.get(oa.annee)
             if i is None:
                 continue
+            annees_suivies.add((oa.id_operation_id, oa.annee))
 
             mnem = r.id_niveau_realisation.mnemonique if r.id_niveau_realisation else None
             actions_by_year[niveau_map.get(mnem, 'inconnu')][i] += 1
@@ -1825,6 +1821,12 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     rh_prev[i] += float(rh.jours or 0)
             for rh in r.rh_lignes.all():
                 rh_real[i] += float(rh.jours or 0)
+
+        # #753 — filtre organismes : temps de travail de leur seule part.
+        if organisme_ids:
+            par_annee = bf.rh_organismes_par_annee(annees_suivies, organisme_ids)
+            rh_prev = [float(par_annee[y][0]) if y in par_annee else 0.0 for y in years]
+            rh_real = [float(par_annee[y][1]) if y in par_annee else 0.0 for y in years]
 
         return Response({
             'plan_id': int(plan_id),

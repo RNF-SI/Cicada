@@ -2437,12 +2437,10 @@
         },
         "filterEnjeu": "Enjeux/FCR",
         "filterOrganismes": "Organismes",
-        "filterIndicateurs": "Indicateurs",
+        "filterIndicateurs": "Type d'indicateur",
         "allEnjeux": "Tous les enjeux",
         "allOrganismes": "Tous les organismes",
-        "allIndicateurs": "Tous les indicateurs",
-        "orgFilterComingSoon": "Filtre par organisme — bientôt",
-        "indicFilterComingSoon": "Filtre par indicateur — bientôt",
+        "allIndicateurs": "Tous les types (état et pression)",
         "indicateursComingSoon": "Onglet Indicateurs",
         "indicateursComingSoonHint": "Les graphiques d'évaluation par indicateur (camembert, radar, histogramme) arrivent dans une prochaine itération.",
         "noIndicateurs": "Aucun indicateur saisi",
@@ -2546,6 +2544,10 @@
           "niveau": "Niveau de réalisation",
           "min": "Minimum",
           "max": "Maximum"
+        },
+        "typeIndicateur": {
+          "ETAT": "Indicateurs d'état",
+          "PRESSION": "Indicateurs de pression"
         }
       },
       "actions": {

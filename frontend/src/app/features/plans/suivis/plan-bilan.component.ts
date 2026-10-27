@@ -29,6 +29,7 @@ import {
   FilterOptionListComponent,
   FilterPanelDirective,
   FilterOption,
+  FilterValue,
 } from '../../../shared/components/filters';
 import {
   ChartCardComponent, ChartLegendComponent, DonutChartComponent,
@@ -46,7 +47,7 @@ import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.compon
 import { AdminService } from '../../../core/services/admin.service';
 import {
   RealisationService, BilanResponse, BilanCounts, BilanIndicateursResponse,
-  BilanSeriesResponse, BilanFilters, BilanPeriode,
+  BilanSeriesResponse, BilanFilters, BilanPeriode, BilanEnjeuRef, BilanTypeIndicateur,
 } from '../../../core/services/realisation.service';
 
 /**
@@ -117,10 +118,11 @@ export class PlanBilanComponent implements OnInit {
   contentTab = signal<'indicateurs' | 'actions'>('indicateurs');
   selectedYear = signal<number>(new Date().getFullYear());
 
-  /** Filtres (#592) — enjeu implémenté serveur, organisme/indicateur = jalons. */
+  /** Filtres (#592, #753) — enjeux / FCR, organismes et types d'indicateurs, à choix multiple. */
   readonly filters = createFilterSet({
     enjeu: [] as number[],
     organisme: [] as number[],
+    typeIndicateur: [] as BilanTypeIndicateur[],
   }, {
     onReset: () => this.reloadAll(),
   });
@@ -170,10 +172,26 @@ export class PlanBilanComponent implements OnInit {
     return {};
   });
 
-  enjeuOptions = computed(() => this.bilan()?.by_enjeu || []);
+  /**
+   * #753 — Tous les enjeux / FCR du plan, indépendants du filtre en cours : tirées
+   * de `by_enjeu`, les options se réduisaient à l'enjeu choisi.
+   */
+  enjeuOptions = computed<BilanEnjeuRef[]>(() => this.bilan()?.enjeux || []);
 
   enjeuFilterOptions = computed<FilterOption<number>[]>(() =>
-    this.enjeuOptions().map((e) => ({ value: e.enjeu_id, label: e.libelle })),
+    this.enjeuOptions().map((e) => ({ value: e.enjeu_id, label: this.enjeuNom(e) })),
+  );
+
+  /** #753 — Organismes auxquels au moins une action du plan est ventilée. */
+  organismeFilterOptions = computed<FilterOption<number>[]>(() =>
+    (this.bilan()?.organismes || []).map((o) => ({ value: o.id_organisme, label: o.nom })),
+  );
+
+  /** #753 — Types d'indicateurs du Bilan : état et pression. */
+  typeIndicateurOptions = computed<FilterOption<BilanTypeIndicateur>[]>(() =>
+    (['ETAT', 'PRESSION'] as BilanTypeIndicateur[]).map((t) => ({
+      value: t, label: this.translate.instant(`plans.suivis.bilan.typeIndicateur.${t}`),
+    })),
   );
 
   /** Sous-titre du hero : évite « Plan de gestion Plan de gestion … ». */
@@ -213,7 +231,10 @@ export class PlanBilanComponent implements OnInit {
   radarAxes = computed<RadarAxis[]>(() => {
     const bi = this.bilanIndicateurs();
     if (!bi) return [];
-    return bi.by_enjeu.map(e => ({ label: this.truncate(e.libelle, 16), value: e.moyenne, color: scoreColor(e.moyenne) }));
+    // #753 — « Enjeu 1 », « FCR 1 »… : les noms tronqués étaient illisibles.
+    return bi.by_enjeu.map(e => ({
+      label: e.code, title: e.libelle, value: e.moyenne, color: scoreColor(e.moyenne),
+    }));
   });
 
   // ===========================================================================
@@ -259,7 +280,8 @@ export class PlanBilanComponent implements OnInit {
   /** Barres empilées « par enjeu / FCR ». */
   niveauByEnjeuBars = computed<BarDatum[]>(() =>
     (this.bilan()?.by_enjeu || []).map(e => ({
-      label: this.truncate(e.libelle, 9),
+      label: e.code,
+      title: e.libelle,
       segments: this.buildNiveauSegments(e),
     })),
   );
@@ -273,8 +295,9 @@ export class PlanBilanComponent implements OnInit {
     })).filter(s => s.value > 0);
   }
 
-  private truncate(label: string, max: number): string {
-    return label.length > max ? label.slice(0, max - 1).trimEnd() + '…' : label;
+  /** « Enjeu 1 — Prairies humides » : code d'affichage et nom complet. */
+  private enjeuNom(e: BilanEnjeuRef): string {
+    return e.libelle ? `${e.code} — ${e.libelle}` : e.code;
   }
 
   // ===========================================================================
@@ -398,6 +421,16 @@ export class PlanBilanComponent implements OnInit {
     this.reloadAll();
   }
 
+  onOrganismeFilterChange(values: number[]): void {
+    this.filters.organisme.set(values);
+    this.reloadAll();
+  }
+
+  onTypeIndicateurFilterChange(values: BilanTypeIndicateur[]): void {
+    this.filters.typeIndicateur.set(values);
+    this.reloadAll();
+  }
+
   // ===========================================================================
   // #639 — Export des résultats du bilan (CSV) et des graphiques (JPG),
   //        filtres en cours inclus
@@ -462,11 +495,25 @@ export class PlanBilanComponent implements OnInit {
     return this.t(`plans.suivis.bilan.scope.${s === 'mi_parcours' ? 'miParcours' : s}`);
   }
 
-  /** Enjeu/FCR filtré, ou « tous les enjeux » si le filtre est vide. */
+  /** Enjeux / FCR filtrés, ou « tous les enjeux » si le filtre est vide. */
   private enjeuLabel(): string {
-    const enjeuId = this.filters.enjeu()[0];
-    if (!enjeuId) return this.t('plans.suivis.bilan.allEnjeux');
-    return this.enjeuOptions().find(e => e.enjeu_id === enjeuId)?.libelle ?? String(enjeuId);
+    return this.filterLabel(this.filters.enjeu(), this.enjeuFilterOptions(), 'plans.suivis.bilan.allEnjeux');
+  }
+
+  private organismeLabel(): string {
+    return this.filterLabel(this.filters.organisme(), this.organismeFilterOptions(),
+      'plans.suivis.bilan.allOrganismes');
+  }
+
+  private typeIndicateurLabel(): string {
+    return this.filterLabel(this.filters.typeIndicateur(), this.typeIndicateurOptions(),
+      'plans.suivis.bilan.allIndicateurs');
+  }
+
+  /** Libellés des valeurs choisies d'un filtre, séparés par des virgules. */
+  private filterLabel<T extends FilterValue>(values: T[], options: FilterOption<T>[], allKey: string): string {
+    if (!values.length) return this.t(allKey);
+    return values.map(v => options.find(o => o.value === v)?.label ?? String(v)).join(', ');
   }
 
   /**
@@ -477,6 +524,8 @@ export class PlanBilanComponent implements OnInit {
     const lines = [
       `${this.t('plans.suivis.bilan.export.portee')} : ${this.scopeLabel()}`,
       `${this.t('plans.suivis.bilan.filterEnjeu')} : ${this.enjeuLabel()}`,
+      `${this.t('plans.suivis.bilan.filterOrganismes')} : ${this.organismeLabel()}`,
+      `${this.t('plans.suivis.bilan.filterIndicateurs')} : ${this.typeIndicateurLabel()}`,
       `${this.t('plans.suivis.bilan.export.onglet')} : ${this.t(`plans.suivis.bilan.tabs.${this.contentTab()}`)}`,
     ];
     const periode = this.periodeLabel();
@@ -511,6 +560,8 @@ export class PlanBilanComponent implements OnInit {
       }
     }
     rows.push([this.t('plans.suivis.bilan.filterEnjeu'), this.enjeuLabel()]);
+    rows.push([this.t('plans.suivis.bilan.filterOrganismes'), this.organismeLabel()]);
+    rows.push([this.t('plans.suivis.bilan.filterIndicateurs'), this.typeIndicateurLabel()]);
 
     this.appendIndicateursSection(rows);
     this.appendActionsSection(rows);
@@ -525,7 +576,7 @@ export class PlanBilanComponent implements OnInit {
     rows.push([this.t('plans.suivis.bilan.indic.evalues'), bi.indicateurs_evalues]);
     rows.push([this.t('plans.suivis.bilan.export.tauxEvaluation'), bi.taux_evaluation_pct]);
 
-    rows.push([], [this.t('plans.suivis.bilan.indic.tauxTitle')]);
+    rows.push([], [this.t('plans.suivis.bilan.indic.evalTitle')]);
     rows.push([
       this.t('plans.suivis.bilan.indic.score'),
       this.t('plans.suivis.bilan.export.libelle'),
@@ -539,7 +590,7 @@ export class PlanBilanComponent implements OnInit {
       this.t('plans.suivis.bilan.indic.legendMoyenne'),
       this.t('plans.suivis.bilan.export.nbIndicateurs'),
     ]);
-    for (const e of bi.by_enjeu) rows.push([e.libelle, e.moyenne, e.count]);
+    for (const e of bi.by_enjeu) rows.push([this.enjeuNom(e), e.moyenne, e.count]);
 
     const series = this.bilanSeries();
     if (this.scope() !== 'annuel' && series && this.hasIndicEvolution()) {
@@ -597,7 +648,7 @@ export class PlanBilanComponent implements OnInit {
     rows.push([this.t('plans.suivis.bilan.filterEnjeu'), ...statutHeaders,
       this.t('plans.suivis.bilan.summary.total')]);
     for (const e of b.by_enjeu) {
-      rows.push([e.libelle, ...STATUTS.map(s => e[s.key]), e.total]);
+      rows.push([this.enjeuNom(e), ...STATUTS.map(s => e[s.key]), e.total]);
     }
 
     const series = this.bilanSeries();
@@ -636,10 +687,12 @@ export class PlanBilanComponent implements OnInit {
    */
   private bilanFilters(): BilanFilters {
     const filters: BilanFilters = { ...this.periode() };
-    const enjeuId = this.filters.enjeu()[0];
-    const organismeId = this.filters.organisme()[0];
-    if (enjeuId) filters.enjeu_id = enjeuId;
-    if (organismeId) filters.organisme_id = organismeId;
+    const enjeux = this.filters.enjeu();
+    const organismes = this.filters.organisme();
+    const types = this.filters.typeIndicateur();
+    if (enjeux.length) filters.enjeu_ids = [...enjeux];
+    if (organismes.length) filters.organisme_ids = [...organismes];
+    if (types.length) filters.types = [...types];
     return filters;
   }
 

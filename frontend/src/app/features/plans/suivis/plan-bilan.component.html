@@ -126,7 +126,8 @@
             [showReset]="filters.hasActive()"
             (reset)="filters.reset()">
 
-            <app-filter-dropdown #bilanEnjeuDd
+            <!-- #753 — choix multiple : plusieurs enjeux / FCR à la fois -->
+            <app-filter-dropdown
               testId="bilan-enjeu"
               [label]="'plans.suivis.bilan.filterEnjeu' | translate"
               [activeCount]="filters.enjeu().length">
@@ -134,41 +135,49 @@
                 <app-filter-option-list
                   testId="bilan-enjeu"
                   searchable
-                  [multiple]="false"
+                  [multiple]="true"
                   [allLabel]="'plans.suivis.bilan.allEnjeux' | translate"
                   [options]="enjeuFilterOptions()"
                   [selected]="filters.enjeu()"
-                  (selectedChange)="onEnjeuFilterChange($event)"
-                  (optionPicked)="bilanEnjeuDd.close()">
+                  (selectedChange)="onEnjeuFilterChange($event)">
                 </app-filter-option-list>
               </ng-template>
             </app-filter-dropdown>
 
-            <app-filter-dropdown
-              testId="bilan-organisme"
-              [label]="'plans.suivis.bilan.filterOrganismes' | translate">
-              <ng-template appFilterPanel>
-                <app-filter-option-list
-                  testId="bilan-organisme"
-                  [multiple]="false"
-                  [allLabel]="'plans.suivis.bilan.allOrganismes' | translate"
-                  [options]="[{ value: 'soon', label: ('plans.suivis.bilan.orgFilterComingSoon' | translate), disabled: true }]"
-                  [selected]="[]">
-                </app-filter-option-list>
-              </ng-template>
-            </app-filter-dropdown>
+            <!-- #753 — organismes : actions ventilées, budget et temps de leur part
+                 (sans effet sur les indicateurs, d'où l'onglet Actions seul) -->
+            @if (contentTab() === 'actions') {
+              <app-filter-dropdown
+                testId="bilan-organisme"
+                [label]="'plans.suivis.bilan.filterOrganismes' | translate"
+                [activeCount]="filters.organisme().length">
+                <ng-template appFilterPanel>
+                  <app-filter-option-list
+                    testId="bilan-organisme"
+                    [multiple]="true"
+                    [allLabel]="'plans.suivis.bilan.allOrganismes' | translate"
+                    [options]="organismeFilterOptions()"
+                    [selected]="filters.organisme()"
+                    (selectedChange)="onOrganismeFilterChange($event)">
+                  </app-filter-option-list>
+                </ng-template>
+              </app-filter-dropdown>
+            }
 
+            <!-- #753 — type d'indicateur : état / pression -->
             @if (contentTab() === 'indicateurs') {
               <app-filter-dropdown
                 testId="bilan-indicateur"
-                [label]="'plans.suivis.bilan.filterIndicateurs' | translate">
+                [label]="'plans.suivis.bilan.filterIndicateurs' | translate"
+                [activeCount]="filters.typeIndicateur().length">
                 <ng-template appFilterPanel>
                   <app-filter-option-list
                     testId="bilan-indicateur"
-                    [multiple]="false"
+                    [multiple]="true"
                     [allLabel]="'plans.suivis.bilan.allIndicateurs' | translate"
-                    [options]="[{ value: 'soon', label: ('plans.suivis.bilan.indicFilterComingSoon' | translate), disabled: true }]"
-                    [selected]="[]">
+                    [options]="typeIndicateurOptions()"
+                    [selected]="filters.typeIndicateur()"
+                    (selectedChange)="onTypeIndicateurFilterChange($event)">
                   </app-filter-option-list>
                 </ng-template>
               </app-filter-dropdown>
@@ -218,8 +227,8 @@
             } @else {
               <div class="chart-grid">
 
-                <!-- Donut : taux de réalisation des indicateurs -->
-                <app-chart-card [title]="'plans.suivis.bilan.indic.tauxTitle' | translate">
+                <!-- Donut : évaluation des indicateurs — répartition des scores (#753) -->
+                <app-chart-card [title]="'plans.suivis.bilan.indic.evalTitle' | translate">
                   @if (indicTauxSlices().length) {
                     <app-donut-chart [slices]="indicTauxSlices()" legendPosition="bottom" legendValue="percent"></app-donut-chart>
                   } @else {
@@ -227,8 +236,8 @@
                   }
                 </app-chart-card>
 
-                <!-- Donut : évaluation des indicateurs (fait / pas fait) -->
-                <app-chart-card [title]="'plans.suivis.bilan.indic.evalTitle' | translate">
+                <!-- Donut : taux de réalisation des indicateurs — évalués ou non (#753) -->
+                <app-chart-card [title]="'plans.suivis.bilan.indic.tauxTitle' | translate">
                   <app-donut-chart [slices]="indicEvalSlices()" legendPosition="bottom" legendValue="percent"></app-donut-chart>
                 </app-chart-card>
 

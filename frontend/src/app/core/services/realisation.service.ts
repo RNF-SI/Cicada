@@ -62,9 +62,23 @@ export interface BilanCategorie extends BilanCounts {
   label: string;
 }
 
-export interface BilanEnjeu extends BilanCounts {
+/**
+ * #753 — Repère d'un enjeu / FCR du plan : `code` est son numéro d'affichage
+ * (« Enjeu 1 », « FCR 2 »), celui des graphiques ; `libelle` passe en infobulle.
+ */
+export interface BilanEnjeuRef {
   enjeu_id: number;
   libelle: string;
+  categorie: 'ENJEU' | 'FCR';
+  code: string;
+}
+
+export interface BilanEnjeu extends BilanCounts, BilanEnjeuRef {}
+
+/** #753 — Organisme auquel au moins une action du plan est ventilée. */
+export interface BilanOrganisme {
+  id_organisme: number;
+  nom: string;
 }
 
 export interface BilanBudgetPair {
@@ -88,6 +102,10 @@ export interface BilanResponse {
   taux_realisation: BilanCounts;
   by_categorie_action: BilanCategorie[];
   by_enjeu: BilanEnjeu[];
+  /** #753 — tous les enjeux / FCR du plan, indépendants du filtre (options). */
+  enjeux: BilanEnjeuRef[];
+  /** #753 — organismes du plan (options du filtre). */
+  organismes: BilanOrganisme[];
   budget: {
     /** #735 — une action du plan ventile-t-elle par type de budget ? */
     par_type?: boolean;
@@ -98,9 +116,16 @@ export interface BilanResponse {
   rh: BilanRh;
 }
 
+/** #753 — types d'indicateurs du Bilan (les indicateurs de réponse en restent hors). */
+export type BilanTypeIndicateur = 'ETAT' | 'PRESSION';
+
 export interface BilanFilters {
-  enjeu_id?: number;
-  organisme_id?: number;
+  /** #753 — enjeux / FCR, choix multiple. */
+  enjeu_ids?: number[];
+  /** #753 — organismes, choix multiple. */
+  organisme_ids?: number[];
+  /** #753 — types d'indicateurs (onglet Indicateurs) ; absent = état et pression. */
+  types?: BilanTypeIndicateur[];
   /** Année pour la vue « annuel » du bilan. Omise = bilan global (toutes années). */
   annee?: number;
   /**
@@ -120,9 +145,7 @@ export interface BilanIndicateursScoreEntry {
   count: number;
 }
 
-export interface BilanIndicateursEnjeuEntry {
-  enjeu_id: number;
-  libelle: string;
+export interface BilanIndicateursEnjeuEntry extends BilanEnjeuRef {
   moyenne: number;      // 0..5
   count: number;        // nombre d'indicateurs agrégés
 }
@@ -202,8 +225,9 @@ export class RealisationService {
    */
   private bilanParams(filters?: BilanFilters): HttpParams {
     let params = new HttpParams();
-    if (filters?.enjeu_id) params = params.set('enjeu_id', String(filters.enjeu_id));
-    if (filters?.organisme_id) params = params.set('organisme_id', String(filters.organisme_id));
+    if (filters?.enjeu_ids?.length) params = params.set('enjeu_id', filters.enjeu_ids.join(','));
+    if (filters?.organisme_ids?.length) params = params.set('organisme_id', filters.organisme_ids.join(','));
+    if (filters?.types?.length) params = params.set('types', filters.types.join(','));
     if (filters?.annee) params = params.set('annee', String(filters.annee));
     if (filters?.annee_min) params = params.set('annee_min', String(filters.annee_min));
     if (filters?.annee_max) params = params.set('annee_max', String(filters.annee_max));
@@ -213,7 +237,7 @@ export class RealisationService {
   /** Agrégations pour l'onglet Indicateurs du Bilan (Phase 4 - Figma #4043). */
   bilanIndicateurs(
     planId: number,
-    filters?: Pick<BilanFilters, 'enjeu_id'> & BilanPeriode,
+    filters?: Pick<BilanFilters, 'enjeu_ids' | 'types'> & BilanPeriode,
   ): Observable<BilanIndicateursResponse> {
     // #639 — le filtre « Enjeux/FCR » doit aussi scoper l'onglet Indicateurs.
     return this.http.get<BilanIndicateursResponse>(
@@ -233,7 +257,7 @@ export class RealisationService {
   /** Séries par année pour les graphiques « évolution » du Bilan. */
   bilanSeries(
     planId: number,
-    filters?: Pick<BilanFilters, 'enjeu_id' | 'organisme_id'> & BilanPeriode,
+    filters?: Pick<BilanFilters, 'enjeu_ids' | 'organisme_ids' | 'types'> & BilanPeriode,
   ): Observable<BilanSeriesResponse> {
     return this.http.get<BilanSeriesResponse>(
       `${this.apiUrl}/realisations/bilan-series/${planId}/`,

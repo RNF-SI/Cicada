@@ -47,12 +47,16 @@ export interface BarSegment {
 export interface BarDatum {
   /** Libellé de l'axe X. */
   label: string;
+  /** Infobulle du libellé (ex. nom complet derrière « Enjeu 1 », #753). */
+  title?: string;
   segments: BarSegment[];
 }
 
 /** Un axe du radar (un enjeu / FCR) avec sa valeur moyenne. */
 export interface RadarAxis {
   label: string;
+  /** Infobulle du libellé (ex. nom complet derrière « Enjeu 1 », #753). */
+  title?: string;
   value: number;
   /** Couleur du point (par défaut : couleur principale). */
   color?: string;

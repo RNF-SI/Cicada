@@ -17,6 +17,7 @@ interface BarRect {
 
 interface BarColumn {
   label: string;
+  title?: string;
   labelX: number;
   rects: BarRect[];
   topLabel?: string;
@@ -79,7 +80,7 @@ interface BarVm {
           @if (col.topLabel) {
             <svg:text [attr.x]="col.topLabelX" [attr.y]="col.topLabelY" text-anchor="middle" class="bar-value">{{ col.topLabel }}</svg:text>
           }
-          <svg:text [attr.x]="col.labelX" [attr.y]="vm.plotBottom + 16" text-anchor="middle" class="bar-xlabel">{{ col.label }}</svg:text>
+          <svg:text [attr.x]="col.labelX" [attr.y]="vm.plotBottom + 16" text-anchor="middle" class="bar-xlabel">@if (col.title) {<svg:title>{{ col.title }}</svg:title>}{{ col.label }}</svg:text>
         }
 
         @if (xLabel) {
@@ -199,6 +200,7 @@ export class BarChartComponent implements OnChanges {
 
       return {
         label: d.label,
+        title: d.title,
         labelX: center,
         rects,
         topLabel: this.showValues && top !== undefined ? this.formatTick(d.segments[0]?.value ?? 0) : undefined,

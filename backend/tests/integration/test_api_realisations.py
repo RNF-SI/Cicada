@@ -669,6 +669,12 @@ class TestRealisationBilanEndpoint:
         olt_2 = ObjectifLongTermeFactory(id_enjeu=enjeu_2, libelle='OLT 2', id_utilisateur_ajout=referent)
         ne_2 = NiveauExigenceFactory(id_olt=olt_2, libelle='NE 2', id_utilisateur_ajout=referent)
         IndicateurFactory(id_ne=ne_2, nom_indicateur='Ind 2', id_utilisateur_ajout=referent)
+        # #753 — le Bilan ne compte que les indicateurs d'état et de pression :
+        # on fixe le type, que la factory tire à tour de rôle (réponse comprise).
+        from apps.plans.models_indicateurs import Indicateur
+        from tests.factories.enjeux import NomenclatureTypeIndicateurFactory
+        etat = NomenclatureTypeIndicateurFactory(cd_nomenclature='ETAT', mnemonique='ETAT', label='État')
+        Indicateur.objects.filter(id_ne__id_olt__id_enjeu__id_pg=plan).update(type_indicateur=etat)
 
         api_client.force_authenticate(user=realisation_test_data['super_admin'])
         url = f'/api/plans/realisations/bilan-indicateurs/{plan.pk}/'
