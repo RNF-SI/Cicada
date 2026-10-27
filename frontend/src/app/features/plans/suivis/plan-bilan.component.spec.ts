@@ -255,7 +255,8 @@ describe('PlanBilanComponent — export des résultats (#639)', () => {
       expect(exportedTexts()).toEqual(expect.arrayContaining([
         'plans.suivis.bilan.export.portee : plans.suivis.bilan.scope.annuel',
         'plans.suivis.bilan.export.annee : 2027',
-        'plans.suivis.bilan.filterEnjeu : Enjeu 7',
+        // #753 — l'enjeu est désigné par son code d'affichage et son nom, plus par son identifiant.
+        'plans.suivis.bilan.filterEnjeu : Enjeu 1 — Prairies humides',
         'plans.suivis.bilan.export.onglet : plans.suivis.bilan.tabs.indicateurs',
       ]));
       expect(exportedTexts()).toContain('Taux de réalisation');
