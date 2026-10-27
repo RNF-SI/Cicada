@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Injectable, inject, signal } from '@angular/core';
+import { Observable, tap } from 'rxjs';
 
 /**
  * #751 — actions dont le type est à actualiser après un passage du référentiel
@@ -65,9 +65,29 @@ export interface TypeDejaModifie {
   actualise_par: string;
 }
 
+/** Bandeau affiché sur toutes les pages tant qu'il reste des actions à actualiser. */
+export interface CompteAActualiser {
+  total: number;
+  vers: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReferentielActionsService {
   private readonly http = inject(HttpClient);
+
+  /** Actions des plans de l'utilisateur dont le type est à choisir (bandeau de l'en-tête). */
+  readonly compte = signal<CompteAActualiser | null>(null);
+
+  rafraichirCompte(): void {
+    this.http.get<CompteAActualiser>('/api/plans/referentiel-actions/a-actualiser/compte/').subscribe({
+      next: c => this.compte.set(c),
+      error: () => this.compte.set(null),
+    });
+  }
+
+  oublierCompte(): void {
+    this.compte.set(null);
+  }
 
   aActualiser(planId?: number | null): Observable<ActionsAActualiserReponse> {
     const params: Record<string, string> = planId ? { plan: String(planId) } : {};
@@ -83,6 +103,6 @@ export class ReferentielActionsService {
     return this.http.post(`/api/plans/operations/${operationId}/actualiser-type/`, {
       id_type_action: typeId,
       type_attendu: typeAttendu,
-    });
+    }).pipe(tap(() => this.rafraichirCompte()));
   }
 }

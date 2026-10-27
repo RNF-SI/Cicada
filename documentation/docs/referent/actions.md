@@ -85,7 +85,7 @@ Le référentiel des types d'action évolue : la codification Eden 62 utilisée 
 - lorsque l'ancien type a un équivalent certain ou très probable dans la nouvelle version, l'action le reçoit automatiquement, avec sa catégorie ;
 - sinon, le type de l'action est vidé : l'action devient « à actualiser ». Son ancien type reste affiché, accompagné d'une proposition issue de la table de correspondance. Une action d'inventaire ou de suivi garde son suivi.
 
-Chaque référent d'un plan concerné reçoit **une seule notification** pour l'ensemble de ses plans, « Types d'action à actualiser », qui ouvre la page du même nom. Un bandeau le rappelle aussi en haut de la page du plan, tant qu'il reste des actions à actualiser.
+Chaque référent d'un plan concerné reçoit **une seule notification** pour l'ensemble de ses plans, « Types d'action à actualiser », qui ouvre la page du même nom. Tant qu'il lui reste des actions à actualiser, un **bandeau en haut de toutes les pages** le rappelle, avec le nombre d'actions concernées et un lien « Choisir les nouveaux types » ; il ne se ferme pas et disparaît de lui-même une fois tous les types choisis. La page du plan rappelle aussi le nombre d'actions de ce plan.
 
 La page « Types d'action à actualiser » présente, plan par plan :
 

@@ -245,6 +245,17 @@ class TestActualisation:
         r = api_client.get('/api/plans/referentiel-actions/a-actualiser/')
         assert {p['id_pg'] for p in r.data['plans']} == {plans['p1'].pk}
 
+    def test_compte_pour_le_bandeau(self, api_client, referentiel, plans):
+        api_client.force_authenticate(user=plans['alice'])
+        url = '/api/plans/referentiel-actions/a-actualiser/compte/'
+        assert api_client.get(url).data == {'total': 0, 'vers': None}
+        _appliquer(referentiel, envoyer_email=False)
+        assert api_client.get(url).data == {'total': 2, 'vers': 'Test V1'}
+        api_client.force_authenticate(user=plans['bob'])   # référent du seul p1
+        assert api_client.get(url).data['total'] == 1
+        api_client.force_authenticate(user=RoleFactory())
+        assert api_client.get(url).data['total'] == 0
+
     def test_fiche_puis_formulaire(self, api_client, referentiel, plans):
         """Formulaire (plan brouillon) : le type choisi solde l'attente ; un
         `id_type_action_attendu` périmé est refusé."""

@@ -15,7 +15,7 @@ from .views_enjeux import (
     ObjectifOperationnelViewSet, ResultatAttenduViewSet,
     CorEnjeuFichierViewSet
 )
-from .views_referentiel import ActionsAActualiserView
+from .views_referentiel import ActionsAActualiserView, CompteAActualiserView
 from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet, IndicateurMesureViewSet
 from .views_operations import (
     OperationViewSet,
@@ -60,6 +60,8 @@ urlpatterns = [
     # #751 — actions dont le type est à actualiser après un passage de référentiel
     path('referentiel-actions/a-actualiser/', ActionsAActualiserView.as_view(),
          name='referentiel-actions-a-actualiser'),
+    path('referentiel-actions/a-actualiser/compte/', CompteAActualiserView.as_view(),
+         name='referentiel-actions-a-actualiser-compte'),
 
     # Routes des ViewSets (comes last)
     path('', include(router.urls)),

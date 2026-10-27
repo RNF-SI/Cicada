@@ -21,6 +21,18 @@
   </div>
 }
 
+<!-- #751 — actions dont le type d'action est à actualiser : bandeau sur toutes
+     les pages, non refermable, tant qu'il en reste. -->
+@if (typesAActualiser(); as ta) {
+  <div class="types-a-actualiser-banner" role="status" data-testid="types-a-actualiser-header">
+    <i class="fi fi-rr-list-check" aria-hidden="true"></i>
+    <span>{{ 'referentielActions.bandeauGlobal.texte' | translate:{ n: ta.total, vers: ta.vers } }}</span>
+    <a routerLink="/actions-a-actualiser" class="types-a-actualiser-banner__lien">
+      {{ 'referentielActions.bandeauGlobal.lien' | translate }}
+    </a>
+  </div>
+}
+
 <header class="header" [class.home-page]="isHomePage()" [class.with-impersonation]="isImpersonating()"
         [class.header--on-dark]="headerOnDark()" [style.background-color]="headerColor()"
         [style.--header-fg]="headerForeground()">

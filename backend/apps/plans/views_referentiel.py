@@ -190,3 +190,37 @@ ACTUALISER_TYPE_SCHEMA = extend_schema(
                403: OpenApiResponse(description="Hors des plans de l'utilisateur"),
                409: OpenApiResponse(description="Type choisi entre-temps par un autre référent")},
 )
+
+
+class CompteAActualiserSerializer(serializers.Serializer):
+    total = serializers.IntegerField()
+    vers = serializers.CharField(allow_null=True)
+
+
+class CompteAActualiserView(APIView):
+    """Nombre d'actions des plans de l'utilisateur dont le type est à choisir :
+    alimente le bandeau affiché sur toutes les pages (#751)."""
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        tags=['plans'],
+        summary="Nombre d'actions dont le type est à actualiser (#751)",
+        responses={200: CompteAActualiserSerializer},
+    )
+    def get(self, request):
+        from .models import PlanGestion
+
+        passage = (PassageReferentielActions.objects
+                   .filter(statut=PassageReferentielActions.STATUT_APPLIQUE,
+                           cible__courante=True)
+                   .select_related('cible').first())
+        if passage is None:
+            return Response({'total': 0, 'vers': None})
+        objets = passage.objets.filter(operation__isnull=False,
+                                       statut=PassageReferentielObjet.STATUT_A_ACTUALISER)
+        q = ref.plans_q_pour(request.user)
+        if q is not None:
+            objets = objets.filter(plan__in=PlanGestion.objects.filter(q))
+        return Response({'total': objets.values('operation').distinct().count(),
+                         'vers': passage.cible.libelle})

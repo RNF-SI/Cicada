@@ -20,6 +20,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
+import { ReferentielActionsService } from '../../../../core/services/referentiel-actions.service';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -172,6 +173,7 @@ export class OperationFormComponent implements OnInit {
   private readonly translate = inject(TranslateService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
+  private readonly referentielActions = inject(ReferentielActionsService);
 
   form!: FormGroup;
   isLoading = signal(false);
@@ -2491,6 +2493,11 @@ export class OperationFormComponent implements OnInit {
             { duration: 3000 }
           );
           this.enjeuService.refreshCurrentPlanEnjeux();
+          // #751 — le type choisi solde l'attente : bandeau et encadré à jour.
+          if (payload.id_type_action_attendu !== undefined && payload.id_type_action) {
+            this.existingOperation.update(op => op ? { ...op, type_action_a_actualiser: null } : op);
+            this.referentielActions.rafraichirCompte();
+          }
           if (!opts.stayOnForm) {
             // #482 — Revenir sur l'enjeu/onglet d'origine (et déployer l'action
             // modifiée) plutôt que d'utiliser location.back(), qui pouvait

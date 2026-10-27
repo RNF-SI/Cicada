@@ -5350,6 +5350,10 @@
       "bouton": "Choisir le nouveau type",
       "utiliser": "Utiliser la proposition"
     },
+    "bandeauGlobal": {
+      "texte": "Changement du référentiel des types d'action (« {{vers}} ») : {{n}} action(s) de vos plans attendent leur nouveau type.",
+      "lien": "Choisir les nouveaux types"
+    },
     "bandeau": {
       "texte": "{{n}} action(s) de ce plan attendent un nouveau type d'action après le passage au référentiel « {{vers}} ».",
       "lien": "Voir les actions à actualiser"

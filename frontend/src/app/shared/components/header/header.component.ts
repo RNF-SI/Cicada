@@ -10,6 +10,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ImpersonationGuardService } from '../../../core/services/impersonation-guard.service';
 import { ModuleService } from '../../../core/services/module.service';
 import { SettingsService } from '../../../core/services/settings.service';
+import { ReferentielActionsService } from '../../../core/services/referentiel-actions.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { filter, map } from 'rxjs/operators';
 import { NotificationBellComponent } from '../notification-bell/notification-bell.component';
@@ -126,13 +127,23 @@ export class HeaderComponent implements OnInit {
   readonly canAccessAdmin = this.authService.canAccessAdmin;
   readonly isSuperAdmin = this.authService.isSuperAdmin;
 
+  /** #751 — bandeau « types d'action à actualiser » : toutes les pages sauf la liste elle-même. */
+  private readonly referentielActions = inject(ReferentielActionsService);
+  readonly typesAActualiser = computed(() => {
+    const c = this.referentielActions.compte();
+    return c && c.total > 0 && !this.currentUrl().startsWith('/actions-a-actualiser') ? c : null;
+  });
+
   constructor() {
     // Load accessible modules when authentication state changes
     effect(() => {
       if (this.isAuthenticated()) {
         this.loadAccessibleModules();
+        // #751 — actions dont le type d'action est à actualiser (bandeau).
+        this.referentielActions.rafraichirCompte();
       } else {
         this._accessibleModuleCodes.set(new Set());
+        this.referentielActions.oublierCompte();
       }
     });
   }
