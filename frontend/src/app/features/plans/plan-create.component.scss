@@ -244,12 +244,6 @@
   width: 100%;
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $spacing-md;
-}
-
 // Form Section Box (sites, ct88)
 .form-section-box {
   padding: $spacing-sm 0;
@@ -623,10 +617,6 @@
 
   .form-card {
     padding: $spacing-md;
-  }
-
-  .form-row {
-    grid-template-columns: 1fr;
   }
 
   .action-bar {

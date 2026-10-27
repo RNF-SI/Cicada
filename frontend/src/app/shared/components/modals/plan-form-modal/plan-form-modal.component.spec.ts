@@ -370,6 +370,24 @@ describe('PlanFormModalComponent', () => {
       tick();
       expect(fixture.nativeElement.textContent).toContain('modals.planForm.validation.rangRequired');
     }));
+
+    // #527 (retour 05/07) — même défaut sur le nom : « Le nom est requis » restait
+    // affiché sous un nom rempli.
+    it('should render the name required error only when the name is empty and touched', fakeAsync(() => {
+      tick();
+
+      const nom = component.form.get('nom');
+      nom?.setValue('Plan de test');
+      nom?.markAsTouched();
+      fixture.detectChanges();
+      tick();
+      expect(fixture.nativeElement.textContent).not.toContain('modals.planForm.validation.nameRequired');
+
+      nom?.setValue('');
+      fixture.detectChanges();
+      tick();
+      expect(fixture.nativeElement.textContent).toContain('modals.planForm.validation.nameRequired');
+    }));
   });
 
   // ==================== SITE SELECTION ====================

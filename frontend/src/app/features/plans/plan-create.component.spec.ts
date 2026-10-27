@@ -323,6 +323,23 @@ describe('PlanCreateComponent', () => {
       component.form.get('ct88')?.setValue(null);
       expect(component.form.get('ct88')?.hasError('required')).toBe(true);
     });
+
+    // #527 — les messages d'erreur du nom et des années ne s'affichent que sur un
+    // champ vide ET touché (avant : toujours affichés, même sur un champ rempli).
+    it('should render required errors only for empty touched fields', () => {
+      component.form.patchValue({ nom: 'Plan de test', annee_debut: 2026, annee_fin: 2036 });
+      component.form.markAllAsTouched();
+      fixture.detectChanges();
+      let text: string = fixture.nativeElement.textContent;
+      expect(text).not.toContain('modals.planForm.validation.nameRequired');
+      expect(text).not.toContain('common.validation.required');
+
+      component.form.patchValue({ nom: '', annee_debut: null });
+      fixture.detectChanges();
+      text = fixture.nativeElement.textContent;
+      expect(text).toContain('modals.planForm.validation.nameRequired');
+      expect(text).toContain('common.validation.required');
+    });
   });
 
   // =========================================================================

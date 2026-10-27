@@ -44,14 +44,13 @@
 
         <!-- Nom du plan * -->
         <app-form-field [label]="'modals.planForm.fields.name' | translate" [required]="true">
-  <input formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
-          @if (form.get('nom')?.hasError('required')) {
-            
-          }
-  <ng-container errorSlot>
-    <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.nameRequired' | translate }}</p>
-  </ng-container>
-</app-form-field>
+          <input formControlName="nom" [placeholder]="'modals.planForm.placeholders.name' | translate">
+          <ng-container errorSlot>
+            @if (form.get('nom')?.touched && form.get('nom')?.hasError('required')) {
+              <p class="form-error-msg"><i class="fi fi-rr-exclamation"></i> {{ 'modals.planForm.validation.nameRequired' | translate }}</p>
+            }
+          </ng-container>
+        </app-form-field>
 
         <!-- Choix des sites * -->
         <div class="form-section sites-section">
@@ -129,8 +128,8 @@
           </p>
         </div>
 
-        <!-- Rang et Surface -->
-        <div class="form-row">
+        <!-- Rang et Surface (#527 : grille partagée, libellés et champs alignés) -->
+        <div class="form-row-aligned">
           <app-form-field [label]="'modals.planForm.fields.rang' | translate" [required]="true" [helpText]="'modals.planForm.hints.rang' | translate">
             <input type="number" formControlName="rang" min="1">
             <ng-container errorSlot>
@@ -143,10 +142,9 @@
             </ng-container>
           </app-form-field>
 
-          <app-form-field [label]="'modals.planForm.fields.surface' | translate" [helpText]="'modals.planForm.hints.surface' | translate">
-  <input type="number" formControlName="surface" step="0.01">
-            <span matTextSuffix>ha</span>
-</app-form-field>
+          <app-form-field [label]="'modals.planForm.fields.surface' | translate" [helpText]="'modals.planForm.hints.surface' | translate" suffix="ha">
+            <input type="number" formControlName="surface" step="0.01">
+          </app-form-field>
         </div>
 
         <!-- #506 — Chaîne de versions : rattachement modifiable (établir un lien
@@ -212,7 +210,7 @@
         </div>
 
         <!-- Année début et Année fin -->
-        <div class="form-row">
+        <div class="form-row-aligned">
           <app-form-field [label]="'modals.planForm.fields.startYear' | translate" [required]="true">
             <input type="number" formControlName="annee_debut" min="1900" max="2100">
             <ng-container errorSlot>

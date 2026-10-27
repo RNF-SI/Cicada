@@ -1040,6 +1040,50 @@ label.app-mat-label + app-form-field,
 }
 
 // ============================================
+// LIGNE DE CHAMPS ALIGNÉS (#527)
+// ============================================
+// Champs app-form-field côte à côte : une grille partagée (subgrid) aligne, d'une
+// colonne à l'autre, le libellé, l'aide, le champ de saisie et les erreurs, quelle
+// que soit la hauteur de l'aide de chacun. Une colonne par champ.
+// <div class="form-row-aligned"><app-form-field …/><app-form-field …/></div>
+.form-row-aligned {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-template-rows: repeat(5, auto);
+  column-gap: $spacing-md;
+
+  > app-form-field {
+    display: grid;
+    grid-row: span 5;
+    grid-template-rows: subgrid;
+    row-gap: 0;
+    // Annule l'espacement vertical entre champs successifs : ils sont sur la même ligne.
+    margin-top: 0;
+
+    // Le wrapper du composant s'efface : ses enfants deviennent les cellules de la grille.
+    .app-form-field { display: contents; }
+    .app-form-field__label { grid-row: 1; }
+    .app-form-field__help { grid-row: 2; margin-top: 6px; }
+    .app-form-field__control { grid-row: 3; margin-top: 6px; }
+    .app-form-field__error { grid-row: 4; margin-top: 6px; }
+    .app-form-field__error-slot { grid-row: 5; margin-top: 6px; }
+  }
+
+  @media (max-width: $breakpoint-tablet) {
+    display: block;
+
+    > app-form-field {
+      display: block;
+    }
+
+    > app-form-field + app-form-field {
+      margin-top: $spacing-lg;
+    }
+  }
+}
+
+// ============================================
 // CREATE PLAN DROPDOWN (revue design Amandine — style maquette)
 // ============================================
 // Dropdown enrichi : icône + titre + description par option.

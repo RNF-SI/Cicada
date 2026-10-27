@@ -727,6 +727,28 @@ Deux formats possibles :
 1. Texte d'aide sous le label (peut contenir un lien cliquable)
 2. Icone info (i) a cote du label avec tooltip
 
+### Champs cote a cote
+
+Plusieurs `app-form-field` sur une meme ligne : les envelopper dans `.form-row-aligned`
+(`styles.scss`, #527). Une grille partagee (`subgrid`) aligne d'une colonne a l'autre
+le label, le texte d'aide, le champ et les erreurs, meme quand les aides n'ont pas la
+meme hauteur. Une colonne par champ ; les champs s'empilent sous `$breakpoint-tablet`.
+
+```html
+<div class="form-row-aligned">
+  <app-form-field label="Rang du plan de gestion" [required]="true" helpText="…">
+    <input type="number" formControlName="rang">
+  </app-form-field>
+  <app-form-field label="Surface totale concernee" helpText="…" suffix="ha">
+    <input type="number" formControlName="surface">
+  </app-form-field>
+</div>
+```
+
+Ne pas poser deux `app-form-field` dans une simple grille `1fr 1fr` : l'espacement
+vertical global entre champs successifs (`app-form-field + app-form-field`, 24px)
+decale alors le champ de droite.
+
 ### Types de champs speciaux
 
 | Type | Description |

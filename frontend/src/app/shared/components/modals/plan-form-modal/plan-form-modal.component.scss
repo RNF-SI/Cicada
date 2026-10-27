@@ -220,25 +220,6 @@ mat-dialog-content {
   font-weight: $font-weight-bold;
 }
 
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: $spacing-md;
-
-  // #527 — Aligne les inputs des deux colonnes par le haut (label + aide) : les
-  // champs partagent la même ligne de base et les inputs restent alignés quelles
-  // que soient les erreurs affichées SOUS un champ (ex : « Rang » invalide).
-  // Remplace le hack #509 (stretch + margin-top:auto) qui, lui, alignait sur le
-  // BAS du champ le plus haut et poussait donc l'input voisin sous les erreurs.
-  align-items: start;
-}
-
-.form-row-3 {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: $spacing-md;
-}
-
 .full-width {
   width: 100%;
 }
@@ -456,11 +437,6 @@ mat-dialog-actions {
 }
 
 @media (max-width: $breakpoint-tablet) {
-  .form-row,
-  .form-row-3 {
-    grid-template-columns: 1fr;
-  }
-
   .checkboxes-row {
     flex-direction: column;
     gap: $spacing-sm;

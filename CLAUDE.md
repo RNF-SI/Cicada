@@ -998,6 +998,7 @@ The Angular application follows a modular structure:
 
 **`styles.scss`** - Utilitaires globaux
 - Spacing: `.m-{size}`, `.p-{size}`, `.mx-{size}`, `.my-{size}`, `.px-{size}`, `.py-{size}`
+- Formulaires: `.form-row-aligned` — champs `app-form-field` côte à côte, label / aide / champ / erreurs alignés d'une colonne à l'autre (subgrid, #527)
 - Display: `.d-none`, `.d-flex`, `.d-block`, `.d-grid`
 - Flex: `.flex-row`, `.flex-column`, `.justify-content-*`, `.align-items-*`
 - Background: `.bg-primary`, `.bg-success`, `.bg-error`, `.bg-score-*`
