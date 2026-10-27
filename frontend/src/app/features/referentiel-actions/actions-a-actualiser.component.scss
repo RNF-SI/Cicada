@@ -1,0 +1,110 @@
+@import 'variables';
+
+.a-actualiser-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px $spacing-lg;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $primary-color;
+  text-decoration: none;
+  font-size: $font-size-small;
+  font-weight: 600;
+  margin-bottom: $spacing-lg;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.page-header {
+  margin-bottom: $spacing-lg;
+
+  h1 {
+    font-size: $font-size-h2;
+    font-weight: 700;
+    color: $primary-color;
+    margin: 0 0 $spacing-xs;
+  }
+
+  .intro {
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+.info-block {
+  margin-bottom: $spacing-lg;
+
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: $spacing-xxs;
+  }
+}
+
+.plan-bloc {
+  display: block;
+  margin-bottom: $spacing-md;
+}
+
+h3 {
+  font-size: $font-size-base;
+  font-weight: 700;
+  color: $primary-color;
+  margin: $spacing-md 0 $spacing-xs;
+}
+
+.table-actions {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: left;
+    font-size: $font-size-small;
+    color: $gray-dark;
+    border-bottom: 1px solid $gray-light;
+    padding: $spacing-xs;
+  }
+
+  td {
+    padding: $spacing-xs;
+    border-bottom: 1px solid $gray-lighter;
+    vertical-align: top;
+  }
+
+  .cell-action {
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+.code {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: $primary-color;
+  background-color: $primary-bg-subtle;
+  padding: 1px 6px;
+  border-radius: $border-radius-sm;
+  margin-right: $spacing-xxs;
+}
+
+.note {
+  display: block;
+  color: $gray-dark;
+  font-size: $font-size-small;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

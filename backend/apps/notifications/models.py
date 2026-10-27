@@ -35,6 +35,9 @@ class Notification(models.Model):
         ('plan_csrpn_transition', _('Transition workflow CSRPN')),
         # #706 — Première connexion d'un utilisateur (admins de son organisme).
         ('user_first_login', _("Première connexion d'un utilisateur")),
+        # #751 — passage de référentiel des types d'action
+        ('referentiel_actions', _("Types d'action à actualiser")),
+        ('referentiel_actions_suivi', _("Types d'action actualisés par d'autres")),
         ('system_alert', _('Alerte système')),
         ('info', _('Information')),
     ]

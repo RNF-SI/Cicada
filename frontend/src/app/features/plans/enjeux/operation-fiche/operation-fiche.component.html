@@ -77,6 +77,22 @@
         </div>
       </header>
 
+      @if (typeAActualiser(); as aa) {
+        <div class="info-block info-block-warning fiche-type-a-actualiser no-print" data-testid="type-a-actualiser">
+          <div>
+          <p><strong>{{ 'referentielActions.fiche.titre' | translate }}</strong></p>
+          <p>{{ 'referentielActions.fiche.texte' | translate:{ version: aa.version, code: aa.ancien_code, libelle: aa.ancien_libelle } }}</p>
+          @if (aa.suggestion_code) {
+            <p>{{ 'referentielActions.fiche.proposition' | translate:{ code: aa.suggestion_code, libelle: aa.suggestion_libelle } }}</p>
+          }
+          <button mat-flat-button color="primary" class="btn-sm" type="button" (click)="choisirNouveauType()"
+                  data-testid="fiche-choisir-type">
+            {{ 'referentielActions.fiche.bouton' | translate }}
+          </button>
+          </div>
+        </div>
+      }
+
       <!-- #613 — cadre indicateurs en tête : liste d'intitulés (pas la grille) -->
       @if (cadreIndicateurs(); as cadre) {
         <div class="fiche-cadre-indicateurs">

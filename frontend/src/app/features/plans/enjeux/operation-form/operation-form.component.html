@@ -44,6 +44,24 @@
           <p class="required-notice">{{ 'enjeux.enjeuForm.requiredBefore' | translate }} <span class="required-star">*</span> {{ 'enjeux.enjeuForm.requiredAfter' | translate }}</p>
 
           <!-- Type d'action (autocomplete groupé par catégorie) -->
+          @if (typeAActualiser(); as aa) {
+            <div class="info-block info-block-warning type-a-actualiser" data-testid="type-a-actualiser">
+              <div>
+              <p>{{ 'referentielActions.fiche.texte' | translate:{ version: aa.version, code: aa.ancien_code, libelle: aa.ancien_libelle } }}</p>
+              @if (aa.suggestion_code) {
+                <p>
+                  {{ 'referentielActions.fiche.proposition' | translate:{ code: aa.suggestion_code, libelle: aa.suggestion_libelle } }}
+                  @if (aa.note) { <span class="text-muted">{{ aa.note }}</span> }
+                </p>
+                @if (!isReadOnly()) {
+                  <button mat-stroked-button type="button" class="btn-sm" (click)="utiliserSuggestionType()">
+                    {{ 'referentielActions.fiche.utiliser' | translate }}
+                  </button>
+                }
+              }
+              </div>
+            </div>
+          }
           <label class="app-mat-label">{{ 'enjeux.operations.typeActionLabel' | translate }}
             <span class="required-star">*</span></label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">

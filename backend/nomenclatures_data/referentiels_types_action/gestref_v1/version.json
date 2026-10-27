@@ -1,0 +1,7 @@
+{
+  "code": "GESTREF_V1",
+  "libelle": "Gestref V1",
+  "depuis": "EDEN62",
+  "exclure_categories": ["CP"],
+  "remarque": "Gestref V1 (fichier GEstREFV7_CICADA, 10/2026). La catégorie CP « Accompagnement aux changements de pratiques » est écartée tant qu'elle n'est pas stabilisée ; aucune correspondance ne pointe vers elle."
+}

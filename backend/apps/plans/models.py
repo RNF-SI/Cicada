@@ -53,6 +53,11 @@ from .models_operations import (
     OperationAnneeRH,
     RealisationOperationAnneeRH,
 )
+from .models_referentiel import (  # noqa: F401 — #751
+    VersionReferentielActions,
+    PassageReferentielActions,
+    PassageReferentielObjet,
+)
 
 
 class PlanGestion(models.Model):

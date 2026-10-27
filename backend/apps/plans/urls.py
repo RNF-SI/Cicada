@@ -15,6 +15,7 @@ from .views_enjeux import (
     ObjectifOperationnelViewSet, ResultatAttenduViewSet,
     CorEnjeuFichierViewSet
 )
+from .views_referentiel import ActionsAActualiserView
 from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet, IndicateurMesureViewSet
 from .views_operations import (
     OperationViewSet,
@@ -55,6 +56,10 @@ urlpatterns = [
 
     # Exports (MUST be before router)
     path('plans/export_geojson/', export_geojson, name='export_geojson'),
+
+    # #751 — actions dont le type est à actualiser après un passage de référentiel
+    path('referentiel-actions/a-actualiser/', ActionsAActualiserView.as_view(),
+         name='referentiel-actions-a-actualiser'),
 
     # Routes des ViewSets (comes last)
     path('', include(router.urls)),

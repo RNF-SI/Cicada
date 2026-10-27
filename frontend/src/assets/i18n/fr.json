@@ -4506,9 +4506,9 @@
       "editTitle": "Modifier l'action",
       "viewTitle": "Détail de l'action",
       "typeActionLabel": "Type d'action",
-      "typeActionPlaceholder": "Rechercher par code ou intitulé...",
-      "typeActionCSHint": "Les actions de type CS permettent la saisie d'inventaires et de suivis. On utilise le référentiel d'Eden 62 en attendant l'élaboration du nouveau référentiel Gestref.",
-      "typeActionHint": "Choisissez dans le référentiel (CS, IP, PA, SP...) ou tapez un intitulé libre. On utilise le référentiel d'Eden 62 en attendant l'élaboration du nouveau référentiel Gestref.",
+      "typeActionPlaceholder": "Rechercher par code, mot du libellé ou catégorie…",
+      "typeActionCSHint": "Les actions de type CS permettent la saisie d'inventaires et de suivis.",
+      "typeActionHint": "Recherchez par code, mot du libellé ou catégorie : plusieurs mots possibles, sans vous soucier des accents.",
       "categorieActionReserveLabel": "Catégorie d'action réserve",
       "categorieActionReservePlaceholder": "(optionnel) Sélectionner une catégorie",
       "categorieActionReserveHint": "DOMAINES D'ACTIVITÉ réserve CT88",
@@ -5307,6 +5307,52 @@
     },
     "page": {
       "version": "Version en vigueur depuis le {{date}}"
+    }
+  },
+  "referentielActions": {
+    "title": "Types d'action à actualiser",
+    "retourAccueil": "Retour à l'accueil",
+    "intro": "Le référentiel des types d'action est passé de « {{depuis}} » à « {{vers}} » le {{date}}. Les actions qui avaient un équivalent certain ont reçu leur nouveau type automatiquement ; les autres attendent votre choix.",
+    "resume": "{{n}} action(s) de vos plans attendent un nouveau type ; {{faites}} ont déjà été actualisées.",
+    "plusieurs": "Plusieurs référents peuvent voir la même action : dès que l'un choisit son type, elle quitte la liste de tous. Si quelqu'un l'a fait pendant que vous choisissiez, CICADA vous le signale sans écraser son choix.",
+    "rien": "Aucune action de vos plans n'attend de nouveau type d'action.",
+    "erreur": "La liste des actions à actualiser n'a pas pu être chargée.",
+    "compte": "{{n}} à actualiser",
+    "compteAucun": "changements automatiques seulement",
+    "ancienType": "Ancien type",
+    "suggestion": "Proposition",
+    "choisir": "Choisir le type",
+    "enregistre": "Type d'action enregistré",
+    "par": "par {{qui}} le {{date}}",
+    "automatiquesAide": "Ces actions ont reçu le type le plus proche de l'ancien. Vérifiez-le si besoin depuis la fiche de l'action.",
+    "sections": {
+      "aActualiser": "Type à choisir",
+      "actualisees": "Déjà actualisées",
+      "automatiques": "Changées automatiquement — à vérifier si besoin"
+    },
+    "colonnes": {
+      "action": "Action",
+      "choix": "Choix du type"
+    },
+    "dialog": {
+      "title": "Choisir le nouveau type d'action",
+      "nouveauType": "Nouveau type d'action",
+      "placeholder": "Rechercher par code, mot du libellé ou catégorie…",
+      "aide": "Tapez plusieurs mots pour affiner (ex. « suivi oiseaux »), sans vous soucier des accents.",
+      "utiliserSuggestion": "Utiliser la proposition {{code}}",
+      "conflit": "{{qui}} vient de choisir le type de cette action (« {{type}} »). Son choix est conservé : rouvrez l'action si vous souhaitez le modifier.",
+      "erreur": "Le type d'action n'a pas pu être enregistré."
+    },
+    "fiche": {
+      "titre": "Type d'action à actualiser",
+      "texte": "Le référentiel des types d'action est passé à « {{version}} » : l'ancien type {{code}} ({{libelle}}) n'a pas d'équivalent certain.",
+      "proposition": "Proposition : {{code}} — {{libelle}}.",
+      "bouton": "Choisir le nouveau type",
+      "utiliser": "Utiliser la proposition"
+    },
+    "bandeau": {
+      "texte": "{{n}} action(s) de ce plan attendent un nouveau type d'action après le passage au référentiel « {{vers}} ».",
+      "lien": "Voir les actions à actualiser"
     }
   }
 }

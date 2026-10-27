@@ -1478,3 +1478,12 @@ app-protocole-action + app-protocole-action {
 .protocole-limit-hint {
   color: $gray-dark;
 }
+
+// #751 — type d'action à choisir après un passage du référentiel
+.type-a-actualiser {
+  margin-bottom: $spacing-sm;
+
+  p {
+    margin: 0 0 $spacing-xxs;
+  }
+}

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
 
 // Titres de page dans l'onglet du navigateur (revue design — Amandine demandait que
 // le titre se mette à jour selon la page, pas "mon profil" partout)
@@ -63,6 +64,15 @@ export const routes: Routes = [
     path: 'exploration',
     title: 'Exploration des données · CICADA',
     loadChildren: () => import('./features/exploration/exploration.routes').then(m => m.EXPLORATION_ROUTES)
+  },
+  {
+    // #751 — actions dont le type est à actualiser après un passage du
+    // référentiel des types d'action (lien des notifications).
+    path: 'actions-a-actualiser',
+    title: "Types d'action à actualiser · CICADA",
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/referentiel-actions/actions-a-actualiser.component')
+      .then(m => m.ActionsAActualiserComponent)
   },
   {
     path: 'inventaires',

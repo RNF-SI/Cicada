@@ -1,0 +1,198 @@
+code,libelle
+CS,Connaissance et suivis du patrimoine naturel et des socio-écosystèmes
+CS.1,Études des eaux
+CS.1.1,Études hydrologiques
+CS.1.2,Études de la qualité des eaux
+CS.1.3,Études des cours d'eau et étendues d'eau
+CS.1.4,Études des interactions nappes et eaux de surface
+CS.1.5,Études des dynamiques hydrologiques
+CS.2,Études des milieux physiques
+CS.2.1,Etudes pédologiques
+CS.2.2,Études du patrimoine et des objets géologiques
+CS.2.3,Études hydromorphologiques
+CS.2.4,Études géomorphologiques
+CS.2.5,Études topographiques
+CS.3,Études météorologiques et climatiques
+CS.3.1,Études des paramètres météorologiques et climatiques
+CS.3.2,Etudes relatives aux changements climatiques
+CS.3.3,Études de la qualité de l'air
+CS.4,Études faunistiques
+CS.4.1,Inventaires et suivis des Arachnides
+CS.4.2,Inventaires et suivis des Crustacés
+CS.4.3,Inventaires et suivis des Insectes
+CS.4.4,Inventaires et suivis des Myriapodes
+CS.4.5,Inventaires et suivis des Amphibiens
+CS.4.6,Inventaires et suivis des Mammifères
+CS.4.7,Inventaires et suivis des Oiseaux
+CS.4.8,Inventaires et suivis des Poissons
+CS.4.9,Inventaires et suivis des Reptiles
+CS.4.10,Inventaires et suivis des Cnidaires
+CS.4.11,Inventaires et suivis des Mollusques
+CS.4.12,Inventaires et suivis des Vers
+CS.4.13,Inventaires et suivis de la faune multigroupe
+CS.4.14,Autres inventaires et suivi faunistiques
+CS.5,Études floristiques
+CS.5.1,Inventaires et suivis des Algues
+CS.5.2,Inventaires et suivis des Bryophytes
+CS.5.3,Inventaires et suivis des plantes vasculaires
+CS.5.4,Inventaires et suivis floristique multigroupe
+CS.5.5,Autres inventaires et suivis floristiques
+CS.6,Études des bactéries
+CS.6.1,Inventaires et suivis des bactéries et algues bleues
+CS.7,Études des champignons
+CS.7.1,Inventaires et suivis des Ascomycètes
+CS.7.2,Inventaires et suivis des Basidiomycètes
+CS.8,Études sur les habitats et la végétation
+CS.8.1,Études des habitats et de leurs évolutions
+CS.8.2,Études des habitats d'intérêt communautaire
+CS.8.3,Études des végétations
+CS.8.4,Études de caractéristation des habitats et des végétations
+CS.9,Études des fonctionnalités écologiques
+CS.9.1,Études des continuités écologiques
+CS.9.2,Autres études des fonctionnalités écologiques
+CS.9.3,Études des interactions et cortèges
+CS.10,Études des espèces impactantes (dont EEE et ESOD)
+CS.10.1,Études des espèces domestiques et de leurs impacts
+CS.10.2,Études des espèces sauvages indigènes (hors ESOD et EEE) et de leurs impacts
+CS.10.3,Études des ESOD et de leurs impacts
+CS.10.4,Études des EEE et de leurs impacts
+CS.10.5,Études des espèces introduites non envahissantes et de leurs impacts
+CS.11,Études des activités humaines
+CS.11.1,"Études des pratiques, des usages et pressions associées"
+CS.11.2,Études des pressions d'origines multiples
+CS.11.3,Études de l'émergence de nouvelles pratiques
+CS.11.4,Études de la fréquentation du site
+CS.12,Études du territoire et des perceptions
+CS.12.1,Études de l’ancrage territorial et de ses perceptions
+CS.12.2,Etude des paysages
+CS.13,Études culturelles et historiques
+CS.13.1,Études historiques
+CS.13.2,Études du patrimoine culturel
+CS.13.3,Études archéologiques
+CS.13.4,Etudes des aménités
+CS.14,Contribution à la recherche scientifique
+CS.14.1,Mise en place de programmes de recherche scientifique
+CS.14.2,Contribution à des programmes de recherche scientifiques
+CS.14.3,Mise en place de campagnes de sciences participatives
+CS.15,Autres études relatives à la connaissance
+CS.15.1,Etudes d'identification des risques
+CS.15.2,Etudes des effets de la gestion
+CS.15.3,Etudes des services écosystémiques
+CS.15.4,Etudes sur l'empreinte écologique
+CS.15.5,Développement d'un protocole de suivi écologique
+CS.15.6,Mise en œuvre des actions préconisées dans les études
+CS.16,Études avant travaux
+IP,"Intervention sur le patrimoine naturel, culturel et bâti"
+IP.1,Non-intervention - Libre Evolution
+IP.1.1,Mise en place de zones de non intervention
+IP.2,Interventions sur les habitats
+IP.2.1,Interventions sur la végétation
+IP.2.2,Interventions sur les sols et les substrats
+IP.2.3,Interventions relatives à la gestion du trait de côte
+IP.2.4,Interventions relatives à la gestion des niveaux d'eau
+IP.2.5,Interventions relatives à la gestion hydromorphologique
+IP.2.6,Interventions relatives à la gestion des continuités écologiques
+IP.2.7,Autres interventions de génie écologique sur les habitats
+IP.3,Interventions sur les sites et objets géologiques
+IP.3.1,Interventions sur les sites et objets géologiques
+IP.4,Interventions sur les espèces et de populations d'espèces
+IP.4.1,Interventions de réintroduction
+IP.4.2,Interventions pour le renforcement de population
+IP.4.3,Interventions pour l' introduction d'espèces
+IP.4.4,"Installation,entretien et retrait d'aménagements artificiels en faveur des espèces"
+IP.4.5,Interventions de secours et gestion d'échouages
+IP.4.6,Autres interventions sur les espèces
+IP.5,Interventions relatives aux espèces impactantes (dont EEE et ESOD)
+IP.5.1,Interventions relatives à la gestion d'autres espèces impactantes
+IP.5.2,Interventions relatives à la gestion de la faune EEE
+IP.5.3,Interventions relatives à la gestion de la flore EEE
+IP.5.4,Interventions relatives à la gestion des ESOD
+IP.5.5,"Installation,entretien et retrait d'aménagements limitant/stoppant l'impact des espèces impactantes"
+IP.6,Interventions relatives à la gestion des risques
+IP.6.1,Interventions consécuctives à un risque identifié
+IP.7,Interventions sur le patrimoine culturel
+IP.7.1,Interventions sur le patrimoine culturel bâti et ses abords
+IP.8,Autres interventions sur le patrimoine naturel
+IP.8.1,Interventions relatives à la gestion des déchets
+IP.8.2,Interventions relatives à une obligation réglementaires
+IP.8.3,Expérimentations de nouvelles actions et techniques de gestion des milieux
+SP,Surveillance et police
+SP.1,Mise en œuvre et encadrement des missions de police
+SP.1.1,Réalisation de tournées de surveillance et missions de police
+SP.1.2,Pilotage des missions de police
+SP.1.3,Collaboration avec les différents services de police
+SP.1.4,Amélioration de l'arsenal juridique
+SP.1.5,Veille juridique
+SP.1.6,Prévention et gestion des nuisances
+SP.2,Surveillance et prévention des risques
+SP.2.1,Mise en place d'une surveillance sur un risque identifié
+SP.3,Autres actions de surveillance et de police
+GE,Gestion des équipements
+GE.1,"Création, aménagement, entretien et sécurisation des équipements d'accueil"
+GE.1.1,"Création, entretien des infrastructures d'accueil et sentiers"
+GE.1.2,Entretien des locaux
+GE.1.3,Adaptation des infrastructure d'accueil aux personnes à mobilités réduites et atteintes de handicapes.
+GE.2,Création et entretien des équipements
+GE.2.1,"Création, entretien et renouvellement de la signalétique et des équipements"
+GE.2.2,"Entretien des outils de travail et de gestion (gestion, scientifiques, motorisés,…)"
+GE.2.3,Contrôle et veillle des équipements et de la signalétique
+GE.3,Autres actions
+AP,Administration et planification
+AP.1,Gouvernance
+AP.1.1,Participation et implication dans divers réseaux d'aires protégées
+AP.1.2,Participation à la gouvernance et liens avec la structure gestionnaire
+AP.1.3,Organisation et animation de l'organe de pilotage
+AP.1.4,Collaboration et développement de liens avec les institutions et partenaires
+AP.1.5,Participation aux instances consultatives et institutionnelles
+AP.1.6,Mise en place d'une instance consultative scientifique
+AP.2,Administration et programmation de l'aire protégée
+AP.2.1,Élaboration et évaluation du plan de gestion
+AP.2.2,Animation du document de gestion et coordination de la gestion
+AP.2.3,Financement et pilotage budgétaire
+AP.2.4,Administration du personnel
+AP.2.5,"Gestion et renouvellement des matériels scientifiques, techniques et pédagogiques"
+AP.2.6,Gestion et diffusion des connaissances
+AP.2.7,"Contribution aux politiques publiques en lien avec les aires protégées, la biodiversité et le développement durable"
+AP.2.8,Procèdures réglementaires
+AP.3,Ancrage territorial de l'aire protégée
+AP.3.1,Participation et implication dans des réseaux locaux d'aires protégées
+AP.3.2,Intégration de programmes d'aménagement pour la biodiversité sur le territoire
+AP.3.3,Concertation et dialogue avec les acteurs locaux
+AP.3.4,Développement de partenariats avec les acteurs locaux
+AP.3.5,Développement d'une stratégie de maitrise foncière et d'usage
+AP.3.6,Mise en place de protocoles d'alerte
+AP.4,Réglementation des activités et des usages
+AP.4.1,Création d'aire protégée
+AP.4.2,Modification du périmètre ou de la réglementation de l'aire protégée
+AP.4.3,Création du périmètre de protection de l'aire protégée
+AP.4.4,Modification d'une réglementation existante
+AP.4.5,Réglementation de l'accès à la nature
+AP.4.6,Réglementation des activités
+AP.5,Production d'avis et expertises
+AP.6,Autres actions administratives et de planifications
+CP,Accompagnement aux changements de pratiques
+CP.1,Mise en place d'une gestion contractuelle favorable aux enjeux écologiques
+CP.1.1,Mise en place d'un contrat forestier
+CP.1.2,Mise en place d'un contrat agricole (dont MAEC)
+CP.1.3,Mise en place d'un contrat marin
+CP.1.4,Mise en place d'un contrat non agricole et non forestier
+CP.1.5,Mise en place d'autres types de contrat de gestion
+CP.2,Accompagnement à la mise en ouevre de pratiques favorables aux enjeux écologiques
+CP.2.1,Mise en place d'une convention de bonnes pratiques
+CP.2.2,Adhésion à une charte Natura 2000
+CP.2.3,Adhésion à une charte de PNx/PNR
+CP.2.4,Autres accompagnements à la mise en ouevre de pratiques favorables aux enjeux écologiques
+CP.3,Accompagnement des acteurs socio-économiques dans l'expérimentation de nouvelles pratiques
+CP.4,Promotion de pratiques favorables aux enjeux écologiques auprès des acteurs socio-économiques
+CO,"Communication, sensibilisation et formation"
+CO.1,"Accueil, animation, médiation et communication"
+CO.1.1,Information et sensibilisation de divers publics
+CO.1.2,Formation de divers publics
+CO.1.3,"Organisation ou participation à des évènements, manifestations"
+CO.1.4,Organisation de chantiers nature ou participatifs
+CO.2,Développement de supports de communication et de sensibilisation
+CO.2.1,Développement d'outils de communication
+CO.2.2,Développement et publication de supports scientifiques
+CO.2.3,Développement d'une version communicante du plan de gestion
+CO.2.4,Développement d'outils pédagogiques
+CO.2.5,Développement de supports et d'équipements d'information du public

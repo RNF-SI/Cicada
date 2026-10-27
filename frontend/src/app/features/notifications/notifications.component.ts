@@ -386,6 +386,8 @@ export class NotificationsComponent implements OnInit {
       'account_deactivated': 'fi-rr-user-slash',
       'account_activated': 'fi-rr-user-check',
       'user_first_login': 'fi-rr-user-add',
+      'referentiel_actions': 'fi-rr-list-check',
+      'referentiel_actions_suivi': 'fi-rr-refresh',
       'site_orphaned': 'fi-rr-exclamation',
       'organisme_no_admin': 'fi-rr-exclamation',
       'system_alert': 'fi-rr-bell',

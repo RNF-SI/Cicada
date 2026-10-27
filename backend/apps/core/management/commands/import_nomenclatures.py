@@ -92,6 +92,14 @@ class Command(BaseCommand):
 
                     if prune:
                         self._prune_obsolete(type_ids, nom_ids)
+
+                    # #751 — l'upsert remet les types Eden 62 et leurs libellés :
+                    # on rétablit la version du référentiel des types d'action
+                    # en service si un passage a été appliqué.
+                    from apps.plans.referentiel_actions import reappliquer_version_courante
+                    if reappliquer_version_courante():
+                        self.stdout.write(
+                            "  ✓ Référentiel des types d'action : version en service rétablie")
                 else:
                     # First import: plain INSERT (faster for initial load)
                     self._execute_insert_file(types_file, 'types de nomenclatures')
@@ -228,10 +236,14 @@ class Command(BaseCommand):
             # Nomenclatures obsolètes (traiter en premier à cause des FK)
             if nomenclature_ids:
                 placeholders = ', '.join(['%s'] * len(nomenclature_ids))
+                # #751 — les nomenclatures d'un référentiel versionné (types
+                # d'action Gestref…) ne viennent pas des fichiers SQL.
+                from apps.plans.referentiel_actions import REFERENTIEL_ID_BASE
                 cursor.execute(
                     f'SELECT id_nomenclature, mnemonique, label FROM t_nomenclatures '
-                    f'WHERE id_nomenclature NOT IN ({placeholders})',
-                    list(nomenclature_ids)
+                    f'WHERE id_nomenclature NOT IN ({placeholders}) '
+                    f'AND id_nomenclature < %s',
+                    list(nomenclature_ids) + [REFERENTIEL_ID_BASE]
                 )
                 obsolete_noms = cursor.fetchall()
             else:

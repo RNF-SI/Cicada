@@ -14,6 +14,7 @@ import { LeafletMapEditComponent } from '../../../../shared/components/leaflet-m
 import { MetriqueGridDisplayComponent } from '../../../../shared/components/metrique-grid-display/metrique-grid-display.component';
 import { PriorityBadgeComponent } from '../../../../shared/components/priority-badge/priority-badge.component';
 import { MatDialog } from '@angular/material/dialog';
+import { MatButtonModule } from '@angular/material/button';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import {
@@ -32,11 +33,14 @@ import {
  * (export PDF via le navigateur) pour incorporation dans les plans de gestion.
  */
 import { SurlignerDirective } from '../../../../shared/directives/surligner.directive';
+import {
+  ActualiserTypeDialogComponent, ActualiserTypeDialogData, ActualiserTypeDialogResult,
+} from '../../../../shared/components/modals/actualiser-type-dialog/actualiser-type-dialog.component';
 
 @Component({
   selector: 'app-operation-fiche',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, PriorityBadgeComponent, SurlignerDirective],
+  imports: [CommonModule, RouterModule, TranslateModule, MatButtonModule, LeafletMapEditComponent, MetriqueGridDisplayComponent, PriorityBadgeComponent, SurlignerDirective],
   templateUrl: './operation-fiche.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,
   styleUrl: './operation-fiche.component.scss',
@@ -51,6 +55,9 @@ export class OperationFicheComponent implements OnInit {
   private readonly snackBar = inject(MatSnackBar);
 
   operation = signal<Operation | null>(null);
+  /** #751 — type à choisir après un passage du référentiel (hors exploration). */
+  typeAActualiser = computed(() =>
+    this.accesExploration() ? null : this.operation()?.type_action_a_actualiser ?? null);
 
   /**
    * #683 — Le lecteur n'est là que par l'exploration : action d'un plan validé
@@ -493,6 +500,28 @@ export class OperationFicheComponent implements OnInit {
     if (op?.annee_min) return `${op.annee_min}`;
     return '—';
   });
+
+  /** #751 — choisir le nouveau type, y compris dans un plan validé. */
+  choisirNouveauType(): void {
+    const op = this.operation();
+    const aa = this.typeAActualiser();
+    if (!op || !aa) return;
+    this.dialog.open<ActualiserTypeDialogComponent, ActualiserTypeDialogData, ActualiserTypeDialogResult>(
+      ActualiserTypeDialogComponent, {
+        width: '760px', maxWidth: '95vw', maxHeight: '90vh',
+        data: {
+          operationId: op.id_operation, libelle: op.libelle, codeAffichage: op.code_affichage,
+          ancienCode: aa.ancien_code, ancienLibelle: aa.ancien_libelle,
+          suggestionId: aa.suggestion_id, suggestionCode: aa.suggestion_code,
+          suggestionLibelle: aa.suggestion_libelle, note: aa.note,
+          typeActuelId: op.id_type_action ?? null,
+        },
+      },
+    ).afterClosed().subscribe(res => {
+      if (res?.operation) this.operation.set(res.operation as Operation);
+      else if (res?.conflit) this.ngOnInit();
+    });
+  }
 
   ngOnInit(): void {
     this.planSlug.set(this.findRouteParam('slug'));

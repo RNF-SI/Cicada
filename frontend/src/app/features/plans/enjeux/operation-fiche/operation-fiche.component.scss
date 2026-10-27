@@ -236,3 +236,12 @@
 
   strong { color: $primary-color; }
 }
+
+// #751 — type d'action à choisir après un passage du référentiel
+.fiche-type-a-actualiser {
+  margin: $spacing-md 0;
+
+  p {
+    margin: 0 0 $spacing-xxs;
+  }
+}

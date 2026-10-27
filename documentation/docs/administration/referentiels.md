@@ -169,6 +169,47 @@ rnn = Nomenclature.objects.get(mnemonique='RNN')
 - `backend/nomenclatures_data/types_inserts.sql` — Types de nomenclatures
 - `backend/nomenclatures_data/nomenclatures_inserts.sql` — Nomenclatures
 
+### Types d'action : changer de version du référentiel
+
+Les types d'action (`TYPE_ACTION`) et leurs catégories (`CATEGORIE_ACTION_RESERVE`) suivent un référentiel **versionné** : codification Eden 62, puis GestRef V1 et ses versions suivantes. Passer d'une version à une autre met à jour les actions et les suivis déjà saisis, d'après une table de correspondance validée.
+
+Chaque version est décrite dans `backend/nomenclatures_data/referentiels_types_action/<version>/` (voir le `README.md` du dossier) :
+
+| Fichier | Contenu |
+|---------|---------|
+| `version.json` | code, libellé, version de départ (`depuis`), catégories écartées (`exclure_categories`, ex. `CP` pour GestRef V1) |
+| `referentiel.csv` | `code,libelle` — niveau 0 (`CS`) = catégorie, niveaux 1 et 2 (`CS.1`, `CS.1.1`) = types |
+| `correspondance.csv` | `ancien_code,nouveau_code,confiance,note` — confiance `sure`, `probable` ou `a_arbitrer` |
+
+**Rien ne change au démarrage ni à la mise à jour d'une instance** : ces fichiers ne sont lus que par la commande suivante, à lancer volontairement, instance par instance.
+
+```bash
+# 1. Simulation : ce que ferait le passage (aucune écriture)
+docker compose exec web python manage.py passage_types_action gestref_v1
+
+# 2. Application : types mis à jour, référents prévenus
+docker compose exec web python manage.py passage_types_action gestref_v1 --appliquer
+#    --sans-email : notifications dans l'application seulement
+
+# 3. Retour en arrière : anciens types et catégories restaurés
+docker compose exec web python manage.py passage_types_action gestref_v1 --annuler
+```
+
+Règles du passage :
+
+- correspondance `sure` ou `probable` → l'action prend le nouveau type ; sa catégorie suit le préfixe du nouveau code (`CS.1.1` → `CS`) ;
+- `a_arbitrer` (ou ancien code absent de la table) → le type est vidé, l'action devient « à actualiser » ; sa catégorie suit le code proposé ; une action garde son suivi ;
+- les types et catégories de l'ancienne version sont **désactivés**, pas supprimés ; une catégorie présente dans les deux versions (CS, IP, SP) est conservée, avec le libellé de la nouvelle ;
+- chaque référent d'un plan concerné (à défaut, l'administrateur de l'organisme gestionnaire) reçoit **une** notification, qui renvoie à la page « Types d'action à actualiser » (§ 4.8.3 de la notice référent) ;
+- chaque action ou suivi touché est consigné (ancien type, proposition, qui a actualisé et quand) : c'est ce journal qui permet l'annulation. Annuler restaure aussi les types déjà choisis à la main depuis.
+
+La simulation détaille, plan par plan, les actions sûres, probables et à arbitrer, les actions qui deviennent CS (volet suivi à compléter) et les plans sans destinataire.
+
+Une version suivante (GestRef V2) se prépare de la même façon, avec `"depuis": "GESTREF_V1"` ; un type présent dans les deux versions est repris tel quel. La commande refuse une version dont le point de départ n'est pas la version en service.
+
+!!! warning "Identifiants réservés"
+    Les nomenclatures créées par un passage prennent leur identifiant à partir de **500 000**. Ne pas poser d'identifiant dans cette plage dans `nomenclatures_inserts.sql`. `import_nomenclatures --prune` ignore cette plage, et `import_nomenclatures --force` rétablit la version en service après l'upsert (sans cela, le fichier SQL réactiverait les types Eden 62).
+
 ---
 
 ## Référentiel taxonomique (TaxRef)

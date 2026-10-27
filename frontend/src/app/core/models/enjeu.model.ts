@@ -2,6 +2,7 @@
  * Models for Enjeux (conservation issues) and FCR (Key Success Factors)
  */
 import { OperationRHLigne } from './rh.model';
+import type { TypeActionAActualiser } from '../services/referentiel-actions.service';
 
 /**
  * GeoJSON geometry type for enjeux
@@ -877,6 +878,8 @@ export interface Operation {
   priorite_label?: string;
   id_type_action?: number;
   type_action_label?: string;
+  /** #751 — type à choisir après un passage du référentiel des types d'action. */
+  type_action_a_actualiser?: TypeActionAActualiser | null;
   // #228 — Catégorie d'action réserve CT88 (optionnel)
   id_categorie_action_reserve?: number | null;
   categorie_action_reserve_label?: string;
@@ -960,6 +963,8 @@ export interface Operation {
  */
 export interface OperationCreatePayload {
   libelle: string;
+  /** #751 — type affiché à l'ouverture d'une action à actualiser (refus si changé depuis). */
+  id_type_action_attendu?: number | null;
   /** #251 — Statut envoyé selon le bouton utilisé : 'valide' pour Valider, 'draft' pour Enregistrer. */
   statut?: OperationStatut;
   /** Emprise spatiale en GeoJSON (#342). null = effacement. */

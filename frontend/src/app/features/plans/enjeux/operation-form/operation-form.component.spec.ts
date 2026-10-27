@@ -1578,6 +1578,7 @@ describe('OperationFormComponent — suivi partagé avec le module Inventaires (
     comp.habitatItems = [];
     (comp as any).finances = [];
     (comp as any).pendingEmprise = signal(undefined);
+    (comp as any).existingOperation = signal(null);  // #751 — lu par buildPayload
     (comp as any).form.patchValue({ id_type_action: CS8.id_nomenclature, intitule_suivi: 'Suivi des chiroptères' });
     (comp as any).setProtocoles(protocolesExistants);
     return comp;
@@ -1718,6 +1719,7 @@ describe('OperationFormComponent — programmation globale sur la période (#735
     comp.habitatItems = [];
     (comp as any).finances = [];
     (comp as any).pendingEmprise = signal(undefined);
+    (comp as any).existingOperation = signal(null);  // #751 — lu par buildPayload
     (comp as any).form.patchValue({ libelle: 'Action globale' });
     (comp as any).ventilationMode.set('by_type');
     (comp as any).declinaisonParTypeCout.set(false);

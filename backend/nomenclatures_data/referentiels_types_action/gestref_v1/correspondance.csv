@@ -1,0 +1,319 @@
+ancien_code,nouveau_code,confiance,note
+CC1,CO.2,probable,Code générique : sous-catégorie « supports de communication et de sensibilisation »
+CC1.1,CO.2.4,sure,
+CC1.1.1,CO.2.5,sure,
+CC1.1.2,CO.2.5,probable,Ou CO.2.4 (outils pédagogiques) si l'interprétation est vue comme pédagogique
+CC1.2,CO.2.5,sure,
+CC1.2.1,GE.2.1,probable,La signalétique relève de la gestion des équipements en V1
+CC1.2.2,GE.2.1,a_arbitrer,Signalétique (GE.2.1) ou information du public (CO.2.5)
+CC1.2.3,CO.2.5,probable,
+CC1.3,CO.2.1,sure,
+CC2,CO.2,probable,Pas de « autres actions de communication » en V1 : sous-catégorie CO.2
+CI1,IP.6.1,probable,Interventions consécutives à un risque identifié
+CI1.1,IP.6.1,probable,
+CI1.2,IP.6.1,probable,
+CI1.3,IP.6.1,probable,
+CI1.4,IP.6.1,probable,
+CI1.5,IP.6.1,a_arbitrer,Pollution : IP.6.1 (risque) ou IP.8.1 (déchets) selon la nature
+CI1.6,IP.2.3,a_arbitrer,Érosion côtière : IP.2.3 (trait de côte) ; sinon IP.6.1
+CI1.7,IP.2.3,probable,Submersion marine ↔ gestion du trait de côte
+CI10,IP.7.1,sure,Patrimoine culturel bâti
+CI11,IP.7.1,sure,
+CI2,GE.1.1,sure,
+CI2.1,GE.1.1,sure,
+CI2.2,GE.1.1,sure,
+CI2.3,GE.2.1,sure,
+CI2.4,GE.1.1,probable,Points d'intérêt (observatoires…) = infrastructures d'accueil
+CI2.5,GE.1.1,probable,Bâtiments d'accueil ; pas de type « construction » distinct en V1
+CI2.6,GE.1.1,probable,
+CI2.7,GE.1.1,a_arbitrer,Aménagements contre le dérangement : GE.1.1 ou IP.4.4 (aménagements en faveur des espèces)
+CI2.8,GE.1,probable,« Autres » → sous-catégorie
+CI3,GE.2.3,probable,Contrôle et veille des équipements
+CI3.1,GE.2.3,probable,
+CI3.2,GE.2.3,probable,
+CI3.3,GE.2.3,sure,
+CI3.4,GE.2.3,probable,
+CI3.5,GE.2.3,probable,
+CI3.6,GE.2.3,probable,
+CI3.7,GE.2.3,probable,
+CI3.8,GE.2.3,probable,
+CI4,GE.1.1,sure,Entretien des infrastructures d'accueil et sentiers
+CI4.1,GE.1.1,sure,
+CI4.2,GE.1.1,sure,
+CI4.3,GE.2.1,sure,
+CI4.4,GE.1.1,sure,
+CI4.5,GE.1.2,probable,Entretien des locaux
+CI4.6,GE.1.1,sure,
+CI4.7,GE.1.1,probable,
+CI4.8,GE.1.1,probable,
+CI5,GE.2.1,a_arbitrer,Infrastructures techniques : pas d'équivalent direct (GE.2.1 = équipements)
+CI5.1,GE.2.1,a_arbitrer,
+CI5.10,GE.3,probable,« Autres »
+CI5.2,GE.2.1,a_arbitrer,
+CI5.3,GE.2.1,sure,Signalétique
+CI5.4,GE.2.1,a_arbitrer,
+CI5.5,GE.1.2,a_arbitrer,Bâtiments à usage technique ≈ locaux
+CI5.6,GE.2.1,a_arbitrer,Équipements agro-pastoraux : GE.2.1 ou IP.2.1 (gestion par pâturage)
+CI5.7,GE.2.1,a_arbitrer,
+CI5.8,IP.2.4,probable,Ouvrages hydrauliques → gestion des niveaux d'eau
+CI5.9,IP.2.5,probable,Défenses de berges → gestion hydromorphologique
+CI6,GE.2.3,probable,
+CI6.1,GE.2.3,probable,
+CI6.10,GE.2.2,a_arbitrer,Entretien des servitudes : pas d'équivalent
+CI6.11,GE.2.3,probable,
+CI6.2,GE.2.3,probable,
+CI6.3,GE.2.3,sure,
+CI6.4,GE.2.3,probable,
+CI6.5,GE.2.3,probable,
+CI6.6,GE.2.3,probable,
+CI6.7,GE.2.3,probable,
+CI6.8,IP.2.4,a_arbitrer,Contrôle d'ouvrages hydrauliques : GE.2.3 ou IP.2.4
+CI6.9,IP.2.5,a_arbitrer,Contrôle des défenses de berges : GE.2.3 ou IP.2.5
+CI7,GE.2.1,probable,Entretien des équipements
+CI7.1,GE.2.1,probable,
+CI7.10,GE.2.1,a_arbitrer,Servitudes : pas d'équivalent
+CI7.10.1,GE.2.1,a_arbitrer,
+CI7.10.2,GE.2.1,a_arbitrer,
+CI7.11,GE.3,probable,« Autres »
+CI7.2,GE.2.1,probable,
+CI7.3,GE.2.1,sure,
+CI7.4,GE.2.1,probable,
+CI7.5,GE.1.2,probable,Entretien des locaux
+CI7.6,GE.2.1,probable,
+CI7.7,GE.2.1,probable,
+CI7.8,IP.2.4,probable,
+CI7.9,IP.2.5,probable,
+CI8,IP.7.1,probable,Ouvrages patrimoniaux = patrimoine culturel bâti
+CI9,IP.7.1,sure,
+CS1,CS.11,probable,Impacts anthropiques → études des activités humaines
+CS1.1,CS.11.4,sure,Fréquentation
+CS1.1.1,CS.11.4,sure,
+CS1.1.2,CS.11.4,probable,
+CS1.1.3,CS.11.1,a_arbitrer,Déchets : CS.11.1 (pressions des usages) ; pas de type « déchets » en CS
+CS1.1.4,CS.11.1,sure,
+CS1.2,CS.11.2,probable,Sources de pollution → pressions d'origines multiples
+CS1.3,CS.10.4,sure,
+CS1.4,CS.10.1,a_arbitrer,Espèces domestiques (CS.10.1) ou introduites (CS.10.5)
+CS10,CS.4.13,a_arbitrer,Multigroupes : faune (CS.4.13) ou flore (CS.5.4)
+CS11,CS.4.14,a_arbitrer,Observations ponctuelles : pas d'équivalent ; « autres inventaires » faune ou flore
+CS12,CS.8.1,probable,Suivi photo de l'évolution des milieux → évolutions des habitats
+CS13,CS.12.2,sure,Paysages
+CS14,CS.1,a_arbitrer,"Facteurs abiotiques : eaux (CS.1), milieux physiques (CS.2) ou climat (CS.3)"
+CS14.1,CS.1.2,sure,
+CS14.2,CS.1.1,probable,Niveaux d'eau → études hydrologiques
+CS14.3,CS.3.1,sure,
+CS14.4,CS.3.3,sure,
+CS15,CS.10,probable,Facteurs biotiques → espèces impactantes
+CS15.1,CS.10.4,sure,
+CS15.2,CS.10.1,a_arbitrer,Domestiques (CS.10.1) ou introduites (CS.10.5)
+CS2,CS.8.4,probable,Inventaire des végétations → caractérisation des habitats et végétations
+CS2.1,CS.8.4,probable,
+CS2.2,CS.8.1,probable,Ou CS.8.2 si habitats d'intérêt communautaire
+CS2.3,CS.8.2,a_arbitrer,États de conservation : CS.8.1 ou CS.8.2
+CS3,CS.8.3,sure,
+CS3.1,CS.8.1,probable,
+CS3.2,CS.8.1,sure,
+CS3.3,CS.8.1,a_arbitrer,États de conservation : CS.8.1 ou CS.8.2
+CS4,CS.5.3,probable,Flore = plantes vasculaires (ou CS.5.4 multigroupe)
+CS5,CS.5.3,probable,
+CS6,CS.5.5,a_arbitrer,Cryptoflore : pas de regroupement équivalent
+CS6.1,CS.7,probable,Fonge → études des champignons (Ascomycètes / Basidiomycètes à préciser)
+CS6.2,CS.5.2,sure,
+CS6.3,CS.7,a_arbitrer,Lichens : champignons (CS.7) ; pas de type « lichens » en V1
+CS6.4,CS.5.1,sure,
+CS7,CS.5.5,a_arbitrer,
+CS7.1,CS.7,probable,
+CS7.2,CS.5.2,sure,
+CS7.3,CS.7,a_arbitrer,
+CS7.4,CS.5.1,sure,
+CS8,CS.4.13,a_arbitrer,« Inventaire de la faune » sans groupe : multigroupe (CS.4.13) ou à préciser action par action
+CS8.1,CS.4.6,sure,
+CS8.10,CS.4.11,sure,Gastéropodes = mollusques
+CS8.11,CS.4.11,sure,Bivalves = mollusques
+CS8.12,CS.4.11,sure,Céphalopodes = mollusques
+CS8.13,CS.4.14,probable,Astéroïdes (étoiles de mer) : pas d'échinodermes en V1
+CS8.14,CS.4.14,probable,Échinoïdes : pas d'échinodermes en V1
+CS8.15,CS.4.10,sure,Scyphozoaires = cnidaires
+CS8.16,CS.4.10,sure,Anthozoaires = cnidaires
+CS8.2,CS.4.7,sure,
+CS8.3,CS.4.9,sure,
+CS8.4,CS.4.5,sure,
+CS8.5,CS.4.8,sure,
+CS8.6,CS.4.3,sure,
+CS8.7,CS.4.1,sure,
+CS8.8,CS.4.2,sure,
+CS8.9,CS.4.4,sure,
+CS9,CS.4.13,a_arbitrer,« Suivi de la faune » sans groupe : multigroupe ou à préciser
+CS9.1,CS.4.6,sure,
+CS9.10,CS.4.11,sure,
+CS9.11,CS.4.11,sure,
+CS9.12,CS.4.11,sure,
+CS9.13,CS.4.14,probable,
+CS9.14,CS.4.14,probable,
+CS9.15,CS.4.10,sure,
+CS9.16,CS.4.10,sure,
+CS9.2,CS.4.7,sure,
+CS9.3,CS.4.9,sure,
+CS9.4,CS.4.5,sure,
+CS9.5,CS.4.8,sure,
+CS9.6,CS.4.3,sure,
+CS9.7,CS.4.1,sure,
+CS9.8,CS.4.2,sure,
+CS9.9,CS.4.4,sure,
+EI1,CS.15.1,sure,
+EI10,CS.11.4,probable,Enquête de fréquentation (la satisfaction n'a pas d'équivalent)
+EI11,SP.1.2,a_arbitrer,Politique pénale : pilotage des missions de police (SP.1.2) ou arsenal juridique (SP.1.4)
+EI2,CS.12.2,sure,
+EI3,CS.1,a_arbitrer,Abiotiques : CS.1 / CS.2 / CS.3
+EI3.1,CS.1.2,sure,
+EI3.2,CS.1.5,probable,Ou CS.1.1
+EI3.3,CS.2.1,sure,
+EI4,CS.10,probable,
+EI4.1,CS.10.4,sure,
+EI4.2,CS.10.1,a_arbitrer,Domestiques (CS.10.1) ou introduites (CS.10.5)
+EI5,AP.2.1,sure,Élaboration et évaluation du plan de gestion
+EI5.1,AP.2.1,sure,
+EI5.2,AP.2.1,sure,
+EI5.3,AP.2.1,probable,Ou CO.2.3 (version communicante du plan)
+EI6,AP.2.1,sure,
+EI6.1,AP.2.1,sure,
+EI6.2,AP.2.1,sure,
+EI6.3,CO.2.3,probable,Document de synthèse ≈ version communicante du plan ; sinon AP.2.1
+EI6.4,AP.2.1,sure,
+EI7,AP.2.2,a_arbitrer,Schéma d'accueil : pas d'équivalent (AP.2.2 animation du document de gestion ?)
+EI8,CO.2.4,a_arbitrer,Plan d'interprétation : pas d'équivalent direct
+EI9,CS.12.1,sure,Diagnostic de l'ancrage territorial
+IP1,IP.2,probable,Restauration d'habitats : la V1 ne distingue plus restauration / entretien
+IP1.1,IP.2.1,sure,Débroussaillage = intervention sur la végétation
+IP1.2,IP.2.1,sure,
+IP1.3,IP.2.1,sure,
+IP1.4,IP.2.1,sure,
+IP1.5,IP.2.1,probable,Pâturage : intervention sur la végétation (pas de type « pâturage » en V1)
+IP1.5.1,IP.2.1,probable,
+IP1.5.2,IP.2.1,probable,
+IP1.5.3,IP.2.1,a_arbitrer,Clôtures pour pâturage : IP.2.1 ou GE.2.1 (équipements)
+IP1.6,IP.2.2,probable,Curage ≈ substrats ; ou IP.2.5 hydromorphologie
+IP1.7,IP.2.2,sure,Étrépage / décapage = sols et substrats
+IP1.8,IP.2.7,probable,Effacement d'éléments anthropiques → autres interventions de génie écologique
+IP1.8.1,IP.2.7,probable,
+IP1.8.2,IP.2.1,probable,Suppression de végétaux
+IP1.8.3,IP.2.7,probable,
+IP1.9,IP.2.2,a_arbitrer,Terrassement : IP.2.2 ou IP.2.5
+IP1.9.1,IP.2.5,sure,Reprofilage de berges = hydromorphologie
+IP1.9.2,IP.2.2,probable,
+IP10,IP.4.4,sure,Entretien d'aménagements en faveur des espèces
+IP10.1,IP.4.4,sure,
+IP10.2,IP.4.4,sure,
+IP10.3,IP.2.6,a_arbitrer,Passages à faune : continuités écologiques (IP.2.6) ou IP.4.4
+IP10.4,IP.4.4,probable,
+IP2,IP.2,probable,Entretien d'habitats : idem IP1
+IP2.1,IP.2.1,sure,
+IP2.1.1,IP.2.1,sure,La fréquence de fauche n'existe plus comme type en V1
+IP2.1.2,IP.2.1,sure,
+IP2.1.3,IP.2.1,sure,
+IP2.1.4,IP.2.1,sure,
+IP2.1.5,IP.2.1,sure,
+IP2.1.6,IP.2.1,sure,
+IP2.1.7,IP.2.1,sure,
+IP2.2,IP.2.1,probable,
+IP2.2.1,IP.2.1,probable,
+IP2.2.2,IP.2.1,probable,
+IP2.3,IP.2.1,sure,
+IP2.4,IP.2.2,probable,Ou IP.2.5
+IP2.5,IP.2.2,probable,
+IP3,IP.2.4,sure,
+IP3.1,IP.2.4,sure,
+IP3.1.1,IP.2.4,sure,
+IP3.1.2,IP.2.4,sure,
+IP3.1.3,IP.2.4,sure,
+IP3.2,IP.2.4,sure,
+IP3.3,IP.2.4,sure,
+IP4,IP.1.1,sure,Non-intervention / libre évolution
+IP5,IP.4.1,sure,Réintroduction (faune)
+IP6,IP.4.1,sure,Réintroduction (flore)
+IP7,IP.5.2,sure,Faune EEE
+IP8,IP.5.3,sure,Flore EEE
+IP9,IP.4.4,sure,
+IP9.1,IP.4.4,sure,
+IP9.2,IP.4.4,sure,
+IP9.3,IP.2.6,a_arbitrer,Passages à faune : IP.2.6 ou IP.4.4
+IP9.4,IP.4.4,probable,
+MS1,GE.2.2,sure,Entretien des outils de travail
+MS10,AP.3.2,probable,Projets territoriaux
+MS11,AP.1.1,probable,Réseaux d'aires protégées (ou AP.3.1 réseaux locaux)
+MS12,AP.3.5,probable,Stratégie de maîtrise foncière
+MS13,AP.3.5,probable,
+MS13.1,AP.3.5,probable,
+MS13.2,AP.3.5,probable,
+MS14,AP.3.5,a_arbitrer,Bornage : pas d'équivalent (foncier)
+MS14.1,AP.3.5,a_arbitrer,
+MS14.2,AP.3.5,a_arbitrer,
+MS15,AP.3.5,probable,
+MS15.1,AP.3.5,probable,
+MS15.2,AP.3.5,probable,
+MS16,AP.3.4,probable,Partenariats avec les acteurs locaux (ou AP.3.3 concertation)
+MS17,AP.4,probable,Réglementation des activités et des usages
+MS17.1,AP.4.1,a_arbitrer,Création de textes : AP.4.1 (création d'aire protégée) ou AP.4.6
+MS17.2,AP.4.4,sure,
+MS17.3,AP.4.6,sure,
+MS17.3.1,AP.4.6,sure,
+MS17.3.2,AP.4.4,sure,
+MS17.4,AP.4.3,probable,
+MS17.4.1,AP.4.3,sure,
+MS17.4.2,AP.4.2,sure,
+MS17.5,AP.4.5,sure,Restrictions de circulation = accès à la nature
+MS18,AP.2.8,sure,Procédures réglementaires
+MS18.1,AP.2.8,sure,
+MS18.1.1,AP.2.8,sure,
+MS18.1.2,AP.2.8,sure,
+MS18.1.3,AP.2.8,sure,
+MS18.1.4,AP.2.8,sure,
+MS19,SP.1.3,probable,Relations avec le procureur ≈ collaboration avec les services de police
+MS2,GE.2.2,sure,
+MS20,AP.2.3,sure,
+MS21,AP.2.3,sure,
+MS22,AP.2.4,sure,
+MS23,AP.2.4,probable,Formation des agents ; ou CO.1.2 (formation de divers publics)
+MS3,IP.2.1,a_arbitrer,"Gestion du cheptel (pâturage) : IP.2.1, GE.2.2 ou AP.6"
+MS5,AP.1.5,a_arbitrer,Plans de prévention des risques : instances institutionnelles (AP.1.5) ou AP.2.7
+MS5.1,AP.1.5,a_arbitrer,
+MS5.1.1,AP.1.5,a_arbitrer,
+MS5.1.2,AP.1.5,a_arbitrer,
+MS5.1.3,AP.1.5,a_arbitrer,
+MS5.1.4,AP.1.5,a_arbitrer,
+MS5.1.5,AP.1.5,a_arbitrer,
+MS5.1.6,AP.1.5,a_arbitrer,
+MS5.2,AP.1.5,a_arbitrer,
+MS5.3,AP.1.5,a_arbitrer,
+MS6,AP.1.5,a_arbitrer,POLMAR : AP.1.5 ou SP.2.1
+MS6.1,AP.1.5,a_arbitrer,
+MS6.2,AP.1.5,a_arbitrer,
+MS7,AP.6,probable,Autres actions administratives
+MS8,AP.1.4,probable,Liens avec les institutions et partenaires
+MS8.1,AP.1.4,probable,
+MS8.2,AP.1.4,probable,
+MS8.3,AP.1.4,probable,
+MS9,AP.1.4,a_arbitrer,Communication aux partenaires : AP.1.4 ou CO.1.1
+MS9.1,AP.1.4,a_arbitrer,
+MS9.2,AP.1.4,a_arbitrer,
+MS9.3,CO.2.3,probable,Communication du plan de gestion ≈ version communicante
+PA1,CO.1.1,sure,
+PA1.1,CO.1.1,sure,
+PA1.2,CO.1.1,probable,Maraudage
+PA1.3,CO.1.4,sure,
+PA1.4,CS.14.3,sure,Sciences participatives (la V1 les range en CS)
+PA2,CO.1.1,probable,Public ciblé ; ou CO.1.2 (formation)
+PA2.1,CO.1.1,probable,
+PA2.2,CO.1.1,probable,
+PA2.3,CO.1.1,probable,
+PA2.4,CO.1.4,sure,
+PR1,CS.14.2,sure,
+SP1,SP.1.1,probable,Surveillance par les gardes ; la sensibilisation seule relève de CO.1.1
+SP1.1,SP.1.1,sure,
+SP1.2,SP.1.1,probable,Contrôle des pratiques
+SP1.2.1,SP.1.1,probable,
+SP1.2.2,SP.1.1,probable,
+SP1.2.3,SP.1.1,probable,
+SP1.2.4,SP.1.1,probable,
+SP1.2.5,SP.1.1,probable,
+SP2,SP.1.3,sure,Collaboration avec les services de police

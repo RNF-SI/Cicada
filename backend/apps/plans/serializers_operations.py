@@ -1108,6 +1108,8 @@ class OperationSerializer(serializers.ModelSerializer):
         source='get_cout_salarial_auto_realise', read_only=True)
     declinaison_par_poste_realise = serializers.BooleanField(
         source='get_declinaison_par_poste_realise', read_only=True)
+    # #751 — type d'action à actualiser après un passage de référentiel.
+    type_action_a_actualiser = serializers.SerializerMethodField()
     # #761 — sinon, le suivi propose les réglages du 1er suivi du plan.
     reglages_suivi_definis = serializers.BooleanField(read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
@@ -1140,7 +1142,7 @@ class OperationSerializer(serializers.ModelSerializer):
         fields = [
             'id_operation', 'libelle', 'ordre', 'statut',
             'id_priorite', 'priorite_label',
-            'id_type_action', 'type_action_label',
+            'id_type_action', 'type_action_label', 'type_action_a_actualiser',
             'id_categorie_action_reserve', 'categorie_action_reserve_label',
             'categorie_action_reserve_code',
             'code_prefix', 'code_affichage', 'numero_manuel',
@@ -1210,6 +1212,26 @@ class OperationSerializer(serializers.ModelSerializer):
         if obj.id_categorie_action_reserve_id:
             return obj.id_categorie_action_reserve.cd_nomenclature
         return None
+
+    @extend_schema_field(serializers.JSONField(allow_null=True))
+    def get_type_action_a_actualiser(self, obj):
+        """Ancien type, suggestion et note de la table de correspondance, tant
+        que l'action attend un nouveau type (#751) ; sinon null."""
+        from .models_referentiel import PassageReferentielObjet
+        from .referentiel_actions import resume_attente
+
+        if obj.id_type_action_id is not None:
+            return None
+        ctx = self.context if self.context is not None else {}
+        if '_ops_a_actualiser' not in ctx:
+            ctx['_ops_a_actualiser'] = set(PassageReferentielObjet.objects.filter(
+                statut=PassageReferentielObjet.STATUT_A_ACTUALISER,
+                passage__statut='applique', passage__cible__courante=True,
+                operation__isnull=False,
+            ).values_list('operation_id', flat=True))
+        if obj.pk not in ctx['_ops_a_actualiser']:
+            return None
+        return resume_attente(obj)
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_code_affichage(self, obj):
@@ -1579,6 +1601,11 @@ class OperationCreateSerializer(serializers.ModelSerializer):
     # Emprise spatiale acceptée en GeoJSON (cohérent avec `geom_realisee` de la
     # réalisation et `geom_geojson` du serializer de lecture).
     geom_geojson = GeoJSONGeometryField(source='geom', required=False, allow_null=True)
+    # #751 — type affiché à l'ouverture d'une action à actualiser : si un autre
+    # référent l'a choisi entre-temps, l'enregistrement est refusé au lieu
+    # d'écraser son choix.
+    id_type_action_attendu = serializers.IntegerField(
+        required=False, allow_null=True, write_only=True)
 
     class Meta:
         model = Operation
@@ -1604,7 +1631,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             'programmation_globale', 'operation_annee_globale',
             'geom_geojson', 'emprise_suit_sites',
             'metrique_ids', 'site_ids',
-            'operation_annees', 'finances'
+            'operation_annees', 'finances',
+            'id_type_action_attendu',
         ]
         read_only_fields = ['id_operation']
         extra_kwargs = {
@@ -1691,6 +1719,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         ])
 
     def create(self, validated_data):
+        validated_data.pop('id_type_action_attendu', None)
         site_ids = validated_data.pop('site_ids', [])
         metrique_ids = validated_data.pop('metrique_ids', [])
         annees_data = validated_data.pop('operation_annees', [])
@@ -1766,6 +1795,24 @@ class OperationCreateSerializer(serializers.ModelSerializer):
 
         return operation
 
+    @staticmethod
+    def _verifier_type_attendu(instance, validated_data):
+        """#751 — refuse d'écraser un type choisi par un autre référent."""
+        if 'id_type_action_attendu' not in validated_data:
+            return
+        attendu = validated_data.pop('id_type_action_attendu')
+        nouveau = validated_data.get('id_type_action', instance.id_type_action)
+        nouveau_id = getattr(nouveau, 'pk', nouveau)
+        if instance.id_type_action_id == attendu or instance.id_type_action_id == nouveau_id:
+            return
+        from .referentiel_actions import dernier_objet
+        obj = dernier_objet(instance)
+        qui = obj.actualise_par.get_full_name() if obj and obj.actualise_par else "un autre référent"
+        raise serializers.ValidationError({'id_type_action': [
+            f"Le type d'action vient d'être choisi par {qui} "
+            f"(« {instance.id_type_action} ») : rechargez la fiche avant de le modifier."
+        ]}, code='type_deja_modifie')
+
     def update(self, instance, validated_data):
         site_ids = validated_data.pop('site_ids', None)
         metrique_ids = validated_data.pop('metrique_ids', None)
@@ -1774,6 +1821,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         finances_data = validated_data.pop('finances', None)
         suivi_data = validated_data.pop('suivi_inventaire', None)
 
+        self._verifier_type_attendu(instance, validated_data)
+        type_avant = instance.id_type_action_id
         type_action = validated_data.get('id_type_action', instance.id_type_action)
         if not self._accepte_un_suivi(type_action):
             # #715 — une action qui n'est plus CS se détache de son suivi (le
@@ -1816,6 +1865,10 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        # #751 — l'action à actualiser a reçu son nouveau type.
+        if type_avant is None and instance.id_type_action_id is not None:
+            from .referentiel_actions import noter_actualisation
+            noter_actualisation(instance, validated_data.get('id_utilisateur_maj'))
 
         # Replace M2M sites
         if site_ids is not None:

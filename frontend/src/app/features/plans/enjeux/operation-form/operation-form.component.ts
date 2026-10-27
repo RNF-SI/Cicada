@@ -2097,6 +2097,11 @@ export class OperationFormComponent implements OnInit {
     };
 
     if (fv.id_type_action) payload.id_type_action = fv.id_type_action;
+    // #751 — action à actualiser : si un autre référent choisit le type
+    // pendant que la fiche est ouverte, le serveur refuse d'écraser son choix.
+    if (this.existingOperation()?.type_action_a_actualiser) {
+      payload.id_type_action_attendu = null;
+    }
     if (fv.id_priorite) payload.id_priorite = fv.id_priorite;
     // #663 — null tant que non renseigné (« Enregistrer » sans validation).
     payload.action_restauration = fv.action_restauration ?? null;
@@ -2885,7 +2890,7 @@ export class OperationFormComponent implements OnInit {
   }
 
   // ════════════════════════════════════════════════
-  // Type d'action autocomplete (codes Eden 62)
+  // Type d'action autocomplete (référentiel en service : Eden 62, Gestref…)
   // ════════════════════════════════════════════════
 
   private initTypeActionAutocomplete(): void {
@@ -2897,6 +2902,20 @@ export class OperationFormComponent implements OnInit {
   }
 
   displayTypeActionFn = displayNomenclatureFn;
+
+  /** #751 — ancien type et proposition, tant que le type est à choisir. */
+  typeAActualiser = computed(() => {
+    const info = this.existingOperation()?.type_action_a_actualiser ?? null;
+    return this.selectedTypeAction() ? null : info;
+  });
+
+  utiliserSuggestionType(): void {
+    const id = this.typeAActualiser()?.suggestion_id;
+    const option = this.typeActionOptions().find(o => o.id_nomenclature === id);
+    if (!option) return;
+    this.onTypeActionSelected(option);
+    this.typeActionSearchCtrl.setValue(this.displayTypeActionFn(option), { emitEvent: false });
+  }
 
   onTypeActionSelected(option: NomenclatureOption): void {
     // #483 — changer le type d'action ne doit effacer aucune saisie. On mémorise

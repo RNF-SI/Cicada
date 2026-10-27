@@ -349,6 +349,21 @@
       </div>
     }
 
+    <!-- #751 — actions dont le type est à choisir après un passage du référentiel. -->
+    @if (typesAActualiser(); as ta) {
+      <div class="lock-banner lock-banner--types" role="status" data-testid="types-a-actualiser-banner">
+        <i class="fi fi-rr-list-check"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-text">
+            {{ 'referentielActions.bandeau.texte' | translate:{ n: ta.n, vers: ta.vers } }}
+          </span>
+          <a class="link-default" routerLink="/actions-a-actualiser" [queryParams]="{ plan: planId() }">
+            {{ 'referentielActions.bandeau.lien' | translate }}
+          </a>
+        </div>
+      </div>
+    }
+
     <!-- #683 — Lecture d'exploration : plan validé d'une autre structure. -->
     @if (accesExploration()) {
       <div class="lock-banner lock-banner--access" role="status" data-testid="exploration-banner">

@@ -1,0 +1,85 @@
+<h2 mat-dialog-title>{{ 'referentielActions.dialog.title' | translate }}</h2>
+
+<mat-dialog-content>
+  <p class="action">
+    @if (data.codeAffichage) {
+      <span class="action-code-badge">{{ data.codeAffichage }}</span>
+    }
+    {{ data.libelle }}
+  </p>
+
+  <dl class="rappel">
+    <dt>{{ 'referentielActions.ancienType' | translate }}</dt>
+    <dd><span class="code">{{ data.ancienCode }}</span> {{ data.ancienLibelle }}</dd>
+    @if (data.suggestionCode) {
+      <dt>{{ 'referentielActions.suggestion' | translate }}</dt>
+      <dd>
+        <span class="code">{{ data.suggestionCode }}</span> {{ data.suggestionLibelle }}
+        @if (data.note) {
+          <span class="note">— {{ data.note }}</span>
+        }
+      </dd>
+    }
+  </dl>
+
+  @if (conflit(); as c) {
+    <div class="info-block info-block-warning" role="alert" data-testid="actualiser-type-conflit">
+      {{ 'referentielActions.dialog.conflit' | translate:{ qui: c.actualise_par, type: c.type_action_label } }}
+    </div>
+  } @else {
+    @if (suggestion()) {
+      <button mat-stroked-button type="button" class="btn-sm" (click)="utiliserSuggestion()"
+              data-testid="actualiser-type-suggestion">
+        {{ 'referentielActions.dialog.utiliserSuggestion' | translate:{ code: data.suggestionCode } }}
+      </button>
+    }
+
+    <label class="app-mat-label" for="actualiser-type-recherche">
+      {{ 'referentielActions.dialog.nouveauType' | translate }} <span class="required-star">*</span>
+    </label>
+    <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+      <input matInput id="actualiser-type-recherche" data-testid="actualiser-type-recherche"
+             [formControl]="searchCtrl" [matAutocomplete]="auto"
+             [placeholder]="'referentielActions.dialog.placeholder' | translate">
+      @if (searchCtrl.value) {
+        <button matSuffix mat-icon-button type="button" (click)="effacer()" tabindex="-1"
+                [attr.aria-label]="'common.actions.clear' | translate">
+          <i class="fi fi-rr-cross-small"></i>
+        </button>
+      }
+      <mat-autocomplete #auto="matAutocomplete" [displayWith]="display"
+                        (optionSelected)="choisir($event.option.value)"
+                        class="type-action-autocomplete">
+        @for (group of groupes(); track group.groupLabel) {
+          <mat-optgroup [label]="group.groupLabel">
+            @for (o of group.options; track o.id_nomenclature) {
+              <mat-option [value]="o" [class]="'action-depth-' + depth(o)">
+                <span class="action-code">{{ o.cd_nomenclature || o.mnemonique }}</span>
+                <span class="action-label">{{ o.label }}</span>
+              </mat-option>
+            }
+          </mat-optgroup>
+        }
+      </mat-autocomplete>
+      <mat-hint>{{ 'referentielActions.dialog.aide' | translate }}</mat-hint>
+    </mat-form-field>
+
+    @if (erreur()) {
+      <p class="text-error" role="alert">{{ erreur() }}</p>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (conflit()) {
+    <button mat-flat-button color="primary" (click)="fermerSurConflit()">
+      {{ 'common.actions.close' | translate }}
+    </button>
+  } @else {
+    <button mat-stroked-button (click)="annuler()">{{ 'common.actions.cancel' | translate }}</button>
+    <button mat-flat-button color="primary" data-testid="actualiser-type-valider"
+            [disabled]="!choisi() || enregistrement()" (click)="valider()">
+      {{ 'common.actions.save' | translate }}
+    </button>
+  }
+</mat-dialog-actions>

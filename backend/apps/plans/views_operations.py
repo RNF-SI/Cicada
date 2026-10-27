@@ -32,6 +32,7 @@ from .access import (
     user_can_access_plan,
 )
 from .exploration import LectureExplorationMixin
+from .views_referentiel import ACTUALISER_TYPE_SCHEMA, ActualiserTypeSerializer
 from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
@@ -433,6 +434,53 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             f"attachment; filename*=UTF-8''{_url_quote(f'{prefixe}-{suffix}{suffixe}.{extension}')}"
         )
         return response
+
+    @ACTUALISER_TYPE_SCHEMA
+    @action(detail=True, methods=['post'], url_path='actualiser-type',
+            permission_classes=[permissions.IsAuthenticated])
+    def actualiser_type(self, request, pk=None):
+        """#751 — choisir le nouveau type d'une action après un passage de
+        référentiel. Permis hors brouillon (exception au verrou #248, le type
+        seul) : `referentiel_actions.actualiser_type`."""
+        from . import referentiel_actions as ref
+
+        operation = self.get_object()
+        if not ref.peut_actualiser(request.user, operation.get_plan_de_gestion()):
+            return Response({'detail': "Seuls les référents du plan choisissent ce type."},
+                            status=status.HTTP_403_FORBIDDEN)
+        data = ActualiserTypeSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        nouveau = Nomenclature.objects.filter(
+            pk=data.validated_data['id_type_action'], actif=True,
+            id_type__mnemonique=ref.TYPE_ACTION).first()
+        if nouveau is None:
+            return Response({'id_type_action': ["Type d'action inconnu ou retiré du référentiel."]},
+                            status=status.HTTP_400_BAD_REQUEST)
+        def conflit(e):
+            qui = (e.obj.actualise_par.get_full_name()
+                   if e.obj and e.obj.actualise_par else "un autre référent")
+            return Response({
+                'code': 'type_deja_modifie',
+                'detail': f"Le type de cette action vient d'être choisi par {qui}.",
+                'id_type_action': e.operation.id_type_action_id,
+                'type_action_label': str(e.operation.id_type_action or ''),
+                'actualise_par': qui,
+            }, status=status.HTTP_409_CONFLICT)
+
+        attendu = data.validated_data['type_attendu']
+        if operation.id_type_action_id != attendu:
+            return conflit(ref.TypeDejaModifie(operation, ref.dernier_objet(operation)))
+        # Hors brouillon, seule une action en attente d'un type peut en changer.
+        plan = operation.get_plan_de_gestion()
+        if plan is not None and plan.statut != 'draft' and ref.objet_en_attente(operation) is None:
+            return Response({'detail': CanModifyOnlyDraftPlan.message},
+                            status=status.HTTP_403_FORBIDDEN)
+        try:
+            ref.actualiser_type(operation, nouveau, request.user, type_attendu_id=attendu)
+        except ref.TypeDejaModifie as e:
+            return conflit(e)
+        operation.refresh_from_db()
+        return Response(OperationSerializer(operation, context={'request': request}).data)
 
     @action(detail=True, methods=['post'], url_path='move')
     def move(self, request, pk=None):

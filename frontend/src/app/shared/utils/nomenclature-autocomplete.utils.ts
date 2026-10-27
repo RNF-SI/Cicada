@@ -23,17 +23,26 @@ export interface BuildNomenclatureGroupsOptions {
   searchInDefinition?: boolean;
 }
 
+/** Minuscules, sans accents : « Études » se trouve en tapant « etudes ». */
+export function normaliserRecherche(texte: string): string {
+  return (texte || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 /**
  * Construit les groupes filtrés pour un autocomplete de nomenclatures.
  * Si le terme de recherche matche un nom de groupe, toutes les options
  * de ce groupe sont affichées (même si elles ne matchent pas individuellement).
+ *
+ * #751 — recherche plein texte : sans accents, chaque mot tapé doit se
+ * retrouver dans le code, le libellé, le titre du groupe (ou la définition) ;
+ * le code se cherche avec ou sans ses points (« cs11 » trouve « CS.1.1 »).
  */
 export function buildNomenclatureGroups(
   options: NomenclatureOption[],
   searchText: string,
   opts?: BuildNomenclatureGroupsOptions
 ): NomenclatureGroup[] {
-  const searchTerm = searchText.toLowerCase();
+  const mots = normaliserRecherche(searchText).split(/\s+/).filter(Boolean);
   const searchDef = opts?.searchInDefinition ?? false;
 
   // 1) Construire tous les groupes avec toutes leurs options
@@ -47,7 +56,7 @@ export function buildNomenclatureGroups(
   }
 
   // 2) Si pas de recherche, tout afficher
-  if (!searchTerm) {
+  if (!mots.length) {
     const groups: NomenclatureGroup[] = [];
     for (const [groupLabel, grpOpts] of allGroups) {
       groups.push({ groupLabel, options: grpOpts });
@@ -59,17 +68,19 @@ export function buildNomenclatureGroups(
   //    sinon → afficher seulement les options qui matchent
   const groups: NomenclatureGroup[] = [];
   for (const [groupLabel, grpOpts] of allGroups) {
-    const groupMatches = groupLabel.toLowerCase().includes(searchTerm);
+    const titre = normaliserRecherche(groupLabel);
+    const groupMatches = mots.every(m => titre.includes(m));
 
     if (groupMatches) {
       groups.push({ groupLabel, options: grpOpts });
     } else {
       const filtered = grpOpts.filter(opt => {
-        const code = opt.cd_nomenclature || opt.mnemonique || '';
-        if (code.toLowerCase().includes(searchTerm)) return true;
-        if (opt.label.toLowerCase().includes(searchTerm)) return true;
-        if (searchDef && opt.definition?.toLowerCase().includes(searchTerm)) return true;
-        return false;
+        const code = normaliserRecherche(opt.cd_nomenclature || opt.mnemonique || '');
+        const texte = [
+          code, code.replace(/[._]/g, ''), normaliserRecherche(opt.label), titre,
+          searchDef ? normaliserRecherche(opt.definition || '') : '',
+        ].join(' ');
+        return mots.every(m => texte.includes(m));
       });
       if (filtered.length > 0) {
         groups.push({ groupLabel, options: filtered });
@@ -94,10 +105,15 @@ export function parseNomenclatureDefinition(def: string | undefined): { definiti
   };
 }
 
-/** Profondeur d'indentation basée sur les points dans le code (1=0, 1.1=1, 1.1.1=2) */
+/**
+ * Profondeur d'indentation basée sur les points dans le code (1=0, 1.1=1, 1.1.1=2).
+ * #751 — codes Gestref : la catégorie est le titre du groupe, « CS.1 » est donc
+ * au 1er niveau et « CS.1.1 » au 2e.
+ */
 export function getNomenclatureDepth(option: NomenclatureOption): number {
   const code = option.cd_nomenclature || option.mnemonique || '';
-  return (code.match(/\./g) || []).length;
+  const points = (code.match(/\./g) || []).length;
+  return /^[A-Za-z]+\./.test(code) ? Math.max(points - 1, 0) : points;
 }
 
 /** Fonction d'affichage pour mat-autocomplete displayWith */

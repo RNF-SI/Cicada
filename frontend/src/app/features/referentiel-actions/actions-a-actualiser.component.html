@@ -1,0 +1,113 @@
+<div class="a-actualiser-page">
+  <a routerLink="/accueil" class="back-link">
+    <i class="fi fi-rr-arrow-left"></i>
+    {{ 'referentielActions.retourAccueil' | translate }}
+  </a>
+
+  <header class="page-header">
+    <h1>{{ 'referentielActions.title' | translate }}</h1>
+    @if (donnees()?.passage; as p) {
+      <p class="intro">
+        {{ 'referentielActions.intro' | translate:{ depuis: p.depuis, vers: p.vers, date: (p.date | date:'dd/MM/yyyy') } }}
+      </p>
+    }
+  </header>
+
+  @if (chargement()) {
+    <p class="text-muted">{{ 'common.loading' | translate }}</p>
+  } @else if (erreur()) {
+    <div class="info-block info-block-error" role="alert">{{ 'referentielActions.erreur' | translate }}</div>
+  } @else if (!donnees()?.passage || !plans().length) {
+    <div class="info-block info-block-success" data-testid="a-actualiser-vide">
+      {{ 'referentielActions.rien' | translate }}
+    </div>
+  } @else {
+    <div class="info-block" data-testid="a-actualiser-resume">
+      <div>
+      <p>{{ 'referentielActions.resume' | translate:{ n: donnees()!.total_a_actualiser, faites: totalActualisees() } }}</p>
+      <p class="text-small">{{ 'referentielActions.plusieurs' | translate }}</p>
+      </div>
+    </div>
+
+    @for (plan of plans(); track plan.id_pg) {
+      <app-accordion [title]="plan.nom + ' — ' + (plan.a_actualiser.length ? ('referentielActions.compte' | translate:{ n: plan.a_actualiser.length }) : ('referentielActions.compteAucun' | translate))"
+                     [expanded]="plan.a_actualiser.length > 0" class="plan-bloc">
+        @if (plan.a_actualiser.length) {
+          <h3>{{ 'referentielActions.sections.aActualiser' | translate }}</h3>
+          <table class="table-actions" data-testid="a-actualiser-table">
+            <thead>
+              <tr>
+                <th>{{ 'referentielActions.colonnes.action' | translate }}</th>
+                <th>{{ 'referentielActions.ancienType' | translate }}</th>
+                <th>{{ 'referentielActions.suggestion' | translate }}</th>
+                <th><span class="sr-only">{{ 'referentielActions.colonnes.choix' | translate }}</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of plan.a_actualiser; track a.id_operation) {
+                <tr>
+                  <td>
+                    @if (ficheLink(plan, a); as link) {
+                      <a [routerLink]="link" class="link-default">
+                        @if (a.code_affichage) { <span class="code">{{ a.code_affichage }}</span> }
+                        {{ a.libelle }}
+                      </a>
+                    } @else {
+                      {{ a.libelle }}
+                    }
+                  </td>
+                  <td><span class="code">{{ a.ancien_code }}</span> {{ a.ancien_libelle }}</td>
+                  <td>
+                    @if (a.suggestion_code) {
+                      <span class="code">{{ a.suggestion_code }}</span> {{ a.suggestion_libelle }}
+                    }
+                    @if (a.note) { <span class="note">{{ a.note }}</span> }
+                  </td>
+                  <td class="cell-action">
+                    <button mat-flat-button color="primary" class="btn-sm" (click)="choisirType(a)"
+                            data-testid="a-actualiser-choisir">
+                      {{ 'referentielActions.choisir' | translate }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        @if (plan.actualisees.length) {
+          <h3>{{ 'referentielActions.sections.actualisees' | translate }}</h3>
+          <ul class="list-custom">
+            @for (a of plan.actualisees; track a.id_operation) {
+              <li>
+                <span class="code">{{ a.ancien_code }}</span> → <span class="code">{{ a.type_actuel_code }}</span>
+                {{ a.libelle }}
+                <span class="note">
+                  {{ 'referentielActions.par' | translate:{ qui: a.actualise_par || '—', date: (a.actualise_le | date:'dd/MM/yyyy') } }}
+                </span>
+              </li>
+            }
+          </ul>
+        }
+
+        @if (plan.automatiques.length) {
+          <h3>{{ 'referentielActions.sections.automatiques' | translate }}</h3>
+          <p class="text-small text-muted">{{ 'referentielActions.automatiquesAide' | translate }}</p>
+          <ul class="list-custom">
+            @for (a of plan.automatiques; track a.id_operation) {
+              <li>
+                <span class="code">{{ a.ancien_code }}</span> → <span class="code">{{ a.type_actuel_code }}</span>
+                @if (ficheLink(plan, a); as link) {
+                  <a [routerLink]="link" class="link-default">{{ a.libelle }}</a>
+                } @else {
+                  {{ a.libelle }}
+                }
+                @if (a.note) { <span class="note">{{ a.note }}</span> }
+              </li>
+            }
+          </ul>
+        }
+      </app-accordion>
+    }
+  }
+</div>

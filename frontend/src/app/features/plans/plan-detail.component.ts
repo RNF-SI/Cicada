@@ -15,6 +15,7 @@ import { StatusChipComponent } from '../../shared/components/status-chip/status-
 import { TagComponent } from '../../shared/components/tag/tag.component';
 import { SectionTitleComponent } from '../../shared/components/section-title/section-title.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
+import { ReferentielActionsService } from '../../core/services/referentiel-actions.service';
 import { AdminService } from '../../core/services/admin.service';
 import { ExplorationService } from '../../core/services/exploration.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -160,6 +161,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
+  private readonly referentielActions = inject(ReferentielActionsService);
 
   private routeSub?: Subscription;
 
@@ -170,6 +172,8 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
 
   // Plan data from API
   plan = signal<AdminPlan | null>(null);
+  /** #751 — actions du plan dont le type est à choisir après un passage de référentiel. */
+  typesAActualiser = signal<{ n: number; vers: string } | null>(null);
 
   // Version chain for timeline — always return at least the current plan
   versionChain = computed(() => {
@@ -448,6 +452,17 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
     this.routeSub?.unsubscribe();
   }
 
+  /** #751 — bandeau « N actions attendent un nouveau type d'action ». */
+  private loadTypesAActualiser(planId: number): void {
+    this.typesAActualiser.set(null);
+    if (this.accesExploration()) return;
+    this.referentielActions.aActualiser(planId).subscribe({
+      next: r => this.typesAActualiser.set(
+        r.passage && r.total_a_actualiser ? { n: r.total_a_actualiser, vers: r.passage.vers } : null),
+      error: () => this.typesAActualiser.set(null),
+    });
+  }
+
   loadPlan(): void {
     const slug = this.planSlug();
     if (!slug) return;
@@ -463,6 +478,7 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
         this.loadEnjeux(plan.id_pg);
         this.loadOperations(plan.id_pg);
         this.loadPendingSiteRequests(plan.id_pg);
+        this.loadTypesAActualiser(plan.id_pg);
       },
       error: (error) => {
         this.errorMessage.set(error.message || 'Erreur lors du chargement du plan');

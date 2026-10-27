@@ -100,9 +100,12 @@ class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
         type_param = request.query_params.get('type')
         if type_param == 'TYPE_ACTION':
             from .action_type_groups import get_action_group
+            categories = dict(Nomenclature.objects.filter(
+                id_type__mnemonique='CATEGORIE_ACTION_RESERVE', actif=True,
+            ).values_list('cd_nomenclature', 'label'))
             for item in response.data:
                 item['group_label'] = get_action_group(
-                    item.get('cd_nomenclature', '')
+                    item.get('cd_nomenclature', ''), categories
                 )
         elif type_param == 'TYPE_PRESSION':
             from .pressure_type_groups import get_pressure_group

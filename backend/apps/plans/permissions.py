@@ -87,6 +87,9 @@ class CanModifyOnlyDraftPlan(BasePermission):
         # plan validé doit rester exportable.
         "export_tableau_de_bord_xlsx",
         "export_suivi_actions_xlsx",
+        # #751 — type d'une action à actualiser après un passage de
+        # référentiel : la vue n'autorise hors brouillon que ce cas.
+        "actualiser_type",
         # Lecture / consultations
         "by_plan",
         "by_ne",

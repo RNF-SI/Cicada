@@ -247,12 +247,9 @@ def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
 
     code = code_local or _txt(op.code_operation) or (
         f"n° {op.numero_manuel}" if op.numero_manuel else "")
-    ta = getattr(op, "id_type_action", None)
-    code_ref = " — ".join(x for x in (
-        _txt(getattr(ta, "cd_nomenclature", "")), _txt(getattr(ta, "label", ""))) if x)
     d.kv([
         ("Code action (local)", code),
-        ("Code action (référentiel Gestref)", code_ref or _txt(op.id_referentiel_operations)),
+        ("Code action (référentiel Gestref)", fiche.code_referentiel(op)),
     ])
 
     # ---- 1) Cadre de l'action ----

@@ -1,0 +1,46 @@
+@import 'variables';
+
+.action {
+  margin-top: 0;
+  font-weight: 700;
+  color: $black;
+}
+
+.action-code-badge,
+.code {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: $primary-color;
+  background-color: $primary-bg-subtle;
+  padding: 1px 6px;
+  border-radius: $border-radius-sm;
+  margin-right: $spacing-xxs;
+}
+
+.rappel {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: $spacing-xxs $spacing-sm;
+  margin: 0 0 $spacing-md;
+
+  dt {
+    color: $gray-dark;
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .note {
+    color: $gray-dark;
+    font-size: 0.85rem;
+  }
+}
+
+button.btn-sm {
+  margin-bottom: $spacing-sm;
+}
+
+.full-width {
+  width: 100%;
+}

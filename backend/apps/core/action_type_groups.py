@@ -135,14 +135,23 @@ _ROOT_CODE_TO_GROUP = {
 }
 
 
-def get_action_group(cd_nomenclature: str) -> str:
+def get_action_group(cd_nomenclature: str, categories: dict | None = None) -> str:
     """
     Retourne le nom du groupe (sous-titre) pour un code TYPE_ACTION donné.
     Les sous-codes héritent du groupe de leur code racine.
     Ex: 'IP1.5.1' → root='IP1' → 'Gestion des habitats naturels'
+
+    #751 — codes Gestref (« CS.1.1 ») : le groupe est la catégorie, dont le
+    libellé est lu dans `categories` ({code: libellé} des catégories actives).
     """
     if not cd_nomenclature:
         return ''
     # Extraire le code racine (avant le premier point)
     root = cd_nomenclature.split('.')[0]
-    return _ROOT_CODE_TO_GROUP.get(root, '')
+    if root in _ROOT_CODE_TO_GROUP:
+        return _ROOT_CODE_TO_GROUP[root]
+    if categories and root.isalpha() and '.' in cd_nomenclature:
+        libelle = categories.get(root.upper())
+        if libelle:
+            return f"{root.upper()} — {libelle}"
+    return ''

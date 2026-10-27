@@ -1,3 +1,5 @@
+-- Identifiants >= 500000 réservés aux référentiels versionnés (types d'action Gestref, #751) :
+-- ne pas en poser ici (voir apps/plans/referentiel_actions.py, REFERENTIEL_ID_BASE).
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (381, 8, NULL, 'CDI de projet', 'Contrat à durée indéterminée de projet', NULL, NULL, NULL, NULL, NULL, NULL, true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (382, 10, NULL, 'Fonds Propres', 'Fonds Propres', NULL, NULL, NULL, NULL, NULL, NULL, true);
 INSERT INTO ref_nomenclatures.t_nomenclatures (id_nomenclature, id_type, cd_nomenclature, mnemonique, label, definition, source, statut, hierarchy, date_ajout, date_maj, actif) VALUES (42, 1, NULL, 'RNN', 'Réserve Naturelle Nationale', NULL, NULL, NULL, NULL, NULL, NULL, true);

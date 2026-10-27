@@ -77,3 +77,23 @@ Depuis la fiche, vous pouvez :
 ![Fiche action](../assets/figures/fig47.webp){ loading=lazy }
 <figcaption>Figure 47 : Fiche action</figcaption>
 </figure>
+
+## 4.8.3. Les types d'action à actualiser
+
+Le référentiel des types d'action évolue : la codification Eden 62 utilisée jusqu'ici laisse la place à GestRef, qui connaîtra lui-même de nouvelles versions. À chaque changement de version, CICADA met à jour les actions déjà saisies :
+
+- lorsque l'ancien type a un équivalent certain ou très probable dans la nouvelle version, l'action le reçoit automatiquement, avec sa catégorie ;
+- sinon, le type de l'action est vidé : l'action devient « à actualiser ». Son ancien type reste affiché, accompagné d'une proposition issue de la table de correspondance. Une action d'inventaire ou de suivi garde son suivi.
+
+Chaque référent d'un plan concerné reçoit **une seule notification** pour l'ensemble de ses plans, « Types d'action à actualiser », qui ouvre la page du même nom. Un bandeau le rappelle aussi en haut de la page du plan, tant qu'il reste des actions à actualiser.
+
+La page « Types d'action à actualiser » présente, plan par plan :
+
+- les actions dont le type est à choisir : le bouton « Choisir le type » ouvre une fenêtre de recherche (code, mot du libellé ou catégorie, plusieurs mots possibles, sans se soucier des accents) où la proposition s'applique en un clic ;
+- les actions déjà actualisées, avec la personne qui l'a fait et la date ;
+- les actions changées automatiquement sur une correspondance seulement probable, à vérifier si besoin depuis leur fiche.
+
+Le type d'une action à actualiser peut être choisi **même si le plan est validé** : c'est la seule modification permise hors brouillon, et elle ne porte que sur le type et sa catégorie. Dans un plan en brouillon, il peut aussi être choisi depuis le formulaire de l'action, où un encadré rappelle l'ancien type et la proposition. Depuis la fiche action, le bouton « Choisir le nouveau type » ouvre la même fenêtre.
+
+!!! tip "Plusieurs référents sur la même action"
+    Dès qu'un référent choisit le type d'une action, elle quitte la liste de tous, et les autres référents du plan reçoivent une notification de suivi qui se complète au fil des choix (une seule par plan, tant qu'elle n'est pas lue). Si quelqu'un a choisi le type pendant que vous le choisissiez, CICADA vous le signale et conserve son choix au lieu de l'écraser : rouvrez l'action pour le modifier si besoin.

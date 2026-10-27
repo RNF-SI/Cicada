@@ -14,6 +14,9 @@ export type NotificationType =
   | 'account_deactivated'
   | 'account_activated'
   | 'user_first_login'
+  // #751 — passage du référentiel des types d'action
+  | 'referentiel_actions'
+  | 'referentiel_actions_suivi'
   | 'site_orphaned'
   | 'organisme_no_admin'
   | 'system_alert'
