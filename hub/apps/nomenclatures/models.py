@@ -16,6 +16,7 @@ Les tables sont alimentées par ``import_nomenclatures``, depuis les **mêmes
 fichiers SQL que CICADA**, montés en lecture seule.
 """
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -84,3 +85,55 @@ class Nomenclature(models.Model):
 
     def __str__(self):
         return self.label or self.mnemonique or f"Nomenclature {self.id_nomenclature}"
+
+
+# --------------------------------------------------------------------------- #
+# #780 — versions des référentiels et correspondances entre versions
+# --------------------------------------------------------------------------- #
+# Les instances ne changent pas de version au même moment : le hub garde toutes
+# les versions livrées avec CICADA (types d'action, PressRef, TaxRef, HabRef) et
+# leurs tables de correspondance, importées depuis les mêmes fichiers
+# (`import_referentiels`), pour relier les codes d'une version à l'autre.
+
+class VersionReferentiel(models.Model):
+    id = models.AutoField(primary_key=True)
+    referentiel = models.CharField(_("Référentiel"), max_length=20)
+    code = models.CharField(_("Code"), max_length=50)
+    libelle = models.CharField(_("Libellé"), max_length=255)
+    depuis = models.CharField(_("Version de départ"), max_length=50, blank=True, default='')
+    date_import = models.DateTimeField(_("Importée le"), auto_now=True)
+
+    class Meta:
+        db_table = '"ref_nomenclatures"."t_referentiel_versions"'
+        unique_together = ['referentiel', 'code']
+        verbose_name = _("Version de référentiel")
+
+    def __str__(self):
+        return f"{self.referentiel} {self.code}"
+
+
+class LigneReferentiel(models.Model):
+    """Une ligne (code, libellé) d'une version : les anciens codes restent lisibles."""
+    id = models.AutoField(primary_key=True)
+    version = models.ForeignKey(VersionReferentiel, on_delete=models.CASCADE, related_name='lignes')
+    code = models.CharField(_("Code"), max_length=50)
+    libelle = models.CharField(_("Libellé"), max_length=500, blank=True, default='')
+
+    class Meta:
+        db_table = '"ref_nomenclatures"."t_referentiel_lignes"'
+        unique_together = ['version', 'code']
+
+
+class CorrespondanceReferentiel(models.Model):
+    """Un ancien code de la version de départ et son ou ses équivalents."""
+    id = models.AutoField(primary_key=True)
+    version = models.ForeignKey(VersionReferentiel, on_delete=models.CASCADE,
+                                related_name='correspondances')
+    ancien_code = models.CharField(_("Ancien code"), max_length=50)
+    nouveau_code = models.CharField(_("Nouveau code"), max_length=50, blank=True, default='')
+    options = ArrayField(models.CharField(max_length=50), default=list, blank=True)
+    confiance = models.CharField(_("Confiance"), max_length=20)
+
+    class Meta:
+        db_table = '"ref_nomenclatures"."t_referentiel_correspondances"'
+        unique_together = ['version', 'ancien_code']

@@ -217,6 +217,14 @@ class ContenuIndexe(models.Model):
     sous_type_libelle = models.CharField(
         _("Libellé du sous-type"), max_length=255, null=True, blank=True,
     )
+    # #780 — codes de référentiel portés par l'objet, préfixés du référentiel :
+    # `TYPE_ACTION:CS.1.1`, `PRESSREF:1.1`, `TAXREF:4001`, `HABREF:123`. Avec
+    # les correspondances entre versions (`apps/search/equivalences.py`), un
+    # filtre retrouve un objet publié sous un ancien code équivalent.
+    codes_referentiel = ArrayField(
+        models.CharField(max_length=64),
+        verbose_name=_("Codes de référentiel"), default=list, blank=True,
+    )
 
     # ------------------------------------------------------------------ #
     # Facettes héritées du plan (dénormalisées pour le filtrage et les

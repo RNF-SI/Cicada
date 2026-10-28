@@ -53,6 +53,17 @@ instances. Ce sont les mêmes fichiers source que CICADA, montés en lecture
 seule (cf. `docker-compose.hub.yml`) : les codes doivent coïncider des deux
 côtés, les faire diverger casserait la résolution.
 
+Il garde aussi **toutes les versions des référentiels versionnés** (#780) — types
+d'action (Eden 62, Gestref…), PressRef, TaxRef, HabRef — et leurs **tables de
+correspondance** (`ref_nomenclatures.t_referentiel_versions` / `_lignes` /
+`_correspondances`), importées au démarrage par `import_referentiels` depuis les
+mêmes fichiers. Les instances ne changent pas de version au même moment : chaque
+document porte ses `codes_referentiel` (`TYPE_ACTION:CS.1.1`…), et
+`apps/index/equivalences.py` relie les codes d'une version à l'autre. Un filtre
+sur la catégorie Gestref `CS` (ou `?types_action=CS.1`) retrouve ainsi une
+action publiée `EI3` par une instance encore en Eden 62. Même calcul que CICADA
+(`backend/apps/search/equivalences.py`) : règle de parité.
+
 ## Ce qui identifie un document
 
 Rien n'est identifiant entre instances : `id_pg`, `id_objet`, `id_site` et

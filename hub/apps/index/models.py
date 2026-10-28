@@ -559,6 +559,13 @@ class ContenuIndexe(models.Model):
     sous_type_libelle = models.CharField(
         _("Libellé du sous-type"), max_length=255, null=True, blank=True,
     )
+    # #780 — codes de référentiel portés par l'objet (`TYPE_ACTION:CS.1.1`,
+    # `TAXREF:4001`…) : avec les correspondances entre versions, une recherche
+    # retrouve un objet publié sous un code équivalent d'une autre version.
+    codes_referentiel = ArrayField(
+        models.CharField(max_length=64),
+        verbose_name=_("Codes de référentiel"), default=list, blank=True,
+    )
 
     # ------------------------------------------------------------------ #
     # Facettes du plan, redescendues sur la ligne

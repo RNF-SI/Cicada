@@ -22,6 +22,7 @@ from django.db.models import BooleanField, Case, F, Func, Q, Value, When
 from apps.geo.models import LArea
 
 from .models import SEARCH_CONFIG, ContenuIndexe
+from . import equivalences
 
 #: Valeurs acceptées par le filtre « statut du plan de gestion » de la maquette.
 STATUT_EN_COURS = 'en_cours'
@@ -314,6 +315,20 @@ def q_sous_types(params):
             continue
         types_raffines.append(type_contenu)
         scope |= Q(type_contenu=type_contenu, sous_type__in=valeurs)
+        if cle == 'categories_action':
+            # #780 — une action publiée sous un code d'une autre version du
+            # référentiel (Eden 62 / Gestref) compte dans la catégorie équivalente.
+            anciens = equivalences.codes_des_categories(valeurs)
+            if anciens:
+                scope |= Q(type_contenu=type_contenu, codes_referentiel__overlap=equivalences.prefixer(
+                    'TYPE_ACTION', anciens))
+
+    # #780 — types d'action précis (`?types_action=CS.1.1`), codes équivalents compris.
+    types_action = liste(params, 'types_action')
+    if types_action:
+        types_raffines.append(ContenuIndexe.TYPE_ACTION)
+        scope |= Q(type_contenu=ContenuIndexe.TYPE_ACTION, codes_referentiel__overlap=equivalences.prefixer(
+            'TYPE_ACTION', equivalences.equivalents('TYPE_ACTION', types_action)))
 
     if not types_raffines:
         return Q()

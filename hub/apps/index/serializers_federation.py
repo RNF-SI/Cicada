@@ -91,6 +91,10 @@ class ContenuSerializer(serializers.Serializer):
         max_length=255, required=False, allow_null=True, allow_blank=True
     )
     index_version = serializers.IntegerField(required=False, default=0)
+    # #780 — optionnel : une instance antérieure ne l'envoie pas.
+    codes_referentiel = serializers.ListField(
+        child=serializers.CharField(max_length=64), required=False, default=list,
+    )
 
 
 class PlanPublieSerializer(serializers.Serializer):

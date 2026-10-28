@@ -58,6 +58,8 @@ CHAMPS_CONTENU = [
     'titre', 'description', 'rattachements', 'contexte', 'enfants',
     'parent_type', 'parent_libelle', 'chemin', 'enjeu_slug',
     'sous_type', 'sous_type_libelle',
+    # #780 — facultatif pour le hub : une instance antérieure ne l'envoie pas.
+    'codes_referentiel',
 ]
 
 

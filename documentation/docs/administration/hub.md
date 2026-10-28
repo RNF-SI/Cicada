@@ -386,6 +386,14 @@ sudo docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod up -
 Les migrations s'appliquent au démarrage. L'index n'est pas reconstruit : si une
 migration change la forme des documents, les instances doivent republier.
 
+Au démarrage, le hub importe aussi les **versions des référentiels** livrées avec
+CICADA et leurs tables de correspondance (`import_referentiels`, #780). Il les
+garde toutes, même si une version disparaît d'une livraison, pour relier les
+codes publiés par des instances qui ne sont pas encore passées à la même version.
+Les codes de référentiel des documents (`codes_referentiel`) arrivent avec la
+publication suivante de chaque instance (index CICADA version 4, reconstruit au
+démarrage de l'instance).
+
 ## Recette après déploiement
 
 ```bash

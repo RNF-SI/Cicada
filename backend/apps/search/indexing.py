@@ -52,8 +52,9 @@ INDEXED_STATUSES = PlanGestion.VALIDATED_STATUSES
 #: Historique : 1 = version initiale, 2 = #634 (rattachements espèces /
 #: protocoles / habitats / géologie / PressRef + héritage de l'enjeu par les
 #: actions), 3 = #681/#682 (ascendance `chemin`, `enjeu_slug`, descendance
-#: `enfants`).
-INDEX_VERSION = 3
+#: `enfants`), 4 = #780 (`codes_referentiel` : type d'action, PressRef, taxons,
+#: habitats, pour relier les versions de référentiel).
+INDEX_VERSION = 4
 
 
 def _maillon(type_contenu, objet, libelle=None):
@@ -241,6 +242,10 @@ def _documents_enjeux(plan, facettes, branche):
             contexte=enjeu.intitule_court or '',
             chemin=[],
             enjeu_slug=enjeu.slug,
+            codes_referentiel=(
+                [f'TAXREF:{t.cd_nom}' for t in enjeu.taxons.all() if t.cd_nom]
+                + [f'HABREF:{h.cd_hab}' for h in enjeu.habitats.all() if h.cd_hab]
+            ),
             sous_type=(
                 'ecologique' if enjeu.categorie_ecologique else 'socioeco'
             ),
@@ -298,6 +303,10 @@ def _documents_pressions(plan, facettes, branche):
         documents.append(ContenuIndexe(
             type_contenu=ContenuIndexe.TYPE_PRESSION,
             id_objet=pression.pk,
+            codes_referentiel=(
+                [f'PRESSREF:{pression.id_type_pression.cd_nomenclature}']
+                if pression.id_type_pression_id else []
+            ),
             titre=pression.libelle,
             description=pression.description or '',
             # La référence PressRef est un rattachement à un référentiel, pas
@@ -556,6 +565,10 @@ def _documents_actions(plan, facettes, branche):
             sous_type=categorie.mnemonique if categorie else None,
             sous_type_libelle=(
                 f"{categorie.mnemonique} - {categorie.label}" if categorie else None
+            ),
+            codes_referentiel=(
+                [f'TYPE_ACTION:{operation.id_type_action.cd_nomenclature}']
+                if operation.id_type_action_id else []
             ),
             **facettes,
         ))

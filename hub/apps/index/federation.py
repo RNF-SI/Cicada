@@ -65,6 +65,7 @@ CHAMPS_CONTENU = [
     'parent_type', 'parent_libelle', 'chemin', 'enjeu_slug',
     'sous_type', 'sous_type_libelle',
     'index_version',
+    'codes_referentiel',  # #780 — absent des instances antérieures
 ]
 
 

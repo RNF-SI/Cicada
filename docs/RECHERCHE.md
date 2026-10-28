@@ -250,7 +250,8 @@ contiennent ni budget, ni RH, ni données empiriques.
 | `types_site` | ✓ | ✓ | Mnémoniques (`RNN`, `RNR`, `PNR`, `ENS`…) |
 | `categories_enjeu` | ✓ | | `ecologique` / `socioeco` |
 | `types_indicateur` | ✓ | | `ETAT` / `PRESSION` / `REPONSE` |
-| `categories_action` | ✓ | | `SP`, `CS`, `EI`, `IP`… |
+| `categories_action` | ✓ | | `SP`, `CS`, `EI`, `IP`… — compte aussi les actions publiées sous un code équivalent d'une autre version du référentiel (#780) |
+| `types_action` | ✓ | | Codes de types d'action (`CS.1.1`…), codes équivalents des autres versions compris (#780) |
 | `statuts` | ✓ | ✓ | `en_cours` / `valide` / `archive` |
 | `tri` | ✓ | ✓ | `pertinence` (défaut) / `alphabetique` / `recent` |
 | `page`, `page_size` | ✓ | ✓ | Pagination (20 par défaut, 100 max) |

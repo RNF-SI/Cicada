@@ -24,6 +24,8 @@ python manage.py import_ref_geo
 
 echo "→ Nomenclatures…"
 python manage.py import_nomenclatures
+echo "→ Référentiels versionnés (#780)…"
+python manage.py import_referentiels
 
 echo "=== Prêt ==="
 exec "$@"
