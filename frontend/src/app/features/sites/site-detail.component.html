@@ -56,6 +56,12 @@
             </div>
           </div>
           <div class="title-right">
+            <button class="btn-edit" (click)="exportGeoJSON()" [disabled]="exporting()"
+                    data-testid="site-export-geojson"
+                    [matTooltip]="'sites.export.tooltip' | translate" matTooltipPosition="below">
+              <i class="fi fi-rr-download"></i>
+              <span>{{ 'sites.export.button' | translate }}</span>
+            </button>
             @if (canManageSite()) {
               <button class="btn-edit" (click)="editSite()">
                 <i class="fi fi-rr-edit"></i>

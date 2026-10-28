@@ -18,6 +18,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { forkJoin, of } from 'rxjs';
+import { downloadBlob } from '../../shared/utils/chart-image-export';
 import { catchError } from 'rxjs/operators';
 
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -115,6 +116,7 @@ export class SitesListComponent implements OnInit {
 
   // Recherche
   readonly searchTerm = signal('');
+  readonly exporting = signal(false);
 
   // Pagination
   readonly currentPage = signal(1);
@@ -737,6 +739,27 @@ export class SitesListComponent implements OnInit {
    * Permet de rechercher un site existant et demander l'accès,
    * ou de créer un nouveau site si aucun n'existe.
    */
+  /** Télécharge les sites affichés (portée + recherche) au format GeoJSON réimportable. */
+  exportDisplayedSites(): void {
+    const ids = this.displayedMySites().map(s => s.id_site);
+    if (!ids.length) return;
+    this.exporting.set(true);
+    this.adminService.exportSitesGeoJSON(ids).subscribe({
+      next: blob => {
+        this.exporting.set(false);
+        downloadBlob('sites.geojson', blob);
+      },
+      error: () => {
+        this.exporting.set(false);
+        this.snackBar.open(
+          this.translate.instant('sites.export.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      },
+    });
+  }
+
   /**
    * Ouvre le dialogue d'import en masse de sites.
    * Visible uniquement pour admin_og et super_admin.

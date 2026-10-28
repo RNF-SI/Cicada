@@ -20,6 +20,7 @@ Les **organismes** sont les structures gestionnaires (CEN, RNF, parcs…). Les *
 | `GET/POST /api/users/sites/` | Liste (filtres : type, organisme, actif…) et création avec workflow de validation |
 | `GET/PUT/PATCH/DELETE /api/users/sites/{slug}/` | Détail, modification, suppression (avec avertissement sur les plans et utilisateurs rattachés) |
 | `GET /api/users/sites/{slug}/geojson/`, `GET /api/users/sites/geojson_list/` | Géométries en GeoJSON (`Feature` / `FeatureCollection`) |
+| `GET /api/users/sites/{slug}/export-geojson/`, `GET /api/users/sites/export-geojson/?ids=` | Fichier `.geojson` réimportable par l'import en masse : type en mnémonique, organismes par leur nom, sans identifiant local ni utilisateur |
 | `GET /api/users/sites/search_all/`, `GET …/check_duplicates/` | Recherche dans tous les sites actifs ; détection des doublons (code INPN, noms similaires) |
 | `POST /api/users/sites/{slug}/request_access/`, `…/request_referent/`, `…/request_org_link/` | Demandes d'accès, de rôle référent, de rattachement de son organisme |
 | `POST /api/users/sites/{slug}/assign_user/`, `DELETE …/users/{user_pk}/`, `GET …/users/` | Membres et référents du site |

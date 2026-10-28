@@ -355,6 +355,25 @@ export class AdminService {
       .pipe(catchError(this.handleError));
   }
 
+  /**
+   * Télécharge un site au format GeoJSON réimportable (import en masse).
+   * GET /api/users/sites/{slug}/export-geojson/
+   */
+  exportSiteGeoJSON(slug: string): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/sites/${slug}/export-geojson/`, { responseType: 'blob' })
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
+   * Télécharge les sites donnés au format GeoJSON réimportable.
+   * GET /api/users/sites/export-geojson/?ids=
+   */
+  exportSitesGeoJSON(ids: number[]): Observable<Blob> {
+    const params = new HttpParams().set('ids', ids.join(','));
+    return this.http.get(`${this.apiUrl}/sites/export-geojson/`, { params, responseType: 'blob' })
+      .pipe(catchError(this.handleError));
+  }
+
   // ==================== USERS ====================
 
   /**

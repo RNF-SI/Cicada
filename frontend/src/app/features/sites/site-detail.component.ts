@@ -18,6 +18,7 @@ import { StatusChipComponent } from '../../shared/components/status-chip/status-
 import { TagComponent } from '../../shared/components/tag/tag.component';
 import { NEUTRAL_TAG, TagAppearance, USER_ROLE_TAG } from '../../shared/utils/tag-icons';
 import { forkJoin, of } from 'rxjs';
+import { downloadBlob } from '../../shared/utils/chart-image-export';
 import { catchError, switchMap } from 'rxjs/operators';
 
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -102,6 +103,7 @@ export class SiteDetailComponent implements OnInit {
   readonly siteUsers = signal<SiteUserAssignment[]>([]);
   readonly loading = signal(false);
   readonly requestingReferent = signal(false);
+  readonly exporting = signal(false);
   readonly hasPendingReferentRequest = signal(false);
   readonly pendingPlanRequests = signal<ValidationRequestListItem[]>([]);
 
@@ -349,6 +351,27 @@ export class SiteDetailComponent implements OnInit {
           { duration: 5000 }
         );
       }
+    });
+  }
+
+  /** Télécharge le site au format GeoJSON, réimportable par l'import en masse. */
+  exportGeoJSON(): void {
+    const site = this.site();
+    if (!site) return;
+    this.exporting.set(true);
+    this.adminService.exportSiteGeoJSON(site.slug).subscribe({
+      next: blob => {
+        this.exporting.set(false);
+        downloadBlob(`site-${site.slug}.geojson`, blob);
+      },
+      error: () => {
+        this.exporting.set(false);
+        this.snackBar.open(
+          this.translate.instant('sites.export.error'),
+          this.translate.instant('common.actions.close'),
+          { duration: 5000 }
+        );
+      },
     });
   }
 

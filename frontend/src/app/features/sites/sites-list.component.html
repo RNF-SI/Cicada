@@ -415,6 +415,14 @@
                 {{ 'sites.findOrCreate.button' | translate }}
               </button>
 
+              <button class="btn-request btn-import" (click)="exportDisplayedSites()"
+                      [disabled]="exporting() || !displayedMySites().length"
+                      data-testid="sites-export-geojson"
+                      [matTooltip]="'sites.export.tooltip' | translate">
+                <i class="fi fi-rr-download"></i>
+                {{ 'sites.export.listButton' | translate }}
+              </button>
+
               @if (isAdminOrganisme()) {
                 <button class="btn-request btn-import" (click)="openBulkImportDialog()">
                   <i class="fi fi-rr-cloud-upload-alt"></i>

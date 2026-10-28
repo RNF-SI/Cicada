@@ -12,10 +12,14 @@ from drf_spectacular.utils import (
 from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from urllib.parse import quote
+
 from django.db.models import Q
 from django.db import transaction
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 
+from .export_sites import build_sites_geojson
 from .models import BibOrganismes, Site, CorRoleSite, CorOgSite, Role
 from .serializers_org_sites import (
     OrganismeListSerializer, OrganismeDetailSerializer, OrganismeCreateUpdateSerializer,
@@ -761,7 +765,51 @@ class SiteViewSet(viewsets.ModelViewSet):
         }
 
         return Response(geojson_data)
-    
+
+    @staticmethod
+    def _geojson_attachment(content, filename):
+        response = HttpResponse(content, content_type='application/geo+json; charset=utf-8')
+        response['Content-Disposition'] = f"attachment; filename*=UTF-8''{quote(filename)}"
+        return response
+
+    @extend_schema(
+        summary="Exporter un site (GeoJSON réimportable)",
+        description=(
+            "Fichier `.geojson` du site, au format relu par l'import en masse des sites : "
+            "type en mnémonique, organismes gestionnaires par leur nom. Aucun identifiant "
+            "local ni aucun utilisateur. Ouvert à quiconque voit le site."
+        ),
+        responses={(200, 'application/geo+json'): OpenApiTypes.BINARY},
+    )
+    @action(detail=True, methods=['get'], url_path='export-geojson')
+    def export_geojson(self, request, slug=None):
+        site = self.get_object()
+        return self._geojson_attachment(build_sites_geojson([site]), f'site-{site.slug}.geojson')
+
+    @extend_schema(
+        summary="Exporter des sites (GeoJSON réimportable)",
+        description=(
+            "Même format que l'export d'un site, pour tous les sites visibles par "
+            "l'utilisateur, filtres de liste appliqués. `?ids=1,2` restreint aux sites "
+            "affichés à l'écran."
+        ),
+        parameters=[
+            OpenApiParameter('ids', OpenApiTypes.STR, description="Identifiants de sites, séparés par des virgules"),
+        ],
+        responses={(200, 'application/geo+json'): OpenApiTypes.BINARY},
+    )
+    @action(detail=False, methods=['get'], url_path='export-geojson')
+    def export_geojson_list(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        ids = request.query_params.get('ids')
+        if ids:
+            try:
+                id_list = [int(i) for i in ids.split(',') if i.strip()]
+            except ValueError:
+                return Response({'error': "Paramètre « ids » invalide."}, status=status.HTTP_400_BAD_REQUEST)
+            queryset = queryset.filter(id_site__in=id_list)
+        return self._geojson_attachment(build_sites_geojson(queryset), 'sites.geojson')
+
     @action(detail=True, methods=['post'], permission_classes=[IsAdminOrganisme])
     def assign_user(self, request, slug=None):
         """Assigne un utilisateur au site."""

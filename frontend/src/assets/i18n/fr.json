@@ -3579,6 +3579,12 @@
       "rejected": "Accès refusé",
       "allAccess": "Vous avez déjà accès à tous les sites de votre organisme."
     },
+    "export": {
+      "button": "Exporter (GeoJSON)",
+      "listButton": "Exporter les sites affichés (GeoJSON)",
+      "tooltip": "Périmètre et attributs du site (nom, code INPN, type, surface, organismes gestionnaires), réimportables par l'import en masse des sites sur cette instance ou une autre. Les utilisateurs ne sont pas exportés.",
+      "error": "L'export des sites a échoué."
+    },
     "findOrCreate": {
       "title": "Accéder ou créer un site",
       "description": "Recherchez un site existant pour demander l'accès, ou créez-en un nouveau.",
