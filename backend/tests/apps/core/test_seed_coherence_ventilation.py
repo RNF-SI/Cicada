@@ -174,6 +174,9 @@ def test_jeu_d_essai_coherent_et_idempotent():
     assert {o.cout_salarial_auto for o in ops if o.declinaison_par_type_cout} == {True, False}
     assert {o.programmation_globale for o in ops} == {True, False}
     assert {o.temps_par_poste() for o in ops} == {True, False}
+    # #773 — coûts détaillés sans déclinaison par type de poste (coût salarial saisi).
+    sans_poste = [o for o in ops if o.declinaison_par_type_cout and not o.temps_par_poste()]
+    assert sans_poste and all(not o.cout_salarial_auto for o in sans_poste)
 
     # Composite de suivi : plan validé, réglages du suivi ≠ programmation.
     suivi = PlanGestion.objects.get(nom=PLAN_COMPOSITE_SUIVI)

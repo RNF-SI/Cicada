@@ -168,7 +168,14 @@ _COMPOSITE_PROG = [
      'par type de budget et type de poste, programmation globale'),
     ('P8', 'CS1', 'by_org_type_poste', True, False, False,
      'ventilation maximale, coût salarial saisi'),
+    # #773 — coûts détaillés sans déclinaison par type de poste : temps total
+    # unique, coût salarial saisi (pas de coût jour).
+    ('P9', 'IP1', 'none', True, False, False,
+     'aucune ventilation, coûts détaillés sans type de poste'),
 ]
+# #773 — actions dont la case « Déclinaison par type de poste » reste décochée
+# malgré des coûts détaillés.
+_COMPOSITE_SANS_POSTE = {'P9'}
 
 # Suivi (plan validé) : réglages du suivi différents de la programmation
 # (#741 / #760 / #722), années saisies, partielles et non saisies.
@@ -559,8 +566,10 @@ class VentilationPlansSeeder(BaseSeeder):
         modeles = {a['suffix']: a for a in _ACTIONS}
         composites = [
             (_PLAN_COMPOSITE_PROG, 'draft', _CODE_COMPOSITE, None, [
-                (suffixe, modeles[modele], mode, {'decl': decl, 'auto': auto, 'globale': glob},
-                 libelle)
+                (suffixe, modeles[modele], mode, {
+                    'decl': decl, 'auto': auto, 'globale': glob,
+                    'poste': suffixe not in _COMPOSITE_SANS_POSTE,
+                }, libelle)
                 for suffixe, modele, mode, decl, auto, glob, libelle in _COMPOSITE_PROG
             ]),
             (_PLAN_COMPOSITE_SUIVI, 'valide', _CODE_COMPOSITE_SUIVI, _COMPOSITE_SUIVI_SAISI, [
@@ -955,9 +964,10 @@ class VentilationPlansSeeder(BaseSeeder):
             'decl', mode in Operation.VENTILATION_POSTE_MODES)
         # Temps décliné par poste : forcé en « + type de poste » ; les actions
         # composites à coûts détaillés cochent aussi la case (coût salarial
-        # calculé depuis le coût jour des postes).
+        # calculé depuis le coût jour des postes), sauf avis contraire (#773).
         op.declinaison_par_poste = (mode in Operation.VENTILATION_POSTE_MODES
-                                    or op.declinaison_par_type_cout)
+                                    or (op.declinaison_par_type_cout
+                                        and reglages.get('poste', True)))
         # #600/#641 — le mode de ventilation maximale sert aussi de démonstration
         # du coût salarial SAISI À LA MAIN : c'est le seul réglage du tableau
         # budgétaire qui n'était couvert par aucun plan du jeu d'essai, et donc
@@ -1197,7 +1207,7 @@ class VentilationPlansSeeder(BaseSeeder):
         OperationAnneeRH.objects.filter(id_operation_annee=oa).delete()
         lignes = []
 
-        # #735 — modes « + type de poste » et coûts détaillés : temps par poste.
+        # Modes « + type de poste » ou case « Déclinaison par type de poste ».
         if oa.id_operation.temps_par_poste():
             for cle, jours, categorie in action['rh']:
                 lignes.append(OperationAnneeRH.objects.create(
