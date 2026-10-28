@@ -1883,3 +1883,23 @@ describe('OperationFormComponent — emprise identique à celle des sites (#733)
     expect((c as any).pendingEmprise()).toBeNull();
   });
 });
+
+// -----------------------------------------------------------------------------
+// #773 — aide de la case « Déclinaison par type de coût » : elle ne concerne
+// que le budget, jamais le temps de travail.
+// -----------------------------------------------------------------------------
+describe('OperationFormComponent — #773 aide « Déclinaison par type de coût »', () => {
+  const html = readFileSync(join(__dirname, 'operation-form.component.html'), 'utf8');
+  const fr = JSON.parse(readFileSync(join(__dirname, '../../../../../assets/i18n/fr.json'), 'utf8'));
+
+  it('affiche une info-bulle à côté de la case', () => {
+    expect(html).toMatch(
+      /data-testid="declinaison-type-cout-help"[\s\S]*?\[matTooltip\]="'enjeux\.operations\.budgetOptions\.declinaisonTypeCoutTooltip' \| translate"/);
+  });
+
+  it('explique que la case ne touche pas au temps de travail', () => {
+    const texte: string = fr.enjeux.operations.budgetOptions.declinaisonTypeCoutTooltip;
+    expect(texte).toContain('Déclinaison par type de poste');
+    expect(texte).toMatch(/ne change pas la saisie du temps de travail/);
+  });
+});

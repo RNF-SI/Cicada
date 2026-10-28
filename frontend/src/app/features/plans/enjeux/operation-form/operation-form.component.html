@@ -846,15 +846,26 @@
                        pour tous les modes de ventilation. -->
                   @if (budgetAnnees().length > 0) {
                     <div class="budget-options">
-                      <app-checkbox
-                        [checked]="declinaisonParTypeCout()"
-                        (checkedChange)="onDeclinaisonTypeCoutToggle($event)"
-                        [disabled]="isReadOnly()"
-                        [label]="'enjeux.operations.budgetOptions.declinaisonTypeCout' | translate"
-                        [mention]="(showInvest()
-                          ? 'enjeux.operations.budgetOptions.declinaisonTypeCoutHint'
-                          : 'enjeux.operations.budgetOptions.declinaisonTypeCoutHintTotal') | translate">
-                      </app-checkbox>
+                      <!-- #773 — aide : la case détaille le budget seul (à quoi
+                           sert l'argent), jamais le temps de travail. -->
+                      <div class="budget-option-row budget-option-help">
+                        <app-checkbox
+                          [checked]="declinaisonParTypeCout()"
+                          (checkedChange)="onDeclinaisonTypeCoutToggle($event)"
+                          [disabled]="isReadOnly()"
+                          [label]="'enjeux.operations.budgetOptions.declinaisonTypeCout' | translate"
+                          [mention]="(showInvest()
+                            ? 'enjeux.operations.budgetOptions.declinaisonTypeCoutHint'
+                            : 'enjeux.operations.budgetOptions.declinaisonTypeCoutHintTotal') | translate">
+                        </app-checkbox>
+                        <i class="fi fi-rr-info help-icon"
+                           data-testid="declinaison-type-cout-help"
+                           tabindex="0"
+                           [attr.aria-label]="'enjeux.operations.budgetOptions.declinaisonTypeCoutTooltip' | translate"
+                           [matTooltip]="'enjeux.operations.budgetOptions.declinaisonTypeCoutTooltip' | translate"
+                           matTooltipClass="multiline-tooltip"
+                           matTooltipPosition="right"></i>
+                      </div>
                       <!-- #600 (retour 08/2026) — réservée aux modes « + type de
                            poste » : eux seuls savent calculer le coût salarial. -->
                       @if (showCoutSalarialOption()) {

@@ -529,6 +529,14 @@ $form-side-margin: $spacing-xxl;
   gap: $spacing-xs;
   margin-bottom: $spacing-md;
 
+  // #773 — icône d'aide alignée sur le libellé de la case.
+  .budget-option-row.budget-option-help {
+    flex-wrap: nowrap;
+    gap: $spacing-xs;
+
+    .help-icon { cursor: help; margin-top: 2px; }
+  }
+
   .budget-option-row {
     display: flex;
     align-items: flex-start;
