@@ -108,3 +108,25 @@ h3 {
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
+
+// #776 — « Accepter toutes les propositions »
+.accepter-tout {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+}
+
+.option {
+  display: block;
+  margin-bottom: $spacing-xxs;
+}
+
+// #776 — changements automatiques, modifiables
+.automatiques li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $spacing-sm;
+}

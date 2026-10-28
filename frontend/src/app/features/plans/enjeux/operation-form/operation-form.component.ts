@@ -2106,7 +2106,8 @@ export class OperationFormComponent implements OnInit {
     // #751 — action à actualiser : si un autre référent choisit le type
     // pendant que la fiche est ouverte, le serveur refuse d'écraser son choix.
     if (this.existingOperation()?.type_action_a_actualiser) {
-      payload.id_type_action_attendu = null;
+      // #776 — l'ancien type reste en place pendant la cohabitation.
+      payload.id_type_action_attendu = this.existingOperation()?.id_type_action ?? null;
     }
     if (fv.id_priorite) payload.id_priorite = fv.id_priorite;
     // #663 — null tant que non renseigné (« Enregistrer » sans validation).
@@ -2919,8 +2920,7 @@ export class OperationFormComponent implements OnInit {
     return this.selectedTypeAction() ? null : info;
   });
 
-  utiliserSuggestionType(): void {
-    const id = this.typeAActualiser()?.suggestion_id;
+  utiliserSuggestionType(id: number | null | undefined = this.typeAActualiser()?.suggestion_id): void {
     const option = this.typeActionOptions().find(o => o.id_nomenclature === id);
     if (!option) return;
     this.onTypeActionSelected(option);

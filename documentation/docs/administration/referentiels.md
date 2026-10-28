@@ -179,7 +179,7 @@ Chaque version est décrite dans `backend/nomenclatures_data/referentiels_types_
 |---------|---------|
 | `version.json` | code, libellé, version de départ (`depuis`), catégories écartées (`exclure_categories`, ex. `CP` pour GestRef V1) |
 | `referentiel.csv` | `code,libelle` — niveau 0 (`CS`) = catégorie, niveaux 1 et 2 (`CS.1`, `CS.1.1`) = types |
-| `correspondance.csv` | `ancien_code,nouveau_code,confiance,note` — confiance `sure`, `probable` ou `a_arbitrer` |
+| `correspondance.csv` | `ancien_code,nouveau_code,confiance,options,note` — confiance `sure`, `probable` ou `a_arbitrer` ; `options` : équivalents possibles séparés par `|` quand l'ancienne ligne en a plusieurs |
 
 **Rien ne change au démarrage ni à la mise à jour d'une instance** : ces fichiers ne sont lus que par la commande suivante, à lancer volontairement, instance par instance.
 
@@ -198,7 +198,8 @@ docker compose exec web python manage.py passage_types_action gestref_v1 --annul
 Règles du passage :
 
 - correspondance `sure` ou `probable` → l'action prend le nouveau type ; sa catégorie suit le préfixe du nouveau code (`CS.1.1` → `CS`) ;
-- `a_arbitrer` (ou ancien code absent de la table) → le type est vidé, l'action devient « à actualiser » ; sa catégorie suit le code proposé ; une action garde son suivi ;
+- `a_arbitrer` (ou ancien code absent de la table) → **cohabitation** : l'action garde son ancien type et sa catégorie, devient « à actualiser », et ses référents choisissent parmi les équivalents proposés (ou ailleurs dans le référentiel) ; une action garde son suivi. Une action qui devient CS sans suivi reçoit un suivi existant ou nouveau, au moment du choix ;
+- les changements automatiques restent **modifiables** par les référents, même dans un plan validé ou archivé ;
 - les types et catégories de l'ancienne version sont **désactivés**, pas supprimés ; une catégorie présente dans les deux versions (CS, IP, SP) est conservée, avec le libellé de la nouvelle ;
 - chaque référent d'un plan concerné (à défaut, l'administrateur de l'organisme gestionnaire) reçoit **une** notification, qui renvoie à la page « Types d'action à actualiser » (§ 4.8.3 de la notice référent) ;
 - chaque action ou suivi touché est consigné (ancien type, proposition, qui a actualisé et quand) : c'est ce journal qui permet l'annulation. Annuler restaure aussi les types déjà choisis à la main depuis.

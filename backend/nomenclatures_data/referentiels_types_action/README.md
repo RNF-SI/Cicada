@@ -9,13 +9,15 @@ lus au démarrage : rien ne change sur une instance tant que la commande
 <version>/
 ├── version.json         code, libellé, version de départ (`depuis`), catégories écartées
 ├── referentiel.csv      code,libelle — niveau 0 (« CS ») = catégorie, niveaux 1 et 2 = types
-└── correspondance.csv   ancien_code,nouveau_code,confiance,note
+└── correspondance.csv   ancien_code,nouveau_code,confiance,options,note
 ```
 
-- `confiance` : `sure` / `probable` → l'action prend le nouveau type ;
-  `a_arbitrer` → son type est vidé et ses référents sont prévenus. La
-  catégorie suit toujours le préfixe du `nouveau_code` (aussi proposé comme
-  suggestion pour une action à arbitrer).
+- `confiance` : `sure` / `probable` → l'action prend le nouveau type (le
+  référent peut le corriger) ; `a_arbitrer` → l'action garde son ancien type
+  (cohabitation) et ses référents choisissent. La catégorie suit le préfixe du
+  type posé.
+- `options` : équivalents possibles séparés par `|` (le `nouveau_code` en
+  premier) quand l'ancienne ligne en a plusieurs ; le référent choisit.
 - La version de départ des instances actuelles, `EDEN62`, n'a pas de dossier :
   elle est relevée en base (types et catégories actifs) au premier passage.
 

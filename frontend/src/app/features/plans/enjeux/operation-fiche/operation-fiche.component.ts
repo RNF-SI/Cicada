@@ -512,9 +512,9 @@ export class OperationFicheComponent implements OnInit {
         data: {
           operationId: op.id_operation, libelle: op.libelle, codeAffichage: op.code_affichage,
           ancienCode: aa.ancien_code, ancienLibelle: aa.ancien_libelle,
-          suggestionId: aa.suggestion_id, suggestionCode: aa.suggestion_code,
-          suggestionLibelle: aa.suggestion_libelle, note: aa.note,
+          options: aa.options ?? [], note: aa.note,
           typeActuelId: op.id_type_action ?? null,
+          typeActuelCode: aa.ancien_code, aUnSuivi: !!op.id_suivi,
         },
       },
     ).afterClosed().subscribe(res => {

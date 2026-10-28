@@ -1215,13 +1215,12 @@ class OperationSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(serializers.JSONField(allow_null=True))
     def get_type_action_a_actualiser(self, obj):
-        """Ancien type, suggestion et note de la table de correspondance, tant
-        que l'action attend un nouveau type (#751) ; sinon null."""
+        """Ancien type (conservé pendant la cohabitation, #776), équivalents
+        proposés et note de la table de correspondance, tant que l'action attend
+        un nouveau type (#751) ; sinon null."""
         from .models_referentiel import PassageReferentielObjet
         from .referentiel_actions import resume_attente
 
-        if obj.id_type_action_id is not None:
-            return None
         ctx = self.context if self.context is not None else {}
         if '_ops_a_actualiser' not in ctx:
             ctx['_ops_a_actualiser'] = set(PassageReferentielObjet.objects.filter(
@@ -1865,8 +1864,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        # #751 — l'action à actualiser a reçu son nouveau type.
-        if type_avant is None and instance.id_type_action_id is not None:
+        # #751 / #776 — type choisi (ou changement automatique corrigé).
+        if instance.id_type_action_id != type_avant:
             from .referentiel_actions import noter_actualisation
             noter_actualisation(instance, validated_data.get('id_utilisateur_maj'))
 

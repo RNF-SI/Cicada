@@ -514,20 +514,20 @@ def oo_enjeux(oo):
 
 
 def code_referentiel(op) -> str:
-    """Code et libellé du type d'action ; « À actualiser (ancien type …) » tant
-    qu'une action attend son nouveau type après un passage de référentiel (#751).
+    """Code et libellé du type d'action, suivis de « (ancien référentiel, à
+    actualiser) » tant qu'une action attend son nouveau type (#751, #776).
     Partagé par les fiches action Excel et Word."""
     ta = getattr(op, "id_type_action", None)
     code_ref = " — ".join(x for x in (
         _txt(getattr(ta, "cd_nomenclature", "")), _txt(getattr(ta, "label", ""))) if x)
-    if code_ref:
-        return code_ref
-    if ta is None and op.pk:
+    if op.pk:
         from .referentiel_actions import objet_en_attente
         obj = objet_en_attente(op)
         if obj is not None:
-            return f"À actualiser (ancien type : {obj.ancien_code} — {obj.ancien_libelle})"
-    return _txt(op.id_referentiel_operations)
+            # #776 — cohabitation : l'ancien type reste en place jusqu'au choix.
+            return (f"{code_ref or obj.ancien_code + ' — ' + obj.ancien_libelle} "
+                    f"(ancien référentiel, à actualiser)")
+    return code_ref or _txt(op.id_referentiel_operations)
 
 
 def _cadre(op):

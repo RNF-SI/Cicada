@@ -1495,3 +1495,9 @@ app-protocole-action + app-protocole-action {
     margin: 0 0 $spacing-xxs;
   }
 }
+
+.type-a-actualiser__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}

@@ -29,6 +29,16 @@
       </div>
     </div>
 
+    @if (donnees()!.total_a_actualiser) {
+      <div class="accepter-tout">
+        <button mat-flat-button color="primary" (click)="accepterTout()" [disabled]="acceptation()"
+                data-testid="a-actualiser-accepter-tout">
+          {{ 'referentielActions.accepterTout' | translate }}
+        </button>
+        <span class="text-small text-muted">{{ 'referentielActions.accepterToutAide' | translate }}</span>
+      </div>
+    }
+
     @for (plan of plans(); track plan.id_pg) {
       <app-accordion [title]="plan.nom + ' — ' + (plan.a_actualiser.length ? ('referentielActions.compte' | translate:{ n: plan.a_actualiser.length }) : ('referentielActions.compteAucun' | translate))"
                      [expanded]="plan.a_actualiser.length > 0" class="plan-bloc">
@@ -38,8 +48,8 @@
             <thead>
               <tr>
                 <th>{{ 'referentielActions.colonnes.action' | translate }}</th>
-                <th>{{ 'referentielActions.ancienType' | translate }}</th>
-                <th>{{ 'referentielActions.suggestion' | translate }}</th>
+                <th>{{ 'referentielActions.typeActuel' | translate }}</th>
+                <th>{{ 'referentielActions.proposition' | translate }}</th>
                 <th><span class="sr-only">{{ 'referentielActions.colonnes.choix' | translate }}</span></th>
               </tr>
             </thead>
@@ -58,8 +68,8 @@
                   </td>
                   <td><span class="code">{{ a.ancien_code }}</span> {{ a.ancien_libelle }}</td>
                   <td>
-                    @if (a.suggestion_code) {
-                      <span class="code">{{ a.suggestion_code }}</span> {{ a.suggestion_libelle }}
+                    @for (o of a.options; track o.id) {
+                      <span class="option"><span class="code">{{ o.code }}</span> {{ o.libelle }}</span>
                     }
                     @if (a.note) { <span class="note">{{ a.note }}</span> }
                   </td>
@@ -93,16 +103,22 @@
         @if (plan.automatiques.length) {
           <h3>{{ 'referentielActions.sections.automatiques' | translate }}</h3>
           <p class="text-small text-muted">{{ 'referentielActions.automatiquesAide' | translate }}</p>
-          <ul class="list-custom">
+          <ul class="list-custom automatiques">
             @for (a of plan.automatiques; track a.id_operation) {
               <li>
-                <span class="code">{{ a.ancien_code }}</span> → <span class="code">{{ a.type_actuel_code }}</span>
-                @if (ficheLink(plan, a); as link) {
-                  <a [routerLink]="link" class="link-default">{{ a.libelle }}</a>
-                } @else {
-                  {{ a.libelle }}
-                }
-                @if (a.note) { <span class="note">{{ a.note }}</span> }
+                <div>
+                  <span class="code">{{ a.ancien_code }}</span> → <span class="code">{{ a.type_actuel_code }}</span>
+                  @if (ficheLink(plan, a); as link) {
+                    <a [routerLink]="link" class="link-default">{{ a.libelle }}</a>
+                  } @else {
+                    {{ a.libelle }}
+                  }
+                  @if (a.note) { <span class="note">{{ a.note }}</span> }
+                </div>
+                <button mat-button type="button" class="btn-sm" (click)="choisirType(a, 'correction')"
+                        data-testid="a-actualiser-modifier">
+                  {{ 'referentielActions.modifier' | translate }}
+                </button>
               </li>
             }
           </ul>

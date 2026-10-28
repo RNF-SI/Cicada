@@ -82,7 +82,13 @@
           <div>
           <p><strong>{{ 'referentielActions.fiche.titre' | translate }}</strong></p>
           <p>{{ 'referentielActions.fiche.texte' | translate:{ version: aa.version, code: aa.ancien_code, libelle: aa.ancien_libelle } }}</p>
-          @if (aa.suggestion_code) {
+          @if (aa.options.length > 1) {
+            <p>{{ 'referentielActions.fiche.equivalents' | translate }}
+              @for (o of aa.options; track o.id; let last = $last) {
+                <strong>{{ o.code }}</strong> {{ o.libelle }}@if (!last) {<span> ; </span>}
+              }
+            </p>
+          } @else if (aa.suggestion_code) {
             <p>{{ 'referentielActions.fiche.proposition' | translate:{ code: aa.suggestion_code, libelle: aa.suggestion_libelle } }}</p>
           }
           <button mat-flat-button color="primary" class="btn-sm" type="button" (click)="choisirNouveauType()"

@@ -14,9 +14,12 @@ Règles :
 
 - correspondance **sûre** ou **probable** → l'action (ou le suivi) prend le
   nouveau type ; la catégorie suit le préfixe du nouveau code (CS.1.1 → CS) ;
-- correspondance **à arbitrer** (ou code absent de la table) → le type est
-  vidé, l'objet devient « à actualiser », la catégorie suit le préfixe du code
-  proposé ; le lien d'une action à son suivi est conservé ;
+- correspondance **à arbitrer** (ou code absent de la table) → **cohabitation**
+  (#776) : l'objet garde son ancien type et sa catégorie, devient « à
+  actualiser », et le référent choisit parmi les équivalents proposés (ou
+  ailleurs dans le référentiel) ; les changements automatiques restent
+  modifiables, même dans un plan validé ou archivé ;
+- une action qui devient CS sans suivi en reçoit un (nouveau ou existant) ;
 - les types et catégories de l'ancienne version sont désactivés (pas
   supprimés : l'historique et l'annulation en ont besoin) ;
 - chaque référent d'un plan touché reçoit **une** notification par passage —
@@ -82,6 +85,8 @@ class Correspondance:
     nouveau_code: str
     confiance: str
     note: str = ''
+    # #776 — équivalents possibles ; le premier est le code proposé.
+    options: list = field(default_factory=list)
 
 
 @dataclass
@@ -176,7 +181,16 @@ def charger_version(nom: str) -> DefinitionVersion:
             if confiance in CONFIANCES_APPLIQUEES and not nouveau:
                 raise ReferentielErreur(
                     f"correspondance.csv : « {ancien} » est {confiance} sans nouveau code")
-            definition.correspondance[ancien] = Correspondance(nouveau, confiance, note)
+            options = [nouveau] if nouveau else []
+            for code in (row.get('options') or '').split('|'):
+                code = code.strip()
+                if not code or code in options or categorie_du_code(code) in exclues:
+                    continue
+                if code not in definition.codes_types:
+                    raise ReferentielErreur(
+                        f"correspondance.csv : option « {code} » ({ancien}) absente du référentiel")
+                options.append(code)
+            definition.correspondance[ancien] = Correspondance(nouveau, confiance, note, options)
     return definition
 
 
@@ -364,7 +378,7 @@ def _correspondance(definition, ancien_type) -> Correspondance:
     code = ancien_type.cd_nomenclature or ancien_type.mnemonique or ''
     if code in definition.codes_types:
         # Type repris tel quel par la nouvelle version (V1 → V2).
-        return Correspondance(code, PassageReferentielObjet.CONFIANCE_SURE)
+        return Correspondance(code, PassageReferentielObjet.CONFIANCE_SURE, options=[code])
     return definition.correspondance.get(code) or Correspondance(
         '', PassageReferentielObjet.CONFIANCE_A_ARBITRER, "Code absent de la table de correspondance")
 
@@ -454,15 +468,18 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
         corr = p.corr
         applique = corr.confiance in CONFIANCES_APPLIQUEES
         nouveau_type = types_cible.get(corr.nouveau_code) if applique else None
-        nouvelle_categorie = categories_cible.get(categorie_du_code(corr.nouveau_code))
-        if p.est_operation:
+        nouvelle_categorie = (categories_cible.get(categorie_du_code(corr.nouveau_code))
+                              if applique else None)
+        # À arbitrer : cohabitation, l'objet garde son ancien type et sa
+        # catégorie jusqu'au choix du référent (#776).
+        if applique and p.est_operation:
             p.objet.id_type_action = nouveau_type
             # La catégorie d'une action la suit ; une action qui n'en avait pas
             # n'en reçoit pas (son code d'affichage découle déjà du type).
             if p.ancienne_categorie is not None or nouvelle_categorie is None:
                 p.objet.id_categorie_action_reserve = nouvelle_categorie
             p.objet.save(update_fields=['id_type_action', 'id_categorie_action_reserve'])
-        else:
+        elif applique:
             p.objet.id_type_action = nouveau_type
             p.objet.save(update_fields=['id_type_action'])
         journal.append(PassageReferentielObjet(
@@ -477,6 +494,7 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
             nouveau_type=nouveau_type,
             nouvelle_categorie=nouvelle_categorie if p.est_operation else None,
             suggestion_code=corr.nouveau_code,
+            options=corr.options,
             confiance=corr.confiance,
             note=corr.note,
             statut=(PassageReferentielObjet.STATUT_APPLIQUE if applique
@@ -488,6 +506,7 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
     from .models_operations import Operation
     for op in (Operation.objects.filter(id_type_action__isnull=True,
                                         id_categorie_action_reserve__isnull=False)
+               .exclude(passages_referentiel__passage=passage)
                .exclude(id_categorie_action_reserve__in=categories_cible.values())
                .select_related('id_categorie_action_reserve')):
         op.id_categorie_action_reserve = categories_cible.get(
@@ -571,8 +590,8 @@ def notifier_passage(passage, *, envoyer_email=True) -> int:
         if e['auto']:
             message += f"{e['auto']} action(s) de vos plans ont reçu leur nouveau type automatiquement. "
         if a_faire:
-            message += (f"{a_faire} action(s) n'ont pas d'équivalent certain : choisissez leur "
-                        f"nouveau type ({detail}).")
+            message += (f"{a_faire} action(s) n'ont pas d'équivalent certain : elles gardent leur "
+                        f"ancien type en attendant que vous choisissiez le nouveau ({detail}).")
         NotificationService.create_notification(
             recipient=dest, notification_type='referentiel_actions',
             title=("Types d'action à actualiser" if a_faire
@@ -636,29 +655,49 @@ def _notifier_suivi(obj, auteur) -> None:
 # Actualisation par un utilisateur
 # ---------------------------------------------------------------------------
 
+def _objets_courants():
+    return PassageReferentielObjet.objects.filter(
+        passage__statut=PassageReferentielActions.STATUT_APPLIQUE, passage__cible__courante=True)
+
+
+def objet_du_passage(operation) -> PassageReferentielObjet | None:
+    """Ligne d'une action pour le passage en service, quel que soit son statut."""
+    return (_objets_courants().filter(operation=operation)
+            .select_related('passage__cible', 'plan').first())
+
+
 def objet_en_attente(operation) -> PassageReferentielObjet | None:
     """Ligne « à actualiser » d'une action pour le passage en service."""
-    return (PassageReferentielObjet.objects
-            .filter(operation=operation, statut=PassageReferentielObjet.STATUT_A_ACTUALISER,
-                    passage__statut=PassageReferentielActions.STATUT_APPLIQUE,
-                    passage__cible__courante=True)
-            .select_related('passage', 'plan').first())
+    return (_objets_courants()
+            .filter(operation=operation, statut=PassageReferentielObjet.STATUT_A_ACTUALISER)
+            .select_related('passage__cible', 'plan').first())
+
+
+def _type_pose_par_le_passage(obj) -> int | None:
+    if obj.statut == PassageReferentielObjet.STATUT_ACTUALISE:
+        return obj.type_choisi_id
+    if obj.statut == PassageReferentielObjet.STATUT_APPLIQUE:
+        return obj.nouveau_type_id
+    return obj.ancien_type_id
 
 
 def noter_actualisation(operation, user) -> PassageReferentielObjet | None:
-    """L'action a reçu un type : sa ligne « à actualiser » passe à « actualisé »
-    et les autres référents du plan en sont prévenus."""
+    """Le type de l'action a changé depuis le passage : sa ligne passe à
+    « actualisé » (choix fait, ou changement automatique corrigé). Les autres
+    référents du plan sont prévenus quand c'était un choix attendu."""
     if operation.id_type_action_id is None:
         return None
-    obj = objet_en_attente(operation)
-    if obj is None:
+    obj = objet_du_passage(operation)
+    if obj is None or operation.id_type_action_id == _type_pose_par_le_passage(obj):
         return None
+    attendu = obj.statut == PassageReferentielObjet.STATUT_A_ACTUALISER
     obj.statut = PassageReferentielObjet.STATUT_ACTUALISE
     obj.actualise_par = user if getattr(user, 'pk', None) else None
     obj.actualise_le = timezone.now()
     obj.type_choisi_id = operation.id_type_action_id
     obj.save(update_fields=['statut', 'actualise_par', 'actualise_le', 'type_choisi'])
-    transaction.on_commit(lambda: _notifier_suivi(obj, obj.actualise_par))
+    if attendu:
+        transaction.on_commit(lambda: _notifier_suivi(obj, obj.actualise_par))
     return obj
 
 
@@ -676,11 +715,51 @@ class TypeDejaModifie(Exception):
         self.obj = obj
 
 
-def actualiser_type(operation, nouveau_type, user, *, type_attendu_id) -> PassageReferentielObjet | None:
-    """Pose le type choisi, même dans un plan validé (#248 : seule exception).
+class SuiviRequis(Exception):
+    """L'action devient CS sans suivi : il faut en créer ou en rattacher un."""
 
-    `type_attendu_id` = le type affiché quand l'utilisateur a choisi (souvent
-    vide) ; s'il ne correspond plus, un autre référent est passé avant lui.
+
+def est_cs(type_action) -> bool:
+    return bool(type_action) and (type_action.cd_nomenclature or '').startswith('CS')
+
+
+def devient_cs(op, nouveau_type) -> bool:
+    """L'action passe d'un type hors CS à un type CS sans avoir de suivi : il
+    faut alors poser les questions du suivi (#776). Une action déjà CS garde
+    son état, avec ou sans suivi."""
+    return est_cs(nouveau_type) and not est_cs(op.id_type_action) and not op.id_suivi_id
+
+
+def _rattacher_suivi(op, nouveau_type, suivi, user) -> None:
+    """Suivi d'une action qui devient CS : existant (`id_suivi`) ou nouveau
+    (intitulé, objectif, cible, protocoles), dans le plan de l'action."""
+    from .models_operations import SuiviInventaire
+    from .serializers_operations import pop_protocoles_data, sync_suivi_protocoles
+
+    if suivi.get('id_suivi'):
+        op.id_suivi = SuiviInventaire.objects.get(pk=suivi['id_suivi'])
+        op.est_suivi_existant = True
+        return
+    donnees = {k: v for k, v in suivi.items() if k != 'id_suivi'}
+    protocoles = pop_protocoles_data(donnees)
+    nouveau = SuiviInventaire.objects.create(
+        **donnees, id_type_action=nouveau_type, id_pg=op.get_plan_de_gestion(),
+        id_utilisateur_ajout=user if getattr(user, 'pk', None) else None,
+    )
+    sync_suivi_protocoles(nouveau, protocoles, user)
+    op.id_suivi = nouveau
+    op.est_suivi_existant = False
+
+
+def actualiser_type(operation, nouveau_type, user, *, type_attendu_id,
+                    suivi=None) -> PassageReferentielObjet | None:
+    """Pose le type choisi, même dans un plan validé ou archivé (#248 : seule
+    exception, le type et ce qui en découle).
+
+    `type_attendu_id` = le type affiché quand l'utilisateur a choisi ; s'il ne
+    correspond plus, un autre référent est passé avant lui. Une action qui
+    devient CS sans suivi exige `suivi` (`{'id_suivi': …}` ou les champs d'un
+    nouveau suivi) — sinon `SuiviRequis`.
     """
     from .models_operations import Operation
 
@@ -688,18 +767,73 @@ def actualiser_type(operation, nouveau_type, user, *, type_attendu_id) -> Passag
         op = Operation.objects.select_for_update().get(pk=operation.pk)
         if op.id_type_action_id != type_attendu_id:
             raise TypeDejaModifie(op, dernier_objet(op))
+        champs = ['id_type_action', 'id_categorie_action_reserve']
+        if devient_cs(op, nouveau_type):
+            if not suivi:
+                raise SuiviRequis()
+            _rattacher_suivi(op, nouveau_type, suivi, user)
+            champs += ['id_suivi', 'est_suivi_existant']
+        elif not est_cs(nouveau_type) and op.id_suivi_id:
+            # #715 — une action qui n'est plus CS se détache de son suivi.
+            op.id_suivi = None
+            op.est_suivi_existant = False
+            champs += ['id_suivi', 'est_suivi_existant']
         op.id_type_action = nouveau_type
         categorie = Nomenclature.objects.filter(
             id_type__mnemonique=CATEGORIE, actif=True,
             cd_nomenclature=categorie_du_code(nouveau_type.cd_nomenclature or '')).first()
         if categorie is not None:
             op.id_categorie_action_reserve = categorie
-        op.save(update_fields=['id_type_action', 'id_categorie_action_reserve'])
+        op.save(update_fields=champs)
         # Le suivi rattaché prend le type de son action (#715).
-        if op.id_suivi_id and (nouveau_type.cd_nomenclature or '').startswith('CS'):
+        if op.id_suivi_id and est_cs(nouveau_type) and op.id_suivi.id_type_action_id != nouveau_type.pk:
             op.id_suivi.id_type_action = nouveau_type
             op.id_suivi.save(update_fields=['id_type_action'])
         return noter_actualisation(op, user)
+
+
+def options_de(obj) -> list[Nomenclature]:
+    """Équivalents proposés (types actifs), dans l'ordre de la table."""
+    codes = obj.options or ([obj.suggestion_code] if obj.suggestion_code else [])
+    par_code = {n.cd_nomenclature: n for n in Nomenclature.objects.filter(
+        id_type__mnemonique=TYPE_ACTION, actif=True, cd_nomenclature__in=codes)}
+    return [par_code[c] for c in codes if c in par_code]
+
+
+def _option(n) -> dict:
+    return {'id': n.pk, 'code': n.cd_nomenclature, 'libelle': n.label}
+
+
+def accepter_propositions(user, plan_id=None) -> dict:
+    """« Accepter toutes les propositions » : pose l'équivalent des actions à
+    actualiser qui n'en ont qu'un ; les autres attendent un choix (plusieurs
+    équivalents, ou action qui deviendrait CS sans suivi)."""
+    from .models import PlanGestion
+
+    objets = (_objets_courants()
+              .filter(operation__isnull=False, statut=PassageReferentielObjet.STATUT_A_ACTUALISER)
+              .select_related('operation'))
+    q = plans_q_pour(user)
+    if q is not None:
+        objets = objets.filter(plan__in=PlanGestion.objects.filter(q))
+    if plan_id:
+        objets = objets.filter(plan_id=plan_id)
+    bilan = {'acceptees': 0, 'plusieurs_options': 0, 'suivi_requis': 0}
+    for obj in objets:
+        options = options_de(obj)
+        if len(options) != 1:
+            bilan['plusieurs_options'] += 1
+            continue
+        op = obj.operation
+        if devient_cs(op, options[0]):
+            bilan['suivi_requis'] += 1
+            continue
+        try:
+            actualiser_type(op, options[0], user, type_attendu_id=op.id_type_action_id)
+        except TypeDejaModifie:
+            continue
+        bilan['acceptees'] += 1
+    return bilan
 
 
 def resume_attente(operation) -> dict | None:
@@ -707,9 +841,8 @@ def resume_attente(operation) -> dict | None:
     obj = objet_en_attente(operation)
     if obj is None:
         return None
-    suggestion = Nomenclature.objects.filter(
-        id_type__mnemonique=TYPE_ACTION, actif=True, cd_nomenclature=obj.suggestion_code,
-    ).first() if obj.suggestion_code else None
+    options = options_de(obj)
+    suggestion = options[0] if options else None
     return {
         'passage': obj.passage_id,
         'version': obj.passage.cible.libelle,
@@ -718,5 +851,6 @@ def resume_attente(operation) -> dict | None:
         'suggestion_id': suggestion.pk if suggestion else None,
         'suggestion_code': suggestion.cd_nomenclature if suggestion else '',
         'suggestion_libelle': suggestion.label if suggestion else '',
+        'options': [_option(n) for n in options],
         'note': obj.note,
     }

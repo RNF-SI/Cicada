@@ -8,6 +8,13 @@ import { Observable, tap } from 'rxjs';
  * suivantes). Backend : `apps/plans/views_referentiel.py`.
  */
 
+/** Équivalent proposé par la table de correspondance (#776). */
+export interface OptionType {
+  id: number;
+  code: string;
+  libelle: string;
+}
+
 export interface ActionAActualiser {
   id_operation: number;
   libelle: string;
@@ -24,6 +31,9 @@ export interface ActionAActualiser {
   type_actuel_id: number | null;
   type_actuel_code: string | null;
   type_actuel_libelle: string | null;
+  /** #776 — équivalents possibles, le premier étant la proposition. */
+  options: OptionType[];
+  a_un_suivi: boolean;
   actualise_par: string | null;
   actualise_le: string | null;
 }
@@ -53,7 +63,24 @@ export interface TypeActionAActualiser {
   suggestion_id: number | null;
   suggestion_code: string;
   suggestion_libelle: string;
+  options: OptionType[];
   note: string;
+}
+
+/** Suivi d'une action qui devient CS (#776) : existant, ou nouveau. */
+export interface SuiviActualisation {
+  id_suivi?: number;
+  intitule?: string;
+  objectif_principal?: string;
+  cibles_principales?: string;
+  protocoles?: Record<string, unknown>[];
+}
+
+/** Bilan de « Accepter toutes les propositions » (#776). */
+export interface BilanPropositions {
+  acceptees: number;
+  plusieurs_options: number;
+  suivi_requis: number;
 }
 
 /** Réponse 409 : un autre référent a choisi le type entre-temps. */
@@ -68,6 +95,8 @@ export interface TypeDejaModifie {
 /** Bandeau affiché sur toutes les pages tant qu'il reste des actions à actualiser. */
 export interface CompteAActualiser {
   total: number;
+  /** Changements automatiques, rappelés plus discrètement (#776). */
+  automatiques: number;
   vers: string | null;
 }
 
@@ -99,10 +128,19 @@ export class ReferentielActionsService {
    * Pose le type choisi, y compris dans un plan validé. `typeAttendu` = le
    * type affiché quand l'utilisateur a choisi (409 s'il a changé depuis).
    */
-  actualiserType(operationId: number, typeId: number, typeAttendu: number | null): Observable<unknown> {
+  actualiserType(
+    operationId: number, typeId: number, typeAttendu: number | null, suivi?: SuiviActualisation,
+  ): Observable<unknown> {
     return this.http.post(`/api/plans/operations/${operationId}/actualiser-type/`, {
       id_type_action: typeId,
       type_attendu: typeAttendu,
+      ...(suivi ? { suivi } : {}),
     }).pipe(tap(() => this.rafraichirCompte()));
+  }
+
+  /** Pose l'équivalent unique des actions à actualiser qui n'en ont qu'un. */
+  accepterPropositions(planId?: number | null): Observable<BilanPropositions> {
+    return this.http.post<BilanPropositions>('/api/plans/referentiel-actions/accepter-propositions/',
+      planId ? { plan: planId } : {}).pipe(tap(() => this.rafraichirCompte()));
   }
 }

@@ -55,7 +55,7 @@ class Command(BaseCommand):
         a = r['actions']
         w(f"Actions : {a['total']} dont {a['sans_type']} sans type")
         w(f"  sûre : {a.get('sure', 0)}  probable : {a.get('probable', 0)}  "
-          f"à arbitrer (type vidé) : {a.get('a_arbitrer', 0)}")
+          f"à arbitrer (ancien type conservé) : {a.get('a_arbitrer', 0)}")
         s = r['suivis']
         w(f"Suivis : sûre {s.get('sure', 0)}  probable {s.get('probable', 0)}  "
           f"à arbitrer {s.get('a_arbitrer', 0)}")

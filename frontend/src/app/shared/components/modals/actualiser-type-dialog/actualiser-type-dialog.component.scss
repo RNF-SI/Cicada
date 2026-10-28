@@ -44,3 +44,50 @@ button.btn-sm {
 .full-width {
   width: 100%;
 }
+
+// #776 — équivalents de la table, pris en un clic
+.label-propositions {
+  margin: 0 0 $spacing-xxs;
+  font-weight: 600;
+  color: $black;
+}
+
+.propositions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+
+  .proposition {
+    height: auto;
+    min-height: 36px;
+    text-align: left;
+    white-space: normal;
+    line-height: 1.3;
+
+    &.choisie {
+      background-color: $primary-bg-subtle;
+      border-width: 2px;
+    }
+  }
+}
+
+// #776 — questions du suivi d'une action qui devient CS
+.suivi {
+  margin-top: $spacing-md;
+  padding-top: $spacing-sm;
+  border-top: 1px solid $gray-light;
+
+  h3 {
+    font-size: $font-size-base;
+    font-weight: 700;
+    color: $primary-color;
+    margin: 0 0 $spacing-xxs;
+  }
+
+  .radios {
+    display: flex;
+    gap: $spacing-md;
+    margin: $spacing-xs 0 $spacing-sm;
+  }
+}

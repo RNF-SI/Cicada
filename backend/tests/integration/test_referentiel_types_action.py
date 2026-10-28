@@ -1,13 +1,17 @@
 """
-#751 — passage du référentiel des types d'action (Eden 62 → Gestref V1, et suivants).
+#751 / #776 — passage du référentiel des types d'action (Eden 62 → Gestref V1, et suivants).
 
 - la simulation n'écrit rien ;
-- sûre / probable → nouveau type et catégorie ; à arbitrer → type vidé, lien au
-  suivi conservé ; anciens types désactivés ;
+- sûre / probable → nouveau type et catégorie (changements informatifs, que le
+  référent peut corriger, même dans un plan validé ou archivé) ;
+- à arbitrer → **cohabitation** : l'action garde son ancien type (et sa
+  catégorie) tant que le référent n'a pas choisi ; les équivalents possibles
+  sont proposés ; anciens types désactivés ;
 - une notification par référent et par passage, une notification de suivi
   regroupée quand un autre référent actualise ;
-- choisir le type est permis dans un plan validé, refusé si un autre référent
-  l'a choisi entre-temps ;
+- choisir le type est permis hors brouillon, refusé si un autre référent l'a
+  choisi entre-temps ; une action qui devient CS sans suivi en reçoit un ;
+- « accepter toutes les propositions » ne pose que les équivalents uniques ;
 - `import_nomenclatures --force` ne défait pas le passage ; il s'annule.
 """
 import csv
@@ -20,6 +24,7 @@ from rest_framework import status
 from apps.core.models import Nomenclature, TypeNomenclature
 from apps.notifications.models import Notification
 from apps.plans import referentiel_actions as ref
+from apps.plans.models_operations import SuiviInventaire
 from apps.plans.models_referentiel import PassageReferentielObjet
 from tests.factories.enjeux import (
     EnjeuFactory, IndicateurFactory, MetriqueFactory, NiveauExigenceFactory,
@@ -53,11 +58,12 @@ def _ecrire_version(dossier: Path, *, exclure=()):
                      ['GE.1', 'Infrastructures'], ['CP', 'Pratiques'], ['CP.1', 'Contrats']])
     with open(d / 'correspondance.csv', 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f)
-        w.writerow(['ancien_code', 'nouveau_code', 'confiance', 'note'])
-        w.writerows([['CS14', 'CS.1.1', 'sure', ''],
-                     ['CI2', 'GE.1', 'probable', 'Infrastructures d’accueil'],
-                     ['CS8', 'CS.1', 'a_arbitrer', 'Faune : à préciser'],
-                     ['MS7', 'CP.1', 'sure', '']])
+        w.writerow(['ancien_code', 'nouveau_code', 'confiance', 'options', 'note'])
+        w.writerows([['CS14', 'CS.1.1', 'sure', '', ''],
+                     ['CI2', 'GE.1', 'probable', '', 'Infrastructures d’accueil'],
+                     ['CS8', 'CS.1', 'a_arbitrer', 'CS.1|CS.1.1', 'Faune : à préciser'],
+                     ['EI3', 'CS.1', 'a_arbitrer', '', 'Étude devenue CS'],
+                     ['MS7', 'CP.1', 'sure', '', '']])
     return 'test_v1'
 
 
@@ -70,9 +76,11 @@ def referentiel(db, tmp_path, monkeypatch):
     eden = {
         'cat_cs': _nom(ref.CATEGORIE, 'CS', 'Connaissance (Eden)'),
         'cat_ci': _nom(ref.CATEGORIE, 'CI', 'Infrastructures (Eden)'),
+        'cat_ei': _nom(ref.CATEGORIE, 'EI', 'Études (Eden)'),
         'cs14': _nom(ref.TYPE_ACTION, 'CS14', 'Suivi des facteurs abiotiques'),
         'ci2': _nom(ref.TYPE_ACTION, 'CI2', 'Infrastructures d’accueil'),
         'cs8': _nom(ref.TYPE_ACTION, 'CS8', 'Inventaire de la faune'),
+        'ei3': _nom(ref.TYPE_ACTION, 'EI3', 'Étude des facteurs'),
         'ms7': _nom(ref.TYPE_ACTION, 'MS7', 'Démarches administratives'),
     }
     return {'nom': _ecrire_version(tmp_path, exclure=['CP']), **eden}
@@ -91,18 +99,21 @@ def _plan_avec_actions(statut, *actions):
 @pytest.fixture
 def plans(referentiel):
     r = referentiel
-    p1, (op_sure, op_arb) = _plan_avec_actions(
-        'valide', (r['cs14'], r['cat_cs']), (r['cs8'], r['cat_cs']))
+    p1, (op_sure, op_arb, op_ei) = _plan_avec_actions(
+        'valide', (r['cs14'], r['cat_cs']), (r['cs8'], r['cat_cs']), (r['ei3'], r['cat_ei']))
     suivi = SuiviInventaireFactory(id_pg=p1, id_type_action=r['cs8'])
     op_arb.id_suivi = suivi
     op_arb.save()
     p2, (op_prob, op_arb2) = _plan_avec_actions(
         'draft', (r['ci2'], r['cat_ci']), (r['cs8'], None))
+    p3, (op_arch,) = _plan_avec_actions('archive', (r['cs14'], r['cat_cs']))
     alice, bob = RoleFactory(), RoleFactory()
     p1.referents.add(alice, bob)
     p2.referents.add(alice)
-    return {'p1': p1, 'p2': p2, 'op_sure': op_sure, 'op_arb': op_arb, 'op_prob': op_prob,
-            'op_arb2': op_arb2, 'suivi': suivi, 'alice': alice, 'bob': bob}
+    p3.referents.add(alice)
+    return {'p1': p1, 'p2': p2, 'p3': p3, 'op_sure': op_sure, 'op_arb': op_arb, 'op_ei': op_ei,
+            'op_prob': op_prob, 'op_arb2': op_arb2, 'op_arch': op_arch, 'suivi': suivi,
+            'alice': alice, 'bob': bob}
 
 
 def _appliquer(referentiel, **kw):
@@ -110,57 +121,69 @@ def _appliquer(referentiel, **kw):
     return ref.appliquer(definition, **kw)
 
 
+def _type(code):
+    return Nomenclature.objects.get(id_type__mnemonique=ref.TYPE_ACTION, cd_nomenclature=code)
+
+
 @pytest.mark.django_db
 class TestPassage:
-    def test_lecture_ecarte_la_categorie_exclue(self, referentiel):
+    def test_lecture_ecarte_la_categorie_exclue_et_lit_les_options(self, referentiel):
         d = ref.charger_version(referentiel['nom'])
         assert d.codes_categories == {'CS', 'GE'}
         assert 'CP.1' not in d.codes_types
         # Une correspondance vers une catégorie écartée ne peut être posée.
         assert d.correspondance['MS7'].confiance == 'a_arbitrer'
         assert d.correspondance['MS7'].nouveau_code == ''
+        assert d.correspondance['CS8'].options == ['CS.1', 'CS.1.1']
+        assert d.correspondance['EI3'].options == ['CS.1']
 
     def test_simulation_n_ecrit_rien(self, referentiel, plans):
         rapport = ref.simuler(ref.charger_version(referentiel['nom']))
-        assert rapport['actions']['sure'] == 1
+        assert rapport['actions']['sure'] == 2
         assert rapport['actions']['probable'] == 1
-        assert rapport['actions']['a_arbitrer'] == 2
+        assert rapport['actions']['a_arbitrer'] == 3
+        assert rapport['devient_cs']['total'] == 1
         plans['op_sure'].refresh_from_db()
         assert plans['op_sure'].id_type_action == referentiel['cs14']
         assert not Nomenclature.objects.filter(cd_nomenclature='CS.1.1').exists()
 
-    def test_applique_sure_et_probable_vide_a_arbitrer(self, referentiel, plans):
+    def test_applique_sure_et_probable_et_garde_l_ancien_type_a_arbitrer(self, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
-        for k in ('op_sure', 'op_arb', 'op_prob', 'op_arb2'):
+        for k in ('op_sure', 'op_arb', 'op_prob', 'op_arb2', 'op_ei', 'op_arch'):
             plans[k].refresh_from_db()
         assert plans['op_sure'].id_type_action.cd_nomenclature == 'CS.1.1'
+        assert plans['op_arch'].id_type_action.cd_nomenclature == 'CS.1.1'
         assert plans['op_prob'].id_type_action.cd_nomenclature == 'GE.1'
         assert plans['op_prob'].id_categorie_action_reserve.cd_nomenclature == 'GE'
-        assert plans['op_arb'].id_type_action is None
-        # La catégorie suit le code proposé ; le suivi reste rattaché.
-        assert plans['op_arb'].id_categorie_action_reserve.cd_nomenclature == 'CS'
+        # Cohabitation : l'action à arbitrer garde son ancien type et sa catégorie.
+        assert plans['op_arb'].id_type_action == referentiel['cs8']
+        assert plans['op_ei'].id_categorie_action_reserve == referentiel['cat_ei']
         assert plans['op_arb'].id_suivi_id == plans['suivi'].pk
+        plans['suivi'].refresh_from_db()
+        assert plans['suivi'].id_type_action == referentiel['cs8']
         # Une action sans catégorie n'en reçoit pas.
         assert plans['op_arb2'].id_categorie_action_reserve is None
         # La catégorie partagée CS est réutilisée, avec le libellé V1.
         cs = Nomenclature.objects.get(pk=referentiel['cat_cs'].pk)
         assert cs.actif and cs.label == 'Connaissance (V1)'
-        assert not Nomenclature.objects.get(pk=referentiel['cs14'].pk).actif
+        # Les anciens types ne sont plus proposés, mais restent lisibles.
+        assert not Nomenclature.objects.get(pk=referentiel['cs8'].pk).actif
         assert not Nomenclature.objects.get(pk=referentiel['cat_ci'].pk).actif
-        assert Nomenclature.objects.get(cd_nomenclature='CS.1.1').pk >= ref.REFERENTIEL_ID_BASE
-        statuts = dict(PassageReferentielObjet.objects.filter(
-            operation__isnull=False).values_list('operation_id', 'statut'))
-        assert statuts[plans['op_arb'].pk] == 'a_actualiser'
-        assert statuts[plans['op_sure'].pk] == 'applique'
+        assert _type('CS.1.1').pk >= ref.REFERENTIEL_ID_BASE
+        objets = {o.operation_id: o for o in PassageReferentielObjet.objects.filter(
+            operation__isnull=False)}
+        assert objets[plans['op_arb'].pk].statut == 'a_actualiser'
+        assert objets[plans['op_arb'].pk].options == ['CS.1', 'CS.1.1']
+        assert objets[plans['op_sure'].pk].statut == 'applique'
 
     def test_une_notification_par_referent(self, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
         notifs = Notification.objects.filter(notification_type='referentiel_actions')
-        # Alice est référente des deux plans : une seule notification.
+        # Alice est référente des trois plans : une seule notification.
         assert notifs.filter(recipient=plans['alice']).count() == 1
         assert notifs.filter(recipient=plans['bob']).count() == 1
         msg = notifs.get(recipient=plans['alice']).message
-        assert '2 action(s) n\'ont pas d\'équivalent certain' in msg
+        assert "3 action(s) n'ont pas d'équivalent certain" in msg
 
     def test_import_nomenclatures_ne_defait_pas_le_passage(self, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
@@ -174,12 +197,12 @@ class TestPassage:
     def test_annuler_restaure_la_version_de_depart(self, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
         ref.annuler(ref.charger_version(referentiel['nom']))
-        plans['op_arb'].refresh_from_db()
+        plans['op_sure'].refresh_from_db()
         plans['op_prob'].refresh_from_db()
-        assert plans['op_arb'].id_type_action == referentiel['cs8']
+        assert plans['op_sure'].id_type_action == referentiel['cs14']
         assert plans['op_prob'].id_categorie_action_reserve == referentiel['cat_ci']
         assert Nomenclature.objects.get(pk=referentiel['cs14'].pk).actif
-        assert not Nomenclature.objects.get(cd_nomenclature='CS.1.1').actif
+        assert not _type('CS.1.1').actif
         assert Nomenclature.objects.get(pk=referentiel['cat_cs'].pk).label == 'Connaissance (Eden)'
         assert not Notification.objects.filter(notification_type='referentiel_actions').exists()
 
@@ -189,21 +212,33 @@ class TestPassage:
             ref.simuler(ref.charger_version(referentiel['nom']))
 
 
+SUIVI_NOUVEAU = {
+    'intitule': 'Étude des facteurs', 'objectif_principal': 'OBJ_ETAT_CONSERVATION',
+    'cibles_principales': 'ESPECES',
+    'protocoles': [{'protocole_dans_campanule': False, 'nom_protocole': 'Protocole local'}],
+}
+
+
 @pytest.mark.django_db
 class TestActualisation:
-    def _actualiser(self, client, op, type_id, attendu=None):
+    def _actualiser(self, client, op, type_id, attendu, **extra):
         return client.post(f'/api/plans/operations/{op.pk}/actualiser-type/',
-                           {'id_type_action': type_id, 'type_attendu': attendu}, format='json')
+                           {'id_type_action': type_id, 'type_attendu': attendu, **extra},
+                           format='json')
 
     def test_plan_valide_et_suivi_des_autres(self, api_client, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
-        cs11 = Nomenclature.objects.get(cd_nomenclature='CS.1.1')
+        cs11 = _type('CS.1.1')
         api_client.force_authenticate(user=plans['bob'])
-        r = self._actualiser(api_client, plans['op_arb'], cs11.pk)
+        r = self._actualiser(api_client, plans['op_arb'], cs11.pk, referentiel['cs8'].pk)
         assert r.status_code == status.HTTP_200_OK, r.content
         assert r.data['type_action_a_actualiser'] is None
         plans['op_arb'].refresh_from_db()
         assert plans['op_arb'].id_type_action == cs11
+        # La catégorie suit le nouveau type, le suivi aussi.
+        assert plans['op_arb'].id_categorie_action_reserve.cd_nomenclature == 'CS'
+        plans['suivi'].refresh_from_db()
+        assert plans['suivi'].id_type_action == cs11
         obj = PassageReferentielObjet.objects.get(operation=plans['op_arb'])
         assert obj.statut == 'actualise' and obj.actualise_par == plans['bob']
         # Alice (autre référente) est prévenue ; Bob ne se notifie pas lui-même.
@@ -212,35 +247,107 @@ class TestActualisation:
 
     def test_conflit_si_deja_choisi(self, api_client, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
-        cs11 = Nomenclature.objects.get(cd_nomenclature='CS.1.1')
-        ge1 = Nomenclature.objects.get(cd_nomenclature='GE.1')
+        cs11, cs1 = _type('CS.1.1'), _type('CS.1')
         api_client.force_authenticate(user=plans['bob'])
-        assert self._actualiser(api_client, plans['op_arb'], cs11.pk).status_code == 200
+        assert self._actualiser(api_client, plans['op_arb'], cs11.pk,
+                                referentiel['cs8'].pk).status_code == 200
         api_client.force_authenticate(user=plans['alice'])
-        r = self._actualiser(api_client, plans['op_arb'], ge1.pk, attendu=None)
+        r = self._actualiser(api_client, plans['op_arb'], cs1.pk, referentiel['cs8'].pk)
         assert r.status_code == status.HTTP_409_CONFLICT
         assert r.data['code'] == 'type_deja_modifie'
         plans['op_arb'].refresh_from_db()
         assert plans['op_arb'].id_type_action == cs11
 
+    def test_corriger_un_changement_automatique_plan_archive(self, api_client, referentiel, plans):
+        """Refuser l'appariement automatique et choisir un autre type, même
+        dans un plan archivé."""
+        _appliquer(referentiel, envoyer_email=False)
+        cs11, cs1 = _type('CS.1.1'), _type('CS.1')
+        api_client.force_authenticate(user=plans['alice'])
+        r = self._actualiser(api_client, plans['op_arch'], cs1.pk, cs11.pk)
+        assert r.status_code == 200, r.content
+        obj = PassageReferentielObjet.objects.get(operation=plans['op_arch'])
+        assert obj.statut == 'actualise' and obj.type_choisi == cs1
+
+    def test_type_quelconque_refuse_hors_brouillon(self, api_client, referentiel, plans):
+        """Hors brouillon, seul le type d'une action touchée par le passage change."""
+        _appliquer(referentiel, envoyer_email=False)
+        plan, (op,) = _plan_avec_actions('valide', (_type('GE.1'), None))
+        plan.referents.add(plans['alice'])
+        api_client.force_authenticate(user=plans['alice'])
+        r = self._actualiser(api_client, op, _type('CS.1').pk, _type('GE.1').pk)
+        assert r.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_devient_cs_demande_un_suivi(self, api_client, referentiel, plans):
+        _appliquer(referentiel, envoyer_email=False)
+        cs1 = _type('CS.1')
+        op = plans['op_ei']
+        api_client.force_authenticate(user=plans['alice'])
+        r = self._actualiser(api_client, op, cs1.pk, referentiel['ei3'].pk)
+        assert r.status_code == 400 and r.data['code'] == 'suivi_requis'
+        incomplet = {**SUIVI_NOUVEAU, 'cibles_principales': ''}
+        r = self._actualiser(api_client, op, cs1.pk, referentiel['ei3'].pk, suivi=incomplet)
+        assert r.status_code == 400
+        r = self._actualiser(api_client, op, cs1.pk, referentiel['ei3'].pk, suivi=SUIVI_NOUVEAU)
+        assert r.status_code == 200, r.content
+        op.refresh_from_db()
+        suivi = op.id_suivi
+        assert suivi.intitule == 'Étude des facteurs' and suivi.id_type_action == cs1
+        assert suivi.id_pg == plans['p1']
+        assert [p.nom_protocole for p in suivi.protocoles.all()] == ['Protocole local']
+
+    def test_devient_cs_avec_un_suivi_existant(self, api_client, referentiel, plans):
+        _appliquer(referentiel, envoyer_email=False)
+        cs1 = _type('CS.1')
+        existant = SuiviInventaireFactory(id_pg=plans['p1'], id_type_action=cs1)
+        api_client.force_authenticate(user=plans['alice'])
+        r = self._actualiser(api_client, plans['op_ei'], cs1.pk, referentiel['ei3'].pk,
+                             suivi={'id_suivi': existant.pk})
+        assert r.status_code == 200, r.content
+        plans['op_ei'].refresh_from_db()
+        assert plans['op_ei'].id_suivi == existant
+        assert plans['op_ei'].est_suivi_existant
+        assert SuiviInventaire.objects.filter(id_pg=plans['p1']).count() == 2
+
     def test_hors_des_plans_de_l_utilisateur(self, api_client, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
-        cs11 = Nomenclature.objects.get(cd_nomenclature='CS.1.1')
         api_client.force_authenticate(user=plans['bob'])   # pas référent de p2
-        r = self._actualiser(api_client, plans['op_arb2'], cs11.pk)
+        r = self._actualiser(api_client, plans['op_arb2'], _type('CS.1').pk, referentiel['cs8'].pk)
         assert r.status_code in (status.HTTP_403_FORBIDDEN, status.HTTP_404_NOT_FOUND)
+
+    def test_accepter_toutes_les_propositions(self, api_client, referentiel, plans):
+        """Seules les actions à un équivalent unique sont posées ; une action qui
+        deviendrait CS sans suivi, ou à plusieurs équivalents, attend un choix."""
+        _appliquer(referentiel, envoyer_email=False)
+        api_client.force_authenticate(user=plans['alice'])
+        r = api_client.post('/api/plans/referentiel-actions/accepter-propositions/', {},
+                            format='json')
+        assert r.status_code == 200, r.content
+        assert r.data == {'acceptees': 0, 'plusieurs_options': 2, 'suivi_requis': 1}
+        # Une fois le suivi rattaché, EI3 n'a plus qu'un équivalent à accepter.
+        plans['op_ei'].id_suivi = SuiviInventaireFactory(id_pg=plans['p1'])
+        plans['op_ei'].save()
+        r = api_client.post('/api/plans/referentiel-actions/accepter-propositions/',
+                            {'plan': plans['p1'].pk}, format='json')
+        assert r.data['acceptees'] == 1
+        plans['op_ei'].refresh_from_db()
+        assert plans['op_ei'].id_type_action == _type('CS.1')
+        assert PassageReferentielObjet.objects.get(operation=plans['op_ei']).statut == 'actualise'
 
     def test_liste_a_actualiser(self, api_client, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
         api_client.force_authenticate(user=plans['alice'])
         r = api_client.get('/api/plans/referentiel-actions/a-actualiser/')
         assert r.status_code == 200
-        assert r.data['total_a_actualiser'] == 2
+        assert r.data['total_a_actualiser'] == 3
         par_plan = {p['id_pg']: p for p in r.data['plans']}
-        item = par_plan[plans['p1'].pk]['a_actualiser'][0]
-        assert item['ancien_code'] == 'CS8' and item['suggestion_code'] == 'CS.1'
-        # Les correspondances probables sont listées « à vérifier si besoin ».
+        item = next(a for a in par_plan[plans['p1'].pk]['a_actualiser']
+                    if a['ancien_code'] == 'CS8')
+        assert [o['code'] for o in item['options']] == ['CS.1', 'CS.1.1']
+        assert item['type_actuel_code'] == 'CS8' and item['a_un_suivi']
+        # Les changements automatiques (sûrs et probables) sont listés, modifiables.
         assert [a['ancien_code'] for a in par_plan[plans['p2'].pk]['automatiques']] == ['CI2']
+        assert [a['ancien_code'] for a in par_plan[plans['p3'].pk]['automatiques']] == ['CS14']
         api_client.force_authenticate(user=plans['bob'])
         r = api_client.get('/api/plans/referentiel-actions/a-actualiser/')
         assert {p['id_pg'] for p in r.data['plans']} == {plans['p1'].pk}
@@ -248,11 +355,11 @@ class TestActualisation:
     def test_compte_pour_le_bandeau(self, api_client, referentiel, plans):
         api_client.force_authenticate(user=plans['alice'])
         url = '/api/plans/referentiel-actions/a-actualiser/compte/'
-        assert api_client.get(url).data == {'total': 0, 'vers': None}
+        assert api_client.get(url).data == {'total': 0, 'automatiques': 0, 'vers': None}
         _appliquer(referentiel, envoyer_email=False)
-        assert api_client.get(url).data == {'total': 2, 'vers': 'Test V1'}
+        assert api_client.get(url).data == {'total': 3, 'automatiques': 3, 'vers': 'Test V1'}
         api_client.force_authenticate(user=plans['bob'])   # référent du seul p1
-        assert api_client.get(url).data['total'] == 1
+        assert api_client.get(url).data['total'] == 2
         api_client.force_authenticate(user=RoleFactory())
         assert api_client.get(url).data['total'] == 0
 
@@ -263,16 +370,19 @@ class TestActualisation:
         api_client.force_authenticate(user=plans['alice'])
         op = plans['op_arb2']
         fiche = api_client.get(f'/api/plans/operations/{op.pk}/').data
-        assert fiche['type_action_a_actualiser']['ancien_code'] == 'CS8'
-        cs11 = Nomenclature.objects.get(cd_nomenclature='CS.1.1')
+        aa = fiche['type_action_a_actualiser']
+        assert aa['ancien_code'] == 'CS8'
+        assert [o['code'] for o in aa['options']] == ['CS.1', 'CS.1.1']
+        cs11 = _type('CS.1.1')
         r = api_client.patch(f'/api/plans/operations/{op.pk}/',
-                             {'id_type_action': cs11.pk, 'id_type_action_attendu': None},
+                             {'id_type_action': cs11.pk,
+                              'id_type_action_attendu': referentiel['cs8'].pk},
                              format='json')
         assert r.status_code == 200, r.content
         assert PassageReferentielObjet.objects.get(operation=op).statut == 'actualise'
-        ge1 = Nomenclature.objects.get(cd_nomenclature='GE.1')
         r = api_client.patch(f'/api/plans/operations/{op.pk}/',
-                             {'id_type_action': ge1.pk, 'id_type_action_attendu': None},
+                             {'id_type_action': _type('CS.1').pk,
+                              'id_type_action_attendu': referentiel['cs8'].pk},
                              format='json')
         assert r.status_code == 400
         assert 'id_type_action' in r.data
@@ -285,6 +395,7 @@ def test_gestref_v1_couvre_tous_les_codes_eden():
     d = ref.charger_version('gestref_v1')
     assert d.depuis == 'EDEN62' and 'CP' not in d.codes_categories
     assert not any(c.startswith('CP') for c in d.codes_types)
+    assert any(len(c.options) > 1 for c in d.correspondance.values())
     sql = (Path(ref.DOSSIER_REFERENTIELS).parent / 'nomenclatures_inserts.sql').read_text()
     eden = set()
     for ligne in sql.splitlines():
@@ -298,7 +409,7 @@ def test_gestref_v1_couvre_tous_les_codes_eden():
 
 @pytest.mark.django_db
 def test_fiche_action_affiche_le_type_a_actualiser(referentiel, plans):
-    """Excel et Word : « À actualiser (ancien type …) » au lieu d'un code vide."""
+    """Excel et Word : l'ancien type, marqué « à actualiser »."""
     import io
 
     from docx import Document
@@ -308,7 +419,7 @@ def test_fiche_action_affiche_le_type_a_actualiser(referentiel, plans):
     from apps.plans.services_export_fiche_action_word import build_fiche_action_docx
 
     _appliquer(referentiel, envoyer_email=False)
-    attendu = "À actualiser (ancien type : CS8 — Inventaire de la faune)"
+    attendu = "CS8 — Inventaire de la faune (ancien référentiel, à actualiser)"
     op = plans['op_arb']
     contenu = build_fiche_action_workbook(plans['p1'], operation_ids=[op.pk])
     wb = load_workbook(io.BytesIO(contenu if isinstance(contenu, bytes) else contenu.getvalue()))

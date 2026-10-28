@@ -95,9 +95,9 @@ class PassageReferentielObjet(models.Model):
         (CONFIANCE_A_ARBITRER, _("À arbitrer")),
     ]
 
-    # applique : nouveau type posé par le passage ;
-    # a_actualiser : type vidé, en attente d'un choix ;
-    # actualise : type choisi depuis, par `actualise_par`.
+    # applique : nouveau type posé par le passage (informatif, modifiable) ;
+    # a_actualiser : ancien type conservé (cohabitation, #776), en attente d'un choix ;
+    # actualise : type choisi ou corrigé depuis, par `actualise_par`.
     STATUT_APPLIQUE = 'applique'
     STATUT_A_ACTUALISER = 'a_actualiser'
     STATUT_ACTUALISE = 'actualise'
@@ -129,6 +129,9 @@ class PassageReferentielObjet(models.Model):
                                            null=True, blank=True, related_name='+')
     # Code proposé par la table, posé (sûre / probable) ou seulement suggéré.
     suggestion_code = models.CharField(_("Code proposé"), max_length=50, blank=True, default='')
+    # #776 — équivalents possibles quand l'ancienne ligne en a plusieurs : le
+    # référent choisit parmi eux (ou cherche ailleurs dans le référentiel).
+    options = models.JSONField(_("Équivalents possibles"), default=list, blank=True)
     confiance = models.CharField(_("Confiance"), max_length=20, choices=CONFIANCES)
     note = models.TextField(_("Note"), blank=True, default='')
     statut = models.CharField(_("Statut"), max_length=20, choices=STATUTS)

@@ -472,15 +472,23 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         attendu = data.validated_data['type_attendu']
         if operation.id_type_action_id != attendu:
             return conflit(ref.TypeDejaModifie(operation, ref.dernier_objet(operation)))
-        # Hors brouillon, seule une action en attente d'un type peut en changer.
+        # Hors brouillon (validé, archivé…), seule une action touchée par le
+        # passage en service peut changer de type (#776).
         plan = operation.get_plan_de_gestion()
-        if plan is not None and plan.statut != 'draft' and ref.objet_en_attente(operation) is None:
+        if plan is not None and plan.statut != 'draft' and ref.objet_du_passage(operation) is None:
             return Response({'detail': CanModifyOnlyDraftPlan.message},
                             status=status.HTTP_403_FORBIDDEN)
         try:
-            ref.actualiser_type(operation, nouveau, request.user, type_attendu_id=attendu)
+            ref.actualiser_type(operation, nouveau, request.user, type_attendu_id=attendu,
+                                suivi=data.validated_data.get('suivi'))
         except ref.TypeDejaModifie as e:
             return conflit(e)
+        except ref.SuiviRequis:
+            return Response({
+                'code': 'suivi_requis',
+                'detail': "Ce type d'action est un suivi (CS) : rattachez un suivi existant ou "
+                          "renseignez le nouveau suivi.",
+            }, status=status.HTTP_400_BAD_REQUEST)
         operation.refresh_from_db()
         return Response(OperationSerializer(operation, context={'request': request}).data)
 

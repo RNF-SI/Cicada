@@ -69,18 +69,41 @@ export class ActionsAActualiserComponent implements OnInit {
     return plan.slug ? ['/plans', plan.slug, 'enjeux', 'operations', a.id_operation, 'fiche'] : null;
   }
 
-  choisirType(a: ActionAActualiser): void {
+  readonly acceptation = signal(false);
+
+  /** « Accepter toutes les propositions » : actions à un seul équivalent (#776). */
+  accepterTout(): void {
+    if (this.acceptation()) return;
+    this.acceptation.set(true);
+    this.service.accepterPropositions(this.planFiltre()).subscribe({
+      next: b => {
+        this.acceptation.set(false);
+        this.snackBar.open(this.translate.instant('referentielActions.accepterToutBilan', {
+          acceptees: b.acceptees, plusieurs: b.plusieurs_options, suivi: b.suivi_requis,
+        }), this.translate.instant('common.actions.close'), { duration: 6000 });
+        this.charger();
+      },
+      error: () => {
+        this.acceptation.set(false);
+        this.erreur.set(true);
+      },
+    });
+  }
+
+  /** Choisir le type d'une action à actualiser, ou corriger un changement automatique. */
+  choisirType(a: ActionAActualiser, mode: 'choix' | 'correction' = 'choix'): void {
     const data: ActualiserTypeDialogData = {
       operationId: a.id_operation,
       libelle: a.libelle,
       codeAffichage: a.code_affichage,
       ancienCode: a.ancien_code,
       ancienLibelle: a.ancien_libelle,
-      suggestionId: a.suggestion_id,
-      suggestionCode: a.suggestion_code,
-      suggestionLibelle: a.suggestion_libelle,
+      options: a.options,
       note: a.note,
       typeActuelId: a.type_actuel_id,
+      typeActuelCode: a.type_actuel_code,
+      aUnSuivi: a.a_un_suivi,
+      mode,
     };
     this.dialog.open<ActualiserTypeDialogComponent, ActualiserTypeDialogData, ActualiserTypeDialogResult>(
       ActualiserTypeDialogComponent, { data, width: '760px', maxWidth: '95vw', maxHeight: '90vh' },

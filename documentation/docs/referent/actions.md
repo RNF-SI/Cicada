@@ -81,20 +81,21 @@ Depuis la fiche, vous pouvez :
 
 ## 4.8.3. Les types d'action à actualiser
 
-Le référentiel des types d'action évolue : la codification Eden 62 utilisée jusqu'ici laisse la place à GestRef, qui connaîtra lui-même de nouvelles versions. À chaque changement de version, CICADA met à jour les actions déjà saisies :
+Le référentiel des types d'action évolue : la codification Eden 62 utilisée jusqu'ici laisse la place à GestRef, qui connaîtra lui-même de nouvelles versions. À chaque changement de version, CICADA met à jour les actions déjà saisies, dans tous les plans, archivés compris :
 
-- lorsque l'ancien type a un équivalent certain ou très probable dans la nouvelle version, l'action le reçoit automatiquement, avec sa catégorie ;
-- sinon, le type de l'action est vidé : l'action devient « à actualiser ». Son ancien type reste affiché, accompagné d'une proposition issue de la table de correspondance. Une action d'inventaire ou de suivi garde son suivi.
+- lorsque l'ancien type a un équivalent certain ou très probable, l'action le reçoit **automatiquement**, avec sa catégorie. Ce changement vous est signalé, et vous pouvez le corriger ;
+- sinon, l'action **garde son ancien type** en attendant votre choix : elle devient « à actualiser ». Les deux référentiels cohabitent le temps de la transition, mais seul le nouveau est proposé dans le sélecteur. Quand l'ancienne ligne a plusieurs équivalents, ils vous sont tous proposés.
 
-Chaque référent d'un plan concerné reçoit **une seule notification** pour l'ensemble de ses plans, « Types d'action à actualiser », qui ouvre la page du même nom. Tant qu'il lui reste des actions à actualiser, un **bandeau en haut de toutes les pages** le rappelle, avec le nombre d'actions concernées et un lien « Choisir les nouveaux types » ; il ne se ferme pas et disparaît de lui-même une fois tous les types choisis. La page du plan rappelle aussi le nombre d'actions de ce plan.
+Chaque référent d'un plan concerné reçoit **une seule notification** pour l'ensemble de ses plans, « Types d'action à actualiser », qui ouvre la page du même nom. Tant qu'il lui reste des actions à actualiser, un **bandeau en haut de toutes les pages** le rappelle, avec le nombre d'actions concernées et un lien « Choisir les nouveaux types ». Le bandeau mentionne aussi, plus discrètement, les actions changées automatiquement. Il ne se ferme pas et disparaît de lui-même une fois tous les types choisis. La page du plan rappelle aussi le nombre d'actions de ce plan.
 
 La page « Types d'action à actualiser » présente, plan par plan :
 
-- les actions dont le type est à choisir : le bouton « Choisir le type » ouvre une fenêtre de recherche (code, mot du libellé ou catégorie, plusieurs mots possibles, sans se soucier des accents) où la proposition s'applique en un clic ;
-- les actions déjà actualisées, avec la personne qui l'a fait et la date ;
-- les actions changées automatiquement sur une correspondance seulement probable, à vérifier si besoin depuis leur fiche.
+- **les actions dont le type est à choisir**, avec leur type actuel (ancien référentiel) et les équivalents proposés. Le bouton « Choisir le type » ouvre une fenêtre où chaque équivalent se choisit en un clic. Une recherche libre dans tout le référentiel reste possible : par code, mot du libellé ou catégorie, plusieurs mots à la fois, sans se soucier des accents ;
+- le bouton **« Accepter toutes les propositions »**, qui pose d'un coup la proposition des actions n'ayant qu'un seul équivalent. Celles qui en ont plusieurs, ou qui deviendraient des suivis, attendent votre choix ;
+- **les actions déjà actualisées**, avec la personne qui l'a fait et la date ;
+- **les actions changées automatiquement** : si l'appariement ne convient pas, le bouton « Modifier » permet d'en choisir un autre.
 
-Le type d'une action à actualiser peut être choisi **même si le plan est validé** : c'est la seule modification permise hors brouillon, et elle ne porte que sur le type et sa catégorie. Dans un plan en brouillon, il peut aussi être choisi depuis le formulaire de l'action, où un encadré rappelle l'ancien type et la proposition. Depuis la fiche action, le bouton « Choisir le nouveau type » ouvre la même fenêtre.
+Le type peut être choisi ou corrigé **même si le plan est validé ou archivé** : c'est la seule modification permise hors brouillon, et elle ne porte que sur le type et ce qui en découle. Si l'action **devient une action de suivi (CS)** sans avoir de suivi, la fenêtre pose les questions du suivi : rattacher un suivi existant, ou renseigner l'intitulé, l'objectif principal, la cible principale et le protocole du nouveau suivi. Dans un plan en brouillon, le type peut aussi être choisi depuis le formulaire de l'action, où un encadré rappelle l'ancien type et les équivalents. Depuis la fiche action, le bouton « Choisir le nouveau type » ouvre la même fenêtre.
 
 !!! tip "Plusieurs référents sur la même action"
     Dès qu'un référent choisit le type d'une action, elle quitte la liste de tous, et les autres référents du plan reçoivent une notification de suivi qui se complète au fil des choix (une seule par plan, tant qu'elle n'est pas lue). Si quelqu'un a choisi le type pendant que vous le choisissiez, CICADA vous le signale et conserve son choix au lieu de l'écraser : rouvrez l'action pour le modifier si besoin.

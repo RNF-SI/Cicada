@@ -1,4 +1,6 @@
-<h2 mat-dialog-title>{{ 'referentielActions.dialog.title' | translate }}</h2>
+<h2 mat-dialog-title>
+  {{ (data.mode === 'correction' ? 'referentielActions.dialog.titleCorrection' : 'referentielActions.dialog.title') | translate }}
+</h2>
 
 <mat-dialog-content>
   <p class="action">
@@ -11,14 +13,13 @@
   <dl class="rappel">
     <dt>{{ 'referentielActions.ancienType' | translate }}</dt>
     <dd><span class="code">{{ data.ancienCode }}</span> {{ data.ancienLibelle }}</dd>
-    @if (data.suggestionCode) {
-      <dt>{{ 'referentielActions.suggestion' | translate }}</dt>
-      <dd>
-        <span class="code">{{ data.suggestionCode }}</span> {{ data.suggestionLibelle }}
-        @if (data.note) {
-          <span class="note">— {{ data.note }}</span>
-        }
-      </dd>
+    @if (data.mode === 'correction' && data.typeActuelCode) {
+      <dt>{{ 'referentielActions.typeAutomatique' | translate }}</dt>
+      <dd><span class="code">{{ data.typeActuelCode }}</span></dd>
+    }
+    @if (data.note) {
+      <dt>{{ 'referentielActions.note' | translate }}</dt>
+      <dd class="note">{{ data.note }}</dd>
     }
   </dl>
 
@@ -27,18 +28,26 @@
       {{ 'referentielActions.dialog.conflit' | translate:{ qui: c.actualise_par, type: c.type_action_label } }}
     </div>
   } @else {
-    @if (suggestion()) {
-      <button mat-stroked-button type="button" class="btn-sm" (click)="utiliserSuggestion()"
-              data-testid="actualiser-type-suggestion">
-        {{ 'referentielActions.dialog.utiliserSuggestion' | translate:{ code: data.suggestionCode } }}
-      </button>
+    @if (propositions().length) {
+      <p class="label-propositions">
+        {{ (propositions().length > 1 ? 'referentielActions.dialog.equivalents' : 'referentielActions.dialog.proposition') | translate }}
+      </p>
+      <div class="propositions" role="group">
+        @for (p of propositions(); track p.id) {
+          <button mat-stroked-button type="button" class="proposition" [class.choisie]="estChoisie(p)"
+                  [attr.aria-pressed]="estChoisie(p)" (click)="choisirProposition(p)"
+                  data-testid="actualiser-type-proposition">
+            <span class="code">{{ p.code }}</span> {{ p.libelle }}
+          </button>
+        }
+      </div>
     }
 
     <label class="app-mat-label" for="actualiser-type-recherche">
       {{ 'referentielActions.dialog.nouveauType' | translate }} <span class="required-star">*</span>
     </label>
     <mat-form-field class="app-mat-form-field full-width" appearance="outline">
-      <input matInput id="actualiser-type-recherche" data-testid="actualiser-type-recherche"
+      <input matInput id="actualiser-type-recherche" data-testid="actualiser-type-recherche" cdkFocusInitial
              [formControl]="searchCtrl" [matAutocomplete]="auto"
              [placeholder]="'referentielActions.dialog.placeholder' | translate">
       @if (searchCtrl.value) {
@@ -63,6 +72,58 @@
       </mat-autocomplete>
       <mat-hint>{{ 'referentielActions.dialog.aide' | translate }}</mat-hint>
     </mat-form-field>
+
+    <!-- #776 — l'action devient CS sans suivi : les questions du suivi -->
+    @if (devientCs()) {
+      <section class="suivi" data-testid="actualiser-type-suivi">
+        <h3>{{ 'referentielActions.dialog.suivi.titre' | translate }}</h3>
+        <p class="text-small">{{ 'referentielActions.dialog.suivi.aide' | translate }}</p>
+        <mat-radio-group [value]="modeSuivi()" (change)="modeSuivi.set($event.value)" class="radios">
+          <mat-radio-button value="nouveau">{{ 'referentielActions.dialog.suivi.nouveau' | translate }}</mat-radio-button>
+          <mat-radio-button value="existant" [disabled]="!suivisExistants().length">
+            {{ 'referentielActions.dialog.suivi.existant' | translate }}
+          </mat-radio-button>
+        </mat-radio-group>
+
+        @if (modeSuivi() === 'existant') {
+          <label class="app-mat-label">{{ 'referentielActions.dialog.suivi.choisir' | translate }} <span class="required-star">*</span></label>
+          <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+            <mat-select [formControl]="suiviExistantCtrl">
+              @for (s of suivisExistants(); track s.id_suivi_inventaire) {
+                <mat-option [value]="s.id_suivi_inventaire">{{ s.intitule }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        } @else {
+          <div [formGroup]="suiviForm">
+            <label class="app-mat-label">{{ 'enjeux.operations.intituleSuiviLabel' | translate }} <span class="required-star">*</span></label>
+            <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+              <input matInput formControlName="intitule">
+            </mat-form-field>
+            <label class="app-mat-label">{{ 'enjeux.operations.objectifPrincipal' | translate }} <span class="required-star">*</span></label>
+            <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+              <mat-select formControlName="objectif_principal">
+                @for (o of objectifs(); track o.id_nomenclature) {
+                  <mat-option [value]="o.mnemonique">{{ o.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+            <label class="app-mat-label">{{ 'enjeux.operations.ciblesPrincipales' | translate }} <span class="required-star">*</span></label>
+            <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+              <mat-select formControlName="cibles_principales">
+                @for (o of cibles(); track o.id_nomenclature) {
+                  <mat-option [value]="o.mnemonique">{{ o.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          </div>
+          <app-protocole-action [group]="protocoleForm"></app-protocole-action>
+        }
+        @if (suiviIncomplet()) {
+          <p class="text-error" role="alert">{{ 'referentielActions.dialog.suivi.incomplet' | translate }}</p>
+        }
+      </section>
+    }
 
     @if (erreur()) {
       <p class="text-error" role="alert">{{ erreur() }}</p>
