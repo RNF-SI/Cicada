@@ -100,6 +100,10 @@ class Command(BaseCommand):
                     if reappliquer_version_courante():
                         self.stdout.write(
                             "  ✓ Référentiel des types d'action : version en service rétablie")
+                    # #779 — idem pour les autres référentiels tenus en nomenclature (PressRef).
+                    from apps.plans.referentiels.moteur import reappliquer_versions_courantes
+                    for code in reappliquer_versions_courantes():
+                        self.stdout.write(f"  ✓ Référentiel {code} : version en service rétablie")
                 else:
                     # First import: plain INSERT (faster for initial load)
                     self._execute_insert_file(types_file, 'types de nomenclatures')

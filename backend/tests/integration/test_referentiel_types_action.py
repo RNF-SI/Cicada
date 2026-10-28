@@ -355,9 +355,12 @@ class TestActualisation:
     def test_compte_pour_le_bandeau(self, api_client, referentiel, plans):
         api_client.force_authenticate(user=plans['alice'])
         url = '/api/plans/referentiel-actions/a-actualiser/compte/'
-        assert api_client.get(url).data == {'total': 0, 'automatiques': 0, 'vers': None}
+        d = api_client.get(url).data
+        assert (d['total'], d['automatiques'], d['vers'], d['referentiels']) == (0, 0, None, [])
         _appliquer(referentiel, envoyer_email=False)
-        assert api_client.get(url).data == {'total': 3, 'automatiques': 3, 'vers': 'Test V1'}
+        d = api_client.get(url).data
+        assert (d['total'], d['automatiques'], d['vers']) == (3, 3, 'Test V1')
+        assert [r['code'] for r in d['referentiels']] == ['TYPE_ACTION']
         api_client.force_authenticate(user=plans['bob'])   # référent du seul p1
         assert api_client.get(url).data['total'] == 2
         api_client.force_authenticate(user=RoleFactory())

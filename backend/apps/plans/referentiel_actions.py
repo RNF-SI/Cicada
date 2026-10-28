@@ -45,7 +45,8 @@ from django.utils import timezone
 from apps.core.models import Nomenclature, TypeNomenclature
 
 from .models_referentiel import (
-    PassageReferentielActions, PassageReferentielObjet, VersionReferentielActions,
+    REFERENTIEL_TYPES_ACTION, PassageReferentielActions, PassageReferentielObjet,
+    VersionReferentielActions,
 )
 
 TYPE_ACTION = 'TYPE_ACTION'
@@ -206,7 +207,8 @@ def _ligne(nom: Nomenclature, nomenclature: str) -> dict:
 
 
 def version_courante() -> VersionReferentielActions | None:
-    return VersionReferentielActions.objects.filter(courante=True).first()
+    return VersionReferentielActions.objects.filter(
+        referentiel=REFERENTIEL_TYPES_ACTION, courante=True).first()
 
 
 def _releve_version_initiale() -> VersionReferentielActions:
@@ -217,7 +219,8 @@ def _releve_version_initiale() -> VersionReferentielActions:
             lignes.append(_ligne(nom, mnemo))
     version, _ = VersionReferentielActions.objects.update_or_create(
         code=VERSION_INITIALE,
-        defaults={'libelle': LIBELLE_INITIAL, 'lignes': lignes, 'courante': True},
+        defaults={'libelle': LIBELLE_INITIAL, 'lignes': lignes, 'courante': True,
+                  'referentiel': REFERENTIEL_TYPES_ACTION},
     )
     return version
 
@@ -288,7 +291,8 @@ def activer(version: VersionReferentielActions) -> None:
         )
     (Nomenclature.objects.filter(id_type__mnemonique__in=(TYPE_ACTION, CATEGORIE), actif=True)
      .exclude(pk__in=ids).update(actif=False, date_maj=timezone.now()))
-    VersionReferentielActions.objects.exclude(pk=version.pk).update(courante=False)
+    (VersionReferentielActions.objects.filter(referentiel=REFERENTIEL_TYPES_ACTION)
+     .exclude(pk=version.pk).update(courante=False))
     if not version.courante:
         version.courante = True
         version.save(update_fields=['courante'])
@@ -455,7 +459,7 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
     cible, _ = VersionReferentielActions.objects.update_or_create(
         code=definition.code,
         defaults={'libelle': definition.libelle, 'lignes': _creer_lignes_version(definition),
-                  'courante': False},
+                  'courante': False, 'referentiel': REFERENTIEL_TYPES_ACTION},
     )
     nouveaux = _type_par_code(cible)
     types_cible = {c: n for c, n in nouveaux.items() if n.id_type.mnemonique == TYPE_ACTION}
@@ -525,7 +529,8 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
 def annuler(definition: DefinitionVersion) -> PassageReferentielActions:
     """Revient à la version de départ du dernier passage vers `definition`."""
     passage = (PassageReferentielActions.objects
-               .filter(cible__code=definition.code, statut=PassageReferentielActions.STATUT_APPLIQUE)
+               .filter(cible__code=definition.code, cible__referentiel=REFERENTIEL_TYPES_ACTION,
+                       statut=PassageReferentielActions.STATUT_APPLIQUE)
                .select_related('source', 'cible').first())
     if passage is None:
         raise ReferentielErreur(f"Aucun passage vers {definition.code} à annuler.")
@@ -623,9 +628,11 @@ def _notifier_suivi(obj, auteur) -> None:
 
     if obj.plan is None:
         return
-    restantes = obj.passage.objets.filter(
-        plan=obj.plan, operation__isnull=False,
-        statut=PassageReferentielObjet.STATUT_A_ACTUALISER).count()
+    # Types d'action : on compte les actions ; autres référentiels (#779) : les
+    # objets de la même cible (taxons d'enjeu, pressions…).
+    meme_nature = (obj.passage.objets.filter(plan=obj.plan, cible=obj.cible) if obj.cible
+                   else obj.passage.objets.filter(plan=obj.plan, operation__isnull=False))
+    restantes = meme_nature.filter(statut=PassageReferentielObjet.STATUT_A_ACTUALISER).count()
     for dest in destinataires(obj.plan):
         if dest.pk == getattr(auteur, 'pk', None):
             continue
@@ -633,12 +640,12 @@ def _notifier_suivi(obj, auteur) -> None:
             recipient=dest, notification_type='referentiel_actions_suivi',
             related_plan=obj.plan, read=False,
             created_at__gte=obj.passage.date_application).first()
-        faites = obj.passage.objets.filter(
-            plan=obj.plan, statut=PassageReferentielObjet.STATUT_ACTUALISE).exclude(
+        faites = meme_nature.filter(statut=PassageReferentielObjet.STATUT_ACTUALISE).exclude(
             actualise_par=dest).count()
-        message = (f"{faites} action(s) du plan « {obj.plan.nom} » ont reçu leur nouveau type "
-                   f"par un autre référent (dernière : {auteur.get_full_name() if auteur else '—'}). "
-                   f"Il en reste {restantes} à actualiser.")
+        quoi = "élément(s)" if obj.cible else "action(s)"
+        message = (f"{faites} {quoi} du plan « {obj.plan.nom} » ont reçu leur nouveau "
+                   f"{'code' if obj.cible else 'type'} par un autre référent (dernière : "
+                   f"{auteur.get_full_name() if auteur else '—'}). Il en reste {restantes} à actualiser.")
         if notif:
             notif.message = message
             notif.created_at = timezone.now()
@@ -655,9 +662,18 @@ def _notifier_suivi(obj, auteur) -> None:
 # Actualisation par un utilisateur
 # ---------------------------------------------------------------------------
 
+def passage_en_service() -> PassageReferentielActions | None:
+    """Dernier passage appliqué vers la version des types d'action en service."""
+    return (PassageReferentielActions.objects
+            .filter(statut=PassageReferentielActions.STATUT_APPLIQUE, cible__courante=True,
+                    cible__referentiel=REFERENTIEL_TYPES_ACTION)
+            .select_related('source', 'cible').first())
+
+
 def _objets_courants():
     return PassageReferentielObjet.objects.filter(
-        passage__statut=PassageReferentielActions.STATUT_APPLIQUE, passage__cible__courante=True)
+        passage__statut=PassageReferentielActions.STATUT_APPLIQUE, passage__cible__courante=True,
+        passage__cible__referentiel=REFERENTIEL_TYPES_ACTION)
 
 
 def objet_du_passage(operation) -> PassageReferentielObjet | None:

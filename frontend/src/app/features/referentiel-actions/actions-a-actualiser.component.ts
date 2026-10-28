@@ -6,9 +6,14 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
+import { MatTabsModule } from '@angular/material/tabs';
+import { forkJoin } from 'rxjs';
+
 import {
   ActionAActualiser, ActionsAActualiserReponse, PlanAActualiser, ReferentielActionsService,
+  ReferentielElements,
 } from '../../core/services/referentiel-actions.service';
+import { ReferentielElementsComponent } from './referentiel-elements/referentiel-elements.component';
 import { AccordionComponent } from '../../shared/components/accordion/accordion.component';
 import {
   ActualiserTypeDialogComponent, ActualiserTypeDialogData, ActualiserTypeDialogResult,
@@ -23,7 +28,8 @@ import {
 @Component({
   selector: 'app-actions-a-actualiser',
   standalone: true,
-  imports: [DatePipe, RouterLink, MatButtonModule, TranslateModule, AccordionComponent],
+  imports: [DatePipe, RouterLink, MatButtonModule, MatTabsModule, TranslateModule, AccordionComponent,
+    ReferentielElementsComponent],
   templateUrl: './actions-a-actualiser.component.html',
   styleUrl: './actions-a-actualiser.component.scss',
   changeDetection: ChangeDetectionStrategy.Eager,
@@ -39,6 +45,8 @@ export class ActionsAActualiserComponent implements OnInit {
   readonly erreur = signal(false);
   readonly donnees = signal<ActionsAActualiserReponse | null>(null);
   readonly planFiltre = signal<number | null>(null);
+  /** #779 — PressRef, TaxRef, HabRef touchés par un passage. */
+  readonly autres = signal<ReferentielElements[]>([]);
 
   readonly plans = computed<PlanAActualiser[]>(() => this.donnees()?.plans ?? []);
   readonly totalActualisees = computed(() =>
@@ -52,9 +60,11 @@ export class ActionsAActualiserComponent implements OnInit {
 
   charger(): void {
     this.chargement.set(true);
-    this.service.aActualiser(this.planFiltre()).subscribe({
-      next: d => {
+    forkJoin([this.service.aActualiser(this.planFiltre()),
+              this.service.referentielsAActualiser(this.planFiltre())]).subscribe({
+      next: ([d, autres]) => {
         this.donnees.set(d);
+        this.autres.set(autres.referentiels);
         this.erreur.set(false);
         this.chargement.set(false);
       },
@@ -106,7 +116,7 @@ export class ActionsAActualiserComponent implements OnInit {
       mode,
     };
     this.dialog.open<ActualiserTypeDialogComponent, ActualiserTypeDialogData, ActualiserTypeDialogResult>(
-      ActualiserTypeDialogComponent, { data, width: '760px', maxWidth: '95vw', maxHeight: '90vh' },
+      ActualiserTypeDialogComponent, { data, width: '760px', maxWidth: '95vw', maxHeight: '90vh', autoFocus: 'dialog' },
     ).afterClosed().subscribe(res => {
       if (!res) return;
       if (res.operation) {

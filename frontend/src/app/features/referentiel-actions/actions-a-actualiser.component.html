@@ -17,11 +17,15 @@
     <p class="text-muted">{{ 'common.loading' | translate }}</p>
   } @else if (erreur()) {
     <div class="info-block info-block-error" role="alert">{{ 'referentielActions.erreur' | translate }}</div>
-  } @else if (!donnees()?.passage || !plans().length) {
+  } @else if ((!donnees()?.passage || !plans().length) && !autres().length) {
     <div class="info-block info-block-success" data-testid="a-actualiser-vide">
       {{ 'referentielActions.rien' | translate }}
     </div>
   } @else {
+  <!-- #779 — un onglet par référentiel touché par un passage -->
+  <mat-tab-group mat-stretch-tabs="false" animationDuration="0ms" class="onglets-referentiels">
+  @if (donnees()?.passage && plans().length) {
+  <mat-tab [label]="'referentielActions.onglet.typesAction' | translate:{ n: donnees()!.total_a_actualiser }">
     <div class="info-block" data-testid="a-actualiser-resume">
       <div>
       <p>{{ 'referentielActions.resume' | translate:{ n: donnees()!.total_a_actualiser, faites: totalActualisees() } }}</p>
@@ -125,5 +129,13 @@
         }
       </app-accordion>
     }
+  </mat-tab>
+  }
+  @for (r of autres(); track r.code) {
+    <mat-tab [label]="r.libelle + ' (' + r.total_a_actualiser + ')'">
+      <app-referentiel-elements [referentiel]="r" [planId]="planFiltre()" (modifie)="charger()"></app-referentiel-elements>
+    </mat-tab>
+  }
+  </mat-tab-group>
   }
 </div>

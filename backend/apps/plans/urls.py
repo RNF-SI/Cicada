@@ -18,6 +18,9 @@ from .views_enjeux import (
 from .views_referentiel import (
     AccepterPropositionsView, ActionsAActualiserView, CompteAActualiserView,
 )
+from .views_referentiels import (
+    AccepterPropositionsReferentielView, ActualiserElementView, ReferentielsAActualiserView,
+)
 from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet, IndicateurMesureViewSet
 from .views_operations import (
     OperationViewSet,
@@ -66,6 +69,13 @@ urlpatterns = [
          name='referentiel-actions-a-actualiser-compte'),
     path('referentiel-actions/accepter-propositions/', AccepterPropositionsView.as_view(),
          name='referentiel-actions-accepter-propositions'),
+    # #779 — PressRef, TaxRef, HabRef
+    path('referentiels/a-actualiser/', ReferentielsAActualiserView.as_view(),
+         name='referentiels-a-actualiser'),
+    path('referentiels/objets/<int:pk>/actualiser/', ActualiserElementView.as_view(),
+         name='referentiels-actualiser-element'),
+    path('referentiels/accepter-propositions/', AccepterPropositionsReferentielView.as_view(),
+         name='referentiels-accepter-propositions'),
 
     # Routes des ViewSets (comes last)
     path('', include(router.urls)),

@@ -26,7 +26,11 @@
 @if (typesAActualiser(); as ta) {
   <div class="types-a-actualiser-banner" role="status" data-testid="types-a-actualiser-header">
     <i class="fi fi-rr-list-check" aria-hidden="true"></i>
-    <span>{{ 'referentielActions.bandeauGlobal.texte' | translate:{ n: ta.total, vers: ta.vers } }}</span>
+    @if (ta.autres) {
+      <span>{{ 'referentielActions.bandeauGlobal.texteMulti' | translate:{ n: ta.total, noms: ta.noms } }}</span>
+    } @else {
+      <span>{{ 'referentielActions.bandeauGlobal.texte' | translate:{ n: ta.total, vers: ta.vers } }}</span>
+    }
     @if (ta.automatiques) {
       <span class="types-a-actualiser-banner__auto">
         {{ 'referentielActions.bandeauGlobal.automatiques' | translate:{ n: ta.automatiques } }}

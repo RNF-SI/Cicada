@@ -69,7 +69,7 @@ export const routes: Routes = [
     // #751 — actions dont le type est à actualiser après un passage du
     // référentiel des types d'action (lien des notifications).
     path: 'actions-a-actualiser',
-    title: "Types d'action à actualiser · CICADA",
+    title: "Référentiels à actualiser · CICADA",
     canActivate: [authGuard],
     loadComponent: () => import('./features/referentiel-actions/actions-a-actualiser.component')
       .then(m => m.ActionsAActualiserComponent)

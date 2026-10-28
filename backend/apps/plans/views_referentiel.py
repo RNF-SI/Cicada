@@ -19,7 +19,7 @@ from rest_framework import permissions, serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models_referentiel import PassageReferentielActions, PassageReferentielObjet
+from .models_referentiel import PassageReferentielObjet
 from . import referentiel_actions as ref
 
 
@@ -129,10 +129,7 @@ class ActionsAActualiserView(APIView):
         from apps.core.models import Nomenclature
         from .models import PlanGestion
 
-        passage = (PassageReferentielActions.objects
-                   .filter(statut=PassageReferentielActions.STATUT_APPLIQUE,
-                           cible__courante=True)
-                   .select_related('source', 'cible').first())
+        passage = ref.passage_en_service()
         if passage is None:
             return Response({'passage': None, 'total_a_actualiser': 0, 'plans': []})
 
@@ -232,10 +229,18 @@ ACTUALISER_TYPE_SCHEMA = extend_schema(
 )
 
 
+class CompteReferentielSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    libelle = serializers.CharField()
+    total = serializers.IntegerField()
+    automatiques = serializers.IntegerField()
+
+
 class CompteAActualiserSerializer(serializers.Serializer):
     total = serializers.IntegerField()
     automatiques = serializers.IntegerField()
     vers = serializers.CharField(allow_null=True)
+    referentiels = CompteReferentielSerializer(many=True)
 
 
 class CompteAActualiserView(APIView):
@@ -252,23 +257,30 @@ class CompteAActualiserView(APIView):
     def get(self, request):
         from .models import PlanGestion
 
-        passage = (PassageReferentielActions.objects
-                   .filter(statut=PassageReferentielActions.STATUT_APPLIQUE,
-                           cible__courante=True)
-                   .select_related('cible').first())
-        if passage is None:
-            return Response({'total': 0, 'automatiques': 0, 'vers': None})
-        objets = passage.objets.filter(operation__isnull=False)
-        q = ref.plans_q_pour(request.user)
-        if q is not None:
-            objets = objets.filter(plan__in=PlanGestion.objects.filter(q))
+        from .views_referentiels import comptes_generiques
 
-        def compte(statut):
-            return objets.filter(statut=statut).values('operation').distinct().count()
+        referentiels = []
+        passage = ref.passage_en_service()
+        if passage is not None:
+            objets = passage.objets.filter(operation__isnull=False)
+            q = ref.plans_q_pour(request.user)
+            if q is not None:
+                objets = objets.filter(plan__in=PlanGestion.objects.filter(q))
 
-        return Response({'total': compte(PassageReferentielObjet.STATUT_A_ACTUALISER),
-                         'automatiques': compte(PassageReferentielObjet.STATUT_APPLIQUE),
-                         'vers': passage.cible.libelle})
+            def compte(statut):
+                return objets.filter(statut=statut).values('operation').distinct().count()
+
+            total, auto = (compte(PassageReferentielObjet.STATUT_A_ACTUALISER),
+                           compte(PassageReferentielObjet.STATUT_APPLIQUE))
+            if total or auto:
+                referentiels.append({'code': 'TYPE_ACTION', 'libelle': "Types d'action (Gestref)",
+                                     'total': total, 'automatiques': auto})
+        # #779 — PressRef, TaxRef, HabRef : le bandeau compte tous les référentiels.
+        referentiels += comptes_generiques(request.user)
+        return Response({'total': sum(r['total'] for r in referentiels),
+                         'automatiques': sum(r['automatiques'] for r in referentiels),
+                         'vers': passage.cible.libelle if passage else None,
+                         'referentiels': referentiels})
 
 
 class AccepterPropositionsSerializer(serializers.Serializer):

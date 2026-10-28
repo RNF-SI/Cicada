@@ -1,0 +1,85 @@
+<p class="intro">
+  {{ 'referentielActions.code.intro' | translate:{ referentiel: referentiel.libelle, depuis: referentiel.passage.depuis,
+     vers: referentiel.passage.vers, date: (referentiel.passage.date | date:'dd/MM/yyyy') } }}
+</p>
+
+@if (referentiel.total_a_actualiser) {
+  <div class="accepter-tout">
+    <button mat-flat-button color="primary" (click)="accepterTout()" [disabled]="acceptation()"
+            data-testid="referentiel-accepter-tout">
+      {{ 'referentielActions.accepterTout' | translate }}
+    </button>
+    <span class="text-small text-muted">{{ 'referentielActions.code.accepterToutAide' | translate }}</span>
+  </div>
+}
+
+@for (plan of referentiel.plans; track plan.id_pg) {
+  <app-accordion [title]="plan.nom + ' — ' + (plan.a_actualiser.length ? ('referentielActions.compte' | translate:{ n: plan.a_actualiser.length }) : ('referentielActions.compteAucun' | translate))"
+                 [expanded]="plan.a_actualiser.length > 0" class="plan-bloc">
+    @if (plan.a_actualiser.length) {
+      <h3>{{ 'referentielActions.code.aChoisir' | translate }}</h3>
+      <table class="table-actions" data-testid="referentiel-a-actualiser">
+        <thead>
+          <tr>
+            <th>{{ 'referentielActions.code.element' | translate }}</th>
+            <th>{{ 'referentielActions.code.ancien' | translate }}</th>
+            <th>{{ 'referentielActions.proposition' | translate }}</th>
+            <th><span class="sr-only">{{ 'referentielActions.colonnes.choix' | translate }}</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (e of plan.a_actualiser; track e.id) {
+            <tr>
+              <td>{{ e.contexte }}<span class="note">{{ e.cible_libelle }}</span></td>
+              <td><span class="code">{{ e.ancien_code }}</span> {{ e.ancien_libelle }}</td>
+              <td>
+                @for (o of e.options; track o.code) {
+                  <span class="option"><span class="code">{{ o.code }}</span> {{ o.libelle }}</span>
+                }
+                @if (e.note) { <span class="note">{{ e.note }}</span> }
+              </td>
+              <td class="cell-action">
+                <button mat-flat-button color="primary" class="btn-sm" (click)="choisir(e)"
+                        data-testid="referentiel-choisir">
+                  {{ 'referentielActions.code.choisir' | translate }}
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    @if (plan.actualisees.length) {
+      <h3>{{ 'referentielActions.sections.actualisees' | translate }}</h3>
+      <ul class="list-custom">
+        @for (e of plan.actualisees; track e.id) {
+          <li>
+            <span class="code">{{ e.ancien_code }}</span> → <span class="code">{{ e.code_actuel }}</span>
+            {{ e.libelle_actuel }} — {{ e.contexte }}
+            <span class="note">{{ 'referentielActions.par' | translate:{ qui: e.actualise_par || '—', date: (e.actualise_le | date:'dd/MM/yyyy') } }}</span>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (plan.automatiques.length) {
+      <h3>{{ 'referentielActions.sections.automatiques' | translate }}</h3>
+      <ul class="list-custom automatiques">
+        @for (e of plan.automatiques; track e.id) {
+          <li>
+            <div>
+              <span class="code">{{ e.ancien_code }}</span> → <span class="code">{{ e.code_actuel }}</span>
+              {{ e.libelle_actuel }} — {{ e.contexte }}
+              @if (e.note) { <span class="note">{{ e.note }}</span> }
+            </div>
+            <button mat-button type="button" class="btn-sm" (click)="choisir(e, 'correction')"
+                    data-testid="referentiel-modifier">
+              {{ 'referentielActions.modifier' | translate }}
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </app-accordion>
+}

@@ -93,11 +93,49 @@ export interface TypeDejaModifie {
 }
 
 /** Bandeau affiché sur toutes les pages tant qu'il reste des actions à actualiser. */
+/** #779 — PressRef, TaxRef, HabRef : élément touché par un passage. */
+export interface ElementAActualiser {
+  id: number;
+  cible: string;
+  cible_libelle: string;
+  contexte: string;
+  statut: 'applique' | 'a_actualiser' | 'actualise';
+  confiance: 'sure' | 'probable' | 'a_arbitrer';
+  ancien_code: string;
+  ancien_libelle: string;
+  code_actuel: string;
+  libelle_actuel: string;
+  options: { code: string; libelle: string }[];
+  note: string;
+  actualise_par: string | null;
+  actualise_le: string | null;
+}
+
+export interface PlanElements {
+  id_pg: number | null;
+  nom: string;
+  slug: string | null;
+  statut: string | null;
+  a_actualiser: ElementAActualiser[];
+  actualisees: ElementAActualiser[];
+  automatiques: ElementAActualiser[];
+}
+
+export interface ReferentielElements {
+  code: 'PRESSREF' | 'TAXREF' | 'HABREF';
+  libelle: string;
+  passage: { depuis: string; vers: string; date: string };
+  total_a_actualiser: number;
+  plans: PlanElements[];
+}
+
 export interface CompteAActualiser {
   total: number;
   /** Changements automatiques, rappelés plus discrètement (#776). */
   automatiques: number;
   vers: string | null;
+  /** #779 — détail par référentiel (types d'action, PressRef, TaxRef, HabRef). */
+  referentiels: { code: string; libelle: string; total: number; automatiques: number }[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -136,6 +174,23 @@ export class ReferentielActionsService {
       type_attendu: typeAttendu,
       ...(suivi ? { suivi } : {}),
     }).pipe(tap(() => this.rafraichirCompte()));
+  }
+
+  /** #779 — éléments à actualiser de PressRef, TaxRef, HabRef. */
+  referentielsAActualiser(planId?: number | null): Observable<{ referentiels: ReferentielElements[] }> {
+    const params: Record<string, string> = planId ? { plan: String(planId) } : {};
+    return this.http.get<{ referentiels: ReferentielElements[] }>(
+      '/api/plans/referentiels/a-actualiser/', { params });
+  }
+
+  actualiserElement(id: number, code: string, attendu: string): Observable<ElementAActualiser> {
+    return this.http.post<ElementAActualiser>(`/api/plans/referentiels/objets/${id}/actualiser/`,
+      { code, attendu }).pipe(tap(() => this.rafraichirCompte()));
+  }
+
+  accepterPropositionsReferentiel(referentiel: string, planId?: number | null): Observable<BilanPropositions> {
+    return this.http.post<BilanPropositions>('/api/plans/referentiels/accepter-propositions/',
+      { referentiel, ...(planId ? { plan: planId } : {}) }).pipe(tap(() => this.rafraichirCompte()));
   }
 
   /** Pose l'équivalent unique des actions à actualiser qui n'en ont qu'un. */

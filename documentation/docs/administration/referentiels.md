@@ -208,6 +208,32 @@ La simulation détaille, plan par plan, les actions sûres, probables et à arbi
 
 Une version suivante (GestRef V2) se prépare de la même façon, avec `"depuis": "GESTREF_V1"` ; un type présent dans les deux versions est repris tel quel. La commande refuse une version dont le point de départ n'est pas la version en service.
 
+### PressRef, TaxRef et HabRef : changer de version
+
+Le même mécanisme vaut pour les autres référentiels portés par les plans : types de pression (**PressRef**), taxons (**TaxRef**) et habitats (**HabRef**).
+
+| Référentiel | Ce qui est remappé | Version de départ |
+|---|---|---|
+| PressRef | type de pression des pressions | `PRESSREF_CARET_V1` (nomenclature `TYPE_PRESSION`) |
+| TaxRef | taxons des enjeux et des responsabilités de site | `TAXREF_V<version importée>` |
+| HabRef | habitats des enjeux, des responsabilités de site et des suivis | `HABREF_V<version importée>` |
+
+Chaque version est un dossier de `backend/nomenclatures_data/referentiels_versions/<pressref|taxref|habref>/`, au même format que les types d'action (voir son `README.md`). On n'y liste que les codes qui changent : un code absent de la table et présent dans la nouvelle version n'est pas touché. La table couvre trois cas :
+
+- une ligne nouvelle (rien à remapper) ;
+- une ligne supprimée qui a un équivalent (`sure` / `probable`) ;
+- une ligne à plusieurs équivalents (`a_arbitrer` + `options`), où le référent choisit.
+
+Pour TaxRef et HabRef, **importer d'abord** la nouvelle version (`import_taxref --version …`, `import_habref`) : le passage remappe ensuite les codes, et deux anciens taxons fusionnés dans un même enjeu n'y laissent qu'une ligne.
+
+```bash
+docker compose exec web python manage.py passage_referentiel taxref taxref_v19              # simulation
+docker compose exec web python manage.py passage_referentiel taxref taxref_v19 --appliquer  # applique + notifie
+docker compose exec web python manage.py passage_referentiel taxref taxref_v19 --annuler
+```
+
+Les référents retrouvent les éléments à reprendre dans un onglet par référentiel de la page « Référentiels : éléments à actualiser ». Le bandeau de toutes les pages compte tous les référentiels.
+
 !!! warning "Identifiants réservés"
     Les nomenclatures créées par un passage prennent leur identifiant à partir de **500 000**. Ne pas poser d'identifiant dans cette plage dans `nomenclatures_inserts.sql`. `import_nomenclatures --prune` ignore cette plage, et `import_nomenclatures --force` rétablit la version en service après l'upsert (sans cela, le fichier SQL réactiverait les types Eden 62).
 

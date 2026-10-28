@@ -1226,6 +1226,7 @@ class OperationSerializer(serializers.ModelSerializer):
             ctx['_ops_a_actualiser'] = set(PassageReferentielObjet.objects.filter(
                 statut=PassageReferentielObjet.STATUT_A_ACTUALISER,
                 passage__statut='applique', passage__cible__courante=True,
+                passage__cible__referentiel='TYPE_ACTION',
                 operation__isnull=False,
             ).values_list('operation_id', flat=True))
         if obj.pk not in ctx['_ops_a_actualiser']:

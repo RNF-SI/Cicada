@@ -12,10 +12,26 @@ table de correspondance aux actions et aux suivis déjà saisis :
 - chaque objet touché est consigné (`PassageReferentielObjet`), ce qui permet
   d'annuler le passage et de suivre qui a actualisé quoi.
 
-Règles et traitements : `apps/plans/referentiel_actions.py`.
+Règles et traitements : `apps/plans/referentiel_actions.py` (types d'action)
+et `apps/plans/referentiels/` (moteur commun à PressRef, TaxRef, HabRef — #779).
+Les noms de modèles gardent « Actions » (premier référentiel versionné) mais
+chaque version porte son `referentiel`.
 """
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+
+
+# Référentiels versionnés (#779). Les types d'action sont le premier (#751).
+REFERENTIEL_TYPES_ACTION = 'TYPE_ACTION'
+REFERENTIEL_PRESSREF = 'PRESSREF'
+REFERENTIEL_TAXREF = 'TAXREF'
+REFERENTIEL_HABREF = 'HABREF'
+REFERENTIELS = [
+    (REFERENTIEL_TYPES_ACTION, _("Types d'action (Gestref)")),
+    (REFERENTIEL_PRESSREF, _("Types de pression (PressRef)")),
+    (REFERENTIEL_TAXREF, _("Taxons (TaxRef)")),
+    (REFERENTIEL_HABREF, _("Habitats (HabRef)")),
+]
 
 
 class VersionReferentielActions(models.Model):
@@ -29,6 +45,8 @@ class VersionReferentielActions(models.Model):
     """
 
     id_version = models.AutoField(primary_key=True)
+    referentiel = models.CharField(_("Référentiel"), max_length=20, choices=REFERENTIELS,
+                                   default=REFERENTIEL_TYPES_ACTION)
     code = models.CharField(_("Code"), max_length=50, unique=True)
     libelle = models.CharField(_("Libellé"), max_length=255)
     # [{"id": 900, "nomenclature": "TYPE_ACTION" | "CATEGORIE_ACTION_RESERVE",
@@ -110,6 +128,13 @@ class PassageReferentielObjet(models.Model):
     id_passage_objet = models.AutoField(primary_key=True)
     passage = models.ForeignKey(PassageReferentielActions, on_delete=models.CASCADE,
                                 related_name='objets')
+    # #779 — objet touché hors types d'action : `cible` nomme sa table (cf.
+    # `apps/plans/referentiels/cibles.py`), `objet_id` sa clé ; `nouveau_code` /
+    # `nouveau_libelle` la valeur posée (les types d'action passent par les FK).
+    cible = models.CharField(_("Cible"), max_length=40, blank=True, default='')
+    objet_id = models.IntegerField(_("Objet"), null=True, blank=True)
+    nouveau_code = models.CharField(_("Nouveau code"), max_length=50, blank=True, default='')
+    nouveau_libelle = models.CharField(_("Nouveau libellé"), max_length=500, blank=True, default='')
     operation = models.ForeignKey('plans.Operation', on_delete=models.CASCADE,
                                   null=True, blank=True, related_name='passages_referentiel')
     suivi = models.ForeignKey('plans.SuiviInventaire', on_delete=models.CASCADE,
@@ -120,7 +145,7 @@ class PassageReferentielObjet(models.Model):
     ancien_type = models.ForeignKey('core.Nomenclature', on_delete=models.SET_NULL,
                                     null=True, blank=True, related_name='+')
     ancien_code = models.CharField(_("Ancien code"), max_length=50, blank=True, default='')
-    ancien_libelle = models.CharField(_("Ancien libellé"), max_length=255, blank=True, default='')
+    ancien_libelle = models.CharField(_("Ancien libellé"), max_length=500, blank=True, default='')
     ancienne_categorie = models.ForeignKey('core.Nomenclature', on_delete=models.SET_NULL,
                                            null=True, blank=True, related_name='+')
     nouveau_type = models.ForeignKey('core.Nomenclature', on_delete=models.SET_NULL,
@@ -147,6 +172,7 @@ class PassageReferentielObjet(models.Model):
         indexes = [
             models.Index(fields=['operation', 'statut']),
             models.Index(fields=['passage', 'statut']),
+            models.Index(fields=['cible', 'objet_id']),
         ]
         verbose_name = _("Objet d'un passage de référentiel")
         verbose_name_plural = _("Objets d'un passage de référentiel")

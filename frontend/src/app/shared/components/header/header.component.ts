@@ -131,7 +131,11 @@ export class HeaderComponent implements OnInit {
   private readonly referentielActions = inject(ReferentielActionsService);
   readonly typesAActualiser = computed(() => {
     const c = this.referentielActions.compte();
-    return c && c.total > 0 && !this.currentUrl().startsWith('/actions-a-actualiser') ? c : null;
+    if (!c || c.total <= 0 || this.currentUrl().startsWith('/actions-a-actualiser')) return null;
+    // #779 — plusieurs référentiels (ou un autre que les types d'action) : on les nomme.
+    const refs = (c.referentiels ?? []).filter(r => r.total > 0);
+    const autres = refs.some(r => r.code !== 'TYPE_ACTION');
+    return { ...c, autres, noms: refs.map(r => r.libelle).join(', ') };
   });
 
   constructor() {

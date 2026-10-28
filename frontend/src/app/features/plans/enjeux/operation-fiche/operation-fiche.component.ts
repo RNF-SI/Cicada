@@ -508,7 +508,7 @@ export class OperationFicheComponent implements OnInit {
     if (!op || !aa) return;
     this.dialog.open<ActualiserTypeDialogComponent, ActualiserTypeDialogData, ActualiserTypeDialogResult>(
       ActualiserTypeDialogComponent, {
-        width: '760px', maxWidth: '95vw', maxHeight: '90vh',
+        width: '760px', maxWidth: '95vw', maxHeight: '90vh', autoFocus: 'dialog',
         data: {
           operationId: op.id_operation, libelle: op.libelle, codeAffichage: op.code_affichage,
           ancienCode: aa.ancien_code, ancienLibelle: aa.ancien_libelle,

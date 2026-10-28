@@ -47,7 +47,7 @@
       {{ 'referentielActions.dialog.nouveauType' | translate }} <span class="required-star">*</span>
     </label>
     <mat-form-field class="app-mat-form-field full-width" appearance="outline">
-      <input matInput id="actualiser-type-recherche" data-testid="actualiser-type-recherche" cdkFocusInitial
+      <input matInput id="actualiser-type-recherche" data-testid="actualiser-type-recherche"
              [formControl]="searchCtrl" [matAutocomplete]="auto"
              [placeholder]="'referentielActions.dialog.placeholder' | translate">
       @if (searchCtrl.value) {

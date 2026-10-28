@@ -1,0 +1,90 @@
+<h2 mat-dialog-title>
+  {{ (data.mode === 'correction' ? 'referentielActions.code.titleCorrection' : 'referentielActions.code.title')
+     | translate:{ referentiel: data.referentielLibelle } }}
+</h2>
+
+<mat-dialog-content>
+  <p class="action">{{ data.element.contexte }} — {{ data.element.cible_libelle }}</p>
+
+  <dl class="rappel">
+    <dt>{{ 'referentielActions.code.ancien' | translate }}</dt>
+    <dd><span class="code">{{ data.element.ancien_code }}</span> {{ data.element.ancien_libelle }}</dd>
+    @if (data.mode === 'correction') {
+      <dt>{{ 'referentielActions.code.automatique' | translate }}</dt>
+      <dd><span class="code">{{ data.element.code_actuel }}</span> {{ data.element.libelle_actuel }}</dd>
+    }
+    @if (data.element.note) {
+      <dt>{{ 'referentielActions.note' | translate }}</dt>
+      <dd class="note">{{ data.element.note }}</dd>
+    }
+  </dl>
+
+  @if (conflit(); as c) {
+    <div class="info-block info-block-warning" role="alert" data-testid="choisir-code-conflit">
+      {{ 'referentielActions.code.conflit' | translate:{ qui: c.actualise_par, code: c.code_actuel } }}
+    </div>
+  } @else {
+    @if (propositions().length) {
+      <p class="label-propositions">
+        {{ (propositions().length > 1 ? 'referentielActions.dialog.equivalents' : 'referentielActions.dialog.proposition') | translate }}
+      </p>
+      <div class="propositions" role="group">
+        @for (p of propositions(); track p.code) {
+          <button mat-stroked-button type="button" class="proposition" [class.choisie]="choisi() === p.code"
+                  [attr.aria-pressed]="choisi() === p.code" (click)="choisirProposition(p.code)"
+                  data-testid="choisir-code-proposition">
+            <span class="code">{{ p.code }}</span> {{ p.libelle }}
+          </button>
+        }
+      </div>
+    }
+
+    <label class="app-mat-label">{{ 'referentielActions.code.recherche' | translate }}</label>
+    @switch (data.referentiel) {
+      @case ('PRESSREF') {
+        <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+          <input matInput [formControl]="rechercheCtrl" [matAutocomplete]="auto"
+                 [placeholder]="'referentielActions.dialog.placeholder' | translate">
+          <mat-autocomplete #auto="matAutocomplete" [displayWith]="display"
+                            (optionSelected)="choisirPression($event.option.value)" class="type-action-autocomplete">
+            @for (group of groupes(); track group.groupLabel) {
+              <mat-optgroup [label]="group.groupLabel">
+                @for (o of group.options; track o.id_nomenclature) {
+                  <mat-option [value]="o" [class]="'action-depth-' + depth(o)">
+                    <span class="action-code">{{ o.cd_nomenclature || o.mnemonique }}</span>
+                    <span class="action-label">{{ o.label }}</span>
+                  </mat-option>
+                }
+              </mat-optgroup>
+            }
+          </mat-autocomplete>
+        </mat-form-field>
+      }
+      @case ('TAXREF') {
+        <app-taxon-autocomplete [formControl]="codeCtrl"></app-taxon-autocomplete>
+      }
+      @case ('HABREF') {
+        <app-habitat-autocomplete [formControl]="codeCtrl"></app-habitat-autocomplete>
+      }
+    }
+
+    @if (choisi(); as code) {
+      <p class="text-small">{{ 'referentielActions.code.choisi' | translate:{ code: code } }}</p>
+    }
+    @if (erreur()) {
+      <p class="text-error" role="alert">{{ erreur() }}</p>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (conflit()) {
+    <button mat-flat-button color="primary" (click)="fermerSurConflit()">{{ 'common.actions.close' | translate }}</button>
+  } @else {
+    <button mat-stroked-button (click)="annuler()">{{ 'common.actions.cancel' | translate }}</button>
+    <button mat-flat-button color="primary" data-testid="choisir-code-valider"
+            [disabled]="!choisi() || enregistrement()" (click)="valider()">
+      {{ 'common.actions.save' | translate }}
+    </button>
+  }
+</mat-dialog-actions>
