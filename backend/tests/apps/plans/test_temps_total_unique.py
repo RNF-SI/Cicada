@@ -18,7 +18,7 @@ from rest_framework.test import APIClient
 from apps.plans.models_operations import (
     OperationAnnee, OperationAnneeRH, RealisationOperationAnnee, RealisationOperationAnneeRH,
 )
-from apps.plans.rh_total import fusionner_temps_total
+from apps.plans.rh_total import est_temps_total_unique, fusionner_temps_total
 from apps.plans.services_export_fiche_action import build_fiche_action_workbook
 from tests.factories.enjeux import (
     EnjeuFactory, IndicateurFactory, MetriqueFactory, NiveauExigenceFactory,
@@ -151,12 +151,21 @@ class TestDonneesExistantes:
         assert lignes.get(pk=cible.pk).jours == Decimal('3')
         assert lignes.exclude(pk=cible.pk).get().jours == Decimal('12')
 
-    def test_declinaison_par_type_de_cout_non_concernee(self, action):
-        """#735 — coûts détaillés : le temps est décliné par poste, pas fusionné."""
+    def test_declinaison_par_poste_non_concernee(self, action):
+        """Temps décliné par poste (case de la fiche action) : pas fusionné."""
         op, oa = action('none')
         op.declinaison_par_type_cout = True
+        op.declinaison_par_poste = True
         op.save()
         OperationAnneeRH.objects.create(id_operation_annee=oa, jours=25)
         OperationAnneeRH.objects.create(id_operation_annee=oa, jours=6, finance=False)
         fusionner_temps_total(op)
         assert OperationAnneeRH.objects.filter(id_operation_annee=oa).count() == 2
+
+    def test_couts_detailles_sans_poste_temps_total(self, action):
+        """#773 — les coûts détaillés ne déclinent plus le temps par poste : en
+        « aucune ventilation », il reste un seul temps de travail total."""
+        op, oa = action('none')
+        op.declinaison_par_type_cout = True
+        op.save()
+        assert est_temps_total_unique(op)

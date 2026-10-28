@@ -244,8 +244,7 @@ export class SuiviSaisieComponent implements OnInit {
    */
   rhMode = computed<'postes' | 'organismes' | 'global'>(() => this.computeRhMode());
 
-  /** #735 (retour 21/10) — même règle que la fiche action (`rhModeFor`) : temps
-   *  décliné par poste dès que les coûts sont détaillés, dans tous les modes. */
+  /** Même règle que la fiche action (`rhModeFor`). */
   computeRhMode(): 'postes' | 'organismes' | 'global' {
     // #760 — c'est la case du SUIVI qui fixe les lignes du temps réalisé ;
     // décochée, on retombe sur la disposition du mode sans poste.
@@ -400,7 +399,7 @@ export class SuiviSaisieComponent implements OnInit {
 
   /** La case « coût salarial calculé » n'a de sens que pour un temps décliné par poste. */
   showSalaireRealiseOption(): boolean {
-    return salaryOptionAvailable(this.operation()?.ventilation_mode, this.declinaisonRealise());
+    return salaryOptionAvailable(this.declinaisonRealise(), this.declinaisonPosteRealise());
   }
 
   isSavingReglages = signal(false);
@@ -638,7 +637,7 @@ export class SuiviSaisieComponent implements OnInit {
   salaireCalculePrev(): boolean {
     const op = this.operation();
     return salaryIsComputed(
-      op?.ventilation_mode, op?.declinaison_par_type_cout !== false,
+      op?.declinaison_par_type_cout !== false, !!op && tempsParPoste(op),
       op?.cout_salarial_auto !== false,
     );
   }

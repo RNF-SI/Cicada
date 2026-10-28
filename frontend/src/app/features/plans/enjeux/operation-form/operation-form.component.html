@@ -669,11 +669,20 @@
                 <div class="programmation-section rh-section">
                   <h4 class="rh-title">{{ 'enjeux.operations.rh.title' | translate }}</h4>
 
-                  <!-- #600 — la déclinaison par poste est pilotée par les modes
-                       de ventilation « + type de poste » (plus de case dédiée). -->
-                  <p class="text-mention rh-declinaison-hint">
-                    {{ 'enjeux.operations.rh.declinaisonHint' | translate }}
-                  </p>
+                  <!-- Déclinaison par type de poste : forcée dans les modes
+                       « + type de poste », au choix ailleurs (pendant de la case
+                       du suivi, #760). -->
+                  <div class="budget-options" data-testid="operation-declinaison-poste">
+                    <app-checkbox
+                      [checked]="rhMode() === 'postes'"
+                      (checkedChange)="toggleDeclinaisonParPoste($event)"
+                      [disabled]="isReadOnly() || isPosteVentilation()"
+                      [label]="'enjeux.operations.rh.declinaisonPoste' | translate"
+                      [mention]="(isPosteVentilation()
+                        ? 'enjeux.operations.rh.declinaisonPosteVerrouillee'
+                        : 'enjeux.operations.rh.declinaisonPosteHint') | translate">
+                    </app-checkbox>
+                  </div>
 
                   @if (operationAnnees.length === 0) {
                     <p class="mensuelle-hint">{{ 'enjeux.operations.rh.noYears' | translate }}</p>

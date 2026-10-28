@@ -860,6 +860,8 @@ export interface VentilationDefaults {
   source_operation_id: number | null;
   ventilation_mode: 'none' | 'by_org' | 'by_type' | 'by_org_type' | 'by_type_poste' | 'by_org_type_poste';
   declinaison_par_type_cout: boolean;
+  /** Temps de travail décliné par poste (absent des réponses antérieures). */
+  declinaison_par_poste?: boolean;
   cout_salarial_auto: boolean;
 }
 

@@ -947,13 +947,17 @@ class VentilationPlansSeeder(BaseSeeder):
         if mode not in _TYPE_MODES:
             action = _sans_invest(action)
         op.ventilation_mode = mode
-        op.declinaison_par_poste = mode in Operation.VENTILATION_POSTE_MODES
         # #600 — le détail des coûts (salarial / stage / prestataire / autres)
         # n'est saisi que dans les modes « + type de poste » de ce jeu d'essai :
         # les deux autres modes par type de budget stockent des enveloppes, la
         # case doit donc rester décochée pour afficher ce qui est enregistré.
         op.declinaison_par_type_cout = reglages.get(
             'decl', mode in Operation.VENTILATION_POSTE_MODES)
+        # Temps décliné par poste : forcé en « + type de poste » ; les actions
+        # composites à coûts détaillés cochent aussi la case (coût salarial
+        # calculé depuis le coût jour des postes).
+        op.declinaison_par_poste = (mode in Operation.VENTILATION_POSTE_MODES
+                                    or op.declinaison_par_type_cout)
         # #600/#641 — le mode de ventilation maximale sert aussi de démonstration
         # du coût salarial SAISI À LA MAIN : c'est le seul réglage du tableau
         # budgétaire qui n'était couvert par aucun plan du jeu d'essai, et donc

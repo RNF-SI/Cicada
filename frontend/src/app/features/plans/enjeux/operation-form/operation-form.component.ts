@@ -709,11 +709,11 @@ export class OperationFormComponent implements OnInit {
 
   /**
    * #600 (retour 08/2026) — la case « coût salarial calculé automatiquement »
-   * n'est proposée que par les deux modes « + type de poste » : eux seuls
-   * déclinent le temps par poste, donc disposent d'un coût jour à multiplier.
+   * n'est proposée que si le temps est décliné par poste : lui seul dispose
+   * d'un coût jour à multiplier.
    */
   showCoutSalarialOption = computed<boolean>(
-    () => salaryOptionAvailable(this.ventilationMode(), this.declinaisonParTypeCout()),
+    () => salaryOptionAvailable(this.declinaisonParTypeCout(), this.rhMode() === 'postes'),
   );
 
   /**
@@ -723,7 +723,7 @@ export class OperationFormComponent implements OnInit {
    */
   coutSalarialCalcule = computed<boolean>(
     () => salaryIsComputed(
-      this.ventilationMode(), this.declinaisonParTypeCout(), this.coutSalarialAuto(),
+      this.declinaisonParTypeCout(), this.rhMode() === 'postes', this.coutSalarialAuto(),
     ),
   );
 
@@ -812,7 +812,10 @@ export class OperationFormComponent implements OnInit {
   // l'image de la table budget.
   postes = signal<Poste[]>([]);
 
-  /** Case « Déclinaison par poste », décochée par défaut. */
+  /**
+   * Case « Déclinaison par type de poste », décochée par défaut ; cochée
+   * d'office (et non décochable) dans les modes « + type de poste ».
+   */
   declinaisonParPoste = signal(false);
 
   /**
@@ -825,9 +828,9 @@ export class OperationFormComponent implements OnInit {
    */
   rhMode = computed<'postes' | 'organismes' | 'global'>(() =>
     // #600 — les modes « + type de poste » déclinent le temps par poste ;
-    // #735 (retour 21/10) — la déclinaison par type de coût aussi, dans tous
-    // les modes. `declinaisonParPoste` reste lu pour les données enregistrées.
-    rhModeFor(this.ventilationMode(), this.declinaisonParTypeCout(), this.declinaisonParPoste()),
+    // ailleurs, la case « Déclinaison par type de poste » (retour 28/10 : la
+    // déclinaison par type de coût ne l'impose plus).
+    rhModeFor(this.ventilationMode(), this.declinaisonParPoste()),
   );
 
   /**
@@ -1501,6 +1504,7 @@ export class OperationFormComponent implements OnInit {
         this.coutSalarialAuto.set(defaults.cout_salarial_auto !== false);
         // Passe par onModeToggle pour réaligner la déclinaison par poste et le
         // tableau RH sur le mode hérité.
+        this.declinaisonParPoste.set(!!defaults.declinaison_par_poste);
         this.onModeToggle(defaults.ventilation_mode || 'none');
       },
       error: () => {},
@@ -2194,8 +2198,7 @@ export class OperationFormComponent implements OnInit {
     // Mode de ventilation du budget (#600 : le layout budget suit budgetMode()).
     const mode = this.budgetMode();
     payload.ventilation_mode = this.ventilationMode();
-    // #600 — la déclinaison par poste est désormais portée par le mode.
-    // #735 — persisté tel qu'affiché (modes « + type de poste » ou coûts détaillés).
+    // Persistée telle qu'affichée (modes « + type de poste » ou case cochée).
     payload.declinaison_par_poste = this.rhMode() === 'postes';
     // #600 (retour 08/2026) — réglages du tableau budgétaire.
     payload.declinaison_par_type_cout = this.declinaisonParTypeCout();
@@ -3383,14 +3386,11 @@ export class OperationFormComponent implements OnInit {
     this.rhLines = rows;
   }
 
-  /** #735 — cocher / décocher la déclinaison par type de coût change aussi les
-   *  lignes du tableau de temps de travail (postes ↔ organismes / global). */
   onDeclinaisonTypeCoutToggle(value: boolean): void {
     this.declinaisonParTypeCout.set(value);
-    this.syncRhLines();
   }
 
-  /** Bascule « Déclinaison par poste » : le tableau RH change de lignes. */
+  /** Bascule « Déclinaison par type de poste » : le tableau RH change de lignes. */
   toggleDeclinaisonParPoste(value: boolean): void {
     this.declinaisonParPoste.set(value);
     this.syncRhLines();
@@ -3968,12 +3968,13 @@ export class OperationFormComponent implements OnInit {
   }
 
   onModeToggle(mode: string): void {
+    const quitteModePoste = this.isPosteVentilation();
     this.ventilationMode.set(mode as VentilationMode);
-    // #627 — `declinaison_par_poste` est persisté à l'enregistrement (= mode
-    // « + type de poste »). Rechargée telle quelle, elle forçait `rhMode()` à
-    // « postes » quel que soit le nouveau mode choisi : le tableau RH restait
-    // bloqué sur les postes. On la réaligne donc sur le mode sélectionné.
-    this.declinaisonParPoste.set(this.isPosteVentilation());
+    // #627 — la case est forcée dans les modes « + type de poste » : en
+    // sortant d'un de ces modes, elle retombe décochée (sinon le tableau RH
+    // resterait sur les postes) ; entre deux autres modes, le choix est gardé.
+    if (this.isPosteVentilation()) this.declinaisonParPoste.set(true);
+    else if (quitteModePoste) this.declinaisonParPoste.set(false);
     // Le tableau RH suit le mode : postes en « + type de poste », sinon
     // organismes de la ventilation, sinon global (#600).
     this.syncRhLines();

@@ -143,17 +143,17 @@ export function prevAnnees(
 export const POSTE_VENTILATION_MODES = ['by_type_poste', 'by_org_type_poste'];
 
 /**
- * #735 (retour 21/10) — le temps de travail est décliné PAR POSTE dans les
- * modes « + type de poste » et, dans tous les modes, dès que la case
- * « déclinaison par type de coût » est cochée : détailler le coût salarial
- * suppose de savoir qui travaille. `declinaison_par_poste` couvre les données
- * antérieures à #600. Pendant de `temps_par_poste()` côté export.
+ * Le temps de travail est décliné PAR POSTE dans les modes « + type de poste »
+ * (case forcée) et, dans les autres modes, quand la case « Déclinaison par type
+ * de poste » de la fiche action est cochée (`declinaison_par_poste`). La
+ * déclinaison par type de coût n'y suffit plus : elle détaille le budget sans
+ * imposer de saisir le temps poste par poste (retour 28/10, qui revient sur
+ * #735 retour 21/10). Pendant de `temps_par_poste()` côté export.
  */
 export function tempsParPoste(
-  op: Pick<Operation, 'ventilation_mode' | 'declinaison_par_type_cout' | 'declinaison_par_poste'>,
+  op: Pick<Operation, 'ventilation_mode' | 'declinaison_par_poste'>,
 ): boolean {
   return POSTE_VENTILATION_MODES.includes(op.ventilation_mode ?? 'none')
-    || op.declinaison_par_type_cout === true
     || !!op.declinaison_par_poste;
 }
 
@@ -165,48 +165,47 @@ export function tempsParPoste(
  */
 export function rhModeFor(
   mode: string | null | undefined,
-  declinaisonParTypeCout: boolean,
   declinaisonParPoste: boolean,
 ): 'postes' | 'organismes' | 'global' {
-  if (tempsParPoste({
-    ventilation_mode: mode ?? 'none',
-    declinaison_par_type_cout: declinaisonParTypeCout,
-    declinaison_par_poste: declinaisonParPoste,
-  } as Operation)) return 'postes';
+  if (tempsParPoste({ ventilation_mode: mode ?? 'none', declinaison_par_poste: declinaisonParPoste } as Operation)) {
+    return 'postes';
+  }
   return mode === 'by_org' || mode === 'by_org_type' ? 'organismes' : 'global';
 }
 
 /**
- * La case « coût salarial calculé automatiquement » est proposée dès que les
- * coûts sont détaillés (#735 : temps alors décliné par poste, donc un coût
- * jour à multiplier), quel que soit le mode.
+ * La case « coût salarial calculé automatiquement » n'est proposée que si les
+ * coûts sont détaillés ET le temps décliné par poste : sans poste, aucun coût
+ * jour à multiplier, le coût salarial se saisit.
  */
 export function salaryOptionAvailable(
-  _mode: string | null | undefined,
   declinaisonParTypeCout: boolean,
+  declinaisonParPoste: boolean,
 ): boolean {
-  return declinaisonParTypeCout;
+  return declinaisonParTypeCout && declinaisonParPoste;
 }
 
 /**
- * Coût salarial CALCULÉ (vs saisi), pour un mode et ses deux réglages.
+ * Coût salarial CALCULÉ (vs saisi), pour ses réglages.
  *
- * - coûts détaillés : le choix du gestionnaire ;
+ * - coûts détaillés et temps par poste : le choix du gestionnaire ;
+ * - coûts détaillés sans poste : toujours saisi (rien à multiplier) ;
  * - coûts NON détaillés : la question ne se pose pas (l'enveloppe saisie
  *   contient déjà tout) ; on garde `true`, valeur historique, pour ne pas
  *   basculer ces actions en « coût salarial saisi » côté serveur.
  */
 export function salaryIsComputed(
-  mode: string | null | undefined,
   declinaisonParTypeCout: boolean,
+  declinaisonParPoste: boolean,
   coutSalarialAuto: boolean,
 ): boolean {
-  if (salaryOptionAvailable(mode, declinaisonParTypeCout)) return coutSalarialAuto;
-  return true;
+  if (!declinaisonParTypeCout) return true;
+  return declinaisonParPoste && coutSalarialAuto;
 }
 
 type OpMode = Pick<Operation, 'ventilation_mode' | 'declinaison_par_type_cout' | 'cout_salarial_auto'
-  | 'declinaison_par_poste' | 'declinaison_par_type_cout_realise' | 'cout_salarial_auto_realise'>;
+  | 'declinaison_par_poste' | 'declinaison_par_type_cout_realise' | 'cout_salarial_auto_realise'
+  | 'declinaison_par_poste_realise'>;
 
 /**
  * Vrai si le budget de l'action est décomposé en types de coût (salarial,
@@ -219,12 +218,12 @@ function hasCostDetail(op: OpMode): boolean {
 }
 
 /**
- * Coût salarial CALCULÉ (jours × coût jour) plutôt que saisi (#600). Les coûts
- * détaillés déclinent le temps par poste dans tous les modes (#735, retour
- * 21/10) : seul compte le choix « calculé automatiquement ».
+ * Coût salarial CALCULÉ (jours × coût jour) plutôt que saisi (#600) : coûts
+ * détaillés, temps décliné par poste (seul porteur d'un coût jour) et case
+ * « calculé automatiquement » cochée.
  */
 function derivesSalary(op: OpMode): boolean {
-  return hasCostDetail(op) && op.cout_salarial_auto !== false;
+  return hasCostDetail(op) && tempsParPoste(op) && op.cout_salarial_auto !== false;
 }
 
 /**
@@ -237,8 +236,13 @@ function hasCostDetailReal(op: OpMode): boolean {
   return op.declinaison_par_type_cout_realise ?? hasCostDetail(op);
 }
 
+/** #760 — temps RÉALISÉ décliné par poste (forcé si le prévu l'est). */
+function tempsParPosteReal(op: OpMode): boolean {
+  return tempsParPoste(op) || !!op.declinaison_par_poste_realise;
+}
+
 function derivesSalaryReal(op: OpMode): boolean {
-  return hasCostDetailReal(op)
+  return hasCostDetailReal(op) && tempsParPosteReal(op)
     && (op.cout_salarial_auto_realise ?? op.cout_salarial_auto) !== false;
 }
 
@@ -250,7 +254,7 @@ export function realHasCostDetail(op: OpMode): boolean {
 /** #741 — pendant de `salaryIsComputed()` pour le réalisé. */
 export function salaryIsComputedReal(op: OpMode): boolean {
   return salaryIsComputed(
-    op.ventilation_mode, hasCostDetailReal(op),
+    hasCostDetailReal(op), tempsParPosteReal(op),
     (op.cout_salarial_auto_realise ?? op.cout_salarial_auto) !== false,
   );
 }

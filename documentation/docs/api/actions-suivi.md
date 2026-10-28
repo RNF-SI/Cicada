@@ -17,7 +17,7 @@ Une **action** (`Operation`, clé `id_operation`) est rattachée à un ou plusie
 
 ### Mode de ventilation
 
-`ventilation_mode` fixe le niveau de détail de la programmation : `none`, `by_org`, `by_type`, `by_org_type`, `by_type_poste`, `by_org_type_poste`. Dès que le mode intègre le type de budget, deux réglages s'ajoutent : `declinaison_par_type_cout` (détail salarial, stage, prestataire, autres) et `cout_salarial_auto` (coût salarial = jours × coût jour des postes, proposé par les deux modes « par type de poste »). Les totaux d'un plan sont identiques quel que soit le mode : seule la finesse du stockage change.
+`ventilation_mode` fixe le niveau de détail de la programmation : `none`, `by_org`, `by_type`, `by_org_type`, `by_type_poste`, `by_org_type_poste`. Trois réglages s'y ajoutent, quel que soit le mode : `declinaison_par_poste` (temps de travail saisi par poste ; toujours vrai dans les deux modes « par type de poste »), `declinaison_par_type_cout` (détail salarial, stage, prestataire, autres) et `cout_salarial_auto` (coût salarial = jours × coût jour des postes, qui n'a d'effet que si les deux déclinaisons sont cochées ; sinon le coût salarial est saisi). `GET /api/plans/operations/ventilation-defaults/{plan_id}/` renvoie ces réglages, pris sur la dernière action modifiée du plan. Les totaux d'un plan sont identiques quel que soit le mode : seule la finesse du stockage change.
 
 ### Brouillon d'action
 

@@ -41,14 +41,12 @@ POSTE_VENTILATION_MODES = {"by_type_poste", "by_org_type_poste"}
 def temps_par_poste(op) -> bool:
     """Le temps de travail de l'action est-il décliné par poste ?
 
-    Modes « + type de poste », ancienne case « déclinaison par poste », et —
-    #735 (retour 21/10) — tout mode dont la case « déclinaison par type de
-    coût » est cochée : détailler le coût salarial suppose de savoir qui
-    travaille. Pendant de ``tempsParPoste()`` (``operation-budget.ts``)."""
+    Modes « + type de poste », ou case « Déclinaison par type de poste » de la
+    fiche action. Les coûts détaillés ne l'imposent plus (retour 28/10, sur
+    #735). Pendant de ``tempsParPoste()`` (``operation-budget.ts``)."""
     return (
         op.ventilation_mode in POSTE_VENTILATION_MODES
         or bool(getattr(op, "declinaison_par_poste", False))
-        or bool(getattr(op, "declinaison_par_type_cout", False))
     )
 
 
@@ -304,15 +302,16 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     # #735 — la case vaut désormais pour tous les modes (« aucune » et « par
     # organisme » compris).
     has_cost_detail = getattr(op, "declinaison_par_type_cout", True)
-    # #735 (retour 21/10) — détailler les coûts décline le temps par poste
-    # (`temps_par_poste`) dans tous les modes : le coût salarial se calcule
-    # (jours × coût jour) dès que la case « calculé automatiquement » le dit.
-    auto_salary = has_cost_detail and getattr(op, "cout_salarial_auto", True)
+    # Le coût salarial ne se calcule (jours × coût jour) que sur un temps
+    # décliné par poste ; sans poste, il est saisi.
+    auto_salary = (has_cost_detail and temps_par_poste(op)
+                   and getattr(op, "cout_salarial_auto", True))
     manual_salary = has_cost_detail and not auto_salary
     # #741 — le suivi a ses propres réglages : réalisé détaillé même si le prévu
     # ne l'est pas, coût salarial réalisé calculé ou saisi indépendamment.
     real_detail = op.get_declinaison_par_type_cout_realise()
-    auto_salary_real = real_detail and op.get_cout_salarial_auto_realise()
+    auto_salary_real = (real_detail and op.get_declinaison_par_poste_realise()
+                        and op.get_cout_salarial_auto_realise())
     manual_salary_real = real_detail and not auto_salary_real
 
     def cell(oid, year):

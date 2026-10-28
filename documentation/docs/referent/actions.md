@@ -34,10 +34,11 @@ La fréquence (ex. 2 fois par an), intégrée pour les actions de suivis, peut �
 
 <p style="text-align:center"><em style="color:#025359;font-size:0.78rem">Figure 45 : Modes de ventilation budgétaire</em></p>
 
-Deux cases complètent le mode de ventilation :
+Trois cases complètent le mode de ventilation :
 
-- « **Déclinaison par type de coût** » (tous les modes) : détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts, et le **temps de travail poste par poste**. Décochée, seuls les totaux sont saisis : fonctionnement et investissement quand le mode inclut le type de budget, le budget total sinon ;
-- « **Saisie automatique du coût salarial** » (dès que la déclinaison par type de coût est cochée) : calcule le coût salarial à partir des jours saisis et du coût jour des postes ([§ 4.3.1](parametrage.md#431-les-postes-ressources-humaines)). Décochée, le coût salarial se saisit à la main.
+- « **Déclinaison par type de poste** » (au-dessus du tableau du temps de travail) : le temps de travail se saisit **poste par poste** (chaque ligne vise un poste). Décochée, il se saisit en un temps total, ou par organisme si le budget est ventilé par organisme. Elle est cochée d'office, et non décochable, dans les deux modes « + type de poste » ;
+- « **Déclinaison par type de coût** » (tous les modes) : détaille le budget en coût salarial, coût stage, coût prestataire et autres coûts. Décochée, seuls les totaux sont saisis : fonctionnement et investissement quand le mode inclut le type de budget, le budget total sinon. Elle ne change pas la saisie du temps de travail ;
+- « **Saisie automatique du coût salarial** » (coûts déclinés par type de coût **et** temps décliné par type de poste) : calcule le coût salarial à partir des jours saisis et du coût jour des postes ([§ 4.3.1](parametrage.md#431-les-postes-ressources-humaines)). Décochée — ou sans déclinaison par type de poste, faute de coût jour —, le coût salarial se saisit à la main.
 
 **Sans ventilation par type de budget** (« Pas de ventilation », « Par organisme »), rien ne distingue le fonctionnement de l'investissement : ni le budget, ni le temps de travail (pas de catégorie de dépense), dans la saisie de l'action comme dans son suivi, sa fiche et ses exports.
 
@@ -46,7 +47,7 @@ Deux cases complètent le mode de ventilation :
 - par année → globale : les montants et les jours des années sont **additionnés** dans la colonne « Période » ; la répartition par année disparaît ;
 - globale → par année : la colonne « Période » est **vidée** ; les montants sont à ressaisir année par année.
 
-Le temps de travail distingue le temps agent (gestionnaire) et le temps partenaire / bénévole (valorisé), sauf en « aucune ventilation » sans déclinaison par type de coût : le temps s'y réduit à un seul « Temps de travail total » par année, sans ligne supplémentaire. Quand le mode inclut le type de budget, chaque ligne porte une catégorie de dépense (fonctionnement, investissement, bénévolat partenariat) ; sinon, le temps d'un poste bénévole ou partenaire est valorisé d'office. Une nouvelle action reprend le paramétrage de ventilation de la dernière action saisie dans le plan.
+Le temps de travail distingue le temps agent (gestionnaire) et le temps partenaire / bénévole (valorisé), sauf en « aucune ventilation » sans déclinaison par type de poste : le temps s'y réduit à un seul « Temps de travail total » par année, sans ligne supplémentaire. Quand le mode inclut le type de budget, chaque ligne porte une catégorie de dépense (fonctionnement, investissement, bénévolat partenariat) ; sinon, le temps d'un poste bénévole ou partenaire est valorisé d'office. Une nouvelle action reprend le paramétrage de ventilation (mode et trois cases) de la dernière action saisie dans le plan.
 
 Le formulaire propose deux boutons :
 

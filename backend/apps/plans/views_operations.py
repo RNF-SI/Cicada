@@ -283,8 +283,9 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         #641 — Réglages de ventilation à proposer par défaut pour une NOUVELLE
         action du plan.
 
-        Le paramétrage du tableau de programmation (mode de ventilation, case
-        « déclinaison par type de coût », case « coût salarial automatique ») est
+        Le paramétrage du tableau de programmation (mode de ventilation, cases
+        « déclinaison par type de coût », « déclinaison par type de poste » et
+        « coût salarial automatique ») est
         en pratique le même pour toutes les actions d'un plan : on renvoie donc
         celui de la dernière action saisie / modifiée, pour que le formulaire de
         création n'ait pas à le re-saisir à chaque fois. Sans action existante,
@@ -300,6 +301,7 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             'source_operation_id': last.id_operation if last else None,
             'ventilation_mode': last.ventilation_mode if last else 'none',
             'declinaison_par_type_cout': last.declinaison_par_type_cout if last else True,
+            'declinaison_par_poste': last.temps_par_poste() if last else False,
             'cout_salarial_auto': last.cout_salarial_auto if last else True,
         })
 

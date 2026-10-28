@@ -1535,7 +1535,8 @@ describe('SuiviSaisieComponent — lecture seule (#740)', () => {
 
 // -----------------------------------------------------------------------------
 // #735 (retour 21/10) — sans type de budget, aucune catégorisation du temps
-// réalisé ; temps décliné par poste dès que les coûts sont détaillés.
+// réalisé. #773 — le temps n'est décliné par poste que par la case dédiée (ou
+// un mode « + type de poste »), plus par la déclinaison par type de coût.
 // -----------------------------------------------------------------------------
 describe('SuiviSaisieComponent — #735 sans type de budget', () => {
   const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
@@ -1558,15 +1559,18 @@ describe('SuiviSaisieComponent — #735 sans type de budget', () => {
     expect(html).toMatch(/@if \(showRhCategorie\(\)\) \{\s*<td class="rh-categorie-col">/);
   });
 
-  it('décline le temps réalisé par poste dès que les coûts sont détaillés', () => {
-    expect(instance({ ventilation_mode: 'none', declinaison_par_type_cout: true }).computeRhMode()).toBe('postes');
-    expect(instance({ ventilation_mode: 'by_org', declinaison_par_type_cout: true }).computeRhMode()).toBe('postes');
-    expect(instance({ ventilation_mode: 'by_org', declinaison_par_type_cout: false }).computeRhMode()).toBe('organismes');
-    expect(instance({ ventilation_mode: 'none', declinaison_par_type_cout: false }).computeRhMode()).toBe('global');
+  it('#773 — les coûts détaillés seuls ne déclinent plus le temps réalisé par poste', () => {
+    expect(instance({ ventilation_mode: 'none', declinaison_par_type_cout: true }).computeRhMode()).toBe('global');
+    expect(instance({ ventilation_mode: 'by_org', declinaison_par_type_cout: true }).computeRhMode()).toBe('organismes');
+    expect(instance({ ventilation_mode: 'none', declinaison_par_poste: true }).computeRhMode()).toBe('postes');
+    expect(instance({ ventilation_mode: 'by_org', declinaison_par_poste_realise: true }).computeRhMode()).toBe('postes');
   });
 
-  it('propose le coût salarial réalisé calculé dans tous les modes détaillés', () => {
-    expect(instance({ ventilation_mode: 'none', declinaison_par_type_cout: true }).showSalaireRealiseOption()).toBe(true);
+  it('#773 — coût salarial réalisé calculé proposé seulement avec un temps par poste', () => {
+    expect(instance({ ventilation_mode: 'none', declinaison_par_type_cout: true }).showSalaireRealiseOption()).toBe(false);
+    expect(instance({
+      ventilation_mode: 'none', declinaison_par_type_cout: true, declinaison_par_poste: true,
+    }).showSalaireRealiseOption()).toBe(true);
   });
 
   it('rappel du prévu de la période : deux tuiles prévu / réalisé, sans fonctionnement hors type de budget', () => {

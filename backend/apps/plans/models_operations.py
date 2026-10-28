@@ -932,11 +932,11 @@ class Operation(models.Model):
         return bool(ov is not None and ov.declinaison_par_type_cout_realise)
 
     def temps_par_poste(self):
-        """Temps de travail PROGRAMMÉ décliné par poste (#600 / #735) : modes
-        « + type de poste », ancienne case par poste, ou coûts détaillés."""
+        """Temps de travail PROGRAMMÉ décliné par poste (#600) : modes « + type
+        de poste », ou case « Déclinaison par type de poste » de la fiche action.
+        Les coûts détaillés ne l'imposent plus (retour 28/10, sur #735)."""
         return (self.ventilation_mode in self.VENTILATION_POSTE_MODES
-                or bool(self.declinaison_par_poste)
-                or bool(self.declinaison_par_type_cout))
+                or bool(self.declinaison_par_poste))
 
     def get_declinaison_par_poste_realise(self):
         """
@@ -962,13 +962,10 @@ class Operation(models.Model):
         ov = self.realisation_globale_override
         if ov is not None and ov.cout_salarial_auto_realise is not None:
             return ov.cout_salarial_auto_realise
-        # #735 — programmation sans temps par poste (coûts non détaillés, hors
-        # modes « + type de poste ») : sa case est sans objet, et le temps n'y
-        # a pas de coût jour. Le réalisé détaillé au seul suivi part donc en
-        # coût salarial saisi, sauf choix contraire au suivi.
-        if not (self.declinaison_par_type_cout
-                or self.declinaison_par_poste
-                or self.ventilation_mode in self.VENTILATION_POSTE_MODES):
+        # #735 — programmation sans temps par poste : sa case est sans objet, et
+        # le temps n'y a pas de coût jour. Le réalisé détaillé au seul suivi part
+        # donc en coût salarial saisi, sauf choix contraire au suivi.
+        if not self.temps_par_poste():
             return False
         return self.cout_salarial_auto
 

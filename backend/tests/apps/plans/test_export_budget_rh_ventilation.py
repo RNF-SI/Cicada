@@ -205,3 +205,14 @@ class TestDetailSansTypeDeBudget:
         assert _total_cell(ws, "TOTAL") == "160"
         assert "fonctionnement" not in _texts(wb)
         assert oa.pk
+
+    def test_sans_poste_cout_salarial_saisi(self, plan):
+        """#773 — coûts détaillés sans déclinaison par type de poste : pas de
+        coût jour, le coût salarial est celui saisi même si la case « calculé
+        automatiquement » est restée cochée."""
+        op = _action(plan, "D2", ventilation_mode="none", declinaison_par_type_cout=True,
+                     declinaison_par_poste=False, cout_salarial_auto=True)
+        OperationAnnee.objects.create(id_operation=op, annee=2024, periodicite=True,
+                                      cout_salarial=100, cout_stage=20)
+        ws = _wb(build_budget_previsionnel_workbook, plan)["TOTAL par poste de dépense"]
+        assert _total_cell(ws, "TOTAL") == "120"

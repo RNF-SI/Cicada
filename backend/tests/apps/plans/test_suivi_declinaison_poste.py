@@ -159,3 +159,35 @@ class TestExportsSuivi:
         # Le prévisionnel, lui, n'est pas décliné par poste.
         prev = load_workbook(io.BytesIO(build_rh_previsionnel_workbook(plan)))
         assert 'RH par type de poste' not in prev.sheetnames
+
+
+# -----------------------------------------------------------------------------
+# #773 — la fiche action a sa propre case « Déclinaison par type de poste » :
+# détailler les coûts ne décline plus le temps par poste.
+# -----------------------------------------------------------------------------
+
+class TestDeclinaisonPosteProgrammation:
+    def test_couts_detailles_sans_case_poste(self, plan):
+        op, _ = _action(plan, ventilation_mode='none', declinaison_par_type_cout=True,
+                        declinaison_par_poste=False)
+        assert op.temps_par_poste() is False
+        # Pas de coût jour : le coût salarial réalisé se saisit.
+        assert op.get_cout_salarial_auto_realise() is False
+
+    def test_case_poste_hors_mode_poste(self, plan):
+        op, _ = _action(plan, ventilation_mode='by_org', declinaison_par_type_cout=False,
+                        declinaison_par_poste=True)
+        assert op.temps_par_poste() is True
+        assert op.get_declinaison_par_poste_realise() is True
+
+    def test_mode_type_poste_force(self, plan):
+        op, _ = _action(plan, ventilation_mode='by_type_poste', declinaison_par_poste=False)
+        assert op.temps_par_poste() is True
+
+    def test_ventilation_defaults_reprend_la_case(self, plan):
+        op, _ = _action(plan, ventilation_mode='none', declinaison_par_type_cout=True,
+                        declinaison_par_poste=True)
+        r = _client().get(f'/api/plans/operations/ventilation-defaults/{plan.pk}/')
+        assert r.status_code == 200
+        assert r.data['source_operation_id'] == op.pk
+        assert r.data['declinaison_par_poste'] is True
