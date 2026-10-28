@@ -15,6 +15,7 @@ import { AdminLogsComponent } from './admin-logs/admin-logs.component';
 import { AdminSettingsComponent } from './admin-settings/admin-settings.component';
 import { AdminRgpdComponent } from './admin-rgpd/admin-rgpd.component';
 import { AdminUpdateComponent } from './admin-update/admin-update.component';
+import { AdminReferentielsComponent } from './admin-referentiels/admin-referentiels.component';
 import { AdminRedacteursPrincipauxComponent } from './admin-redacteurs-principaux.component';
 import { AdminOrphansComponent } from './admin-orphans/admin-orphans.component';
 
@@ -129,6 +130,12 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'redacteurs-principaux',
         component: AdminRedacteursPrincipauxComponent,
+        canActivate: [notAdminOgOnlyGuard] // Only super_admin
+      },
+      {
+        // #777 — passages de version des référentiels, distincts de la mise à jour de l'application
+        path: 'referentiels',
+        component: AdminReferentielsComponent,
         canActivate: [notAdminOgOnlyGuard] // Only super_admin
       },
       {

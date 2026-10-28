@@ -31,6 +31,16 @@ Une fois activée, la connexion par mot de passe CICADA, l'inscription et « Mot
 
 Consulter la version installée et la dernière version disponible, et déclencher une mise à jour.
 
+<p class="lead">Référentiels :</p>
+
+La page *Administration › Référentiels* est distincte de la mise à jour : installer une nouvelle version de CICADA ne change aucun référentiel. Pour chaque référentiel utilisé par les plans (types d'action Gestref, types de pression PressRef, taxons TaxRef, habitats HabRef), elle indique la version en service et les versions livrées avec l'application. Pour passer à une nouvelle version :
+
+1. **Simuler** : le rapport donne, plan par plan, les changements sûrs et probables (posés automatiquement) et les éléments à arbitrer par les référents.
+2. **Appliquer le passage**, après confirmation. Les référents concernés sont prévenus par une notification, et par un e-mail s'ils ont des choix à faire, sauf si la case « Notifications dans l'application seulement » est cochée.
+3. **Suivre la transition** : la page indique combien d'éléments attendent encore un choix. Pendant ce temps, ces éléments gardent leur ancienne valeur et les deux versions cohabitent.
+
+Un passage peut être annulé tant qu'aucune version suivante n'a été appliquée. Les choix déjà faits par les référents sont alors défaits.
+
 **Le partage avec l'exploration nationale est un engagement à l'échelle de l'instance**. Lorsque la case est cochée :
 
 - Les plans validés de l'instance sont publiés chaque nuit vers l'exploration nationale : enjeux, facteurs, pressions, objectifs, indicateurs, actions avec leur période, suivis et protocoles ;

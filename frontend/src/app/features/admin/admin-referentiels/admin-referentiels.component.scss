@@ -1,0 +1,112 @@
+@import '../../../../assets/scss/variables';
+
+.admin-referentiels {
+  padding: $spacing-lg;
+  max-width: 1000px;
+}
+
+.page-header {
+  margin-bottom: $spacing-lg;
+}
+
+.page-title {
+  font-size: 25px;
+  font-weight: 700;
+  color: $primary-color;
+  margin: 0 0 $spacing-xs;
+}
+
+.page-subtitle {
+  color: $gray-dark;
+  margin: 0;
+}
+
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+}
+
+.ref-card {
+  margin-top: $spacing-lg;
+  padding: $spacing-md;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+
+  h2 {
+    font-size: $font-size-h4;
+    color: $primary-color;
+    margin: 0 0 $spacing-xs;
+  }
+
+  h3 {
+    font-size: $font-size-base;
+    color: $primary-color;
+    margin: $spacing-md 0 $spacing-xs;
+  }
+}
+
+.code {
+  font-family: 'Courier New', monospace;
+  font-size: $font-size-small;
+  color: $primary-color;
+  background-color: $primary-bg-subtle;
+  padding: 1px 6px;
+  border-radius: $border-radius-sm;
+  margin: 0 $spacing-xxs;
+}
+
+.passage {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: $spacing-md;
+
+  p {
+    margin: 0 0 $spacing-xxs;
+  }
+}
+
+.version {
+  padding: $spacing-sm 0;
+  border-top: 1px solid $gray-lighter;
+}
+
+.version-entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+
+  .boutons {
+    display: flex;
+    gap: $spacing-xs;
+  }
+}
+
+.rapport {
+  margin-top: $spacing-sm;
+
+  p {
+    margin: 0 0 $spacing-xxs;
+  }
+}
+
+.table-plans {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: $spacing-xs;
+  font-size: $font-size-small;
+
+  th, td {
+    text-align: left;
+    padding: $spacing-xxs $spacing-xs;
+    border-bottom: 1px solid $gray-lighter;
+  }
+
+  th {
+    color: $gray-dark;
+  }
+}

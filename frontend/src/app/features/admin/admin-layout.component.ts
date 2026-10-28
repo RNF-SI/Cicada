@@ -134,6 +134,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { label: 'Logs serveur', icon: 'fi-rr-file-code', route: '/administration/logs-serveur', exactRole: 'super_admin' },
     { label: 'RGPD', icon: 'fi-rr-shield-check', route: '/administration/rgpd', exactRole: 'super_admin' },
     { label: 'Paramètres', icon: 'fi-rr-settings', route: '/administration/parametres', exactRole: 'super_admin' },
+    { label: 'Référentiels', icon: 'fi-rr-book-alt', route: '/administration/referentiels', exactRole: 'super_admin' },
     { label: 'Mise à jour', icon: 'fi-rr-refresh', route: '/administration/mise-a-jour', exactRole: 'super_admin' }
   ];
 

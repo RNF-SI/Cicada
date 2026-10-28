@@ -1,0 +1,116 @@
+<div class="admin-referentiels">
+  <header class="page-header">
+    <h1 class="page-title">{{ 'admin.referentiels.title' | translate }}</h1>
+    <p class="page-subtitle">{{ 'admin.referentiels.subtitle' | translate }}</p>
+  </header>
+
+  @if (erreur()) {
+    <div class="info-block info-block-error" role="alert">{{ erreur() }}</div>
+  }
+
+  @if (chargement()) {
+    <div class="loading-state">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>{{ 'common.loading' | translate }}</span>
+    </div>
+  } @else {
+    <app-checkbox [checked]="sansEmail()" (checkedChange)="sansEmail.set($event)"
+                  [label]="'admin.referentiels.sansEmail' | translate"
+                  [mention]="'admin.referentiels.sansEmailAide' | translate"></app-checkbox>
+
+    @for (ref of referentiels(); track ref.code) {
+      <section class="ref-card" [attr.data-testid]="'referentiel-' + ref.code">
+        <h2>{{ ref.libelle }}</h2>
+        <p class="en-service">
+          {{ 'admin.referentiels.enService' | translate }} <strong>{{ ref.en_service.libelle }}</strong>
+          <span class="code">{{ ref.en_service.code }}</span>
+        </p>
+
+        @if (ref.passage; as p) {
+          <div class="info-block passage">
+            <div>
+              <p>{{ 'admin.referentiels.passage' | translate:{ depuis: p.depuis, vers: p.vers, date: (p.date | date:'dd/MM/yyyy') } }}</p>
+              <p class="text-small">
+                {{ 'admin.referentiels.progression' | translate:{ choix: p.a_actualiser, auto: p.automatiques, faits: p.actualises } }}
+              </p>
+              @if (p.a_actualiser) {
+                <p class="text-small text-muted">{{ 'admin.referentiels.cohabitation' | translate }}</p>
+              }
+            </div>
+            <button mat-stroked-button type="button" (click)="annuler(ref)" [disabled]="!!enCours()"
+                    data-testid="referentiel-annuler">
+              {{ 'admin.referentiels.annuler' | translate }}
+            </button>
+          </div>
+        }
+
+        <h3>{{ 'admin.referentiels.versions' | translate }}</h3>
+        @if (!ref.versions.length) {
+          <p class="text-muted">{{ 'admin.referentiels.aucuneVersion' | translate }}</p>
+        }
+        @for (v of ref.versions; track v.nom) {
+          <div class="version">
+            <div class="version-entete">
+              <div>
+                <strong>{{ v.libelle }}</strong> <span class="code">{{ v.code }}</span>
+                <span class="text-small text-muted">{{ 'admin.referentiels.depuis' | translate:{ depuis: v.depuis } }}</span>
+              </div>
+              @if (v.en_service) {
+                <span class="text-small">{{ 'admin.referentiels.versionEnService' | translate }}</span>
+              } @else if (v.applicable) {
+                <div class="boutons">
+                  <button mat-stroked-button type="button" (click)="simuler(ref, v)" [disabled]="!!enCours()"
+                          data-testid="referentiel-simuler">
+                    {{ 'admin.referentiels.simuler' | translate }}
+                  </button>
+                  <button mat-flat-button color="primary" type="button" (click)="appliquer(ref, v)"
+                          [disabled]="!!enCours() || !rapport(ref, v)" data-testid="referentiel-appliquer">
+                    {{ 'admin.referentiels.appliquer' | translate }}
+                  </button>
+                </div>
+              } @else {
+                <span class="text-small text-muted">{{ 'admin.referentiels.nonApplicable' | translate:{ depuis: v.depuis } }}</span>
+              }
+            </div>
+            @if (enCours() === cle(ref, v)) {
+              <mat-spinner diameter="22"></mat-spinner>
+            }
+            @if (rapport(ref, v); as r) {
+              <div class="rapport" data-testid="referentiel-rapport">
+                <p>
+                  {{ 'admin.referentiels.rapport' | translate:{ sure: compte(r, 'sure'), probable: compte(r, 'probable'), choix: compte(r, 'a_arbitrer') } }}
+                </p>
+                @if (r.devient_cs?.total) {
+                  <p class="text-small">{{ 'admin.referentiels.devientCs' | translate:{ n: r.devient_cs!.total, sans: r.devient_cs!.sans_suivi } }}</p>
+                }
+                @if (r.plans_sans_destinataire.length) {
+                  <p class="text-small text-error">{{ 'admin.referentiels.sansDestinataire' | translate:{ plans: r.plans_sans_destinataire.join(', ') } }}</p>
+                }
+                <table class="table-plans">
+                  <thead>
+                    <tr>
+                      <th>{{ 'admin.referentiels.colonnes.plan' | translate }}</th>
+                      <th>{{ 'admin.referentiels.colonnes.sure' | translate }}</th>
+                      <th>{{ 'admin.referentiels.colonnes.probable' | translate }}</th>
+                      <th>{{ 'admin.referentiels.colonnes.choix' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (p of r.plans; track $index) {
+                      <tr>
+                        <td>{{ p.plan || ('admin.referentiels.horsPlan' | translate) }}</td>
+                        <td>{{ p.sure || 0 }}</td>
+                        <td>{{ p.probable || 0 }}</td>
+                        <td>{{ p.a_arbitrer || 0 }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+      </section>
+    }
+  }
+</div>

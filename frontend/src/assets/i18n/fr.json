@@ -1345,6 +1345,46 @@
         "acknowledgedAll": "{{count}} erreur(s) acquittée(s)",
         "acknowledgeError": "Erreur lors de l'acquittement"
       }
+    },
+    "referentiels": {
+      "title": "Référentiels",
+      "subtitle": "Versions des référentiels utilisés par les plans (types d'action, types de pression, taxons, habitats) et passage d'une version à la suivante. Distinct de la mise à jour de l'application : installer une nouvelle version de CICADA ne change aucun référentiel.",
+      "enService": "Version en service :",
+      "versions": "Versions livrées",
+      "aucuneVersion": "Aucune nouvelle version livrée avec cette version de CICADA.",
+      "depuis": "(part de {{depuis}})",
+      "versionEnService": "Version en service",
+      "nonApplicable": "Ne part pas de la version en service ({{depuis}}).",
+      "simuler": "Simuler",
+      "appliquer": "Appliquer le passage",
+      "annuler": "Annuler le passage",
+      "rapport": "Simulation : {{sure}} changement(s) sûr(s) et {{probable}} probable(s), posés automatiquement ; {{choix}} élément(s) à arbitrer, qui gardent leur ancienne valeur en attendant le choix des référents.",
+      "devientCs": "{{n}} action(s) deviendraient des suivis (CS), dont {{sans}} sans suivi : leurs référents répondront aux questions du suivi en choisissant le type.",
+      "sansDestinataire": "Plans sans référent ni administrateur à prévenir : {{plans}}.",
+      "horsPlan": "Hors plan",
+      "colonnes": {
+        "plan": "Plan",
+        "sure": "Sûrs",
+        "probable": "Probables",
+        "choix": "À arbitrer"
+      },
+      "passage": "Passage de « {{depuis}} » à « {{vers}} » appliqué le {{date}}.",
+      "progression": "{{choix}} élément(s) attendent le choix d'un référent ; {{auto}} changé(s) automatiquement ; {{faits}} actualisé(s) par les référents.",
+      "cohabitation": "Pendant la transition, les éléments non encore actualisés gardent leur ancienne valeur (les deux versions cohabitent). L'ancienne version sera retirée une fois tous les éléments actualisés.",
+      "sansEmail": "Notifications dans l'application seulement",
+      "sansEmailAide": "Sans cette case, les référents qui ont des choix à faire reçoivent aussi un e-mail.",
+      "confirmerAppliquer": {
+        "titre": "Passer à « {{vers}} » ?",
+        "message": "{{referentiel}} passe de « {{depuis}} » à « {{vers}} » sur cette instance : {{auto}} changement(s) automatique(s), {{choix}} élément(s) à arbitrer par les référents, qui seront prévenus. Le passage peut être annulé."
+      },
+      "confirmerAnnuler": {
+        "titre": "Annuler le passage ?",
+        "message": "Retour de « {{vers}} » à « {{depuis}} ». Les {{actualises}} choix déjà faits par les référents seront aussi défaits."
+      },
+      "appliquerFait": "Passage appliqué. Les référents concernés ont été prévenus.",
+      "annulerFait": "Passage annulé.",
+      "erreur": "L'opération n'a pas abouti.",
+      "erreurChargement": "Les référentiels n'ont pas pu être chargés."
     }
   },
   "modals": {

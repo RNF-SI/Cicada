@@ -92,6 +92,40 @@ export interface TypeDejaModifie {
   actualise_par: string;
 }
 
+/** #777 — un référentiel vu de la page super-admin. */
+export interface VersionDisponible {
+  nom: string;
+  code: string;
+  libelle: string;
+  depuis: string;
+  applicable: boolean;
+  en_service: boolean;
+}
+
+export interface EtatReferentiel {
+  code: string;
+  libelle: string;
+  en_service: { code: string; libelle: string };
+  versions: VersionDisponible[];
+  passage: {
+    id: number; depuis: string; vers: string; vers_code: string; date: string;
+    a_actualiser: number; automatiques: number; actualises: number;
+  } | null;
+}
+
+/** Rapport de simulation (types d'action : `actions` ; autres : `objets`). */
+export interface RapportPassage {
+  depuis: string;
+  vers: string;
+  actions?: Record<string, number>;
+  objets?: Record<string, number>;
+  suivis?: Record<string, number>;
+  devient_cs?: { total: number; sans_suivi: number };
+  a_arbitrer_par_code: [string, number][];
+  plans: { plan: string | null; statut: string | null; sure?: number; probable?: number; a_arbitrer?: number }[];
+  plans_sans_destinataire: string[];
+}
+
 /** Bandeau affiché sur toutes les pages tant qu'il reste des actions à actualiser. */
 /** #779 — PressRef, TaxRef, HabRef : élément touché par un passage. */
 export interface ElementAActualiser {
@@ -191,6 +225,23 @@ export class ReferentielActionsService {
   accepterPropositionsReferentiel(referentiel: string, planId?: number | null): Observable<BilanPropositions> {
     return this.http.post<BilanPropositions>('/api/plans/referentiels/accepter-propositions/',
       { referentiel, ...(planId ? { plan: planId } : {}) }).pipe(tap(() => this.rafraichirCompte()));
+  }
+
+  // ── #777 — page super-admin « Référentiels » ─────────────────────────
+  etatAdmin(): Observable<{ referentiels: EtatReferentiel[] }> {
+    return this.http.get<{ referentiels: EtatReferentiel[] }>('/api/plans/referentiels/admin/');
+  }
+
+  simulerAdmin(code: string, version: string): Observable<{ rapport: RapportPassage }> {
+    return this.http.post<{ rapport: RapportPassage }>(
+      `/api/plans/referentiels/admin/${code}/simuler/`, { version });
+  }
+
+  passageAdmin(code: string, action: 'appliquer' | 'annuler', version: string, sansEmail = false):
+      Observable<{ referentiels: EtatReferentiel[] }> {
+    return this.http.post<{ referentiels: EtatReferentiel[] }>(
+      `/api/plans/referentiels/admin/${code}/${action}/`, { version, sans_email: sansEmail })
+      .pipe(tap(() => this.rafraichirCompte()));
   }
 
   /** Pose l'équivalent unique des actions à actualiser qui n'en ont qu'un. */

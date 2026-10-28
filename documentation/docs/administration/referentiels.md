@@ -181,7 +181,7 @@ Chaque version est décrite dans `backend/nomenclatures_data/referentiels_types_
 | `referentiel.csv` | `code,libelle` — niveau 0 (`CS`) = catégorie, niveaux 1 et 2 (`CS.1`, `CS.1.1`) = types |
 | `correspondance.csv` | `ancien_code,nouveau_code,confiance,options,note` — confiance `sure`, `probable` ou `a_arbitrer` ; `options` : équivalents possibles séparés par `|` quand l'ancienne ligne en a plusieurs |
 
-**Rien ne change au démarrage ni à la mise à jour d'une instance** : ces fichiers ne sont lus que par la commande suivante, à lancer volontairement, instance par instance.
+**Rien ne change au démarrage ni à la mise à jour d'une instance** : ces fichiers ne sont lus que par la page super-admin *Administration › Référentiels* (simulation, application, annulation : voir la notice administrateur d'instance § 6.7) ou par la commande suivante, à lancer volontairement, instance par instance.
 
 ```bash
 # 1. Simulation : ce que ferait le passage (aucune écriture)
