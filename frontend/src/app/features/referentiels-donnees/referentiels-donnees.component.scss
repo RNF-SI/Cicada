@@ -1,0 +1,77 @@
+@import 'variables';
+
+.referentiels-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px $spacing-lg;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  color: $primary-color;
+  text-decoration: none;
+  font-size: $font-size-small;
+  font-weight: 600;
+  margin-bottom: $spacing-lg;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.page-header {
+  margin-bottom: $spacing-lg;
+
+  h1 {
+    font-size: $font-size-h2;
+    font-weight: 700;
+    color: $primary-color;
+    margin: 0 0 $spacing-xs;
+  }
+
+  .intro {
+    color: $gray-dark;
+    margin: 0;
+  }
+}
+
+.cartes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: $spacing-md;
+}
+
+.carte {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+  padding: $spacing-md;
+  background-color: $white;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+
+  h2 {
+    font-size: $font-size-h4;
+    color: $primary-color;
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-sm;
+    margin-top: auto;
+    padding-top: $spacing-sm;
+
+    i {
+      margin-right: $spacing-xxs;
+    }
+  }
+}

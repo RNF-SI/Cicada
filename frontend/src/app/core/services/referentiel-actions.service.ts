@@ -92,6 +92,15 @@ export interface TypeDejaModifie {
   actualise_par: string;
 }
 
+/** #778 — un référentiel de la page « Référentiels de données ». */
+export interface ReferentielDonnees {
+  code: string;
+  libelle: string;
+  version: { code: string; libelle: string };
+  nombre: number;
+  source_url: string | null;
+}
+
 /** #777 — un référentiel vu de la page super-admin. */
 export interface VersionDisponible {
   nom: string;
@@ -225,6 +234,15 @@ export class ReferentielActionsService {
   accepterPropositionsReferentiel(referentiel: string, planId?: number | null): Observable<BilanPropositions> {
     return this.http.post<BilanPropositions>('/api/plans/referentiels/accepter-propositions/',
       { referentiel, ...(planId ? { plan: planId } : {}) }).pipe(tap(() => this.rafraichirCompte()));
+  }
+
+  // ── #778 — page « Référentiels de données » ──────────────────────────
+  donnees(): Observable<{ referentiels: ReferentielDonnees[] }> {
+    return this.http.get<{ referentiels: ReferentielDonnees[] }>('/api/plans/referentiels/donnees/');
+  }
+
+  telechargerCsv(code: string): Observable<Blob> {
+    return this.http.get(`/api/plans/referentiels/donnees/${code}/csv/`, { responseType: 'blob' });
   }
 
   // ── #777 — page super-admin « Référentiels » ─────────────────────────

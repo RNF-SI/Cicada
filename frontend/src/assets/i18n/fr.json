@@ -5441,5 +5441,16 @@
       "accepterToutAide": "Pose la proposition des éléments qui n'ont qu'un seul équivalent ; les autres attendent votre choix.",
       "accepterToutBilan": "{{acceptees}} élément(s) actualisé(s). Restent à choisir : {{plusieurs}} à plusieurs équivalents."
     }
+  },
+  "referentielsDonnees": {
+    "title": "Référentiels de données",
+    "intro": "Les référentiels utilisés par les plans de cette instance : leur version en service et leurs données, à télécharger au format CSV (séparateur point-virgule, lisible par un tableur).",
+    "version": "Version en service :",
+    "nombre": "{{n}} entrées",
+    "telecharger": "Télécharger (CSV)",
+    "enCours": "Téléchargement…",
+    "source": "Source officielle (INPN)",
+    "erreur": "Les référentiels n'ont pas pu être chargés.",
+    "erreurTelechargement": "Le téléchargement n'a pas abouti."
   }
 }

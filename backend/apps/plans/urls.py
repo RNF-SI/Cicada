@@ -22,6 +22,7 @@ from .views_referentiels import (
     AccepterPropositionsReferentielView, ActualiserElementView, ReferentielsAActualiserView,
 )
 from .views_referentiels_admin import EtatReferentielsView, PassageReferentielView
+from .views_referentiels_donnees import ReferentielDonneesCsvView, ReferentielsDonneesView
 from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet, IndicateurMesureViewSet
 from .views_operations import (
     OperationViewSet,
@@ -77,6 +78,10 @@ urlpatterns = [
          name='referentiels-actualiser-element'),
     path('referentiels/accepter-propositions/', AccepterPropositionsReferentielView.as_view(),
          name='referentiels-accepter-propositions'),
+    # #778 — page « Référentiels de données » (versions et téléchargements)
+    path('referentiels/donnees/', ReferentielsDonneesView.as_view(), name='referentiels-donnees'),
+    path('referentiels/donnees/<str:code>/csv/', ReferentielDonneesCsvView.as_view(),
+         name='referentiels-donnees-csv'),
     # #777 — page super-admin « Référentiels »
     path('referentiels/admin/', EtatReferentielsView.as_view(), name='referentiels-admin'),
     path('referentiels/admin/<str:code>/<str:action>/', PassageReferentielView.as_view(),

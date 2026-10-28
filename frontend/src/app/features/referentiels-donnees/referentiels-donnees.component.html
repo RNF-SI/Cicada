@@ -1,0 +1,43 @@
+<app-header></app-header>
+
+<div class="referentiels-page">
+  <a routerLink="/accueil" class="back-link">
+    <i class="fi fi-rr-arrow-left"></i>
+    {{ 'referentielActions.retourAccueil' | translate }}
+  </a>
+
+  <header class="page-header">
+    <h1>{{ 'referentielsDonnees.title' | translate }}</h1>
+    <p class="intro">{{ 'referentielsDonnees.intro' | translate }}</p>
+  </header>
+
+  @if (chargement()) {
+    <p class="text-muted">{{ 'common.loading' | translate }}</p>
+  } @else if (erreur()) {
+    <div class="info-block info-block-error" role="alert">{{ 'referentielsDonnees.erreur' | translate }}</div>
+  } @else {
+    <div class="cartes">
+      @for (r of referentiels(); track r.code) {
+        <section class="carte" [attr.data-testid]="'referentiel-donnees-' + r.code">
+          <h2>{{ r.libelle }}</h2>
+          <p class="version">
+            {{ 'referentielsDonnees.version' | translate }} <strong>{{ r.version.libelle }}</strong>
+          </p>
+          <p class="text-small text-muted">{{ 'referentielsDonnees.nombre' | translate:{ n: (r.nombre | number:'1.0-0') } }}</p>
+          <div class="actions">
+            <button mat-flat-button color="primary" type="button" (click)="telecharger(r)"
+                    [disabled]="telechargement() === r.code" data-testid="referentiel-donnees-telecharger">
+              <i class="fi fi-rr-download"></i>
+              {{ (telechargement() === r.code ? 'referentielsDonnees.enCours' : 'referentielsDonnees.telecharger') | translate }}
+            </button>
+            @if (r.source_url) {
+              <a class="link-default" [href]="r.source_url" target="_blank" rel="noopener">
+                {{ 'referentielsDonnees.source' | translate }}
+              </a>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+</div>

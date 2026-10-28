@@ -66,6 +66,14 @@ export const routes: Routes = [
     loadChildren: () => import('./features/exploration/exploration.routes').then(m => m.EXPLORATION_ROUTES)
   },
   {
+    // #778 — « Référentiels de données » (bouton de l'accueil) : versions et téléchargements.
+    path: 'referentiels',
+    title: 'Référentiels de données · CICADA',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/referentiels-donnees/referentiels-donnees.component')
+      .then(m => m.ReferentielsDonneesComponent)
+  },
+  {
     // #751 — actions dont le type est à actualiser après un passage du
     // référentiel des types d'action (lien des notifications).
     path: 'actions-a-actualiser',

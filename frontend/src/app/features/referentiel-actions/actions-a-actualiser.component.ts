@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { HeaderComponent } from '../../shared/components/header/header.component';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { MatTabsModule } from '@angular/material/tabs';
@@ -28,7 +29,7 @@ import {
 @Component({
   selector: 'app-actions-a-actualiser',
   standalone: true,
-  imports: [DatePipe, RouterLink, MatButtonModule, MatTabsModule, TranslateModule, AccordionComponent,
+  imports: [HeaderComponent, DatePipe, RouterLink, MatButtonModule, MatTabsModule, TranslateModule, AccordionComponent,
     ReferentielElementsComponent],
   templateUrl: './actions-a-actualiser.component.html',
   styleUrl: './actions-a-actualiser.component.scss',
