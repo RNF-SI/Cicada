@@ -227,3 +227,26 @@
     font-size: 1.05em;
   }
 }
+
+/* « Sur tout le document, justifier les textes » (relecture 10/2026).
+   À partir de la tablette seulement : sur une colonne de téléphone, la
+   justification creuse des blancs béants entre les mots, que la césure
+   automatique ne rattrape pas partout (tous les navigateurs n'embarquent pas
+   le dictionnaire français). Titres, légendes, tuiles et tableaux gardent leur
+   alignement propre. */
+@media screen and (min-width: 45em) {
+  .md-typeset p,
+  .md-typeset li {
+    text-align: justify;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+  }
+  .md-typeset figcaption,
+  .md-typeset .tiles p,
+  .md-typeset .admonition-title,
+  .md-typeset summary {
+    text-align: inherit;
+    -webkit-hyphens: manual;
+    hyphens: manual;
+  }
+}

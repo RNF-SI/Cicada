@@ -30,4 +30,4 @@ Piloter l'ensemble d'une instance : utilisateurs, modules, journaux, RGPD, param
 
 </div>
 
-Les fonctions de base (se connecter, gérer son profil, recevoir des notifications, consulter sites et plans, demander un accès) ne sont décrites qu'une seule fois, dans la [Notice Utilisateur](notice/index.md). Les notices suivantes y renvoient et ne détaillent que ce qui est propre à chaque rôle d'administration.
+Les fonctions de base (se connecter, gérer son profil, recevoir des notifications, consulter des sites et plans, demander un accès) ne sont décrites qu'une seule fois, dans la [Notice Utilisateur](notice/index.md). Les notices suivantes y renvoient et ne détaillent que ce qui est propre à chaque rôle d'administration.

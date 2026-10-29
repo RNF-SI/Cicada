@@ -8,7 +8,7 @@ hide:
 
 ## Contexte et consignes de lecture
 
-CICADA est un outil numérique **open source** destiné à accompagner, entre autres, les gestionnaires d'aires protégées dans la **saisie et le suivi de leurs plans de gestion** selon la méthodologie **CT88**.
+CICADA est un outil numérique **open source** destiné à accompagner la gestion des aires protégées, notamment par la **saisie et le suivi des plans de gestion** selon la méthodologie **CT88**.
 
 <figure markdown="span" class="figure--medium">
 ![Page d'accueil de CICADA - instance de RNF](assets/figures/fig01.webp){ loading=lazy }
@@ -56,7 +56,7 @@ Le guide utilisateur rassemble quatre notices. Chacune s'adresse à un profil d'
     - **Le rédacteur général :** il peut consulter et modifier tous les plans de gestion et tous les sites de son instance. Il utilise donc les notices [Utilisateur](utilisateur/notice/index.md), [Référent](referent/index.md) et [Administrateur d'organisme](admin-organisme/index.md). Ce rôle n'est attribuable que par le super administrateur.
     - **Le rédacteur externe :** il peut saisir et modifier un plan de gestion sur lequel il a des droits (mais n'a pas accès aux suivis). Ce profil permet à des personnes externes à l'organisme gestionnaire, de rédiger un plan (ex : prestataire). Ce rôle est attribuable par l'administrateur de l'instance ou par un référent du plan concerné.
 
-**Les fonctions de base** (se connecter, gérer son profil, recevoir des notifications, consulter sites et plans, demander un accès) **ne sont décrites qu'une seule fois, dans la [Notice Utilisateur](utilisateur/notice/index.md)**. Les notices suivantes y renvoient et ne détaillent que ce qui est propre à chaque rôle d'administration.
+**Les fonctions de base** (se connecter, gérer son profil, recevoir des notifications, consulter des sites et plans, demander un accès) **ne sont décrites qu'une seule fois, dans la [Notice Utilisateur](utilisateur/notice/index.md)**. Les notices suivantes y renvoient et ne détaillent que ce qui est propre à chaque rôle d'administration.
 
 Les développeurs et les intégrateurs (application documentaire tierce, connexion GeoNature, scripts) trouveront leur compte dans la partie [API](api/index.md) ; l'installation et l'exploitation d'une instance sont décrites dans l'[Administration technique](administration/index.md).
 
