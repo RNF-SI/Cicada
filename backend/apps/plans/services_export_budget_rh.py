@@ -35,6 +35,8 @@ _HDR_FILL = "FF025359"
 _YEAR_FILL = "FFFEC180"
 _SECTION_FILL = "FFDCE6E7"
 _TOTAL_FILL = "FFC0E3CF"
+# #774 — temps bénévole / partenaire, hors des totaux (tag orange du kit UI).
+_BENEVOLE_FILL = "FFFFE6CC"
 
 _F_TITLE = Font(name="Calibri", bold=True, size=13, color=_PRIMARY)
 _F_SUB = Font(name="Calibri", bold=True, size=10, color="FF746F6E")
@@ -744,9 +746,9 @@ class _DetailMatrix:
             _set(ws, hr + 1, col + 1, "Réalisé", fill=_SECTION_FILL, font=_F_TOTAL, align=_AL_C)
         self.r = hr + 2
 
-    def row(self, ident, detail, prev, real, *, total=False):
+    def row(self, ident, detail, prev, real, *, total=False, fill=None):
         ws, r = self.ws, self.r
-        fill = _TOTAL_FILL if total else None
+        fill = _TOTAL_FILL if total else fill
         font = _F_TOTAL if total else _F_CELL
         values = [*ident, detail] if len(self.headers) > len(ident) else list(ident)
         for col, v in enumerate(values, 1):
@@ -877,12 +879,13 @@ def _rh_detail_sheet(wb, pf, used):
     for af in pf.actions:
         op = af.op
         prev, real = defaultdict(lambda: defaultdict(lambda: _ZERO)), defaultdict(lambda: defaultdict(lambda: _ZERO))
-        order = []
+        order, benevoles = [], set()
 
         def cle(ligne):
             label = _rh_cible(ligne)
             if not ligne.finance:
                 label += " (bénévolat / partenariat)"
+                benevoles.add(label)
             if label not in order:
                 order.append(label)
             return label
@@ -901,10 +904,14 @@ def _rh_detail_sheet(wb, pf, used):
             continue
         ident = _ident(af)
         for label in order:
-            m.row(ident, label, dict(prev[label]), dict(real[label]))
-        m.row(ident, "Total action",
-              {y: sum((prev[l].get(y, _ZERO) for l in order), _ZERO) for y in pf.years},
-              {y: sum((real[l].get(y, _ZERO) for l in order), _ZERO) for y in pf.years},
+            m.row(ident, label, dict(prev[label]), dict(real[label]),
+                  fill=_BENEVOLE_FILL if label in benevoles else None)
+        # #774 — le total de l'action ne compte que le temps des agents, comme
+        # les feuilles de synthèse (`CostCell.jours`).
+        agents = [l for l in order if l not in benevoles]
+        m.row(ident, "Total action (hors bénévolat / partenariat)" if benevoles else "Total action",
+              {y: sum((prev[l].get(y, _ZERO) for l in agents), _ZERO) for y in pf.years},
+              {y: sum((real[l].get(y, _ZERO) for l in agents), _ZERO) for y in pf.years},
               total=True)
     m.freeze()
 

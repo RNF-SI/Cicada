@@ -158,3 +158,39 @@ class TestSyntheseParAction:
     def test_pas_dans_les_previsionnels(self, plan):
         for build in (build_budget_previsionnel_workbook, build_rh_previsionnel_workbook):
             assert SYNTHESE not in load_workbook(io.BytesIO(build(plan))).sheetnames
+
+
+@pytest.mark.django_db
+class TestRhSuiviBenevolat:
+    """#774 — le temps bénévole / partenaire reste détaillé, sur une ligne mise
+    en évidence, mais n'entre pas dans le total de l'action."""
+
+    @pytest.fixture
+    def plan_benevoles(self, plan):
+        oa = OperationAnnee.objects.get(id_operation__libelle="Fauche tardive", annee=2024)
+        benevoles = Poste.objects.create(id_pg=plan, id_organisme=OrganismeFactory(), nombre=1,
+                                         nom_local="Bénévoles de l'association")
+        OperationAnneeRH.objects.create(id_operation_annee=oa, id_poste=benevoles, jours=5,
+                                        categorie_depense='benevolat_partenariat')
+        RealisationOperationAnneeRH.objects.create(
+            id_realisation_operation_annee=oa.realisation, id_poste=benevoles, jours=4,
+            categorie_depense='benevolat_partenariat')
+        return plan
+
+    def _ws(self, plan):
+        return load_workbook(io.BytesIO(build_rh_suivi_workbook(plan)))[SHEET]
+
+    def test_total_hors_benevolat(self, plan_benevoles):
+        ws = self._ws(plan_benevoles)
+        rows = [[c.value for c in r] for r in ws.iter_rows()]
+        total = _row(rows, "Total action (hors bénévolat / partenariat)")
+        nombres = [float(c) for c in total if isinstance(c, str) and c.replace('.', '', 1).isdigit()]
+        assert 10.0 in nombres and 8.0 in nombres
+        assert 15.0 not in nombres and 12.0 not in nombres
+
+    def test_ligne_benevole_mise_en_evidence(self, plan_benevoles):
+        ws = self._ws(plan_benevoles)
+        def fill(label):
+            row = next(r for r in ws.iter_rows() if any(c.value and label in str(c.value) for c in r))
+            return row[0].fill.fgColor.rgb
+        assert fill("(bénévolat / partenariat)") not in (fill("Garde technicien"), "00000000")
