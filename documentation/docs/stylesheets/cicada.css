@@ -20,6 +20,8 @@
   --ccd-gray-lightest: #F6F6F6;
   --ccd-beige: #F8F5F1;
   --ccd-tag-cyan: #C1E5EC;      /* palette « Tags » du kit UI */
+  --ccd-salmon-pale: #FDF0EB;   /* teinte claire de $secondary-orange-salmon,
+                                   fond des encadrés « 💡 » de la notice */
   --ccd-table-head: #C0E3CF;    /* en-tête des tableaux de la notice */
 
   /* Encadrés : mesures du composant « info-block » (_components.scss) */
@@ -147,6 +149,14 @@
 /* Variantes : mêmes fonds et mêmes liserés que info-block-* du kit UI.
    Chaque fond est une combinaison AA avec le texte noir et le primaire
    (voir le tableau du design system) ; ne pas y mettre de texte blanc. */
+/* Astuces : le saumon des « warnings visuels » de la charte, dans la teinte
+   claire des encadrés « 💡 » de la notice PDF. Le liseré reprend l'aplat. */
+.md-typeset .admonition.tip,
+.md-typeset details.tip {
+  background-color: var(--ccd-salmon-pale);
+  border-left: var(--ccd-block-accent) solid var(--ccd-salmon);
+}
+
 .md-typeset .admonition.note,
 .md-typeset details.note { background-color: var(--ccd-tag-cyan); }
 
