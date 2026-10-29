@@ -2088,11 +2088,9 @@ export class OperationFormComponent implements OnInit {
     // Use rawFv for libelle since it may be disabled (auto-filled from inventaire)
     let libelle = rawFv.libelle?.trim() || '';
     if (!libelle) {
-      const selected = this.selectedTypeAction();
-      if (selected) {
-        const code = selected.cd_nomenclature || selected.mnemonique || '';
-        libelle = `${code} - ${selected.label}`;
-      }
+      // #784 — l'intitulé reprend le libellé du type, sans son code (déjà
+      // affiché à côté de l'action).
+      libelle = this.selectedTypeAction()?.label?.trim() || '';
     }
     if (!libelle) {
       libelle = this.translate.instant('enjeux.operations.draftPlaceholderLibelle');

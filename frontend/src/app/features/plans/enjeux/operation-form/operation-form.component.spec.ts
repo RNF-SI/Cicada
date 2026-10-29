@@ -1903,3 +1903,38 @@ describe('OperationFormComponent — #773 aide « Déclinaison par type de coût
     expect(texte).toMatch(/ne change pas la saisie du temps de travail/);
   });
 });
+
+describe('OperationFormComponent — intitulé repris du type d\'action (#784)', () => {
+  function makeComp(): OperationFormComponent {
+    const comp = createComponentInstance();
+    (comp as any).fb = new FormBuilder();
+    (comp as any).initForm();
+    (comp as any).translate = { instant: (k: string) => k };
+    (comp as any).selectedTypeAction = signal<any>(null);
+    (comp as any).isCSAction = computed(() => false);
+    (comp as any).estSuiviExistant = signal(false);
+    (comp as any).suiviProtocoles = signal<any[]>([]);
+    (comp as any).categorieActionReserveCtrl = new FormControl(null);
+    (comp as any).currentIndicateurId = () => null;
+    comp.taxonItems = [];
+    comp.habitatItems = [];
+    (comp as any).finances = [];
+    (comp as any).pendingEmprise = signal(undefined);
+    (comp as any).existingOperation = signal(null);
+    comp.operationAnnees = [];
+    return comp;
+  }
+
+  it('sans intitulé saisi : le libellé du type, sans son code', () => {
+    const c = makeComp();
+    (c as any).selectedTypeAction.set({ id_nomenclature: 1, cd_nomenclature: 'SP.1.5', label: 'Veille juridique' });
+    expect((c as any).buildPayload().libelle).toBe('Veille juridique');
+  });
+
+  it('un intitulé saisi est conservé', () => {
+    const c = makeComp();
+    (c as any).selectedTypeAction.set({ id_nomenclature: 1, cd_nomenclature: 'SP.1.5', label: 'Veille juridique' });
+    (c as any).form.patchValue({ libelle: 'Veille réglementaire du site' });
+    expect((c as any).buildPayload().libelle).toBe('Veille réglementaire du site');
+  });
+});

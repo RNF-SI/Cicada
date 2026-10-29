@@ -6,7 +6,7 @@ Une action se saisit via son formulaire dédié (bouton « Ajouter une action »
 
 - Le type d'action (obligatoire) choisi dans le référentiel GestRef ; et facultativement la catégorie d'action CT88, si celle-ci est différente de celle du référentiel GestRef ;
 - Le code de l'action, calculé automatiquement (ex. CS1) et affiché en direct ; le champ « Numéro fixé » permet d'imposer son numéro ;
-- L'intitulé (s'il reste vide, il est rempli automatiquement avec le type d'action GestRef à l'enregistrement), les métriques associées et la priorité ;
+- L'intitulé (s'il reste vide, il est rempli automatiquement avec le libellé du type d'action GestRef à l'enregistrement, sans son code, déjà affiché à côté de l'action), les métriques associées et la priorité ;
 - Pour une action d'inventaire ou de suivi : les détails de l'inventaire ou du suivi (objectif, cible, taxons ou habitats rattachés), les protocoles et la bancarisation de la donnée ;
 - La programmation : sites concernés, années, temps de travail, budget et mois prévus ; opérateurs, partenaires et financeurs ;
 - La localisation (emprise spatiale) — une case permet de reprendre l'emprise du ou des sites ; elle reste cochée à la réouverture de l'action, et la décocher retire les contours des sites pour revenir à l'emprise dessinée ou importée auparavant (carte vide s'il n'y en avait pas). Pour dessiner l'emprise, cliquez sur « Dessiner / importer », puis sur **« Tracer un contour »** en haut à gauche de la carte ; pour charger un fichier (GeoJSON ou shapefile en .zip), sur **« Importer »** en haut à droite ;
