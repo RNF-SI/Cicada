@@ -99,6 +99,17 @@ def _derniere_mesure(met, annee):
             .order_by("-date_mesure", "-date_ajout").first())
 
 
+def _mesure_au_plus_tard(met, annee):
+    """Dernière mesure renseignée de l'année `annee`, sinon de N-1, N-2…
+    (#727, retour 28/10) ; jamais une mesure postérieure à la fiche."""
+    from .models_indicateurs import Mesure
+    for mesure in (Mesure.objects.filter(id_metrique=met, date_mesure__year__lte=annee)
+                   .order_by("-date_mesure", "-date_ajout")):
+        if fa._txt(mesure.valeur):
+            return mesure
+    return None
+
+
 def _metriques_du_cadre(op):
     """Métriques des indicateurs d'état / de pression de l'action (#727) :
     celles que l'action vise, sinon toutes celles de l'indicateur."""
@@ -312,12 +323,13 @@ def _render(ws, plan, op, annee, code):
     lignes = []
     for ind, met in _metriques_du_cadre(op):
         label = f"{fa._txt(met.nom_metrique)} ({fa._txt(ind.nom_indicateur)})"
-        mesure = _derniere_mesure(met, annee)
-        if mesure is None or not fa._txt(mesure.valeur):
-            lignes.append((label, None, f"Aucune mesure en {annee}"))
+        mesure = _mesure_au_plus_tard(met, annee)
+        if mesure is None:
+            lignes.append((label, None, "Aucune mesure"))
             continue
         unite = f" {fa._txt(met.unite)}" if fa._txt(getattr(met, "unite", "")) else ""
-        lignes.append((label, _score(mesure, met), f"{annee} : {fa._txt(mesure.valeur)}{unite}"))
+        lignes.append((label, _score(mesure, met),
+                       f"{mesure.date_mesure.year} : {fa._txt(mesure.valeur)}{unite}"))
     if lignes:
         _grille_scores(w, f"Scores des indicateurs ({l_ind.replace('Indicateur ', '')})", lignes)
     else:

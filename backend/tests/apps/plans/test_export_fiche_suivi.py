@@ -160,6 +160,19 @@ class TestClasseur:
         assert ligne[7] == "2024 : Bon état"          # colonne « Bon »
         assert not any(isinstance(c, str) and "Optimal" in c for c in ligne)
 
+    def test_resultat_reprend_la_derniere_mesure_anterieure(self, plan):
+        """#727 (retour 28/10) — sans mesure l'année de la fiche, la mesure
+        de N-1, sinon N-2, etc., datée de son année ; jamais une postérieure."""
+        _wb, rows = _texts(build_fiche_suivi_workbook(plan, 2027, operation_ids=[plan._op.pk]))
+        ligne = _row(rows, "Cortège floristique (État des prairies)")
+        assert "2025 : Optimal" in ligne
+        assert not any(isinstance(c, str) and "Aucune mesure" in c for c in ligne)
+
+    def test_resultat_sans_aucune_mesure(self, plan):
+        _wb, rows = _texts(build_fiche_suivi_workbook(plan, 2023, operation_ids=[plan._op.pk]))
+        ligne = _row(rows, "Cortège floristique (État des prairies)")
+        assert "Aucune mesure" in ligne
+
     def test_fiche_d_une_action_meme_sans_suivi(self, plan):
         wb, rows = _texts(build_fiche_suivi_workbook(plan, 2024, operation_ids=[plan._sans_suivi.pk]))
         assert len(wb.sheetnames) == 1
