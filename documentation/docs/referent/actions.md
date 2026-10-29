@@ -14,7 +14,7 @@ Une action se saisit via son formulaire dédié (bouton « Ajouter une action »
 
 Un suivi peut mobiliser plusieurs protocoles : la section « Protocoles » en présente un bloc chacun, le bouton « Ajouter un protocole » en ajoute un et l'icône corbeille retire un bloc (il en reste toujours un). Au-delà de trois protocoles, une mention rappelle que la fiche devient difficile à lire. Pour chaque protocole, il est demandé de préciser s'il est standardisé ou non :
 
-- oui : recherchez-le dans le catalogue des protocoles standardisés (Une distinction et les 5 protocoles MhéO), consultez sa fiche, puis précisez si vous le respectez strictement (sinon, pourquoi et avec quelles différences).
+- oui : recherchez-le dans le catalogue des protocoles standardisés (catalogue CAMPanule de l'INPN, les 5 protocoles MhéO, et les protocoles RNF : Diagnostic d'ancrage territorial et Natur'Adapt), consultez sa fiche, puis précisez si vous le respectez strictement (sinon, pourquoi et avec quelles différences).
 - non : décrivez votre protocole (nom, ETP par cycle, description, objectif, période d'échantillonnage).
 
 Si l'action est rattachée à un inventaire ou suivi déjà saisi dans le module Inventaires, ses protocoles s'affichent en lecture seule : ils se modifient depuis la fiche du suivi.

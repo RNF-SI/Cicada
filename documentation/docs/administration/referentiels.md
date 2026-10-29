@@ -470,6 +470,8 @@ CAMPanule (CATalogue des Méthodes et des Protocoles) est le référentiel natio
 - **Source originale** : https://inpn.mnhn.fr/programme/campanule (format Access .accdb)
 
 > **Note (issue #565) — protocoles standardisés MhéO** : côté interface, on parle désormais de **« protocole standardisé »** plutôt que de « Campanule » (MhéO n'est pas dans CAMPanule, mais a vocation à y être intégré). En plus du catalogue INPN, 5 protocoles standardisés **MhéO** (boîte à outils Milieux humides — Amphibiens, Flore, Odonates, Pédologie, Piézométrie) sont chargés dans les mêmes tables `ref_campanule.*`, dans une **plage de codes réservée** (`cd_protocole >= 900000`, cf. `MHEO_BASE`). Définis en Python dans `backend/apps/campanule/data_mheo.py` (et non en CSV), ils sont ajoutés par `import_campanule` : au premier import complet, et en **top-up idempotent** au démarrage suivant si le catalogue est déjà installé mais que MhéO manque (pas besoin de `--force`).
+>
+> **Protocoles RNF (issue #781)** : 3 protocoles portés par Réserves Naturelles de France — le **Diagnostic d'Ancrage Territorial (DAT)** et les deux outils **Natur'Adapt** (diagnostic de vulnérabilité et d'opportunité, plan d'adaptation au changement climatique) — suivent dans la même plage (`cd_protocole > 900100`, cf. `RNF_BASE`), définis dans `backend/apps/campanule/data_rnf.py`. Le top-up se déclenche dès qu'un de ces protocoles manque : une instance qui a déjà MhéO les reçoit au démarrage suivant.
 
 ### Tables
 

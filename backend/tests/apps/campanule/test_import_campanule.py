@@ -152,7 +152,11 @@ class TestImportMheo:
         """Les 5 protocoles MhéO sont chargés dans la plage réservée."""
         from apps.campanule.data_mheo import MHEO_BASE
 
-        mheo = CampanuleProtocole.objects.filter(cd_protocole__gt=MHEO_BASE)
+        # Plage MhéO seule : les protocoles RNF (#781) suivent dans la même
+        # plage réservée, à partir de RNF_BASE.
+        from apps.campanule.data_rnf import RNF_BASE
+        mheo = CampanuleProtocole.objects.filter(
+            cd_protocole__gt=MHEO_BASE, cd_protocole__lt=RNF_BASE)
         assert mheo.count() == 5
         courts = set(mheo.values_list('lb_protocole_court', flat=True))
         assert courts == {
@@ -164,8 +168,9 @@ class TestImportMheo:
         """Les protocoles MhéO (non obsolètes) sont dans l'autocomplete."""
         from apps.campanule.data_mheo import MHEO_BASE
 
+        from apps.campanule.data_rnf import RNF_BASE
         assert AutocompleteProtocole.objects.filter(
-            cd_protocole__gt=MHEO_BASE
+            cd_protocole__gt=MHEO_BASE, cd_protocole__lt=RNF_BASE
         ).count() == 5
 
     def test_mheo_detail_has_nested_data(self):
@@ -201,3 +206,50 @@ class TestImportMheo:
         assert mheo_rels.exists()
         assert mheo_rels.exclude(cd_protocole__in=prot_ids).count() == 0
         assert mheo_rels.exclude(cd_technique__in=tech_ids).count() == 0
+
+
+@pytest.mark.django_db(transaction=True)
+class TestImportProtocolesRnf:
+    """#781 — DAT et Natur'Adapt (RNF) ajoutés à la liste des protocoles."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        _ensure_imported()
+
+    def test_trois_protocoles_rnf(self):
+        from apps.campanule.data_rnf import RNF_BASE
+        rnf = CampanuleProtocole.objects.filter(cd_protocole__gt=RNF_BASE)
+        assert set(rnf.values_list('lb_protocole_court', flat=True)) == {
+            "Diagnostic d'ancrage territorial (DAT)",
+            "Natur'Adapt — Diagnostic de vulnérabilité et d'opportunité",
+            "Natur'Adapt — Plan d'adaptation au changement climatique",
+        }
+        assert AutocompleteProtocole.objects.filter(cd_protocole__gt=RNF_BASE).count() == 3
+
+    def test_detail_du_dat(self):
+        from apps.campanule.data_rnf import RNF_BASE
+        from apps.campanule.serializers import CampanuleProtocoleDetailSerializer
+        dat = CampanuleProtocole.objects.get(cd_protocole=RNF_BASE + 1)
+        data = CampanuleProtocoleDetailSerializer(dat).data
+        assert data['prot_auteur'] == 'RNF, LPO'
+        assert 'Connaissance' in data['indicateur']
+        assert data['url'] == 'https://ancrage.reserves-naturelles.org/'
+        assert data['echantillonnages'][0]['duree']
+        assert data['methodes'] and data['techniques']
+
+    def test_liens_sans_parametre_de_suivi(self):
+        """Les liens de l'issue portaient « ?utm_source=… » : retirés."""
+        from apps.campanule.data_rnf import RNF_BASE
+        for p in CampanuleProtocole.objects.filter(cd_protocole__gt=RNF_BASE):
+            for url in (p.url, p.url_complementaire, p.url_perm):
+                assert not url or 'utm_' not in url
+
+    def test_instance_qui_a_deja_mheo_recoit_les_protocoles_rnf(self):
+        """Une instance où MhéO est déjà chargé reçoit les protocoles RNF au
+        démarrage suivant (import sans --force)."""
+        from apps.campanule.data_rnf import RNF_BASE
+        CampanuleProtocole.objects.filter(cd_protocole__gt=RNF_BASE).delete()
+        AutocompleteProtocole.objects.filter(cd_protocole__gt=RNF_BASE).delete()
+        call_command('import_campanule')
+        assert CampanuleProtocole.objects.filter(cd_protocole__gt=RNF_BASE).count() == 3
+        assert AutocompleteProtocole.objects.filter(cd_protocole__gt=RNF_BASE).count() == 3

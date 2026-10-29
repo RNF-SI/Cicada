@@ -258,14 +258,15 @@ class Command(BaseCommand):
         # Vérifier si déjà installé
         if not force and self._is_installed():
             # Le catalogue INPN est déjà chargé : on s'assure au minimum que les
-            # protocoles standardisés MhéO (#565) sont présents, sans recharger
-            # tout le référentiel (idempotent, appliqué au démarrage suivant).
+            # protocoles standardisés hors INPN — MhéO (#565), RNF (#781) — sont
+            # tous présents, sans recharger tout le référentiel (idempotent,
+            # appliqué au démarrage suivant).
             if not self._mheo_installed():
                 with transaction.atomic():
                     self._load_mheo()
                     self._generate_autocomplete_data()
                 self.stdout.write(self.style.SUCCESS(
-                    'Protocoles standardisés MhéO ajoutés.'
+                    'Protocoles standardisés MhéO et RNF ajoutés.'
                 ))
             else:
                 self.stdout.write(self.style.SUCCESS(
@@ -302,13 +303,22 @@ class Command(BaseCommand):
         except Exception:
             return False
 
+    @staticmethod
+    def _protocoles_hors_inpn():
+        """Protocoles standardisés hors catalogue INPN : MhéO (#565), RNF (#781)."""
+        from apps.campanule.data_mheo import MHEO_PROTOCOLES
+        from apps.campanule.data_rnf import RNF_PROTOCOLES
+        return MHEO_PROTOCOLES + RNF_PROTOCOLES
+
     def _mheo_installed(self):
-        """Vérifie si les protocoles standardisés MhéO sont déjà présents."""
-        from apps.campanule.data_mheo import MHEO_BASE
+        """Vérifie que CHAQUE protocole hors INPN est présent : un protocole
+        ajouté depuis (#781) doit être chargé sur une instance qui a déjà les
+        précédents."""
         from apps.campanule.models import CampanuleProtocole
-        return CampanuleProtocole.objects.filter(
-            cd_protocole__gt=MHEO_BASE
-        ).exists()
+        attendus = {p['cd_protocole'] for p in self._protocoles_hors_inpn()}
+        presents = set(CampanuleProtocole.objects.filter(
+            cd_protocole__in=attendus).values_list('cd_protocole', flat=True))
+        return presents == attendus
 
     def _load_mheo(self):
         """
@@ -319,7 +329,7 @@ class Command(BaseCommand):
         (>= MHEO_BASE). L'opération est idempotente : les éventuelles lignes
         MhéO existantes sont d'abord supprimées.
         """
-        from apps.campanule.data_mheo import MHEO_BASE, MHEO_PROTOCOLES
+        from apps.campanule.data_mheo import MHEO_BASE
         from apps.campanule.models import (
             CampanuleProtocole,
             CampanuleProtEchantillonnage,
@@ -329,7 +339,7 @@ class Command(BaseCommand):
             CampanuleProtTechRel,
         )
 
-        self.stdout.write('  Chargement des protocoles standardisés MhéO ...')
+        self.stdout.write('  Chargement des protocoles standardisés MhéO et RNF ...')
 
         # Nettoyage idempotent de la plage MhéO.
         CampanuleProtTechRel.objects.filter(
@@ -350,7 +360,8 @@ class Command(BaseCommand):
         next_technique = MHEO_BASE + 1
         next_ech = MHEO_BASE + 1
 
-        for proto in MHEO_PROTOCOLES:
+        protocoles = self._protocoles_hors_inpn()
+        for proto in protocoles:
             cd_protocole = proto['cd_protocole']
             CampanuleProtocole.objects.create(
                 cd_protocole=cd_protocole, **proto['fields']
@@ -391,7 +402,7 @@ class Command(BaseCommand):
                 next_technique += 1
 
         self.stdout.write(self.style.SUCCESS(
-            f'    {len(MHEO_PROTOCOLES)} protocoles MhéO chargés'
+            f'    {len(protocoles)} protocoles MhéO et RNF chargés'
         ))
 
     def _ensure_schema(self):
