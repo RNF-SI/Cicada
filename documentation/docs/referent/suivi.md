@@ -98,7 +98,7 @@ Le « **Bilan de la gestion** » **synthétise les résultats du suivi du plan d
 Dans les graphiques, les enjeux sont désignés par leur numéro (« Enjeu 1 », « FCR 1 »…), comme dans l'arborescence ; le nom complet s'affiche au survol. Les différents graphiques ou chiffres clefs sont générés automatiquement en fonction des éléments de suivi saisis (suivi des indicateurs via le tableau de bord et suivi des actions de gestion).
 
 - **Onglet Indicateurs** (indicateurs d'état et de pression) : évaluation des indicateurs (répartition des scores), taux de réalisation (indicateurs évalués ou non), évolution de la moyenne (avec minimum, maximum et écart-type) et graphique radar par enjeu / FCR.
-- **Onglet Actions** : budget prévisionnel et réel (détaillé en fonctionnement et investissement si au moins une action du plan ventile par type de budget), jours de RH, taux de réalisation, niveau de réalisation par catégorie d'action, par enjeu et par année.
+- **Onglet Actions** : budget prévisionnel et réel (détaillé en fonctionnement et investissement si au moins une action du plan ventile par type de budget), jours de RH, taux de réalisation, niveau de réalisation par catégorie d'action (grands types CS, IP, CO… : les sous-types comme CS.1.1 sont cumulés sous leur catégorie, dont le nom s'affiche au survol), par enjeu et par année.
 - « **Exporter les résultats** » : les résultats chiffrés (fichier CSV, lisible dans Excel) ou les graphiques (image JPG), selon les filtres en cours.
 
 <figure markdown="span">

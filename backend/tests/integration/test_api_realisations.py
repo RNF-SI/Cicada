@@ -61,7 +61,13 @@ def realisation_test_data(db):
     )
     olt = ObjectifLongTermeFactory(id_enjeu=enjeu, libelle='OLT Test', id_utilisateur_ajout=referent)
     ne = NiveauExigenceFactory(id_olt=olt, libelle='NE Test', id_utilisateur_ajout=referent)
-    indicateur = IndicateurFactory(id_ne=ne, nom_indicateur='Ind Test', id_utilisateur_ajout=referent)
+    # Type fixé : la factory le tire à tour de rôle (réponse comprise), et le
+    # Bilan ne compte que l'état et la pression (#753) — sans cela le résultat
+    # dépendait des tests lancés avant.
+    from tests.factories.enjeux import NomenclatureTypeIndicateurFactory
+    etat = NomenclatureTypeIndicateurFactory(cd_nomenclature='ETAT', mnemonique='ETAT', label='État')
+    indicateur = IndicateurFactory(id_ne=ne, nom_indicateur='Ind Test', type_indicateur=etat,
+                                   id_utilisateur_ajout=referent)
     metrique = MetriqueFactory(id_indicateur=indicateur, nom_metrique='Métrique Test', id_utilisateur_ajout=referent)
 
     operation = OperationFactory(
@@ -649,6 +655,41 @@ class TestRealisationBilanEndpoint:
         cat = response.data['by_categorie_action'][0]
         assert cat['total'] == 1
         assert cat['termine'] == 1
+
+    def test_bilan_categorie_cumule_les_sous_types(self, api_client, realisation_test_data):
+        """#753 (retour 28/10) — une barre par GRAND type (CS, IP…) : CS.1.1,
+        CS.8.3 et la catégorie CS se cumulent ; ni « CS.1.1 » ni « CS.8.3 »."""
+        from tests.factories.core import NomenclatureFactory, TypeNomenclatureFactory
+        t_type = TypeNomenclatureFactory(mnemonique='TYPE_ACTION')
+        t_cat = TypeNomenclatureFactory(mnemonique='CATEGORIE_ACTION_RESERVE')
+        cs = NomenclatureFactory(id_type=t_cat, cd_nomenclature='CS', mnemonique='CS',
+                                 label='Connaissance et suivi continu du patrimoine naturel')
+        plan = realisation_test_data['plan']
+        base = realisation_test_data['operation']
+        base.id_categorie_action_reserve = cs
+        base.save()
+        RealisationOperationAnneeFactory(
+            id_operation_annee=realisation_test_data['op_annee'],
+            id_niveau_realisation=realisation_test_data['niveau_termine'])
+        for code in ('CS.1.1', 'CS.8.3', 'IP.2'):
+            typ = NomenclatureFactory(id_type=t_type, cd_nomenclature=code, mnemonique=code,
+                                      label=f'Type {code}')
+            op = OperationFactory(libelle=f'Action {code}', id_type_action=typ,
+                                  id_categorie_action_reserve=None,
+                                  annee_min=2024, annee_max=2024, ventilation_mode='none',
+                                  metriques=list(base.metriques.all()))
+            oa = OperationAnneeFactory(id_operation=op, annee=2024, periodicite=True)
+            RealisationOperationAnneeFactory(
+                id_operation_annee=oa, id_niveau_realisation=realisation_test_data['niveau_partiel'])
+
+        api_client.force_authenticate(user=realisation_test_data['super_admin'])
+        for portee in ('', '?annee=2024'):
+            data = api_client.get(f'/api/plans/realisations/bilan/{plan.pk}/{portee}').data
+            cats = {c['code']: c for c in data['by_categorie_action']}
+            assert set(cats) == {'CS', 'IP'}, portee
+            assert cats['CS']['total'] == 3
+            assert cats['CS']['label'] == 'Connaissance et suivi continu du patrimoine naturel'
+            assert cats['IP']['total'] == 1
 
     def test_bilan_indicateurs_filtre_par_enjeu(self, api_client, realisation_test_data):
         """#639 — `?enjeu_id=` scope l'onglet Indicateurs du bilan à un seul enjeu.

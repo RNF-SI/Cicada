@@ -825,6 +825,28 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
 # =============================================================================
 
 
+def _grand_type_action(op, libelles):
+    """#753 (retour 28/10) — grand type d'une action pour le Bilan : CS, IP…
+    Les sous-types (« CS.1.1 », « CS.8.3 », Eden 62 « IP1.5 ») se cumulent
+    sous leur catégorie ; libellé lu dans `libelles` ({code: libellé} des
+    catégories CATEGORIE_ACTION_RESERVE), à défaut celui de la nomenclature."""
+    import re
+
+    cat = op.id_categorie_action_reserve or op.id_type_action
+    if not cat:
+        return 'AUTRE', 'Autre'
+    code = cat.cd_nomenclature or cat.mnemonique or ''
+    m = re.match(r'[A-Za-z]+', code)
+    grand = m.group().upper() if m else (code or 'AUTRE')
+    return grand, libelles.get(grand) or (cat.label if grand == code else grand)
+
+
+def _libelles_categories():
+    return dict(Nomenclature.objects
+                .filter(id_type__mnemonique='CATEGORIE_ACTION_RESERVE')
+                .values_list('cd_nomenclature', 'label'))
+
+
 def _scope_realisation_queryset(queryset, user, op_path, lecture=False):
     """
     Scope un queryset de réalisations selon le rôle de l'utilisateur,
@@ -1500,6 +1522,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # 2) Boucle d'agrégation
         by_categorie = defaultdict(_empty_counts)  # { (code, label): counts }
         categorie_meta = {}  # code -> label
+        libelles_cat = _libelles_categories()
         by_enjeu = defaultdict(_empty_counts)      # { enjeu_id: counts }
         plan_enjeu_ids = {e['enjeu_id'] for e in enjeux_plan}
 
@@ -1547,10 +1570,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 key = niveau_map.get(mnemonique, 'inconnu')
                 skey = self._statut_key(bool(oa.periodicite), mnemonique)
 
-                # Catégorie d'action (préfixe CT88 si dispo, sinon TYPE_ACTION)
-                cat = op.id_categorie_action_reserve or op.id_type_action
-                cat_code = (cat.cd_nomenclature or cat.mnemonique or 'AUTRE') if cat else 'AUTRE'
-                cat_label = (cat.label if cat else 'Autre')
+                # #753 — grand type d'action (CS, IP…), sous-types cumulés.
+                cat_code, cat_label = _grand_type_action(op, libelles_cat)
                 categorie_meta[cat_code] = cat_label
                 by_categorie[cat_code][key] += 1
                 by_categorie[cat_code]['total'] += 1
@@ -1660,9 +1681,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                 planifiee = any(oa.periodicite for oa in annees)
                 skey = self._statut_key(planifiee, mnemonique)
 
-                cat = op.id_categorie_action_reserve or op.id_type_action
-                cat_code = (cat.cd_nomenclature or cat.mnemonique or 'AUTRE') if cat else 'AUTRE'
-                categorie_meta[cat_code] = (cat.label if cat else 'Autre')
+                cat_code, cat_label = _grand_type_action(op, libelles_cat)
+                categorie_meta[cat_code] = cat_label
                 by_categorie[cat_code][key] += 1
                 by_categorie[cat_code]['total'] += 1
                 if skey:

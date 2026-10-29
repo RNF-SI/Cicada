@@ -272,7 +272,9 @@ export class PlanBilanComponent implements OnInit {
   /** Barres empilées « par catégorie d'action ». */
   niveauByCategorieBars = computed<BarDatum[]>(() =>
     (this.bilan()?.by_categorie_action || []).map(cat => ({
+      // #753 — grand type (CS, IP…), libellé complet au survol.
       label: cat.code || cat.label,
+      title: cat.label,
       segments: this.buildNiveauSegments(cat),
     })),
   );
