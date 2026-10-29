@@ -24,7 +24,7 @@ import {
 } from '../../../shared/components/filters';
 import { createFilterSet } from '../../../shared/utils/filter-set';
 import {
-  yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+  yearBudgetPrev, yearBudgetReal, yearJoursAgentsPrev, yearJoursAgentsReal,
 } from '../../../shared/utils/operation-budget';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
@@ -755,8 +755,8 @@ export class PlanSuiviActionsComponent implements OnInit {
           hasRealise = true;
         }
       } else {
-        previsionnel += yearJoursPrev(oa, true) ?? 0;
-        const jours = yearJoursReal(oa);
+        previsionnel += yearJoursAgentsPrev(oa, true) ?? 0;
+        const jours = yearJoursAgentsReal(oa);
         if (jours != null) {
           realise += jours;
           hasRealise = true;
@@ -770,7 +770,7 @@ export class PlanSuiviActionsComponent implements OnInit {
     if (globale && period === 'total') {
       previsionnel += metric === 'budget'
         ? yearBudgetPrev(op, globale).total ?? 0
-        : yearJoursPrev(globale, true) ?? 0;
+        : yearJoursAgentsPrev(globale, true) ?? 0;
     }
 
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;

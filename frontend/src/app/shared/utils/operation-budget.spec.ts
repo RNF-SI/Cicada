@@ -8,7 +8,7 @@
 import {
   fonctDetailPrev, investDetailPrev, fonctDetailReal, investDetailReal,
   salarialCost, sumJours, yearBudgetPrev, yearBudgetReal,
-  yearJoursPrev, yearJoursReal,
+  yearJoursPrev, yearJoursReal, yearJoursAgentsPrev, yearJoursAgentsReal,
   salaryOptionAvailable, salaryIsComputed, salaryIsComputedReal, prevAnnees, tempsParPoste, rhModeFor,
 } from './operation-budget';
 
@@ -256,6 +256,35 @@ describe('jours prévus / réalisés (#616)', () => {
     expect(yearJoursReal(global)).toBe(5);
 
     expect(yearJoursReal({ annee: 2027, organismes: [], realisation: null } as any)).toBeNull();
+  });
+});
+
+describe('#775 — jours des agents seuls (synthèses du suivi)', () => {
+  it('écarte le bénévolat / partenariat, prévu et réalisé', () => {
+    const oa: any = {
+      annee: 2027, organismes: [],
+      rh_lignes: [{ jours: '10.00', finance: true }, { jours: '5.00', finance: false }],
+      realisation: { rh_lignes: [{ jours: '8.00', finance: true }, { jours: '2.00', finance: false }] },
+    };
+    expect(yearJoursAgentsPrev(oa, true)).toBe(10);
+    expect(yearJoursAgentsReal(oa)).toBe(8);
+  });
+
+  it('une année de bénévolat seul compte 0 j, sans repli sur etp', () => {
+    const oa: any = {
+      annee: 2027, etp: '4.00', organismes: [],
+      rh_lignes: [{ jours: '5.00', finance: false }],
+      realisation: { etp_realise: '3.00', rh_lignes: [{ jours: '2.00', finance: false }] },
+    };
+    expect(yearJoursAgentsPrev(oa, true)).toBe(0);
+    expect(yearJoursAgentsReal(oa)).toBe(0);
+  });
+
+  it('garde les replis historiques sans lignes RH', () => {
+    const oa: any = { annee: 2027, etp: '4.00', rh_lignes: [], organismes: [],
+      realisation: { etp_realise: '3.00', rh_lignes: [] } };
+    expect(yearJoursAgentsPrev(oa, true)).toBe(4);
+    expect(yearJoursAgentsReal(oa)).toBe(3);
   });
 });
 

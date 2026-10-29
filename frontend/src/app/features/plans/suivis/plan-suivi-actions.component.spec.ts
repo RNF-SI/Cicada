@@ -91,15 +91,20 @@ describe('PlanSuiviActionsComponent — agrégation RH (#569)', () => {
     component.currentYear.set(2026);
   });
 
-  it('somme les jours prévisionnels des lignes RH (rh_lignes) pour l\'année en cours', () => {
+  it('somme les jours prévisionnels des lignes RH d\'agents pour l\'année en cours (#775 : sans bénévolat)', () => {
     const op: any = {
       ventilation_mode: 'none',
       operation_annees: [
-        { annee: 2026, rh_lignes: [{ jours: 5, finance: true }, { jours: 3, finance: false }] },
+        {
+          annee: 2026,
+          rh_lignes: [{ jours: 5, finance: true }, { jours: 3, finance: false }],
+          realisation: { rh_lignes: [{ jours: 4, finance: true }, { jours: 2, finance: false }] },
+        },
       ],
     };
     const cell = component.aggregateEtp(op, 'current');
-    expect(cell.previsionnel).toBe(8);
+    expect(cell.previsionnel).toBe(5);
+    expect(cell.realise).toBe(4);
   });
 
   it('somme les jours réalisés des lignes RH de la réalisation', () => {

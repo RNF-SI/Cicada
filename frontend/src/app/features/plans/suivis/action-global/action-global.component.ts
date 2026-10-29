@@ -18,7 +18,7 @@ import {
 } from '../action-status.util';
 import { computeMetriqueScore, computeCombinedScore, scoreLevelName } from '../metrique-seuils.util';
 import {
-  prevAnnees, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
+  prevAnnees, yearBudgetPrev, yearBudgetReal, yearJoursAgentsPrev, yearJoursAgentsReal,
 } from '../../../../shared/utils/operation-budget';
 
 interface YearRow {
@@ -201,8 +201,8 @@ export class ActionGlobalComponent implements OnInit {
         // #699 — année sans suivi (jamais saisie ou effacée) : « non saisi »,
         // pour ne pas lire un 0 à côté du prévu comme une réalisation.
         budgetReal: saisi ? yearBudgetReal(op, oa).total ?? 0 : null,
-        etpPrev: globale ? null : yearJoursPrev(oa, true) ?? 0,
-        etpReal: saisi ? yearJoursReal(oa) ?? 0 : null,
+        etpPrev: globale ? null : yearJoursAgentsPrev(oa, true) ?? 0,
+        etpReal: saisi ? yearJoursAgentsReal(oa) ?? 0 : null,
         };
       });
   });
@@ -222,7 +222,7 @@ export class ActionGlobalComponent implements OnInit {
     const op = this.operation();
     const rows = this.yearRows();
     return {
-      prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearJoursPrev(oa, true) ?? 0), 0) : 0,
+      prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearJoursAgentsPrev(oa, true) ?? 0), 0) : 0,
       real: sumSaisis(rows.map(r => r.etpReal)),
     };
   });

@@ -100,9 +100,11 @@ describe('ActionGlobalComponent — budget et temps de travail (#616)', () => {
     c.operation.set(actionOrgPoste());
 
     const row = c.yearRows()[0];
-    expect(row.etpPrev).toBe(15);   // 10 j + 5 j de bénévolat, et non 0 j
+    // #775 — temps des agents seuls : 10 j (les 5 j de bénévolat n'entrent pas
+    // dans la synthèse), et non 0 j (#616).
+    expect(row.etpPrev).toBe(10);
     expect(row.etpReal).toBe(8);
-    expect(c.etpTotal()).toEqual({ prev: 15, real: 8 });
+    expect(c.etpTotal()).toEqual({ prev: 10, real: 8 });
   });
 
   it('dérive le budget prévu ET réalisé des coûts saisis', () => {

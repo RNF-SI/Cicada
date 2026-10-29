@@ -378,6 +378,21 @@ export function yearJoursPrev(oa: OperationAnnee, legacyEtp = false): number | n
   return legacyEtp ? num(oa.etp) : null;
 }
 
+/** Lignes de temps des agents : sans bénévolat ni partenariat (#775). */
+const agents = (lignes: readonly OperationRHLigne[]): OperationRHLigne[] =>
+  lignes.filter(l => l.finance !== false);
+
+/**
+ * #775 — jours PRÉVUS des seuls agents, pour les synthèses du suivi : le temps
+ * bénévole / partenaire n'entre pas dans les totaux (comme `CostCell.jours`
+ * des exports). Une année de bénévolat seul compte 0 j, sans repli sur `etp`.
+ */
+export function yearJoursAgentsPrev(oa: OperationAnnee, legacyEtp = false): number | null {
+  const lignes = oa.rh_lignes ?? [];
+  if (lignes.length) return sumJours(agents(lignes));
+  return yearJoursPrev(oa, legacyEtp);
+}
+
 // ---------------------------------------------------------------------------
 // Réalisé
 // ---------------------------------------------------------------------------
@@ -480,4 +495,11 @@ export function yearJoursReal(oa: OperationAnnee): number | null {
     .filter((v): v is number => v != null);
   if (parOrg.length) return parOrg.reduce((a, b) => a + b, 0);
   return num(oa.realisation?.etp_realise);
+}
+
+/** #775 — jours RÉALISÉS des seuls agents (cf. `yearJoursAgentsPrev`). */
+export function yearJoursAgentsReal(oa: OperationAnnee): number | null {
+  const lignes = oa.realisation?.rh_lignes ?? [];
+  if (lignes.length) return sumJours(agents(lignes));
+  return yearJoursReal(oa);
 }
