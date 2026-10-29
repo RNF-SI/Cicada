@@ -193,3 +193,37 @@
 /* Swagger UI dans la charte */
 .swagger-ui .topbar { display: none; }
 .swagger-ui .info .title { color: var(--ccd-primary); font-family: Nunito, sans-serif; }
+
+/* Glossaire (§ 3.7) : des définitions longues, une colonne de termes étroite.
+   Sous la largeur d'une tablette, le tableau à deux colonnes écrase la définition :
+   chaque terme passe alors au-dessus de la sienne. */
+.md-typeset .glossaire .md-typeset__table { display: block; }
+.md-typeset .glossaire table:not([class]) { width: 100%; }
+.md-typeset .glossaire td:first-child,
+.md-typeset .glossaire th:first-child { width: 20%; min-width: 9rem; }
+.md-typeset .glossaire em { color: var(--ccd-gray-dark); }
+
+@media screen and (max-width: 44.9375em) {
+  .md-typeset .glossaire thead { display: none; }
+  .md-typeset .glossaire .md-typeset__table { overflow: visible; }
+  .md-typeset .glossaire table:not([class]),
+  .md-typeset .glossaire tbody,
+  .md-typeset .glossaire tr,
+  .md-typeset .glossaire td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .md-typeset .glossaire tr {
+    border-bottom: 1px solid var(--ccd-gray-light);
+    padding: 0.6em 0;
+  }
+  .md-typeset .glossaire td { border: 0; padding: 0.1em 0; }
+  .md-typeset .glossaire td:first-child {
+    /* `width` l'emporte ici sur la règle large (même spécificité, déclarée après) */
+    width: 100%;
+    min-width: 0;
+    color: var(--ccd-primary);
+    font-size: 1.05em;
+  }
+}
