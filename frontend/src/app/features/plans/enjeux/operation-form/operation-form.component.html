@@ -290,7 +290,7 @@
                 <span class="required-star">*</span></label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
                 <mat-label></mat-label>
-                <mat-select formControlName="objectif_principal">
+                <mat-select formControlName="objectif_principal" panelClass="grouped-select-panel">
                   <mat-option [value]="''">—</mat-option>
                   @for (group of objectifGroups(); track group.groupLabel) {
                     @if (group.groupLabel) {
@@ -313,7 +313,7 @@
                 <label class="app-mat-label">{{ 'enjeux.operations.objectifSecondaire' | translate }}</label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
                   <mat-label></mat-label>
-                  <mat-select formControlName="objectif_secondaire">
+                  <mat-select formControlName="objectif_secondaire" panelClass="grouped-select-panel">
                     <mat-option [value]="''">—</mat-option>
                     @for (group of objectifGroups(); track group.groupLabel) {
                       @if (group.groupLabel) {

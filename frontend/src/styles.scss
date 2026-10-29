@@ -880,9 +880,11 @@ body.leaflet-map-fullscreen-active {
 // Type d'action autocomplete (overlay CDK — doit être global)
 // Utilisé dans : operation-form, inventaire-form
 // ════════════════════════════════════════════════════════════════
-.type-action-autocomplete {
-  max-height: 400px;
-
+// #488 — les titres de groupe des sélecteurs groupés (« Objectif principal »,
+// « Objectif secondaire ») reprennent ceux du type d'action : bleu-vert, en
+// capitales, collants en haut de la liste au défilement.
+.type-action-autocomplete,
+.grouped-select-panel {
   .mat-mdc-optgroup-label {
     font-weight: 700;
     font-size: 13px;
@@ -903,6 +905,10 @@ body.leaflet-map-fullscreen-active {
     top: 0;
     z-index: 2;
   }
+}
+
+.type-action-autocomplete {
+  max-height: 400px;
 
   .mat-mdc-option {
     min-height: 36px;

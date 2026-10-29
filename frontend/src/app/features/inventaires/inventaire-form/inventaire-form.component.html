@@ -143,7 +143,7 @@
             <label class="app-mat-label">{{ 'inventaires.form.objectifPrincipal' | translate }} <span class="required-star">*</span></label>
       <mat-form-field class="app-mat-form-field" appearance="outline">
               <mat-label></mat-label>
-              <mat-select formControlName="objectif_principal">
+              <mat-select formControlName="objectif_principal" panelClass="grouped-select-panel">
                 <mat-select-trigger>
                   {{ getObjectifDisplayLabel($safeNavigationMigration(form.get('objectif_principal')?.value)) }}
                 </mat-select-trigger>
@@ -173,7 +173,7 @@
               <label class="app-mat-label">{{ 'inventaires.form.objectifSecondaire' | translate }}</label>
       <mat-form-field class="app-mat-form-field" appearance="outline">
                 <mat-label></mat-label>
-                <mat-select formControlName="objectif_secondaire">
+                <mat-select formControlName="objectif_secondaire" panelClass="grouped-select-panel">
                   <mat-select-trigger>
                     {{ getObjectifDisplayLabel($safeNavigationMigration(form.get('objectif_secondaire')?.value)) }}
                   </mat-select-trigger>
