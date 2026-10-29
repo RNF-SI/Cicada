@@ -248,7 +248,8 @@ AUTH_USER_MODEL = 'users.Role'
 # REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # #771 — JWT + « dernière activité » de l'utilisateur.
+        'apps.authentication.activite.JWTAuthentificationActivite',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -286,7 +287,8 @@ SIMPLE_JWT = {
 # Django REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # #771 — JWT + « dernière activité » de l'utilisateur.
+        'apps.authentication.activite.JWTAuthentificationActivite',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',

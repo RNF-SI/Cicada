@@ -130,9 +130,9 @@ class RoleListSerializer(serializers.ModelSerializer):
         fields = [
             'id_role', 'email', 'identifiant', 'nom_role', 'prenom_role', 'nom_complet',
             'role_level', 'organisme', 'active', 'is_staff', 'date_insert',
-            'sites_lies', 'plans_referent', 'last_login'
+            'sites_lies', 'plans_referent', 'last_login', 'derniere_activite'
         ]
-        read_only_fields = ['id_role', 'date_insert', 'last_login']
+        read_only_fields = ['id_role', 'date_insert', 'last_login', 'derniere_activite']
 
 
 class PermissionsInfoSchema(serializers.Serializer):
@@ -178,12 +178,12 @@ class RoleDetailSerializer(serializers.ModelSerializer):
             'role_level', 'organisme', 'uuid_organisme', 'desc_role',
             'identifiant', 'remarques', 'active', 'is_staff', 'is_superuser',
             'sites_lies', 'plans_referent', 'permissions_info', 'date_insert', 'date_update',
-            'last_login',
+            'last_login', 'derniere_activite',
             # RGPD fields
             'deletion_requested_at', 'is_anonymized', 'anonymized_at'
         ]
         read_only_fields = [
-            'id_role', 'date_insert', 'date_update', 'last_login',
+            'id_role', 'date_insert', 'date_update', 'last_login', 'derniere_activite',
             'deletion_requested_at', 'is_anonymized', 'anonymized_at'
         ]
     

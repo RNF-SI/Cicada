@@ -146,6 +146,12 @@ class Role(AbstractUser):
         _("CGU acceptées le"), null=True, blank=True,
         help_text=_("Date à laquelle l'utilisateur a accepté les conditions générales d'utilisation")
     )
+    # #771 — dernier passage sur CICADA (requête API authentifiée), à 15 min
+    # près : la session JWT se rafraîchit seule, `last_login` ne bouge plus.
+    derniere_activite = models.DateTimeField(
+        _("Dernière activité"), null=True, blank=True,
+        help_text=_("Dernière requête authentifiée, à 15 minutes près (hors impersonation)")
+    )
     date_insert = models.DateTimeField(auto_now_add=True)
     date_update = models.DateTimeField(auto_now=True)
     

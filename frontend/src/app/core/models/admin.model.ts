@@ -208,6 +208,8 @@ export interface AdminUser {
   role_level: 'utilisateur' | 'admin_og' | 'super_admin';
   active: boolean;
   last_login?: string;
+  /** #771 — dernier passage sur CICADA (à 15 min près). */
+  derniere_activite?: string | null;
   sites_lies?: UserSiteRelation[];
   plans_referent?: UserPlanRelation[];
   // RGPD fields

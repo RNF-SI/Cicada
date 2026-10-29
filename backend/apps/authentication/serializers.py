@@ -235,9 +235,9 @@ class UserInfoSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'nom_role', 'prenom_role', 'identifiant',
             'niveau_role', 'is_staff', 'is_active', 'is_referent', 'organisme',
-            'date_insert', 'last_login', 'cgu_a_accepter', 'cgu_acceptees_le'
+            'date_insert', 'last_login', 'derniere_activite', 'cgu_a_accepter', 'cgu_acceptees_le'
         ]
-        read_only_fields = ['id', 'date_insert', 'last_login', 'cgu_acceptees_le']
+        read_only_fields = ['id', 'date_insert', 'last_login', 'derniere_activite', 'cgu_acceptees_le']
 
     def get_is_referent(self, obj) -> bool:
         """Retourne True si l'utilisateur est referent d'au moins un site ou plan."""

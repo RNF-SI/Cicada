@@ -76,6 +76,17 @@ interface DisplayOrganisme {
   nom: string;
 }
 
+/**
+ * #771 — « Dernière activité » : le dernier passage sur CICADA (la session se
+ * rafraîchit seule, la dernière connexion ne bouge plus). Un compte pas revu
+ * depuis la mise à jour retombe sur sa dernière connexion.
+ */
+export function derniereActivite(
+  user: { derniere_activite?: string | null; last_login?: string | null },
+): string | null {
+  return user.derniere_activite || user.last_login || null;
+}
+
 @Component({
   selector: 'app-admin-users',
   standalone: true,
@@ -287,6 +298,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       if (daysUntilDeletion < 0) daysUntilDeletion = 0;
     }
 
+    const activite = derniereActivite(user);
     return {
       id: user.id_role,
       email: user.email,
@@ -298,7 +310,7 @@ export class AdminUsersComponent implements OnInit, OnDestroy {
       organismeUuid: user.organisme?.uuid_organisme,
       role: user.role_level,
       isActive: user.active,
-      lastLogin: user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR') : undefined,
+      lastLogin: activite ? new Date(activite).toLocaleDateString('fr-FR') : undefined,
       sites,
       plans,
       deletionRequestedAt: user.deletion_requested_at,
