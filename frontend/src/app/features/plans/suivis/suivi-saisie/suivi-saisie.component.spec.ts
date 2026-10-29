@@ -282,9 +282,64 @@ describe('SuiviSaisieComponent — lignes RH (#560)', () => {
 
     it('gabarit : ni ajout ni suppression de ligne, ni sous-totaux agent / partenaire', () => {
       const html = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
-      expect(html).toMatch(/@if \(!formVerrouille\(\) && !rhTotalUnique\(\)\) \{\s*<button type="button" class="rh-remove-btn"/);
+      // #783 — ni sur la ligne de rappel d'un prévu sans poste.
+      expect(html).toMatch(/@if \(!formVerrouille\(\) && !rhTotalUnique\(\) && !ctrl\.value\.reference\) \{\s*<button type="button" class="rh-remove-btn"/);
       expect(html).toMatch(/@if \(!formVerrouille\(\) && !rhTotalUnique\(\)\) \{\s*<div class="rh-controls">/);
       expect(html).toMatch(/@if \(!rhTotalUnique\(\)\) \{\s*<tr class="rh-subtotal-row">/);
+    });
+  });
+
+  describe('#783 — temps programmé sans poste, suivi décliné par poste', () => {
+    const TOTAL = { id_operation_annee_rh: 31, id_poste: null, id_organisme: null, jours: '31.00', finance: true, categorie_depense: 'fonctionnement' };
+    function posteComp(): any {
+      const c = rhComp();
+      c.operation.set({ ventilation_mode: 'none', declinaison_par_type_cout: false,
+        declinaison_par_poste: false, declinaison_par_poste_realise: true });
+      return c;
+    }
+
+    it('le prévu reste sur une ligne de rappel, pas sur la ligne de poste', () => {
+      const c = posteComp();
+      expect(c.computeRhMode()).toBe('postes');
+      c.hydrateRhArray({ rh_lignes: [TOTAL], realisation: null });
+      expect(c.rhLignesFA.length).toBe(2);
+      const rappel = c.rhLignesFA.at(0).value;
+      expect(rappel.reference).toBe(true);
+      expect(Number(rappel.plan_jours)).toBe(31);
+      const saisie = c.rhLignesFA.at(1).value;
+      expect(saisie.reference).toBeFalsy();
+      expect(saisie.plan_jours).toBeNull();
+      expect(saisie.id_poste).toBeNull();
+      // Le TOTAL prévu compte toujours les 31 j.
+      expect(c.sumRh('plan_jours')).toBe(31);
+    });
+
+    it('un réalisé déjà rattaché au prévu passe sur sa ligne de poste', () => {
+      const c = posteComp();
+      c.hydrateRhArray({
+        rh_lignes: [TOTAL],
+        realisation: { rh_lignes: [{ ...TOTAL, id_poste: 7, jours: '12.00' }] },
+      });
+      expect(c.rhLignesFA.length).toBe(2);
+      expect(c.rhLignesFA.at(1).value.id_poste).toBe(7);
+      expect(c.rhLignesFA.at(1).value.jours).toBe('12.00');
+      expect(c.rhLignesFA.at(1).value.plan_jours).toBeNull();
+    });
+
+    it('la ligne de rappel n\'est jamais envoyée', () => {
+      const c = posteComp();
+      c.hydrateRhArray({ rh_lignes: [TOTAL], realisation: null });
+      c.rhLignesFA.at(1).patchValue({ id_poste: 7, jours: 10 });
+      const lignes = c.rhLignesAEnvoyer();
+      expect(lignes.length).toBe(1);
+      expect(lignes[0].id_poste).toBe(7);
+    });
+
+    it('un prévu par poste reste sur sa ligne', () => {
+      const c = posteComp();
+      c.hydrateRhArray({ rh_lignes: [P1], realisation: null });
+      expect(c.rhLignesFA.length).toBe(1);
+      expect(c.rhLignesFA.at(0).value.plan_jours).toBe('8.00');
     });
   });
 

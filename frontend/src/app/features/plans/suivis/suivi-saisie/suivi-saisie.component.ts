@@ -1460,10 +1460,31 @@ export class SuiviSaisieComponent implements OnInit {
     // sans prévu annuel à rappeler.
     const globale = this.isGlobale();
     const prevus = globale ? this.globalRow()?.rh_lignes ?? [] : oa.rh_lignes ?? [];
+    // #783 — suivi décliné par poste d'un temps programmé sans poste (total ou
+    // par organisme) : ce prévu n'appartient à aucun poste. Il reste sur une
+    // ligne de rappel, en lecture seule, et le réalisé se saisit par poste.
+    const parPoste = this.computeRhMode() === 'postes';
+    let rappels = 0;
     for (const prev of prevus) {
       const reel = prev.id_operation_annee_rh != null
         ? reelParPrevu.get(prev.id_operation_annee_rh)
         : undefined;
+      if (parPoste && !globale && prev.id_poste == null) {
+        rappels++;
+        fa.push(this.fb.group({
+          reference: [true],
+          id_operation_annee_rh: [prev.id_operation_annee_rh ?? null],
+          id_poste: [null],
+          id_organisme: [prev.id_organisme ?? null],
+          finance: [!!prev.finance],
+          categorie_depense: [this.rhCategorie(prev) ?? this.categorieFromFinance(!!prev.finance)],
+          plan_jours: [prev.jours ?? null],
+          plan_finance: [!!prev.finance],
+          jours: [null],
+        }));
+        if (reel) fa.push(this.rhReelGroup(reel, prev.id_operation_annee_rh ?? null));
+        continue;
+      }
       // La cible affichée est celle du réel dès qu'il existe (le suivi peut
       // l'avoir ré-attribuée) ; sinon on propose celle du prévisionnel.
       const source = reel ?? prev;
@@ -1493,17 +1514,49 @@ export class SuiviSaisieComponent implements OnInit {
 
     for (const reel of reelles) {
       if (reel.id_operation_annee_rh != null) continue;
-      fa.push(this.fb.group({
-        id_operation_annee_rh: [null],
-        id_poste: [reel.id_poste ?? null],
-        id_organisme: [reel.id_organisme ?? null],
-        finance: [!!reel.finance],
-        categorie_depense: [this.rhCategorie(reel) ?? this.categorieFromFinance(!!reel.finance)],
-        plan_jours: [null],
-        plan_finance: [!!reel.finance],
-        jours: [reel.jours ?? null],
-      }));
+      fa.push(this.rhReelGroup(reel, null));
     }
+    // #783 — une ligne de poste à remplir sous le rappel, si aucune n'existe.
+    if (rappels && fa.length === rappels) this.addRhLigne();
+  }
+
+  /** Ligne de temps réalisé sans prévu à rappeler (non prévu, ou #783). */
+  private rhReelGroup(reel: OperationRHLigne, idPrevu: number | null): FormGroup {
+    return this.fb.group({
+      id_operation_annee_rh: [idPrevu],
+      id_poste: [reel.id_poste ?? null],
+      id_organisme: [reel.id_organisme ?? null],
+      finance: [!!reel.finance],
+      categorie_depense: [this.rhCategorie(reel) ?? this.categorieFromFinance(!!reel.finance)],
+      plan_jours: [null],
+      plan_finance: [!!reel.finance],
+      jours: [reel.jours ?? null],
+    });
+  }
+
+  /**
+   * Lignes de temps réalisé envoyées à l'API (« replace-all ») : les lignes
+   * vides et les rappels du prévu (#783) sont écartés.
+   */
+  rhLignesAEnvoyer() {
+    return this.rhLignesFA.controls
+      .filter(c => !c.value.reference)
+      .map(c => {
+        const val = c.value as any;
+        return {
+          id_operation_annee_rh: val.id_operation_annee_rh ?? null,
+          id_poste: val.id_poste ?? null,
+          id_organisme: val.id_organisme ?? null,
+          jours: val.jours ?? null,
+          finance: !!val.finance,
+          // #608 — conserver la catégorie pour le calcul du coût salarial réalisé.
+          categorie_depense: val.categorie_depense ?? 'fonctionnement',
+        };
+      })
+      // Une ligne sans cible reste valide (« temps non affecté »). Seul le
+      // nombre de jours est discriminant : les lignes laissées vides ne sont
+      // pas enregistrées.
+      .filter(l => l.jours != null);
   }
 
   /** Catégorie de dépense portée par une ligne RH, ou null si absente (données
@@ -1913,23 +1966,7 @@ export class SuiviSaisieComponent implements OnInit {
     // financé). Indépendant de la ventilation budgétaire par organisme, d'où
     // la position hors du bloc ci-dessus. Sémantique « replace-all » côté API :
     // on envoie l'état complet de l'année, les lignes vides sont écartées.
-    annualPayload.rh_lignes = this.rhLignesFA.controls
-      .map(c => {
-        const val = c.value as any;
-        return {
-          id_operation_annee_rh: val.id_operation_annee_rh ?? null,
-          id_poste: val.id_poste ?? null,
-          id_organisme: val.id_organisme ?? null,
-          jours: val.jours ?? null,
-          finance: !!val.finance,
-          // #608 — conserver la catégorie pour le calcul du coût salarial réalisé.
-          categorie_depense: val.categorie_depense ?? 'fonctionnement',
-        };
-      })
-      // Une ligne sans cible reste valide (« temps non affecté »). Seul le
-      // nombre de jours est discriminant : les lignes laissées vides ne sont
-      // pas enregistrées.
-      .filter(l => l.jours != null);
+    annualPayload.rh_lignes = this.rhLignesAEnvoyer();
 
     // Emprise réalisée : on n'inclut le champ dans le payload que si
     // l'utilisateur l'a modifié localement (sinon on ne touche pas au

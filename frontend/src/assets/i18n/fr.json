@@ -2891,6 +2891,7 @@
           "empty": "Aucun temps de travail prévu pour cette année. Ajoutez une ligne si l'action a mobilisé du temps.",
           "target": "Poste / organisme",
           "globalRowLabel": "Temps de travail total",
+          "rappelNonDecline": "Prévu non décliné par poste : saisissez le réalisé par poste ci-dessous",
           "selectTarget": "Choisir…",
           "selectPoste": "Poste",
           "hintTotal": "Temps de travail réellement consacré à l'action en {{year}}.",

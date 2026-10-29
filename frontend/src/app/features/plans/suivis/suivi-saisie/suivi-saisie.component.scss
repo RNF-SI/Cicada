@@ -580,6 +580,9 @@ textarea.full-width {
     // Rappel du prévu : gris, secondaire, non éditable.
     td.rh-plan-cell { color: $gray-dark; }
 
+    // #783 — rappel d'un prévu sans poste : en retrait, sans saisie.
+    tr.rh-reference-row td { color: $gray-dark; font-style: italic; }
+
     input[type='number'] {
       width: 80px;
       padding: $spacing-xxs $spacing-xs;

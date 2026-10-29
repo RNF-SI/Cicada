@@ -270,9 +270,13 @@
                      champs restaient liés aux contrôles de l'année précédente
                      (saisie reportée d'une année sur l'autre). -->
                 @for (ctrl of rhLignesFA.controls; track ctrl; let li = $index) {
-                  <tr [formGroupName]="li">
+                  <tr [formGroupName]="li" [class.rh-reference-row]="ctrl.value.reference">
                     <td class="rh-target-col">
-                      @if (rhMode() === 'global') {
+                      @if (ctrl.value.reference) {
+                        <!-- #783 — prévu sans poste : rappel, le réalisé se saisit par poste. -->
+                        <span class="rh-line-label">{{ rhLineLabel(ctrl) || ('plans.suivis.saisie.rh.globalRowLabel' | translate) }}</span>
+                        <span class="rh-line-sublabel">{{ 'plans.suivis.saisie.rh.rappelNonDecline' | translate }}</span>
+                      } @else if (rhMode() === 'global') {
                         <!-- Temps total, sans cible (#580). -->
                         <span class="rh-line-label">{{ 'plans.suivis.saisie.rh.globalRowLabel' | translate }}</span>
                       } @else {
@@ -304,6 +308,9 @@
                          déroulant ; « financé » en est dérivé pour les sous-totaux. -->
                     @if (showRhCategorie()) {
                     <td class="rh-categorie-col">
+                      @if (ctrl.value.reference) {
+                        {{ 'plans.rh.categorieDepense.' + ctrl.value.categorie_depense | translate }}
+                      } @else {
                       <mat-select class="rh-categorie-select"
                                   [value]="$safeNavigationMigration(ctrl.get('categorie_depense')?.value)"
                                   (valueChange)="setRhCategorie(ctrl, $event)"
@@ -314,6 +321,7 @@
                           </mat-option>
                         }
                       </mat-select>
+                      }
                     </td>
                     }
                     @if (!isGlobale()) {
@@ -322,11 +330,15 @@
                       </td>
                     }
                     <td class="rh-num-col active">
+                      @if (ctrl.value.reference) {
+                        —
+                      } @else {
                       <input type="number" min="0" step="0.25"
                              formControlName="jours" placeholder="j" />
+                      }
                     </td>
                     <td class="rh-actions-col">
-                      @if (!formVerrouille() && !rhTotalUnique()) {
+                      @if (!formVerrouille() && !rhTotalUnique() && !ctrl.value.reference) {
                         <button type="button" class="rh-remove-btn"
                                 (click)="removeRhLigne(li)"
                                 [title]="'common.actions.delete' | translate">
