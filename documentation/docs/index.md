@@ -40,6 +40,12 @@ Authentification, permissions, API publique des métadonnées des plans et réf�
 
 </div>
 
+La notice d'utilisation est également disponible au format imprimable :
+
+[:material-file-pdf-box: Télécharger la notice (PDF)](assets/notice-utilisation-cicada.pdf){ .notice-pdf download="Notice d'utilisation CICADA.pdf" }
+
+<span class="notice-pdf-mention">Version V4, octobre 2026 — 38 pages, 15 Mo. Le site, lui, suit les évolutions de l'outil : en cas d'écart, c'est lui qui fait foi.</span>
+
 ## Les différents rôles et profils
 
 Le guide utilisateur rassemble quatre notices. Chacune s'adresse à un profil d'utilisateur différent. Les profils sont cumulatifs : un administrateur peut faire tout ce que fait un utilisateur simple, en plus des fonctions propres à son rôle.
@@ -59,56 +65,3 @@ Le guide utilisateur rassemble quatre notices. Chacune s'adresse à un profil d'
 **Les fonctions de base** (se connecter, gérer son profil, recevoir des notifications, consulter des sites et plans, demander un accès) **ne sont décrites qu'une seule fois, dans la [Notice Utilisateur](utilisateur/notice/index.md)**. Les notices suivantes y renvoient et ne détaillent que ce qui est propre à chaque rôle d'administration.
 
 Les développeurs et les intégrateurs (application documentaire tierce, connexion GeoNature, scripts) trouveront leur compte dans la partie [API](api/index.md) ; l'installation et l'exploitation d'une instance sont décrites dans l'[Administration technique](administration/index.md).
-
-## Je veux…
-
-Un index par besoin, qui renvoie vers la section concernée.
-
-<dl class="jeveux" markdown>
-
-<dt>Me connecter ou créer un compte</dt>
-<dd markdown>[Se connecter](utilisateur/notice/se-connecter.md) — connexion, création de compte, déconnexion.</dd>
-
-<dt>Suivre mes demandes d'accès et mes notifications</dt>
-<dd markdown>[L'en-tête : notification, menu et profil](utilisateur/notice/en-tete.md) — cloche de notifications, page Activité, page « Mes demandes ».</dd>
-
-<dt>Accéder à un site ou en créer un</dt>
-<dd markdown>[Rejoindre ou créer un nouveau site](utilisateur/notice/rejoindre-creer-site.md) — recherche d'un site existant, demande d'accès, création avec contour cartographique.</dd>
-
-<dt>Consulter un plan de gestion ou y demander l'accès</dt>
-<dd markdown>[Consulter les plans de gestion](utilisateur/notice/consulter-plans.md) et [Comprendre la structure d'un plan de gestion](utilisateur/notice/structure-plan.md).</dd>
-
-<dt>Rechercher dans les plans de gestion de toutes les structures</dt>
-<dd markdown>[Explorer les données des plans de gestion](utilisateur/notice/exploration.md) — modes de recherche, portée, résultats.</dd>
-
-<dt>Créer un plan de gestion</dt>
-<dd markdown>[Créer un nouveau plan de gestion](referent/creer-plan.md) — informations générales, sites, fil entre les rangs.</dd>
-
-<dt>Reprendre un plan existant depuis Excel</dt>
-<dd markdown>[Le paramétrage du plan › Importer un plan depuis un fichier Excel](referent/parametrage.md#432-importer-un-plan-depuis-un-fichier-excel).</dd>
-
-<dt>Saisir les enjeux, objectifs, indicateurs et actions</dt>
-<dd markdown>[Les enjeux et leur contenu](referent/enjeux.md), [Les indicateurs et les métriques](referent/indicateurs-metriques.md), [Les actions de gestion](referent/actions.md).</dd>
-
-<dt>Valider, prolonger, réviser ou terminer un plan</dt>
-<dd markdown>[Le cycle de vie d'un plan de gestion](referent/cycle-de-vie.md).</dd>
-
-<dt>Renseigner le suivi des indicateurs et des actions</dt>
-<dd markdown>[Le suivi du plan de gestion](referent/suivi.md) — tableau de bord, suivi des actions, bilan de la gestion.</dd>
-
-<dt>Exporter le plan en Word ou Excel</dt>
-<dd markdown>[Les exports du plan](referent/exports.md).</dd>
-
-<dt>Gérer les utilisateurs et les sites de mon organisme</dt>
-<dd markdown>[Notice Administrateur d'organisme](admin-organisme/index.md) — utilisateurs, sites, import en masse, validations, orphelins.</dd>
-
-<dt>Paramétrer mon instance, partager avec l'exploration nationale ou la mettre à jour</dt>
-<dd markdown>[Paramètres de l'instance et mise à jour](admin-instance/parametres.md).</dd>
-
-<dt>Installer, déployer ou exploiter une instance CICADA</dt>
-<dd markdown>[Administration technique](administration/index.md) — installation, infrastructure, hub d'exploration fédérée, releases.</dd>
-
-<dt>Interroger l'API ou brancher une application tierce</dt>
-<dd markdown>[API](api/index.md) — [authentification et permissions](api/authentification.md), [API publique des métadonnées des plans](api/api-publique-plans.md), [référence des endpoints](api/reference.md).</dd>
-
-</dl>

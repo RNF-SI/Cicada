@@ -186,9 +186,20 @@
 .md-typeset .tiles > a.tile--green { background: #E8F5EE; }
 .md-typeset .tiles > a.tile--terra { background: #F7E4E7; }
 
-/* Index « Je veux… » */
-.md-typeset .jeveux dt { font-weight: 700; color: var(--ccd-primary); margin-top: 0.8em; }
-.md-typeset .jeveux dd { margin-left: 1.2em; }
+/* Lien de téléchargement de la notice PDF */
+.md-typeset a.notice-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.6em 1.1em;
+  border: 1px solid var(--ccd-primary);
+  border-radius: 24px;
+  color: var(--ccd-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+.md-typeset a.notice-pdf:hover { background: var(--ccd-primary); color: #fff; }
+.md-typeset .notice-pdf-mention { color: var(--ccd-gray-dark); font-size: 0.8em; }
 
 /* Swagger UI dans la charte */
 .swagger-ui .topbar { display: none; }
