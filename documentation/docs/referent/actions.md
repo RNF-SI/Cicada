@@ -4,7 +4,7 @@
 
 Une action se saisit via son formulaire dédié (bouton « Ajouter une action » ou de modification). Vous y renseignez notamment :
 
-- Le type d'action (obligatoire) choisi dans le référentiel GestRef ; et facultativement la catégorie d'action CT88, si celle-ci est différente de celle du référentiel GestRef ;
+- Le **type d'action** (obligatoire), choisi dans le référentiel **GestRef** — la liste de référence des types d'actions de gestion, organisée en catégories (Connaissance et suivis, Intervention sur le patrimoine, Surveillance et police…) puis en types de plus en plus précis ; il évolue par versions ([§ 4.8.3](#483-les-types-daction-à-actualiser)). Et facultativement la **catégorie d'action CT88**, si celle-ci est différente de celle du référentiel GestRef ;
 - Le code de l'action, calculé automatiquement (ex. CS1) et affiché en direct ; le champ « Numéro fixé » permet d'imposer son numéro ;
 - L'intitulé (s'il reste vide, il est rempli automatiquement avec le type d'action GestRef à l'enregistrement), les métriques associées et la priorité ;
 - Pour une action d'inventaire ou de suivi : les détails de l'inventaire ou du suivi (objectif, cible, taxons ou habitats rattachés), les protocoles et la bancarisation de la donnée ;

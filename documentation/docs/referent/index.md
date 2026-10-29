@@ -15,7 +15,7 @@ Cette notice s'adresse aux personnes chargées de saisir et de suivre un plan de
 
 !!! tip ""
 
-    **Voir la [Partie 3](../utilisateur/notice/index.md)** pour : se connecter, gérer son profil, consulter sites et plans, demander un accès, naviguer au sein d'un plan de gestion.
+    **Voir la [Partie 3](../utilisateur/notice/index.md)** pour : se connecter, gérer son profil, consulter des sites et plans, demander un accès, naviguer au sein d'un plan de gestion.
 
 En tant que référent, vous avez aussi accès à l'espace Administration (lien dans l'en-tête), limité aux pages Validations, Sites et Plans de gestion : vous y traitez notamment les demandes d'accès à vos plans et à vos sites ([§ 5.6, « Traiter les validations »](../admin-organisme/validations.md)).
 

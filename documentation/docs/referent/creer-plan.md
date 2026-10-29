@@ -8,8 +8,8 @@ Deux options de création sont proposées (Figure 25) :
 - « Sur la base d'un PG existant » (dupliquer un plan comme modèle) : vous choisissez ce qui est repris (sites associés, référents, fichiers joints, enjeux et FCR, sous-éléments).
 
 <figure markdown="span">
-![Volet de création d'un nouveau plan de gestion sur la page d'accueil du module « Mes plan de gestion »](../assets/figures/fig25.webp){ loading=lazy }
-<figcaption>Figure 25 : Volet de création d'un nouveau plan de gestion sur la page d'accueil du module « Mes plan de gestion »</figcaption>
+![Volet de création d'un nouveau plan de gestion sur la page d'accueil du module « Mes plans de gestion »](../assets/figures/fig25.webp){ loading=lazy }
+<figcaption>Figure 25 : Volet de création d'un nouveau plan de gestion sur la page d'accueil du module « Mes plans de gestion »</figcaption>
 </figure>
 
 **Le formulaire « Saisie des informations générales » vous demande :**
