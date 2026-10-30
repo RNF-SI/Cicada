@@ -92,6 +92,31 @@ describe('ActualiserTypeDialogComponent (#751)', () => {
     expect(suivi.protocoles[0]).toEqual(expect.objectContaining({ protocole_dans_campanule: false, nom_protocole: 'Local' }));
   });
 
+  it('cible « Espèces » : propose la saisie des taxons et les envoie (retour 30/10)', () => {
+    component.choisirProposition(DATA.options[0]);
+    const taxons = () => fixture.nativeElement.querySelector('[data-testid="actualiser-suivi-taxons"]');
+    fixture.detectChanges();
+    expect(taxons()).toBeNull();
+    component.suiviForm.setValue({ intitule: 'Suivi', objectif_principal: 'OBJ', cibles_principales: 'ESPECES' });
+    fixture.detectChanges();
+    expect(taxons()).not.toBeNull();
+    component.onTaxonsChange([{ cd_nom: 4001, nom_complet: 'Lutra lutra' } as any]);
+    component.protocoleForm.patchValue({ protocole_dans_campanule: false, nom_protocole: 'Local' });
+    service.actualiserType.mockReturnValue(of({}));
+    component.valider();
+    const suivi = service.actualiserType.mock.calls[0][3];
+    expect(suivi.taxon_taxref).toContain('4001');
+    expect(suivi.habitats).toBeUndefined();
+  });
+
+  it('cible « Habitats » : propose la saisie des habitats', () => {
+    component.choisirProposition(DATA.options[0]);
+    component.suiviForm.setValue({ intitule: 'Suivi', objectif_principal: 'OBJ', cibles_principales: 'HABITATS_VEGETATIONS' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="actualiser-suivi-habitats"]')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="actualiser-suivi-taxons"]')).toBeNull();
+  });
+
   it('409 : signale le choix d\'un autre référent sans fermer', () => {
     const conflit = { code: 'type_deja_modifie', detail: '', id_type_action: 10,
                       type_action_label: 'Études des eaux', actualise_par: 'Bob Martin' };

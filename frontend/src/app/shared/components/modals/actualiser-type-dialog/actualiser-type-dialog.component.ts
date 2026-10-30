@@ -16,6 +16,10 @@ import {
   OptionType, ReferentielActionsService, SuiviActualisation, TypeDejaModifie,
 } from '../../../../core/services/referentiel-actions.service';
 import { ProtocoleActionComponent } from '../../../../features/plans/enjeux/operation-form/protocole-action/protocole-action.component';
+import { GeologieRef, HabitatRef, TaxonRef } from '../../../../core/models/enjeu.model';
+import { ReferenceItemListComponent } from '../../reference-item-list/reference-item-list.component';
+import { serializeSuiviHabitats } from '../../../utils/suivi-habitats.utils';
+import { serializeTaxonRefs } from '../../../utils/taxon-ref.utils';
 import {
   buildNomenclatureGroups, displayNomenclatureFn, getNomenclatureDepth, NomenclatureOption,
 } from '../../../utils/nomenclature-autocomplete.utils';
@@ -66,7 +70,7 @@ const estCs = (code: string | null | undefined) => (code || '').startsWith('CS')
   imports: [
     ReactiveFormsModule, MatDialogModule, MatButtonModule, MatAutocompleteModule,
     MatFormFieldModule, MatInputModule, MatRadioModule, MatSelectModule, TranslateModule,
-    ProtocoleActionComponent,
+    ProtocoleActionComponent, ReferenceItemListComponent,
   ],
   templateUrl: './actualiser-type-dialog.component.html',
   styleUrl: './actualiser-type-dialog.component.scss',
@@ -110,6 +114,27 @@ export class ActualiserTypeDialogComponent implements OnInit {
     objectif_principal: ['', Validators.required],
     cibles_principales: ['', Validators.required],
   });
+  /** Retour 30/10 (#776) — taxons / habitats du nouveau suivi, selon la cible. */
+  taxonItems: TaxonRef[] = [];
+  habitatItems: HabitatRef[] = [];
+
+  /** Mêmes règles que le formulaire d'action : cible « Espèces et groupes taxonomiques ». */
+  get showTaxref(): boolean {
+    return this.suiviForm.get('cibles_principales')?.value === 'ESPECES';
+  }
+
+  get showHabitat(): boolean {
+    return this.suiviForm.get('cibles_principales')?.value === 'HABITATS_VEGETATIONS';
+  }
+
+  onTaxonsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
+    this.taxonItems = items as TaxonRef[];
+  }
+
+  onHabitatsChange(items: (TaxonRef | HabitatRef | GeologieRef)[]): void {
+    this.habitatItems = items as HabitatRef[];
+  }
+
   readonly protocoleForm = this.fb.group({
     id_protocole: [null as number | null],
     protocole_dans_campanule: [null as boolean | null, Validators.required],
@@ -194,7 +219,13 @@ export class ActualiserTypeDialogComponent implements OnInit {
       && (!p.protocole_dans_campanule || !!p.cd_protocole_campanule);
     if (this.suiviForm.invalid || !protocoleOk) return null;
     const { id_protocole, ...protocole } = p;
-    return { ...this.suiviForm.getRawValue() as SuiviActualisation, protocoles: [protocole] };
+    return {
+      ...this.suiviForm.getRawValue() as SuiviActualisation,
+      // Taxons / habitats seulement pour la cible qui les demande.
+      ...(this.showTaxref ? { taxon_taxref: serializeTaxonRefs(this.taxonItems) } : {}),
+      ...(this.showHabitat ? serializeSuiviHabitats(this.habitatItems) : {}),
+      protocoles: [protocole],
+    };
   }
 
   readonly suiviIncomplet = signal(false);

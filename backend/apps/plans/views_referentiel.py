@@ -188,6 +188,11 @@ class SuiviActualisationSerializer(serializers.Serializer):
     intitule = serializers.CharField(required=False, allow_blank=True)
     objectif_principal = serializers.CharField(required=False, allow_blank=True)
     cibles_principales = serializers.CharField(required=False, allow_blank=True)
+    # Cible « Espèces » / « Habitats » : taxons et habitats du nouveau suivi,
+    # au format du formulaire d'action (`serializeTaxonRefs`, `serializeSuiviHabitats`).
+    taxon_taxref = serializers.CharField(required=False, allow_blank=True)
+    habitat_ref = serializers.CharField(required=False, allow_blank=True)
+    habitats = serializers.ListField(child=serializers.DictField(), required=False)
     protocoles = serializers.ListField(child=serializers.DictField(), required=False)
 
     def validate(self, data):

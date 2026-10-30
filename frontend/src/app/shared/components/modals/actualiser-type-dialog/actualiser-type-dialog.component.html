@@ -117,6 +117,20 @@
               </mat-select>
             </mat-form-field>
           </div>
+          @if (showTaxref) {
+            <div class="form-group" data-testid="actualiser-suivi-taxons">
+              <label class="app-mat-label">{{ 'enjeux.operations.taxonTaxref' | translate }}</label>
+              <app-reference-item-list type="taxon" [items]="taxonItems"
+                                       (itemsChange)="onTaxonsChange($event)"></app-reference-item-list>
+            </div>
+          }
+          @if (showHabitat) {
+            <div class="form-group" data-testid="actualiser-suivi-habitats">
+              <label class="app-mat-label">{{ 'enjeux.operations.habitatRef' | translate }}</label>
+              <app-reference-item-list type="habitat" [items]="habitatItems"
+                                       (itemsChange)="onHabitatsChange($event)"></app-reference-item-list>
+            </div>
+          }
           <app-protocole-action [group]="protocoleForm"></app-protocole-action>
         }
         @if (suiviIncomplet()) {

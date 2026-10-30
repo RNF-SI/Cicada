@@ -309,6 +309,23 @@ class TestActualisation:
         assert suivi.id_pg == plans['p1']
         assert [p.nom_protocole for p in suivi.protocoles.all()] == ['Protocole local']
 
+    def test_devient_cs_nouveau_suivi_avec_taxons_et_habitats(self, api_client, referentiel, plans):
+        """Retour 30/10 — cible « Espèces » : les taxons saisis dans la fenêtre
+        de choix sont enregistrés sur le nouveau suivi (habitats de même)."""
+        _appliquer(referentiel, envoyer_email=False)
+        cs1 = _type('CS.1')
+        op = plans['op_ei']
+        api_client.force_authenticate(user=plans['alice'])
+        taxons = '[{"cd_nom": 4001, "nom_complet": "Lutra lutra"}]'
+        habitats = [{'cd_hab': '123', 'lb_hab_fr': 'Prairie humide'}]
+        r = self._actualiser(api_client, op, cs1.pk, referentiel['ei3'].pk, suivi={
+            **SUIVI_NOUVEAU, 'taxon_taxref': taxons,
+            'habitat_ref': 'Prairie humide', 'habitats': habitats})
+        assert r.status_code == 200, r.content
+        op.refresh_from_db()
+        assert op.id_suivi.taxon_taxref == taxons
+        assert op.id_suivi.habitats == habitats and op.id_suivi.habitat_ref == 'Prairie humide'
+
     def test_devient_cs_avec_un_suivi_existant(self, api_client, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
         cs1 = _type('CS.1')

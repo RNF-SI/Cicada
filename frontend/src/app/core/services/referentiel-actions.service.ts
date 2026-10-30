@@ -73,6 +73,11 @@ export interface SuiviActualisation {
   intitule?: string;
   objectif_principal?: string;
   cibles_principales?: string;
+  /** Cible « Espèces » : taxons (JSON de `serializeTaxonRefs`). */
+  taxon_taxref?: string;
+  /** Cible « Habitats » : `serializeSuiviHabitats`. */
+  habitat_ref?: string;
+  habitats?: unknown[];
   protocoles?: Record<string, unknown>[];
 }
 
