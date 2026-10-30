@@ -31,7 +31,7 @@ from tests.factories.enjeux import (
     ObjectifLongTermeFactory, OperationFactory, SuiviInventaireFactory,
 )
 from tests.factories.plans import PlanGestionFactory
-from tests.factories.users import RoleFactory
+from tests.factories.users import RoleFactory, SuperAdminFactory
 
 
 def _nom(type_mnemo, code, label=None, actif=True):
@@ -525,3 +525,45 @@ class TestReparationCategoriesReserve:
         # Relancer ne change plus rien.
         r = categories_reserve.reparer()
         assert r['categories_restaurees'] == [] and r['actions_corrigees'] == 0
+
+
+@pytest.mark.django_db
+class TestInstanceEnRetard:
+    """#791 — seule la table du dernier passage est livrée : une instance qui
+    n'est pas dans la version de départ passe sans aide, tout est à actualiser."""
+
+    @pytest.fixture
+    def en_retard(self, referentiel):
+        from apps.plans.models_referentiel import VersionReferentielActions
+        # L'instance est restée sur une version plus ancienne que `depuis`.
+        VersionReferentielActions.objects.create(
+            code='EDEN61', libelle='Eden 61', referentiel=ref.REFERENTIEL_TYPES_ACTION,
+            courante=True, lignes=[])
+        return referentiel
+
+    def test_simulation_annonce_le_retard(self, en_retard, plans):
+        r = ref.simuler(ref.charger_version(en_retard['nom']))
+        assert r['sans_table'] is True
+        assert r['en_service'] == 'EDEN61'
+        assert r['actions'].get('sure', 0) == 0 and r['actions'].get('probable', 0) == 0
+        assert r['actions']['a_arbitrer'] == 6
+
+    def test_passage_sans_aide(self, en_retard, plans):
+        _appliquer(en_retard, envoyer_email=False)
+        plans['op_sure'].refresh_from_db()
+        # Rien n'est changé automatiquement, aucune proposition.
+        assert plans['op_sure'].id_type_action == en_retard['cs14']
+        objets = PassageReferentielObjet.objects.filter(operation__isnull=False)
+        assert set(objets.values_list('statut', flat=True)) == {'a_actualiser'}
+        assert all(o.options == [] and not o.suggestion_code for o in objets)
+        assert ref.version_courante().code == 'TEST_V1'
+
+    def test_accepter_toutes_les_propositions_n_accepte_rien(self, en_retard, plans):
+        _appliquer(en_retard, envoyer_email=False)
+        bilan = ref.accepter_propositions(SuperAdminFactory())
+        assert bilan['acceptees'] == 0
+
+    def test_version_deja_en_service_refusee(self, referentiel, plans):
+        _appliquer(referentiel, envoyer_email=False)
+        with pytest.raises(ref.ReferentielErreur):
+            ref.simuler(ref.charger_version(referentiel['nom']))

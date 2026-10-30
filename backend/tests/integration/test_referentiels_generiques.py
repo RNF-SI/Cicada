@@ -174,3 +174,32 @@ class TestApi:
         r = api_client.post('/api/plans/referentiels/accepter-propositions/',
                             {'referentiel': 'HABREF'}, format='json')
         assert r.data == {'acceptees': 0, 'plusieurs_options': 1, 'suivi_requis': 0}
+
+
+@pytest.mark.django_db
+class TestInstanceEnRetard:
+    """#791 — version en service ≠ `depuis` : passage sans aide."""
+
+    def test_pressref_tout_a_actualiser(self, donnees):
+        from apps.plans.models_referentiel import VersionReferentielActions
+        VersionReferentielActions.objects.create(code='PRESSREF_CARET_V0', libelle='CARET V0',
+                                                 referentiel='PRESSREF', courante=True, lignes=[])
+        ref = moteur.referentiel('PRESSREF')
+        r = moteur.simuler(ref, moteur.charger(ref, 'v2'))
+        assert r['sans_table'] is True
+        assert r['objets'] == {'a_arbitrer': 2}          # 1.2 (dans la table) et 2.1 (absent de V2)
+        _appliquer('PRESSREF', 'v2')
+        p = Pression.objects.get(pk=donnees['pressions']['1.2'].pk)
+        assert p.id_type_pression.cd_nomenclature == '1.2'
+        objets = PassageReferentielObjet.objects.filter(cible='pression')
+        assert set(objets.values_list('statut', flat=True)) == {'a_actualiser'}
+        assert all(o.options == [] for o in objets)
+
+    def test_taxref_sans_proposition(self, donnees):
+        from apps.plans.models_referentiel import VersionReferentielActions
+        VersionReferentielActions.objects.create(code='TAXREF_V17', libelle='TaxRef v17',
+                                                 referentiel='TAXREF', courante=True, lignes=[])
+        _appliquer('TAXREF', 'v19')
+        cds = sorted(CorEnjeuTaxon.objects.filter(id_enjeu=donnees['enjeu']).values_list('cd_nom', flat=True))
+        assert cds == [100, 101, 102]                      # aucune fusion automatique
+        assert PassageReferentielObjet.objects.filter(cible='enjeu_taxon', statut='a_actualiser').count() == 3

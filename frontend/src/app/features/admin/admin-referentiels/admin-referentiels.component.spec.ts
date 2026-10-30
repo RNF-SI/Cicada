@@ -17,7 +17,7 @@ const ETAT: EtatReferentiel[] = [{
   code: 'TYPE_ACTION', libelle: "Types d'action (Gestref)",
   en_service: { code: 'EDEN62', libelle: 'Codification unique Eden 62' },
   versions: [{ nom: 'gestref_v1', code: 'GESTREF_V1', libelle: 'Gestref V1', depuis: 'EDEN62',
-               applicable: true, en_service: false }],
+               applicable: true, en_service: false, sans_table: false }],
   passage: null,
 }];
 
@@ -58,5 +58,18 @@ describe('AdminReferentielsComponent (#777)', () => {
     component.appliquer(ETAT[0], ETAT[0].versions[0]);
     expect(dialog.open).toHaveBeenCalled();
     expect(service.passageAdmin).toHaveBeenCalledWith('TYPE_ACTION', 'appliquer', 'gestref_v1', true);
+  });
+
+  it('#791 — instance en retard : avertissement, passage toujours possible', () => {
+    const avertissement = () => fixture.nativeElement.querySelector('[data-testid="referentiel-sans-table"]');
+    expect(avertissement()).toBeNull();
+    service.etatAdmin.mockReturnValue(of({ referentiels: [{
+      ...ETAT[0], en_service: { code: 'EDEN61', libelle: 'Eden 61' },
+      versions: [{ ...ETAT[0].versions[0], sans_table: true }],
+    }] }));
+    fixture = TestBed.createComponent(AdminReferentielsComponent);
+    fixture.detectChanges();
+    expect(avertissement()).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="referentiel-simuler"]')).not.toBeNull();
   });
 });

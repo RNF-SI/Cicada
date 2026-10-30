@@ -109,6 +109,8 @@ export interface VersionDisponible {
   depuis: string;
   applicable: boolean;
   en_service: boolean;
+  /** #791 — l'instance n'est pas dans la version de départ : passage sans correspondance. */
+  sans_table: boolean;
 }
 
 export interface EtatReferentiel {
@@ -126,6 +128,8 @@ export interface EtatReferentiel {
 export interface RapportPassage {
   depuis: string;
   vers: string;
+  en_service?: string;
+  sans_table?: boolean;
   actions?: Record<string, number>;
   objets?: Record<string, number>;
   suivis?: Record<string, number>;

@@ -62,6 +62,10 @@ class Definition:
     depuis: str
     lignes: list = field(default_factory=list)          # [(code, libelle)]
     correspondance: dict = field(default_factory=dict)
+    # #791 — posés par `_depart()` : version en service, et passage sans table
+    # quand elle n'est pas `depuis` (instance en retard).
+    en_service: str = ''
+    sans_table: bool = False
 
     @property
     def codes(self) -> set:
@@ -247,10 +251,19 @@ def _releve_initiale(ref: Referentiel) -> VersionReferentielActions:
     return v
 
 
+NOTE_SANS_TABLE = ("Instance en retard de plusieurs versions : aucune correspondance "
+                   "automatique, le nouveau code est à choisir")
+
+
 def _depart(ref: Referentiel, d: Definition) -> VersionReferentielActions | None:
+    """#791 — seule la table du dernier passage est livrée : une instance qui
+    n'est pas dans la version `depuis` passe sans aide (`d.sans_table`). Seul
+    un passage vers la version déjà en service est refusé."""
     code = version_en_service(ref)[0]
-    if code != d.depuis:
-        raise ReferentielErreur(f"{d.code} part de {d.depuis}, or la version en service est {code}.")
+    if code == d.code:
+        raise ReferentielErreur(f"{d.libelle} est déjà la version en service.")
+    d.en_service = code
+    d.sans_table = code != d.depuis
     return version_courante(ref)
 
 
@@ -318,10 +331,17 @@ def reappliquer_versions_courantes() -> list[str]:
 # ---------------------------------------------------------------------------
 
 def _correspondance(d: Definition, ref: Referentiel, code: str) -> Correspondance | None:
-    """Ce qui arrive à un code : None = inchangé."""
+    """Ce qui arrive à un code : None = inchangé.
+
+    Sans table (#791), un code cité par la table ou absent de la nouvelle
+    version est à actualiser, sans proposition."""
+    absent = bool(d.lignes) and code not in d.codes and bool(ref.nomenclature)
+    if d.sans_table:
+        return Correspondance('', 'a_arbitrer', NOTE_SANS_TABLE) if (
+            code in d.correspondance or absent) else None
     if code in d.correspondance:
         return d.correspondance[code]
-    if d.lignes and code not in d.codes and ref.nomenclature:
+    if absent:
         return Correspondance('', 'a_arbitrer', "Code absent de la table de correspondance")
     return None
 
@@ -347,6 +367,7 @@ def simuler(ref: Referentiel, d: Definition) -> dict:
     return {
         'referentiel': ref.code,
         'depuis': d.depuis, 'vers': d.code, 'libelle': d.libelle,
+        'en_service': d.en_service, 'sans_table': d.sans_table,
         'objets': dict(Counter(c.confiance for _o, c in prevus)),
         'par_cible': {k: dict(v) for k, v in par_cible.items()},
         'a_arbitrer_par_code': Counter(o.code for o, c in prevus if c.confiance == 'a_arbitrer').most_common(),

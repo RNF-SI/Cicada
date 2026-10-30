@@ -105,6 +105,10 @@ class DefinitionVersion:
     types: list = field(default_factory=list)          # [(code, libelle)]
     correspondance: dict = field(default_factory=dict)  # ancien_code → Correspondance
     exclues: list = field(default_factory=list)
+    # #791 — posés par `version_de_depart()` : version en service, et passage
+    # sans table quand elle n'est pas `depuis` (instance en retard).
+    en_service: str = ''
+    sans_table: bool = False
 
     @property
     def codes_types(self) -> set:
@@ -229,13 +233,25 @@ def _releve_version_initiale() -> VersionReferentielActions:
     return version
 
 
+NOTE_SANS_TABLE = ("Instance en retard de plusieurs versions : aucune correspondance "
+                   "automatique, le nouveau type est à choisir")
+
+
 def version_de_depart(definition: DefinitionVersion) -> VersionReferentielActions:
+    """Version en service avant le passage.
+
+    #791 — seule la table du dernier passage (`depuis` → version) est livrée.
+    Une instance restée sur une version plus ancienne passe quand même, mais
+    sans aide : `definition.sans_table`, tout code absent de la nouvelle
+    version est à actualiser, sans proposition. Seul un passage vers la version
+    déjà en service est refusé.
+    """
     courante = version_courante()
     code_courant = courante.code if courante else VERSION_INITIALE
-    if code_courant != definition.depuis:
-        raise ReferentielErreur(
-            f"{definition.code} part de {definition.depuis}, or la version en service est "
-            f"{code_courant}.")
+    if code_courant == definition.code:
+        raise ReferentielErreur(f"{definition.libelle} est déjà la version en service.")
+    definition.en_service = code_courant
+    definition.sans_table = code_courant != definition.depuis
     return courante
 
 
@@ -404,6 +420,8 @@ def _correspondance(definition, ancien_type) -> Correspondance:
     if code in definition.codes_types:
         # Type repris tel quel par la nouvelle version (V1 → V2).
         return Correspondance(code, PassageReferentielObjet.CONFIANCE_SURE, options=[code])
+    if definition.sans_table:
+        return Correspondance('', PassageReferentielObjet.CONFIANCE_A_ARBITRER, NOTE_SANS_TABLE)
     return definition.correspondance.get(code) or Correspondance(
         '', PassageReferentielObjet.CONFIANCE_A_ARBITRER, "Code absent de la table de correspondance")
 
@@ -446,6 +464,8 @@ def simuler(definition: DefinitionVersion) -> dict:
     return {
         'depuis': definition.depuis,
         'vers': definition.code,
+        'en_service': definition.en_service,
+        'sans_table': definition.sans_table,
         'types': len(definition.types),
         'categories': [c for c, _l in definition.categories],
         'exclues': definition.exclues,

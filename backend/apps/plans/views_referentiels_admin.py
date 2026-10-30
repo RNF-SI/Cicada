@@ -71,6 +71,14 @@ def _passage_courant(code):
             .select_related('source', 'cible').first())
 
 
+def _etat_version(v: dict, en_service: str) -> dict:
+    """#791 — toute version autre que celle en service s'applique ; elle passe
+    sans table de correspondance si l'instance n'est pas dans sa version de
+    départ (`sans_table`)."""
+    return {**v, 'applicable': v['code'] != en_service, 'en_service': v['code'] == en_service,
+            'sans_table': v['code'] != en_service and v['depuis'] != en_service}
+
+
 def etat() -> list[dict]:
     lignes = []
     courante = ra.version_courante()
@@ -79,8 +87,7 @@ def etat() -> list[dict]:
     lignes.append({
         'code': TYPES_ACTION, 'libelle': "Types d'action (Gestref)",
         'en_service': {'code': code_ta, 'libelle': libelle_ta},
-        'versions': [{**v, 'applicable': v['depuis'] == code_ta, 'en_service': v['code'] == code_ta}
-                     for v in _versions_types_action()],
+        'versions': [_etat_version(v, code_ta) for v in _versions_types_action()],
         'passage': _progression(_passage_courant(TYPES_ACTION)),
     })
     for ref in moteur.REFERENTIELS.values():
@@ -88,8 +95,7 @@ def etat() -> list[dict]:
         lignes.append({
             'code': ref.code, 'libelle': ref.libelle,
             'en_service': {'code': code, 'libelle': libelle},
-            'versions': [{**v, 'applicable': v['depuis'] == code, 'en_service': v['code'] == code}
-                         for v in _versions_generiques(ref)],
+            'versions': [_etat_version(v, code) for v in _versions_generiques(ref)],
             'passage': _progression(_passage_courant(ref.code)),
         })
     return lignes

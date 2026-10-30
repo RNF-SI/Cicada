@@ -55,6 +55,11 @@
                 <strong>{{ v.libelle }}</strong> <span class="code">{{ v.code }}</span>
                 <span class="text-small text-muted">{{ 'admin.referentiels.depuis' | translate:{ depuis: v.depuis } }}</span>
               </div>
+              @if (v.sans_table) {
+                <p class="info-block info-block-warning text-small" data-testid="referentiel-sans-table">
+                  {{ 'admin.referentiels.sansTable' | translate:{ depuis: v.depuis, enService: ref.en_service.libelle } }}
+                </p>
+              }
               @if (v.en_service) {
                 <span class="text-small">{{ 'admin.referentiels.versionEnService' | translate }}</span>
               } @else if (v.applicable) {
@@ -68,8 +73,6 @@
                     {{ 'admin.referentiels.appliquer' | translate }}
                   </button>
                 </div>
-              } @else {
-                <span class="text-small text-muted">{{ 'admin.referentiels.nonApplicable' | translate:{ depuis: v.depuis } }}</span>
               }
             </div>
             @if (enCours() === cle(ref, v)) {
@@ -77,6 +80,9 @@
             }
             @if (rapport(ref, v); as r) {
               <div class="rapport" data-testid="referentiel-rapport">
+                @if (r.sans_table) {
+                  <p class="text-small text-error">{{ 'admin.referentiels.rapportSansTable' | translate }}</p>
+                }
                 <p>
                   {{ 'admin.referentiels.rapport' | translate:{ sure: compte(r, 'sure'), probable: compte(r, 'probable'), choix: compte(r, 'a_arbitrer') } }}
                 </p>

@@ -223,7 +223,17 @@ docker compose exec web python manage.py reparer_categories_reserve --appliquer
 
 La commande réactive les 9 catégories avec leurs libellés d'origine (fichier des nomenclatures), désactive celles créées par le passage (identifiants ≥ 500 000) et rend à chaque action du journal sa catégorie d'avant le passage, sauf si elle a été changée à la main depuis. Elle liste ce qu'elle ne peut pas retrouver : les actions qui portent encore une catégorie GestRef sans trace dans le journal, et le nombre d'actions sans type ni catégorie (le passage pouvait effacer la catégorie d'une action sans type sans la journaliser) — à reprendre à la main ou à comparer avec une sauvegarde antérieure au passage. Relancée, elle ne change plus rien.
 
-Une version suivante (GestRef V2) se prépare de la même façon, avec `"depuis": "GESTREF_V1"` ; un type présent dans les deux versions est repris tel quel. La commande refuse une version dont le point de départ n'est pas la version en service.
+Une version suivante (GestRef V2) se prépare de la même façon, avec `"depuis": "GESTREF_V1"` ; un type présent dans les deux versions est repris tel quel.
+
+#### Un seul passage livré par référentiel (#791)
+
+CICADA ne garde pas de suite de tables de conversion (Eden 62 → GestRef V1 → V2 → …) : **seule la table du dernier passage** (version précédente → version courante) est livrée. Quand une version sort, son dossier **remplace** le précédent, dans `referentiels_types_action/` comme dans `referentiels_versions/<pressref|taxref|habref>/`.
+
+Une instance **en retard de plus d'une version** (sa version en service n'est pas le `depuis` de la version livrée) passe quand même, mais **sans aide** : la simulation et la page *Référentiels* l'annoncent, aucune correspondance n'est appliquée ni proposée (« Accepter toutes les propositions » n'accepte rien), et chaque élément concerné devient « à actualiser » en gardant son ancien code jusqu'au choix du référent — pour les types d'action et PressRef, tout code absent de la nouvelle version ; pour TaxRef et HabRef, les codes cités par la table. Un code repris tel quel par la nouvelle version n'est pas touché. Seul un passage vers la version déjà en service est refusé.
+
+Le **hub** d'exploration fédérée garde, lui, toutes les versions et correspondances déjà importées, même retirées des fichiers : la recherche nationale continue de rapprocher une action codée plusieurs versions plus tôt.
+
+La version initiale Eden 62 (relevé en base au premier passage) reste prise en charge tant que la transition n'est pas close sur toutes les instances ; elle sera retirée ensuite.
 
 ### PressRef, TaxRef et HabRef : changer de version
 
@@ -235,7 +245,7 @@ Le même mécanisme vaut pour les autres référentiels portés par les plans : 
 | TaxRef | taxons des enjeux et des responsabilités de site | `TAXREF_V<version importée>` |
 | HabRef | habitats des enjeux, des responsabilités de site et des suivis | `HABREF_V<version importée>` |
 
-Chaque version est un dossier de `backend/nomenclatures_data/referentiels_versions/<pressref|taxref|habref>/`, au même format que les types d'action (voir son `README.md`). On n'y liste que les codes qui changent : un code absent de la table et présent dans la nouvelle version n'est pas touché. La table couvre trois cas :
+Chaque version est un dossier de `backend/nomenclatures_data/referentiels_versions/<pressref|taxref|habref>/`, au même format que les types d'action (voir son `README.md`) — un seul par référentiel, celui du dernier passage (voir ci-dessus). On n'y liste que les codes qui changent : un code absent de la table et présent dans la nouvelle version n'est pas touché. La table couvre trois cas :
 
 - une ligne nouvelle (rien à remapper) ;
 - une ligne supprimée qui a un équivalent (`sure` / `probable`) ;

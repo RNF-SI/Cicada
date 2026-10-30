@@ -27,4 +27,10 @@ python manage.py passage_types_action gestref_v1 --appliquer  # applique + notif
 python manage.py passage_types_action gestref_v1 --annuler    # restaure la version de départ
 ```
 
+**Un seul dossier** : celui du dernier passage (#791). Quand une version sort,
+son dossier remplace le précédent. Une instance dont la version en service
+n'est pas `depuis` passe sans aide : rien n'est posé automatiquement, tout
+type absent de la nouvelle version est à actualiser à la main. Seul un passage
+vers la version déjà en service est refusé.
+
 Voir `documentation/docs/administration/referentiels.md` (« Types d'action »).

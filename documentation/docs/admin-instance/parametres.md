@@ -39,6 +39,8 @@ La page *Administration › Référentiels* est distincte de la mise à jour : i
 2. **Appliquer le passage**, après confirmation. Les référents concernés sont prévenus par une notification, et par un e-mail s'ils ont des choix à faire, sauf si la case « Notifications dans l'application seulement » est cochée.
 3. **Suivre la transition** : la page indique combien d'éléments attendent encore un choix. Pendant ce temps, ces éléments gardent leur ancienne valeur et les deux versions cohabitent.
 
+Seule la table de correspondance du **dernier passage** est livrée (par exemple Gestref V1 → V2). Une instance restée sur une version plus ancienne (encore en Eden 62 quand Gestref V2 sort) peut quand même passer, mais **sans aide** : la page l'annonce (« Cette instance est en retard de plusieurs versions »), aucun changement n'est posé automatiquement, et chaque élément dont le code n'existe plus est à actualiser à la main par les référents.
+
 Un passage peut être annulé tant qu'aucune version suivante n'a été appliquée. Les choix déjà faits par les référents sont alors défaits.
 
 **Le partage avec l'exploration nationale est un engagement à l'échelle de l'instance**. Lorsque la case est cochée :

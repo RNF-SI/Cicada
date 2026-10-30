@@ -24,7 +24,8 @@ class TestPageReferentiels:
         ta = etat['TYPE_ACTION']
         assert ta['en_service']['code'] == 'EDEN62'
         assert ta['versions'] == [{'nom': 'test_v1', 'code': 'TEST_V1', 'libelle': 'Test V1',
-                                   'depuis': 'EDEN62', 'applicable': True, 'en_service': False}]
+                                   'depuis': 'EDEN62', 'applicable': True, 'en_service': False,
+                                   'sans_table': False}]
         assert ta['passage'] is None
 
         base = '/api/plans/referentiels/admin/TYPE_ACTION'
@@ -37,9 +38,9 @@ class TestPageReferentiels:
         assert ta['en_service']['code'] == 'TEST_V1'
         assert ta['passage']['a_actualiser'] == 3 and ta['passage']['automatiques'] == 3
 
-        # Une version qui ne part pas de la version en service est refusée, lisiblement.
+        # #791 — seule la version déjà en service est refusée, lisiblement.
         r = api_client.post(f'{base}/appliquer/', {'version': 'test_v1'}, format='json')
-        assert r.status_code == 400 and 'part de' in r.data['detail']
+        assert r.status_code == 400 and 'déjà la version en service' in r.data['detail']
 
         r = api_client.post(f'{base}/annuler/', {'version': 'test_v1'}, format='json')
         assert r.status_code == 200

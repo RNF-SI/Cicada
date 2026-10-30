@@ -11,6 +11,10 @@ super-admin « Référentiels »), jamais au démarrage.
 └── correspondance.csv   ancien_code,nouveau_code,confiance,options,note
 ```
 
+- **Un seul dossier par référentiel** : celui du dernier passage (#791) ; une
+  nouvelle version remplace le dossier précédent. Une instance dont la version
+  en service n'est pas `depuis` passe sans aide (codes cités par la table, ou
+  absents de la nouvelle version pour PressRef : à actualiser, sans proposition).
 - Ne lister dans `correspondance.csv` que les codes qui changent : un code
   absent de la table et présent dans la nouvelle version n'est pas touché.
 - `confiance` : `sure` / `probable` → code posé (modifiable par les référents) ;

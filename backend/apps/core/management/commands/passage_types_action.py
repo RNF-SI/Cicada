@@ -50,6 +50,11 @@ class Command(BaseCommand):
     def _rapport(self, r):
         w = self.stdout.write
         w(self.style.MIGRATE_HEADING(f"=== {r['depuis']} → {r['vers']} ==="))
+        if r.get('sans_table'):
+            w(self.style.WARNING(
+                f"⚠ Cette instance est en {r['en_service']}, pas en {r['depuis']} : elle est en retard "
+                "de plusieurs versions. Aucune correspondance automatique ne sera proposée : chaque "
+                "élément concerné sera à actualiser à la main par les référents."))
         w(f"Référentiel : {r['types']} types, catégories {', '.join(r['categories'])}"
           + (f" (écartées : {', '.join(r['exclues'])})" if r['exclues'] else ''))
         a = r['actions']
