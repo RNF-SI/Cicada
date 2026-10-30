@@ -4,7 +4,7 @@
 
 Une action se saisit via son formulaire dédié (bouton « Ajouter une action » ou de modification). Vous y renseignez notamment :
 
-- Le type d'action (obligatoire) choisi dans le référentiel GestRef ; et facultativement la catégorie d'action CT88, si celle-ci est différente de celle du référentiel GestRef ;
+- Le type d'action (obligatoire) choisi dans le référentiel GestRef ; et facultativement la catégorie d'action réserve (l'un des 9 domaines d'activité CT88 : SP, CS, EI, IP, CI, MS, PR, PA, CC). Elle est pré-remplie quand le type choisi a un équivalent évident (type CS… → catégorie CS) et reste modifiable ;
 - Le code de l'action, calculé automatiquement (ex. CS1) et affiché en direct ; le champ « Numéro fixé » permet d'imposer son numéro ;
 - L'intitulé (s'il reste vide, il est rempli automatiquement avec le libellé du type d'action GestRef à l'enregistrement, sans son code, déjà affiché à côté de l'action), les métriques associées et la priorité ;
 - Pour une action d'inventaire ou de suivi : les détails de l'inventaire ou du suivi (objectif, cible, taxons ou habitats rattachés), les protocoles et la bancarisation de la donnée ;
@@ -83,7 +83,7 @@ Depuis la fiche, vous pouvez :
 
 Le référentiel des types d'action évolue : la codification Eden 62 utilisée jusqu'ici laisse la place à GestRef, qui connaîtra lui-même de nouvelles versions. À chaque changement de version, CICADA met à jour les actions déjà saisies, dans tous les plans, archivés compris :
 
-- lorsque l'ancien type a un équivalent certain ou très probable, l'action le reçoit **automatiquement**, avec sa catégorie. Ce changement vous est signalé, et vous pouvez le corriger ;
+- lorsque l'ancien type a un équivalent certain ou très probable, l'action le reçoit **automatiquement** ; sa catégorie d'action réserve, indépendante du référentiel, ne change pas. Ce changement vous est signalé, et vous pouvez le corriger ;
 - sinon, l'action **garde son ancien type** en attendant votre choix : elle devient « à actualiser ». Les deux référentiels cohabitent le temps de la transition, mais seul le nouveau est proposé dans le sélecteur. Quand l'ancienne ligne a plusieurs équivalents, ils vous sont tous proposés.
 
 Chaque référent d'un plan concerné reçoit **une seule notification** pour l'ensemble de ses plans, « Types d'action à actualiser », qui ouvre la page du même nom. Tant qu'il lui reste des actions à actualiser, un **bandeau en haut de toutes les pages** le rappelle, avec le nombre d'actions concernées et un lien « Choisir les nouveaux types ». Le bandeau mentionne aussi, plus discrètement, les actions changées automatiquement. Il ne se ferme pas et disparaît de lui-même une fois tous les types choisis. La page du plan rappelle aussi le nombre d'actions de ce plan.

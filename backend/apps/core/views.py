@@ -99,10 +99,11 @@ class NomenclatureViewSet(viewsets.ReadOnlyModelViewSet):
         response = super().list(request, *args, **kwargs)
         type_param = request.query_params.get('type')
         if type_param == 'TYPE_ACTION':
+            from apps.plans.referentiel_actions import libelles_groupes
             from .action_type_groups import get_action_group
-            categories = dict(Nomenclature.objects.filter(
-                id_type__mnemonique='CATEGORIE_ACTION_RESERVE', actif=True,
-            ).values_list('cd_nomenclature', 'label'))
+            # #788 — titres de groupe lus dans la version du référentiel, pas
+            # dans les catégories d'action réserve (CT88).
+            categories = libelles_groupes()
             for item in response.data:
                 item['group_label'] = get_action_group(
                     item.get('cd_nomenclature', ''), categories

@@ -1098,6 +1098,13 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       (comp as any).loadInventairesByTypeAction = jest.fn();
       (comp as any).syncConditionalValidators = jest.fn();
       (comp as any).setSuiviFieldsEnabled = jest.fn();
+      (comp as any).categorieActionReserveCtrl = new FormControl<number | null>(null);
+      (comp as any).categorieReserveAuto = null;
+      (comp as any).categorieActionReserveOptions = signal([
+        { id_nomenclature: 1401, cd_nomenclature: 'CS' },
+        { id_nomenclature: 1403, cd_nomenclature: 'IP' },
+        { id_nomenclature: 1405, cd_nomenclature: 'MS' },
+      ]);
       (comp as any).form = new FormGroup({
         id_type_action: new FormControl(null),
         libelle: new FormControl(''),
@@ -1107,6 +1114,34 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
       });
       return comp;
     }
+
+    describe('#788 — catégorie d\'action réserve pré-remplie depuis le type', () => {
+      const CS11 = { id_nomenclature: 10, cd_nomenclature: 'CS.1.1' } as any;
+      const IP2 = { id_nomenclature: 11, cd_nomenclature: 'IP.2' } as any;
+      const GE1 = { id_nomenclature: 12, cd_nomenclature: 'GE.1' } as any;
+      const cat = (c: OperationFormComponent) => (c as any).categorieActionReserveCtrl.value;
+
+      it('type Gestref CS.1.1 → catégorie CS, puis suit le type', () => {
+        const c = makeComp();
+        c.onTypeActionSelected(CS11);
+        expect(cat(c)).toBe(1401);
+        c.onTypeActionSelected(IP2);
+        expect(cat(c)).toBe(1403);
+      });
+
+      it('sans équivalent (GE) : rien n\'est posé', () => {
+        const c = makeComp();
+        c.onTypeActionSelected(GE1);
+        expect(cat(c)).toBeNull();
+      });
+
+      it('une catégorie choisie à la main n\'est pas écrasée (MS)', () => {
+        const c = makeComp();
+        (c as any).categorieActionReserveCtrl.setValue(1405);
+        c.onTypeActionSelected(CS11);
+        expect(cat(c)).toBe(1405);
+      });
+    });
 
     const GA = { id_nomenclature: 1, cd_nomenclature: 'GA1' } as any;
     const CS1 = { id_nomenclature: 2, cd_nomenclature: 'CS1' } as any;

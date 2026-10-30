@@ -50,7 +50,13 @@ from .models_referentiel import (
 )
 
 TYPE_ACTION = 'TYPE_ACTION'
+# #788 — la catégorie d'action réserve (les 9 domaines CT88 : SP, CS, EI, IP,
+# CI, MS, PR, PA, CC) n'appartient PAS au référentiel versionné : un passage ne
+# la crée, ne la désactive, ni ne la modifie jamais, sur aucune action.
 CATEGORIE = 'CATEGORIE_ACTION_RESERVE'
+# Catégories d'une version (CS, IP, GE… de Gestref) : simples titres de groupe
+# du sélecteur de types, rangés dans les lignes de la version, sans nomenclature.
+GROUPE = 'GROUPE_TYPE_ACTION'
 VERSION_INITIALE = 'EDEN62'
 LIBELLE_INITIAL = 'Codification unique Eden 62'
 
@@ -213,10 +219,8 @@ def version_courante() -> VersionReferentielActions | None:
 
 def _releve_version_initiale() -> VersionReferentielActions:
     """La version en service avant tout passage : types et catégories actifs."""
-    lignes = []
-    for mnemo in (TYPE_ACTION, CATEGORIE):
-        for nom in Nomenclature.objects.filter(id_type__mnemonique=mnemo, actif=True):
-            lignes.append(_ligne(nom, mnemo))
+    lignes = [_ligne(nom, TYPE_ACTION)
+              for nom in Nomenclature.objects.filter(id_type__mnemonique=TYPE_ACTION, actif=True)]
     version, _ = VersionReferentielActions.objects.update_or_create(
         code=VERSION_INITIALE,
         defaults={'libelle': LIBELLE_INITIAL, 'lignes': lignes, 'courante': True,
@@ -236,20 +240,19 @@ def version_de_depart(definition: DefinitionVersion) -> VersionReferentielAction
 
 
 def _types_nomenclature():
-    types = {t.mnemonique: t for t in TypeNomenclature.objects.filter(
-        mnemonique__in=(TYPE_ACTION, CATEGORIE))}
-    manquants = {TYPE_ACTION, CATEGORIE} - set(types)
-    if manquants:
-        raise ReferentielErreur(f"Nomenclatures absentes : {', '.join(sorted(manquants))}")
+    types = {t.mnemonique: t for t in TypeNomenclature.objects.filter(mnemonique=TYPE_ACTION)}
+    if TYPE_ACTION not in types:
+        raise ReferentielErreur(f"Nomenclatures absentes : {TYPE_ACTION}")
     return types
 
 
 def _creer_lignes_version(definition: DefinitionVersion) -> list[dict]:
-    """Crée (inactives) ou retrouve les nomenclatures de la version.
+    """Crée (inactifs) ou retrouve les types de la version.
 
-    Une ligne de même code est réutilisée — catégorie partagée (CS, IP, SP) ou
-    type repris d'une version à la suivante : les actions qui la portent n'ont
-    alors rien à changer. Elles ne deviennent actives qu'à l'activation.
+    Un type de même code est réutilisé (repris d'une version à la suivante) :
+    les actions qui le portent n'ont alors rien à changer. Ils ne deviennent
+    actifs qu'à l'activation. Les catégories de la version sont des lignes
+    `GROUPE`, sans nomenclature (#788).
     """
     types = _types_nomenclature()
     prochain = max(
@@ -258,12 +261,11 @@ def _creer_lignes_version(definition: DefinitionVersion) -> list[dict]:
         REFERENTIEL_ID_BASE - 1,
     ) + 1
     rang = {code: i + 1 for i, (code, _l) in enumerate(definition.categories)}
-    lignes = []
-    entrees = ([(CATEGORIE, c, l) for c, l in definition.categories]
-               + [(TYPE_ACTION, c, l) for c, l in definition.types])
-    for mnemo, code, libelle in entrees:
-        hierarchie = (f'{rang[code]:02d}' if mnemo == CATEGORIE
-                      else _hierarchie(rang[categorie_du_code(code)], code))
+    lignes = [{'nomenclature': GROUPE, 'code': c, 'libelle': l, 'hierarchy': f'{rang[c]:02d}',
+               'definition': l} for c, l in definition.categories]
+    mnemo = TYPE_ACTION
+    for code, libelle in definition.types:
+        hierarchie = _hierarchie(rang[categorie_du_code(code)], code)
         nom = (Nomenclature.objects.filter(id_type=types[mnemo], cd_nomenclature=code)
                .order_by('-actif', 'id_nomenclature').first())
         if nom is None:
@@ -280,16 +282,20 @@ def _creer_lignes_version(definition: DefinitionVersion) -> list[dict]:
 
 
 def activer(version: VersionReferentielActions) -> None:
-    """Rend actives les nomenclatures de la version (avec ses libellés), et
-    elles seules, dans TYPE_ACTION et CATEGORIE_ACTION_RESERVE."""
+    """Rend actifs les types de la version (avec leurs libellés), et eux
+    seuls, dans TYPE_ACTION. Les catégories des réserves ne sont pas touchées
+    (#788) ; une ligne d'une version antérieure à #788 qui en désigne une est
+    ignorée."""
     ids = set()
     for ligne in version.lignes:
+        if ligne.get('nomenclature') != TYPE_ACTION or 'id' not in ligne:
+            continue
         ids.add(ligne['id'])
         Nomenclature.objects.filter(pk=ligne['id']).update(
             actif=True, label=ligne['libelle'], hierarchy=ligne['hierarchy'] or None,
             definition=ligne['definition'] or None, date_maj=timezone.now(),
         )
-    (Nomenclature.objects.filter(id_type__mnemonique__in=(TYPE_ACTION, CATEGORIE), actif=True)
+    (Nomenclature.objects.filter(id_type__mnemonique=TYPE_ACTION, actif=True)
      .exclude(pk__in=ids).update(actif=False, date_maj=timezone.now()))
     (VersionReferentielActions.objects.filter(referentiel=REFERENTIEL_TYPES_ACTION)
      .exclude(pk=version.pk).update(courante=False))
@@ -298,10 +304,25 @@ def activer(version: VersionReferentielActions) -> None:
         version.save(update_fields=['courante'])
 
 
+def libelles_groupes(version: VersionReferentielActions | None = None) -> dict[str, str]:
+    """{code: libellé} des catégories de la version en service (CS, IP, GE… de
+    Gestref) : titres de groupe du sélecteur de types et de l'export CSV. Vide
+    en Eden 62, dont les groupes sont fixes (`action_type_groups`)."""
+    version = version or version_courante()
+    if version is None:
+        return {}
+    groupes = {l['code']: l['libelle'] for l in version.lignes
+               if l.get('nomenclature') == GROUPE}
+    if not groupes:
+        # Version appliquée avant #788 : ses catégories étaient des nomenclatures.
+        groupes = {l['code']: l['libelle'] for l in version.lignes
+                   if l.get('nomenclature') == CATEGORIE}
+    return groupes
+
+
 def reappliquer_version_courante() -> bool:
     """À appeler après `import_nomenclatures --force` : l'upsert du fichier SQL
-    réactive les types Eden 62 et remet leurs libellés aux catégories
-    partagées. Sans passage appliqué, rien à faire."""
+    réactive les types Eden 62. Sans passage appliqué, rien à faire."""
     courante = version_courante()
     if courante is None or courante.code == VERSION_INITIALE:
         return False
@@ -448,7 +469,7 @@ def simuler(definition: DefinitionVersion) -> dict:
 
 
 def _type_par_code(version) -> dict[str, Nomenclature]:
-    ids = [l['id'] for l in version.lignes]
+    ids = [l['id'] for l in version.lignes if 'id' in l]
     return {(n.cd_nomenclature or ''): n for n in Nomenclature.objects.filter(
         pk__in=ids).select_related('id_type')}
 
@@ -463,7 +484,6 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
     )
     nouveaux = _type_par_code(cible)
     types_cible = {c: n for c, n in nouveaux.items() if n.id_type.mnemonique == TYPE_ACTION}
-    categories_cible = {c: n for c, n in nouveaux.items() if n.id_type.mnemonique == CATEGORIE}
 
     prevus = _objets_prevus(definition)
     passage = PassageReferentielActions.objects.create(source=source, cible=cible)
@@ -472,18 +492,9 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
         corr = p.corr
         applique = corr.confiance in CONFIANCES_APPLIQUEES
         nouveau_type = types_cible.get(corr.nouveau_code) if applique else None
-        nouvelle_categorie = (categories_cible.get(categorie_du_code(corr.nouveau_code))
-                              if applique else None)
-        # À arbitrer : cohabitation, l'objet garde son ancien type et sa
-        # catégorie jusqu'au choix du référent (#776).
-        if applique and p.est_operation:
-            p.objet.id_type_action = nouveau_type
-            # La catégorie d'une action la suit ; une action qui n'en avait pas
-            # n'en reçoit pas (son code d'affichage découle déjà du type).
-            if p.ancienne_categorie is not None or nouvelle_categorie is None:
-                p.objet.id_categorie_action_reserve = nouvelle_categorie
-            p.objet.save(update_fields=['id_type_action', 'id_categorie_action_reserve'])
-        elif applique:
+        # À arbitrer : cohabitation, l'objet garde son ancien type jusqu'au
+        # choix du référent (#776). La catégorie réserve ne bouge jamais (#788).
+        if applique:
             p.objet.id_type_action = nouveau_type
             p.objet.save(update_fields=['id_type_action'])
         journal.append(PassageReferentielObjet(
@@ -496,7 +507,7 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
             ancien_libelle=p.ancien_type.label or '',
             ancienne_categorie=p.ancienne_categorie,
             nouveau_type=nouveau_type,
-            nouvelle_categorie=nouvelle_categorie if p.est_operation else None,
+            nouvelle_categorie=p.ancienne_categorie,
             suggestion_code=corr.nouveau_code,
             options=corr.options,
             confiance=corr.confiance,
@@ -505,17 +516,6 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
                     else PassageReferentielObjet.STATUT_A_ACTUALISER),
         ))
     PassageReferentielObjet.objects.bulk_create(journal)
-
-    # Catégories sans correspondance de type (action sans type mais catégorisée).
-    from .models_operations import Operation
-    for op in (Operation.objects.filter(id_type_action__isnull=True,
-                                        id_categorie_action_reserve__isnull=False)
-               .exclude(passages_referentiel__passage=passage)
-               .exclude(id_categorie_action_reserve__in=categories_cible.values())
-               .select_related('id_categorie_action_reserve')):
-        op.id_categorie_action_reserve = categories_cible.get(
-            op.id_categorie_action_reserve.cd_nomenclature or '')
-        op.save(update_fields=['id_categorie_action_reserve'])
 
     activer(cible)
     passage.resume = dict(Counter(o.confiance for o in journal if o.operation_id))
@@ -538,13 +538,12 @@ def annuler(definition: DefinitionVersion) -> PassageReferentielActions:
         raise ReferentielErreur(
             f"La version en service n'est plus {definition.code} : annuler d'abord les passages suivants.")
     for obj in passage.objets.select_related('operation', 'suivi'):
-        if obj.operation_id:
-            obj.operation.id_type_action = obj.ancien_type
-            obj.operation.id_categorie_action_reserve = obj.ancienne_categorie
-            obj.operation.save(update_fields=['id_type_action', 'id_categorie_action_reserve'])
-        elif obj.suivi_id:
-            obj.suivi.id_type_action = obj.ancien_type
-            obj.suivi.save(update_fields=['id_type_action'])
+        # La catégorie réserve n'a pas été touchée par le passage (#788) : on
+        # ne la restaure pas, ce qui défairait un choix fait depuis.
+        objet = obj.operation if obj.operation_id else obj.suivi
+        if objet is not None:
+            objet.id_type_action = obj.ancien_type
+            objet.save(update_fields=['id_type_action'])
     activer(passage.source)
     passage.statut = PassageReferentielActions.STATUT_ANNULE
     passage.date_annulation = timezone.now()
@@ -783,7 +782,7 @@ def actualiser_type(operation, nouveau_type, user, *, type_attendu_id,
         op = Operation.objects.select_for_update().get(pk=operation.pk)
         if op.id_type_action_id != type_attendu_id:
             raise TypeDejaModifie(op, dernier_objet(op))
-        champs = ['id_type_action', 'id_categorie_action_reserve']
+        champs = ['id_type_action']
         if devient_cs(op, nouveau_type):
             if not suivi:
                 raise SuiviRequis()
@@ -794,12 +793,8 @@ def actualiser_type(operation, nouveau_type, user, *, type_attendu_id,
             op.id_suivi = None
             op.est_suivi_existant = False
             champs += ['id_suivi', 'est_suivi_existant']
+        # La catégorie réserve reste celle choisie pour l'action (#788).
         op.id_type_action = nouveau_type
-        categorie = Nomenclature.objects.filter(
-            id_type__mnemonique=CATEGORIE, actif=True,
-            cd_nomenclature=categorie_du_code(nouveau_type.cd_nomenclature or '')).first()
-        if categorie is not None:
-            op.id_categorie_action_reserve = categorie
         op.save(update_fields=champs)
         # Le suivi rattaché prend le type de son action (#715).
         if op.id_suivi_id and est_cs(nouveau_type) and op.id_suivi.id_type_action_id != nouveau_type.pk:

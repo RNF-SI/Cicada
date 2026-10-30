@@ -40,9 +40,8 @@ def _lignes(code):
     from apps.core.models import Nomenclature
 
     if code == 'TYPE_ACTION':
-        categories = dict(Nomenclature.objects.filter(
-            id_type__mnemonique='CATEGORIE_ACTION_RESERVE', actif=True)
-            .values_list('cd_nomenclature', 'label'))
+        # #788 — catégories de la version (Gestref), pas celles des réserves.
+        categories = ra.libelles_groupes()
         qs = (Nomenclature.objects.filter(id_type__mnemonique='TYPE_ACTION', actif=True)
               .order_by('hierarchy', 'cd_nomenclature'))
         return (['code', 'libelle', 'categorie', 'libelle_categorie'],

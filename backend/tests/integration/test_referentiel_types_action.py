@@ -77,6 +77,7 @@ def referentiel(db, tmp_path, monkeypatch):
         'cat_cs': _nom(ref.CATEGORIE, 'CS', 'Connaissance (Eden)'),
         'cat_ci': _nom(ref.CATEGORIE, 'CI', 'Infrastructures (Eden)'),
         'cat_ei': _nom(ref.CATEGORIE, 'EI', 'Études (Eden)'),
+        'cat_ms': _nom(ref.CATEGORIE, 'MS', 'Management et Soutien'),
         'cs14': _nom(ref.TYPE_ACTION, 'CS14', 'Suivi des facteurs abiotiques'),
         'ci2': _nom(ref.TYPE_ACTION, 'CI2', 'Infrastructures d’accueil'),
         'cs8': _nom(ref.TYPE_ACTION, 'CS8', 'Inventaire de la faune'),
@@ -106,13 +107,15 @@ def plans(referentiel):
     op_arb.save()
     p2, (op_prob, op_arb2) = _plan_avec_actions(
         'draft', (r['ci2'], r['cat_ci']), (r['cs8'], None))
-    p3, (op_arch,) = _plan_avec_actions('archive', (r['cs14'], r['cat_cs']))
+    p3, (op_arch, op_ms) = _plan_avec_actions(
+        'archive', (r['cs14'], r['cat_cs']), (None, r['cat_ms']))
     alice, bob = RoleFactory(), RoleFactory()
     p1.referents.add(alice, bob)
     p2.referents.add(alice)
     p3.referents.add(alice)
     return {'p1': p1, 'p2': p2, 'p3': p3, 'op_sure': op_sure, 'op_arb': op_arb, 'op_ei': op_ei,
-            'op_prob': op_prob, 'op_arb2': op_arb2, 'op_arch': op_arch, 'suivi': suivi,
+            'op_prob': op_prob, 'op_arb2': op_arb2, 'op_arch': op_arch, 'op_ms': op_ms,
+            'suivi': suivi,
             'alice': alice, 'bob': bob}
 
 
@@ -154,7 +157,8 @@ class TestPassage:
         assert plans['op_sure'].id_type_action.cd_nomenclature == 'CS.1.1'
         assert plans['op_arch'].id_type_action.cd_nomenclature == 'CS.1.1'
         assert plans['op_prob'].id_type_action.cd_nomenclature == 'GE.1'
-        assert plans['op_prob'].id_categorie_action_reserve.cd_nomenclature == 'GE'
+        # #788 — la catégorie d'action réserve (CT88) ne suit pas le type.
+        assert plans['op_prob'].id_categorie_action_reserve == referentiel['cat_ci']
         # Cohabitation : l'action à arbitrer garde son ancien type et sa catégorie.
         assert plans['op_arb'].id_type_action == referentiel['cs8']
         assert plans['op_ei'].id_categorie_action_reserve == referentiel['cat_ei']
@@ -163,12 +167,21 @@ class TestPassage:
         assert plans['suivi'].id_type_action == referentiel['cs8']
         # Une action sans catégorie n'en reçoit pas.
         assert plans['op_arb2'].id_categorie_action_reserve is None
-        # La catégorie partagée CS est réutilisée, avec le libellé V1.
+        # #788 — les catégories CT88 restent actives, avec leurs libellés, et
+        # aucune catégorie n'est créée pour la version.
         cs = Nomenclature.objects.get(pk=referentiel['cat_cs'].pk)
-        assert cs.actif and cs.label == 'Connaissance (V1)'
+        assert cs.actif and cs.label == 'Connaissance (Eden)'
+        assert Nomenclature.objects.get(pk=referentiel['cat_ci'].pk).actif
+        assert Nomenclature.objects.get(pk=referentiel['cat_ms'].pk).actif
+        assert not Nomenclature.objects.filter(
+            id_type__mnemonique=ref.CATEGORIE, id_nomenclature__gte=ref.REFERENTIEL_ID_BASE).exists()
+        # Une action sans type, catégorie MS : rien ne change.
+        plans['op_ms'].refresh_from_db()
+        assert plans['op_ms'].id_categorie_action_reserve == referentiel['cat_ms']
+        # Les libellés des catégories de la version ne servent qu'à regrouper les types.
+        assert ref.libelles_groupes() == {'CS': 'Connaissance (V1)', 'GE': 'Gestion des équipements'}
         # Les anciens types ne sont plus proposés, mais restent lisibles.
         assert not Nomenclature.objects.get(pk=referentiel['cs8'].pk).actif
-        assert not Nomenclature.objects.get(pk=referentiel['cat_ci'].pk).actif
         assert _type('CS.1.1').pk >= ref.REFERENTIEL_ID_BASE
         objets = {o.operation_id: o for o in PassageReferentielObjet.objects.filter(
             operation__isnull=False)}
@@ -189,10 +202,10 @@ class TestPassage:
         _appliquer(referentiel, envoyer_email=False)
         # Ce que fait l'upsert du fichier SQL : types Eden réactivés, libellé Eden.
         Nomenclature.objects.filter(pk=referentiel['cs14'].pk).update(actif=True)
-        Nomenclature.objects.filter(pk=referentiel['cat_cs'].pk).update(label='Connaissance (Eden)')
         assert ref.reappliquer_version_courante()
         assert not Nomenclature.objects.get(pk=referentiel['cs14'].pk).actif
-        assert Nomenclature.objects.get(pk=referentiel['cat_cs'].pk).label == 'Connaissance (V1)'
+        # #788 — les catégories des réserves ne sont pas touchées.
+        assert Nomenclature.objects.get(pk=referentiel['cat_cs'].pk).actif
 
     def test_annuler_restaure_la_version_de_depart(self, referentiel, plans):
         _appliquer(referentiel, envoyer_email=False)
@@ -235,8 +248,8 @@ class TestActualisation:
         assert r.data['type_action_a_actualiser'] is None
         plans['op_arb'].refresh_from_db()
         assert plans['op_arb'].id_type_action == cs11
-        # La catégorie suit le nouveau type, le suivi aussi.
-        assert plans['op_arb'].id_categorie_action_reserve.cd_nomenclature == 'CS'
+        # #788 — la catégorie réserve ne change pas ; le suivi suit le type.
+        assert plans['op_arb'].id_categorie_action_reserve == referentiel['cat_cs']
         plans['suivi'].refresh_from_db()
         assert plans['suivi'].id_type_action == cs11
         obj = PassageReferentielObjet.objects.get(operation=plans['op_arb'])
@@ -432,3 +445,83 @@ def test_fiche_action_affiche_le_type_a_actualiser(referentiel, plans):
     doc = Document(io.BytesIO(docx if isinstance(docx, bytes) else docx.getvalue()))
     textes = {c.text for t in doc.tables for r in t.rows for c in r.cells}
     assert attendu in textes
+
+
+@pytest.mark.django_db
+class TestReparationCategoriesReserve:
+    """#788 — remise en état d'une instance où un passage d'avant la correction
+    a remplacé les catégories des réserves par celles de Gestref."""
+
+    @pytest.fixture
+    def degats(self, db):
+        from apps.plans import categories_reserve
+        from apps.plans.models_referentiel import PassageReferentielActions, VersionReferentielActions
+
+        t, _ = TypeNomenclature.objects.get_or_create(mnemonique=ref.CATEGORIE,
+                                                      defaults={'label': ref.CATEGORIE})
+        ct88 = {}
+        for c in categories_reserve.categories_ct88():
+            ct88[c['code']], _ = Nomenclature.objects.update_or_create(
+                pk=c['id'], defaults={'id_type': t, 'cd_nomenclature': c['code'],
+                                      'mnemonique': c['code'], 'label': c['label'], 'actif': True})
+        # Ce qu'avait laissé le passage : MS désactivée, CS au libellé Gestref,
+        # une catégorie Gestref créée à partir de l'id 500 000.
+        Nomenclature.objects.filter(pk=ct88['MS'].pk).update(actif=False)
+        Nomenclature.objects.filter(pk=ct88['CS'].pk).update(label='Connaissance (Gestref)')
+        ge = Nomenclature.objects.create(
+            pk=ref.REFERENTIEL_ID_BASE, id_type=t, cd_nomenclature='GE', mnemonique='GE',
+            label='Gestion des équipements', actif=True)
+        eden = VersionReferentielActions.objects.create(
+            code=ref.VERSION_INITIALE, libelle='Eden', referentiel=ref.REFERENTIEL_TYPES_ACTION,
+            lignes=[{'id': ct88['MS'].pk, 'nomenclature': ref.CATEGORIE, 'code': 'MS',
+                     'libelle': 'Management et Soutien', 'hierarchy': '6', 'definition': ''}])
+        v1 = VersionReferentielActions.objects.create(
+            code='GESTREF_V1', libelle='Gestref V1', referentiel=ref.REFERENTIEL_TYPES_ACTION,
+            courante=True,
+            lignes=[{'id': ge.pk, 'nomenclature': ref.CATEGORIE, 'code': 'GE',
+                     'libelle': 'Gestion des équipements', 'hierarchy': '04', 'definition': ''}])
+        passage = PassageReferentielActions.objects.create(source=eden, cible=v1)
+        _plan, (corrigee, retouchee, sans_trace) = _plan_avec_actions(
+            'valide', (None, ge), (None, ct88['EI']), (None, ge))
+        for op in (corrigee, retouchee):
+            PassageReferentielObjet.objects.create(
+                passage=passage, operation=op, ancienne_categorie=ct88['MS'],
+                nouvelle_categorie=ge, ancien_code='MS7', confiance='sure', statut='applique')
+        return {'ct88': ct88, 'ge': ge, 'v1': v1, 'corrigee': corrigee,
+                'retouchee': retouchee, 'sans_trace': sans_trace}
+
+    def test_simulation_n_ecrit_rien(self, degats):
+        from apps.plans import categories_reserve
+
+        r = categories_reserve.reparer()
+        assert set(r['categories_restaurees']) == {'MS', 'CS'}
+        assert r['categories_desactivees'] == ['GE']
+        assert r['actions_corrigees'] == 1
+        assert r['actions_modifiees_depuis'] == 1
+        assert [a['id'] for a in r['actions_sans_trace']] == [degats['sans_trace'].pk]
+        degats['corrigee'].refresh_from_db()
+        assert degats['corrigee'].id_categorie_action_reserve == degats['ge']
+        assert not Nomenclature.objects.get(pk=degats['ct88']['MS'].pk).actif
+
+    def test_reparation(self, degats):
+        from apps.plans import categories_reserve
+
+        categories_reserve.reparer(appliquer=True)
+        ms = Nomenclature.objects.get(pk=degats['ct88']['MS'].pk)
+        assert ms.actif and ms.label == 'Management et Soutien'
+        assert Nomenclature.objects.get(pk=degats['ct88']['CS'].pk).label == \
+            'Connaissance et suivi continu du patrimoine naturel'
+        assert not Nomenclature.objects.get(pk=degats['ge'].pk).actif
+        for k in ('corrigee', 'retouchee', 'sans_trace'):
+            degats[k].refresh_from_db()
+        assert degats['corrigee'].id_categorie_action_reserve == ms
+        # Changée à la main depuis : on n'y touche pas.
+        assert degats['retouchee'].id_categorie_action_reserve == degats['ct88']['EI']
+        # La version ne désigne plus de catégorie : réactiver n'y touchera plus.
+        degats['v1'].refresh_from_db()
+        assert degats['v1'].lignes[0]['nomenclature'] == ref.GROUPE
+        assert 'id' not in degats['v1'].lignes[0]
+        assert ref.libelles_groupes() == {'GE': 'Gestion des équipements'}
+        # Relancer ne change plus rien.
+        r = categories_reserve.reparer()
+        assert r['categories_restaurees'] == [] and r['actions_corrigees'] == 0

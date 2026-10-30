@@ -171,14 +171,16 @@ rnn = Nomenclature.objects.get(mnemonique='RNN')
 
 ### Types d'action : changer de version du référentiel
 
-Les types d'action (`TYPE_ACTION`) et leurs catégories (`CATEGORIE_ACTION_RESERVE`) suivent un référentiel **versionné** : codification Eden 62, puis GestRef V1 et ses versions suivantes. Passer d'une version à une autre met à jour les actions et les suivis déjà saisis, d'après une table de correspondance validée.
+Les types d'action (`TYPE_ACTION`) suivent un référentiel **versionné** : codification Eden 62, puis GestRef V1 et ses versions suivantes. Passer d'une version à une autre met à jour les actions et les suivis déjà saisis, d'après une table de correspondance validée.
+
+La **catégorie d'action réserve** (`CATEGORIE_ACTION_RESERVE`, les 9 domaines d'activité des réserves CT88 : SP, CS, EI, IP, CI, MS, PR, PA, CC) n'en fait **pas** partie : un passage ne la crée, ne la désactive ni ne la modifie jamais, sur aucune action (#788). Les catégories d'une version (CS, IP, GE… de GestRef) ne servent qu'à regrouper les types dans le sélecteur et dans le fichier téléchargeable.
 
 Chaque version est décrite dans `backend/nomenclatures_data/referentiels_types_action/<version>/` (voir le `README.md` du dossier) :
 
 | Fichier | Contenu |
 |---------|---------|
 | `version.json` | code, libellé, version de départ (`depuis`), catégories écartées (`exclure_categories`, ex. `CP` pour GestRef V1) |
-| `referentiel.csv` | `code,libelle` — niveau 0 (`CS`) = catégorie, niveaux 1 et 2 (`CS.1`, `CS.1.1`) = types |
+| `referentiel.csv` | `code,libelle` — niveau 0 (`CS`) = catégorie (titre de groupe des types), niveaux 1 et 2 (`CS.1`, `CS.1.1`) = types |
 | `correspondance.csv` | `ancien_code,nouveau_code,confiance,options,note` — confiance `sure`, `probable` ou `a_arbitrer` ; `options` : équivalents possibles séparés par `|` quand l'ancienne ligne en a plusieurs |
 
 **Rien ne change au démarrage ni à la mise à jour d'une instance** : ces fichiers ne sont lus que par la page super-admin *Administration › Référentiels* (simulation, application, annulation : voir la notice administrateur d'instance § 6.7) ou par la commande suivante, à lancer volontairement, instance par instance.
@@ -191,20 +193,35 @@ docker compose exec web python manage.py passage_types_action gestref_v1
 docker compose exec web python manage.py passage_types_action gestref_v1 --appliquer
 #    --sans-email : notifications dans l'application seulement
 
-# 3. Retour en arrière : anciens types et catégories restaurés
+# 3. Retour en arrière : anciens types restaurés
 docker compose exec web python manage.py passage_types_action gestref_v1 --annuler
 ```
 
 Règles du passage :
 
-- correspondance `sure` ou `probable` → l'action prend le nouveau type ; sa catégorie suit le préfixe du nouveau code (`CS.1.1` → `CS`) ;
-- `a_arbitrer` (ou ancien code absent de la table) → **cohabitation** : l'action garde son ancien type et sa catégorie, devient « à actualiser », et ses référents choisissent parmi les équivalents proposés (ou ailleurs dans le référentiel) ; une action garde son suivi. Une action qui devient CS sans suivi reçoit un suivi existant ou nouveau, au moment du choix ;
+- correspondance `sure` ou `probable` → l'action prend le nouveau type ; sa catégorie d'action réserve ne change pas ;
+- `a_arbitrer` (ou ancien code absent de la table) → **cohabitation** : l'action garde son ancien type, devient « à actualiser », et ses référents choisissent parmi les équivalents proposés (ou ailleurs dans le référentiel) ; une action garde son suivi. Une action qui devient CS sans suivi reçoit un suivi existant ou nouveau, au moment du choix ;
 - les changements automatiques restent **modifiables** par les référents, même dans un plan validé ou archivé ;
-- les types et catégories de l'ancienne version sont **désactivés**, pas supprimés ; une catégorie présente dans les deux versions (CS, IP, SP) est conservée, avec le libellé de la nouvelle ;
+- les types de l'ancienne version sont **désactivés**, pas supprimés ;
 - chaque référent d'un plan concerné (à défaut, l'administrateur de l'organisme gestionnaire) reçoit **une** notification, qui renvoie à la page « Types d'action à actualiser » (§ 4.8.3 de la notice référent) ;
 - chaque action ou suivi touché est consigné (ancien type, proposition, qui a actualisé et quand) : c'est ce journal qui permet l'annulation. Annuler restaure aussi les types déjà choisis à la main depuis.
 
 La simulation détaille, plan par plan, les actions sûres, probables et à arbitrer, les actions qui deviennent CS (volet suivi à compléter) et les plans sans destinataire.
+
+Dans le formulaire d'une action, la catégorie d'action réserve est **pré-remplie** quand le type choisi a un équivalent évident (type `CS.1.1` → catégorie CS) et reste modifiable ; une catégorie choisie à la main n'est pas écrasée.
+
+#### Réparer une instance passée à GestRef avant #788
+
+Avant la correction #788, un passage remplaçait les catégories des réserves par celles de GestRef (MS, EI, CI, PR, PA, CC désactivées, libellés de CS, IP, SP remplacés, catégorie des actions modifiée). Sur une instance où `passage_types_action gestref_v1 --appliquer` a été lancé avant la mise à jour :
+
+```bash
+# Simulation : catégories à rétablir, actions corrigées, actions sans trace
+docker compose exec web python manage.py reparer_categories_reserve
+# Réparation
+docker compose exec web python manage.py reparer_categories_reserve --appliquer
+```
+
+La commande réactive les 9 catégories avec leurs libellés d'origine (fichier des nomenclatures), désactive celles créées par le passage (identifiants ≥ 500 000) et rend à chaque action du journal sa catégorie d'avant le passage, sauf si elle a été changée à la main depuis. Elle liste ce qu'elle ne peut pas retrouver : les actions qui portent encore une catégorie GestRef sans trace dans le journal, et le nombre d'actions sans type ni catégorie (le passage pouvait effacer la catégorie d'une action sans type sans la journaliser) — à reprendre à la main ou à comparer avec une sauvegarde antérieure au passage. Relancée, elle ne change plus rien.
 
 Une version suivante (GestRef V2) se prépare de la même façon, avec `"depuis": "GESTREF_V1"` ; un type présent dans les deux versions est repris tel quel. La commande refuse une version dont le point de départ n'est pas la version en service.
 

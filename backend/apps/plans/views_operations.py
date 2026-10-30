@@ -842,9 +842,13 @@ def _grand_type_action(op, libelles):
 
 
 def _libelles_categories():
-    return dict(Nomenclature.objects
-                .filter(id_type__mnemonique='CATEGORIE_ACTION_RESERVE')
-                .values_list('cd_nomenclature', 'label'))
+    # #788 — catégories des réserves (CT88) d'abord, puis catégories de la
+    # version du référentiel pour les préfixes de type qu'elles ne couvrent pas.
+    from .referentiel_actions import libelles_groupes
+
+    return {**libelles_groupes(), **dict(Nomenclature.objects
+            .filter(id_type__mnemonique='CATEGORIE_ACTION_RESERVE')
+            .values_list('cd_nomenclature', 'label'))}
 
 
 def _scope_realisation_queryset(queryset, user, op_path, lecture=False):

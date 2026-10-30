@@ -349,6 +349,8 @@ export class OperationFormComponent implements OnInit {
   // #228 — Catégorie d'action réserve (CT88, 9 entrées avec code 2 lettres).
   categorieActionReserveOptions = signal<NomenclatureOption[]>([]);
   categorieActionReserveCtrl = new FormControl<number | null>(null);
+  /** #788 — catégorie posée par `preremplirCategorieReserve()` (null sinon). */
+  private categorieReserveAuto: number | null = null;
 
   /**
    * #486 — Valeur du contrôle reflétée en signal. Sans cela, les `computed`
@@ -2931,6 +2933,7 @@ export class OperationFormComponent implements OnInit {
     const wasCS = this.isCSAction();
     this.selectedTypeAction.set(option);
     this.form.get('id_type_action')?.setValue(option.id_nomenclature);
+    this.preremplirCategorieReserve(option);
 
     // Si c'est un code CS, charger les inventaires correspondants et griser le libellé
     const code = option.cd_nomenclature || option.mnemonique || '';
@@ -2959,6 +2962,23 @@ export class OperationFormComponent implements OnInit {
       }
     }
     this.syncConditionalValidators();
+  }
+
+  /**
+   * #788 (Q1 → b) — la catégorie d'action réserve (CT88) est pré-remplie quand
+   * le type a un équivalent évident (type CS… → catégorie CS), et reste
+   * modifiable. Une catégorie choisie à la main n'est jamais écrasée ; une
+   * catégorie pré-remplie suit le type tant qu'on n'y a pas touché.
+   */
+  private preremplirCategorieReserve(option: NomenclatureOption): void {
+    const actuelle = this.categorieActionReserveCtrl.value;
+    if (actuelle != null && actuelle !== this.categorieReserveAuto) return;
+    const prefixe = ((option.cd_nomenclature || option.mnemonique || '').match(/^[A-Za-z]+/)?.[0] || '')
+      .toUpperCase();
+    const cat = this.categorieActionReserveOptions().find(c => (c.cd_nomenclature || '') === prefixe);
+    if (!cat) return;
+    this.categorieActionReserveCtrl.setValue(cat.id_nomenclature);
+    this.categorieReserveAuto = cat.id_nomenclature;
   }
 
   clearTypeAction(): void {

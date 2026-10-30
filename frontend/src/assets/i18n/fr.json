@@ -4560,7 +4560,7 @@
       "typeActionHint": "Recherchez par code, mot du libellé ou catégorie : plusieurs mots possibles, sans vous soucier des accents.",
       "categorieActionReserveLabel": "Catégorie d'action réserve",
       "categorieActionReservePlaceholder": "(optionnel) Sélectionner une catégorie",
-      "categorieActionReserveHint": "DOMAINES D'ACTIVITÉ réserve CT88",
+      "categorieActionReserveHint": "Domaines d'activité des réserves (CT88) — pré-remplie d'après le type d'action quand il a un équivalent, modifiable",
       "previewCodeLabel": "Code de l'action",
       "previewCodeHelp": "Préfixe (catégorie réserve si renseignée, sinon lettres du type d'action) + numéro d'ordre dans le plan. Mis à jour en direct, confirmé à l'enregistrement.",
       "previewCodeComputing": "Calcul du numéro d'ordre en cours…",
