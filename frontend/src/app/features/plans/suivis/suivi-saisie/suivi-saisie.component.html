@@ -351,7 +351,10 @@
 
                 <tr class="rh-total-row">
                   <td class="text-bold">{{ 'plans.suivis.saisie.rh.total' | translate }}</td>
+                  <!-- #783 — cellule de la colonne catégorie, seulement si elle est affichée. -->
+                  @if (showRhCategorie()) {
                   <td></td>
+                  }
                   @if (!isGlobale()) {
                     <td class="rh-num-col">{{ sumRh('plan_jours') | number:'1.0-2' }} j</td>
                   }
@@ -362,7 +365,10 @@
                 @if (!rhTotalUnique()) {
                 <tr class="rh-subtotal-row">
                   <td>{{ 'plans.rh.finance' | translate }}</td>
+                  <!-- #783 — cellule de la colonne catégorie, seulement si elle est affichée. -->
+                  @if (showRhCategorie()) {
                   <td></td>
+                  }
                   @if (!isGlobale()) {
                     <td class="rh-num-col">{{ sumRh('plan_jours', true) | number:'1.0-2' }} j</td>
                   }
@@ -371,7 +377,10 @@
                 </tr>
                 <tr class="rh-subtotal-row">
                   <td>{{ 'plans.rh.nonFinance' | translate }}</td>
+                  <!-- #783 — cellule de la colonne catégorie, seulement si elle est affichée. -->
+                  @if (showRhCategorie()) {
                   <td></td>
+                  }
                   @if (!isGlobale()) {
                     <td class="rh-num-col">{{ sumRh('plan_jours', false) | number:'1.0-2' }} j</td>
                   }

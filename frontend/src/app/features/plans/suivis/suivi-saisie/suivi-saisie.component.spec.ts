@@ -732,6 +732,19 @@ describe('SuiviSaisieComponent — catégorie de dépense du temps de travail (#
     expect(template).toContain('plans.rh.colCategorie');
   });
 
+  it('#783/#773 — les lignes de total suivent les colonnes de l\'en-tête (catégorie masquée)', () => {
+    const template = readFileSync(join(__dirname, 'suivi-saisie.component.html'), 'utf8');
+    const rhTable = template.slice(template.indexOf('class="rh-table"'), template.indexOf('rh-controls'));
+    const lignes = rhTable.split(/<tr class="rh-(?:sub)?total-row">/).slice(1)
+      .map(l => l.slice(0, l.indexOf('</tr>')));
+    expect(lignes).toHaveLength(3);
+    for (const ligne of lignes) {
+      // La colonne « catégorie » n'existe que si showRhCategorie() : sa cellule
+      // vide aussi, sinon les totaux se décalent d'une colonne vers la droite.
+      expect(ligne).toMatch(/@if \(showRhCategorie\(\)\) \{\s*<td><\/td>\s*\}/);
+    }
+  });
+
   it('déclare la clé i18n de l\'en-tête de colonne', () => {
     const i18n = JSON.parse(
       readFileSync(join(__dirname, '../../../../../assets/i18n/fr.json'), 'utf8'),
