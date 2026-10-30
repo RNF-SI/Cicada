@@ -11,7 +11,7 @@ fichiers. On les traite donc en SÉQUENTIEL dans une seule session pour charger 
 contexte une fois, mais chaque issue garde son propre commit et sa propre trace.
 
 Contexte préchargé (tout le lot) :
-!`for n in $ARGUMENTS; do echo "===== #$n ====="; gh issue view $n --json title,body,labels,comments,createdAt --jq '"TITRE: \(.title)\nOUVERTE LE: \(.createdAt)\nLABELS: \([.labels[].name]|join(", "))\nBODY:\n\(.body)\nCOMMENTAIRES: \(.comments|length)"'; echo; done`
+!`for n in $ARGUMENTS; do echo "===== #$n ====="; gh issue view $n --json title,body,labels,comments,createdAt --jq '"TITRE: \(.title)\nOUVERTE LE: \(.createdAt)\nLABELS: \([.labels[].name]|join(", "))\nBODY:\n\(.body)\nCOMMENTAIRES: \(.comments|length)\n" + (.comments as $c | ([$c | to_entries[] | select(.value.body|contains("<!-- cicada:questions -->")) | .key] | last) as $i | if $i == null then "QUESTIONS SUR L ISSUE: aucune" else "QUESTIONS POSÉES ET RÉPONSES:\n" + ($c[$i:] | map("--- \(.author.login) le \(.createdAt) ---\n\(.body)") | join("\n")) end)'; echo; done`
 
 Procédure :
 
@@ -33,6 +33,24 @@ Procédure :
    - C = ambigu, trop large, ou label `needs: discussion`.
    Pour chaque issue, prends en compte le DERNIER commentaire de retour de test s'il
    existe : c'est lui qui définit le travail à faire maintenant (l'historique = contexte).
+
+2bis. QUESTIONS DÉJÀ POSÉES SUR LES ISSUES — le contexte préchargé affiche,
+   pour chaque issue, le dernier commentaire marqué `<!-- cicada:questions -->`
+   (questions Q1, Q2… avec options a/b/c et un défaut ⭐) et tous les
+   commentaires qui le suivent (réponses possibles, quel qu'en soit l'auteur).
+   Pour chaque issue concernée :
+   - relève la réponse à chaque question : lettre, texte libre, « OK défauts »
+     (= tous les ⭐), ou réponse en prose qui y correspond ;
+   - question sans réponse → choix par défaut ⭐, SAUF label
+     `needs: discussion` ou défaut « à préciser » : alors pose-la-moi (3bis) ;
+   - réponse ambiguë, contradictoire ou hors des options → pose-la-moi (3bis)
+     en citant la réponse ;
+   - les réponses priment sur le corps de l'issue et sur le commentaire de
+     test quand ils se contredisent sur le même point ; la plus récente prime ;
+   - une fois tranchées : `gh issue edit <n> --remove-label "question"`, et
+     section « Décisions » (Q1 → b, Q2 → défaut a, …) dans le commentaire de
+     l'étape 4i.
+   Une issue dont une question bloquante reste ouverte passe en bac C.
 
 3. ÉTABLIS l'ordre de traitement à l'intérieur du lot :
    - Range les issues pour que les corrections ne se marchent pas dessus (ex : une
@@ -134,9 +152,23 @@ Procédure :
    - Si mes réponses lèvent l'ambiguïté → reclasse l'issue en A/B et traite-la
      dans le flux (étape 4).
    - Si l'ambiguïté persiste (vraie décision produit, hors de ta portée) → alors
-     SEULEMENT commente tes questions précises (`gh issue comment <n>`), pose le
-     label `needs: discussion` (`gh issue edit <n> --add-label "needs: discussion"`),
+     SEULEMENT commente tes questions précises (`gh issue comment <n> --body-file <fichier>`)
+     au FORMAT QUESTIONS ci-dessous, pose les labels `question` et
+     `needs: discussion` (`gh issue edit <n> --add-label "question" --add-label "needs: discussion"`),
      et passe à la suivante.
+
+   FORMAT QUESTIONS (lu et rempli dans GitHub par une personne non technique) :
+   - 1re ligne `<!-- cicada:questions -->` (marqueur relu par l'étape 2bis),
+     puis `## ❓ Questions avant de coder` et le paragraphe « Pour répondre » :
+     copier le bloc « Réponse » dans un nouveau commentaire, une lettre ou du
+     texte libre par question, question sans réponse = défaut ⭐,
+     « OK défauts » accepte tout.
+   - Une section `### Qn — <sujet>` par question, en termes d'écran et
+     d'usage (pas de nom de modèle ni de fonction), options `**a)**`,
+     `**b)**`… et une ligne `⭐ **défaut : x**` (ou `à préciser`).
+   - Si une partie du travail ne dépend pas des questions, dis-le en tête.
+   - Termine par `### Réponse (à copier)` et un bloc de code
+     `Q1 :` / `Q2 :` / … / `Remarques :`.
 
 6. À la fin du lot, lance une passe de tests groupée sur les fichiers communs
    touchés (un seul `jest --findRelatedTests` / `pytest` sur l'ensemble) pour
@@ -149,5 +181,6 @@ Procédure :
    Colonnes « Doc » et « Exports » : pages / exports mis à jour, ou « RAS ».
    La colonne « Commenté » doit être `oui` pour toute issue A/B traitée (étape 4i) :
    une case `non` signale un travail non terminé. Puis liste les points de
-   validation manuelle (bac B) et les questions posées (bac C), et ARRÊTE pour que
+   validation manuelle (bac B), les questions posées (bac C), et les décisions
+   relues sur les issues (étape 2bis — réponse ou défaut appliqué), et ARRÊTE pour que
    je fasse le point avant le lot suivant.

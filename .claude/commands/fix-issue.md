@@ -33,6 +33,25 @@ Procédure :
       « ↳ Fait », c'est le dernier qui gagne : la correction précédente est
       incomplète ou a régressé.
 
+1ter. QUESTIONS DÉJÀ POSÉES SUR L'ISSUE — cherche dans les commentaires le
+      DERNIER qui contient le marqueur `<!-- cicada:questions -->` (questions
+      Q1, Q2… avec options a/b/c et un choix par défaut ⭐). Tout commentaire
+      postérieur, quel qu'en soit l'auteur, est une réponse possible.
+      - Relève la réponse à chaque question : lettre, texte libre, « OK
+        défauts » (= tous les ⭐), ou réponse en prose qui y correspond.
+      - Question sans réponse → applique son choix par défaut ⭐, SAUF si
+        l'issue porte le label `needs: discussion` ou si le défaut annonçait
+        « à préciser » : alors demande-moi (étape 2) avant de trancher.
+      - Réponse ambiguë, contradictoire ou hors des options → demande-moi
+        (étape 2), en citant la réponse.
+      - Les réponses priment sur le corps de l'issue et sur le commentaire de
+        test de l'étape 1bis quand ils se contredisent sur le même point ; une
+        réponse plus récente prime sur une plus ancienne.
+      - Une fois tranchées, retire le label : `gh issue edit $ARGUMENTS --remove-label "question"`,
+        et récapitule les décisions retenues (Q1 → b, Q2 → défaut a, …) dans
+        le commentaire de l'étape 8, section « Décisions ».
+      Aucun commentaire marqué → rien à faire.
+
 2. N'HÉSITE PAS À ME POSER DES QUESTIONS — quel que soit le bac.
    Dès qu'un choix change le résultat, demande-moi directement dans le terminal
    (outil AskUserQuestion) plutôt que de trancher seul : corps vide, deux lectures
@@ -47,9 +66,25 @@ Procédure :
        à l'étape 3.
      - Si l'ambiguïté persiste (vraie décision produit, hors de ta portée) →
        alors SEULEMENT commente tes questions précises sur l'issue
-       (`gh issue comment $ARGUMENTS --body "..."`), pose le label
-       `needs: discussion` (`gh issue edit $ARGUMENTS --add-label "needs: discussion"`),
+       (`gh issue comment $ARGUMENTS --body-file <fichier>`) AU FORMAT
+       QUESTIONS ci-dessous, pose les labels `question` et `needs: discussion`
+       (`gh issue edit $ARGUMENTS --add-label "question" --add-label "needs: discussion"`),
        puis ARRÊTE.
+
+   FORMAT QUESTIONS (toute question posée sur une issue — elle est lue et
+   remplie par une personne non technique, dans GitHub) :
+   - 1re ligne : `<!-- cicada:questions -->` (marqueur relu par l'étape 1ter),
+     puis `## ❓ Questions avant de coder` et le paragraphe « Pour répondre » :
+     copier le bloc « Réponse » dans un nouveau commentaire, une lettre ou du
+     texte libre par question, question sans réponse = choix par défaut ⭐,
+     « OK défauts » accepte tout.
+   - Une section `### Qn — <sujet>` par question, formulée en termes d'écran
+     et d'usage (pas de nom de modèle ni de fonction), avec des options
+     `**a)**`, `**b)**`… et une ligne `⭐ **défaut : x**` (le choix que tu
+     ferais). Pas de défaut raisonnable → `⭐ **défaut : à préciser**`.
+   - Si une partie du travail ne dépend pas des questions, dis-le en tête.
+   - Termine par `### Réponse (à copier)` et un bloc de code
+     `Q1 :` / `Q2 :` / … / `Remarques :`.
 
 3. Sinon, travaille directement sur `develop`. Assure-toi d'être à jour
    avant de commencer : `git checkout develop && git pull`.
@@ -172,7 +207,9 @@ Procédure :
       techniques, CLAUDE.md), ou « RAS » avec ce qui a été vérifié ;
     - exports impactés : lesquels et comment ils ont été corrigés / testés, ou
       « RAS » avec ce qui a été vérifié ;
-    - questions posées et réponses ;
+    - questions posées et réponses — y compris celles relues sur l'issue
+      (étape 1ter) : décision retenue par question, et lesquelles ont pris le
+      défaut faute de réponse ;
     - étapes manuelles s'il y en a ;
     - confirme explicitement que le commentaire de l'étape 8 a bien été posté
       (l'omettre = travail non fini).
