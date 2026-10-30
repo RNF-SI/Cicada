@@ -159,12 +159,12 @@ export class LinkPlanReferentModalComponent implements OnInit {
   }
 
   private initUserAssignments(): void {
-    // Use membres if available (has referent flag), otherwise fallback to referents
-    const membres = this.data.plan.membres;
-    let existingAssignments: UserAssignment[];
-
-    if (membres && membres.length > 0) {
-      existingAssignments = membres.map(m => ({
+    // #789 — `membres` porte le rôle de chacun ; un référent sans ligne membre
+    // (données antérieures) n'y figure pas : on le reprend depuis `referents`.
+    const membres = this.data.plan.membres || [];
+    const dejaListes = new Set(membres.map(m => m.id_role));
+    const existingAssignments: UserAssignment[] = [
+      ...membres.map(m => ({
         user: {
           id_role: m.id_role,
           email: m.email,
@@ -177,23 +177,23 @@ export class LinkPlanReferentModalComponent implements OnInit {
         isNew: false,
         isDeleted: false,
         roleChanged: false,
-      }));
-    } else {
-      // Fallback: all existing referents are marked as referent=true
-      existingAssignments = (this.data.plan.referents || []).map(ref => ({
-        user: {
-          id_role: ref.id_role,
-          email: ref.email,
-          nom_role: ref.nom_role,
-          prenom_role: ref.prenom_role,
-          nom_complet: ref.nom_complet,
-          referent: true,
-        },
-        isNew: false,
-        isDeleted: false,
-        roleChanged: false,
-      }));
-    }
+      })),
+      ...(this.data.plan.referents || [])
+        .filter(ref => !dejaListes.has(ref.id_role))
+        .map(ref => ({
+          user: {
+            id_role: ref.id_role,
+            email: ref.email,
+            nom_role: ref.nom_role,
+            prenom_role: ref.prenom_role,
+            nom_complet: ref.nom_complet,
+            referent: true,
+          },
+          isNew: false,
+          isDeleted: false,
+          roleChanged: false,
+        })),
+    ];
 
     this.userAssignments.set(existingAssignments);
     this.filterAvailableUsers('');
@@ -349,8 +349,9 @@ export class LinkPlanReferentModalComponent implements OnInit {
       return;
     }
 
-    // Confirmation explicite si l'utilisateur retire au moins un membre/référent (#267).
-    if (toDelete.length > 0) {
+    // Confirmation explicite si l'utilisateur retire au moins un membre/référent (#267)
+    // ou si le plan se retrouve sans référent (#789).
+    if (toDelete.length > 0 || this.retireDernierReferent()) {
       this.confirmDeletionsThenSave(planId, toAdd, toDelete, toChangeRole);
       return;
     }
@@ -358,6 +359,13 @@ export class LinkPlanReferentModalComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.processOperations(planId, toAdd, toDelete, toChangeRole);
+  }
+
+  /** #789 — le plan avait au moins un référent et n'en aurait plus aucun. */
+  retireDernierReferent(): boolean {
+    const avant = this.userAssignments().some(a => !a.isNew && (a.roleChanged ? !a.user.referent : a.user.referent));
+    const apres = this.userAssignments().some(a => !a.isDeleted && a.user.referent);
+    return avant && !apres;
   }
 
   /** Demande confirmation avant d'appliquer les retraits d'utilisateurs (#267). */
@@ -369,18 +377,28 @@ export class LinkPlanReferentModalComponent implements OnInit {
   ): void {
     const names = toDelete.map(a => `• ${a.user.nom_complet || a.user.email}`).join('\n');
     const count = toDelete.length;
-    const title = count === 1
-      ? this.translate.instant('modals.linkPlanReferent.confirmRemove.titleSingle')
-      : this.translate.instant('modals.linkPlanReferent.confirmRemove.titlePlural', { count });
-    const message = this.translate.instant('modals.linkPlanReferent.confirmRemove.message', { count })
-      + '\n\n' + names;
+    const dernierReferent = this.retireDernierReferent();
+    const parts: string[] = [];
+    let title: string;
+    if (count > 0) {
+      title = count === 1
+        ? this.translate.instant('modals.linkPlanReferent.confirmRemove.titleSingle')
+        : this.translate.instant('modals.linkPlanReferent.confirmRemove.titlePlural', { count });
+      parts.push(this.translate.instant('modals.linkPlanReferent.confirmRemove.message', { count }) + '\n\n' + names);
+    } else {
+      title = this.translate.instant('modals.linkPlanReferent.confirmRemove.titleNoReferent');
+    }
+    if (dernierReferent) {
+      parts.push(this.translate.instant('modals.linkPlanReferent.confirmRemove.lastReferent'));
+    }
+    const message = parts.join('\n\n');
 
     const ref = this.dialog.open(ConfirmDialogComponent, {
       width: '500px',
       data: {
         title,
         message,
-        confirmText: this.translate.instant('common.actions.delete'),
+        confirmText: this.translate.instant(count > 0 ? 'common.actions.delete' : 'common.actions.confirm'),
         cancelText: this.translate.instant('common.actions.cancel'),
         confirmColor: 'warn',
       },

@@ -139,12 +139,16 @@ class PlanDuplicationService:
         if copy_sites:
             new_plan.update_geometrie()
 
-        # 8. Auto-grant access: add the duplicating user as member of the new plan
-        CorRolePlan.objects.get_or_create(
-            id_role=user,
-            plan_de_gestion=new_plan,
-            defaults={'referent': True, 'commentaire': 'Créateur par duplication'},
-        )
+        # 8. Auto-grant access: the duplicating user becomes referent of the new
+        # plan (la ligne membre en fait un référent, #789). #736 — sauf super
+        # admin et rédacteur principal, qui ont déjà tous les droits.
+        from .access import has_global_plan_access
+        if not has_global_plan_access(user):
+            CorRolePlan.objects.get_or_create(
+                id_role=user,
+                plan_de_gestion=new_plan,
+                defaults={'referent': True, 'commentaire': 'Créateur par duplication'},
+            )
 
         # 9. Log activity manually
         ActivityService.log_plan_activity(

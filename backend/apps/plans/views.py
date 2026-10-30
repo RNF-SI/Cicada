@@ -1051,14 +1051,18 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 id_role=user,
                 plan_de_gestion=plan
             ).first()
+            est_referent = plan.referents.filter(pk=user.pk).exists()
 
-            if not cor:
+            # #789 — un référent peut n'avoir aucune ligne CorRolePlan (données
+            # antérieures) : on retire des deux, et on ne refuse que s'il n'est
+            # dans aucune.
+            if not cor and not est_referent:
                 return Response({'error': 'Cet utilisateur n\'est pas membre de ce plan'},
                               status=status.HTTP_400_BAD_REQUEST)
 
-            # Also remove from M2M referents if present
             plan.referents.remove(user)
-            cor.delete()
+            if cor:
+                cor.delete()
 
             return Response({'message': f'Membre {user} retiré du plan'})
 
@@ -2595,10 +2599,11 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # Copier les membres (CorRolePlan)
         from .models import CorRolePlan
         for membre in plan.membres.all():
-            CorRolePlan.objects.create(
+            # Les référents copiés ci-dessus ont déjà leur ligne (signal #789).
+            CorRolePlan.objects.get_or_create(
                 id_role=membre.id_role,
                 plan_de_gestion=new_plan,
-                referent=membre.referent,
+                defaults={'referent': membre.referent},
             )
 
         # #377 — Copier tout le contenu pour que la version étendue soit
@@ -2979,10 +2984,11 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # Copier les membres (CorRolePlan)
         from .models import CorRolePlan
         for membre in plan.membres.all():
-            CorRolePlan.objects.create(
+            # Les référents copiés ci-dessus ont déjà leur ligne (signal #789).
+            CorRolePlan.objects.get_or_create(
                 id_role=membre.id_role,
                 plan_de_gestion=new_plan,
-                referent=membre.referent,
+                defaults={'referent': membre.referent},
             )
 
         # #377 — Copier tout le contenu (enjeux, hiérarchie, suivis, opérations)
@@ -3078,10 +3084,11 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # Copier les membres (CorRolePlan)
         from .models import CorRolePlan
         for membre in plan.membres.all():
-            CorRolePlan.objects.create(
+            # Les référents copiés ci-dessus ont déjà leur ligne (signal #789).
+            CorRolePlan.objects.get_or_create(
                 id_role=membre.id_role,
                 plan_de_gestion=new_plan,
-                referent=membre.referent,
+                defaults={'referent': membre.referent},
             )
 
         # #377 — Copier tout le contenu pour que l'évaluation mi-parcours soit

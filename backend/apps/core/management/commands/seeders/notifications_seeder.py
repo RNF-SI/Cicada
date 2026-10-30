@@ -316,11 +316,17 @@ class NotificationsSeeder(BaseSeeder):
         for notif_data in notifications_data:
             is_read = notif_data.pop('read', False)
 
-            notif, created = Notification.objects.get_or_create(
+            cle = dict(
                 recipient=notif_data['recipient'],
                 notification_type=notif_data['notification_type'],
                 title=notif_data['title'],
-                defaults={
+            )
+            # Les signaux (ajout d'un référent, #789) peuvent avoir déjà produit
+            # une ou plusieurs notifications de même titre : on garde la première.
+            notif = Notification.objects.filter(**cle).order_by('pk').first()
+            created = notif is None
+            if created:
+                notif = Notification.objects.create(**cle, **{
                     'message': notif_data['message'],
                     'priority': notif_data['priority'],
                     'related_user': notif_data.get('related_user'),
@@ -331,8 +337,7 @@ class NotificationsSeeder(BaseSeeder):
                     'read': is_read,
                     'read_at': timezone.now() if is_read else None,
                     'expires_at': timezone.now() + timedelta(days=30),
-                }
-            )
+                })
             notifications.append(notif)
 
             status = "créé" if created else "existant"

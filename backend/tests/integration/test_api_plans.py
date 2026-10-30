@@ -1019,7 +1019,8 @@ class TestPlansMemberAssignment:
         user = RoleFactory()
         plan.referents.add(user)
         from apps.plans.models import CorRolePlan
-        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=True)
+        # #789 — referents.add crée déjà la ligne membre
+        CorRolePlan.objects.update_or_create(id_role=user, plan_de_gestion=plan, defaults={'referent': True})
 
         api_client.force_authenticate(user=admin)
         response = api_client.post(f'/api/plans/plans/{plan.id_pg}/assign_member/', {
@@ -1066,7 +1067,8 @@ class TestPlansMemberAssignment:
         user = RoleFactory()
         plan.referents.add(user)
         from apps.plans.models import CorRolePlan
-        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=True)
+        # #789 — referents.add crée déjà la ligne membre
+        CorRolePlan.objects.update_or_create(id_role=user, plan_de_gestion=plan, defaults={'referent': True})
 
         api_client.force_authenticate(user=admin)
         response = api_client.delete(
@@ -1114,7 +1116,8 @@ class TestPlansMemberAssignment:
         user = RoleFactory()
         plan.referents.add(user)
         from apps.plans.models import CorRolePlan
-        CorRolePlan.objects.create(id_role=user, plan_de_gestion=plan, referent=True)
+        # #789 — referents.add crée déjà la ligne membre
+        CorRolePlan.objects.update_or_create(id_role=user, plan_de_gestion=plan, defaults={'referent': True})
 
         api_client.force_authenticate(user=admin)
         response = api_client.delete(

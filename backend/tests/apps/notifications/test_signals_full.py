@@ -680,13 +680,13 @@ class TestNotifyPlanReferentsNewMember:
         """The new member themselves should not receive the referent info notification."""
         user = RoleFactory()
         plan = PlanGestionFactory()
-        plan.referents.add(user)
 
         # The user is both a referent and the new member being added
+        # (#789 : la ligne membre référent l'ajoute aussi aux référents).
         CorRolePlan.objects.create(
             id_role=user,
             plan_de_gestion=plan,
-            referent=False,
+            referent=True,
         )
 
         # The notification should not go to the user themselves

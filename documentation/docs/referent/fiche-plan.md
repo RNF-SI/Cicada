@@ -13,6 +13,8 @@ Les rubriques Paramétrage, Suivis et Exports ne sont visibles que des référen
 
 La vue d'ensemble affiche les informations clés (période, organisme, statut, surface) et des sections dépliables : synthèse des enjeux, des objectifs long terme, des objectifs opérationnels, des actions, des suivis, ainsi que les sites, les utilisateurs (référents et membres) et les documents joints.
 
+« Gérer les utilisateurs » ajoute ou retire des référents et des membres du plan. Retirer le dernier référent, ou le repasser membre, est possible mais demande une confirmation : le plan reste alors modifiable par les seuls administrateurs de l'organisme gestionnaire, le rédacteur général et le super administrateur.
+
 <div class="figure-row" markdown>
 <figure markdown="span">
 ![Vue d'ensemble](../assets/figures/fig29.webp){ loading=lazy }

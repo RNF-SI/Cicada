@@ -1532,7 +1532,9 @@
       "confirmRemove": {
         "titleSingle": "Retirer cet utilisateur du plan ?",
         "titlePlural": "Retirer {{count}} utilisateurs du plan ?",
-        "message": "Vous êtes sur le point de retirer {{count}} utilisateur(s) de ce plan de gestion. Cette action est définitive."
+        "message": "Vous êtes sur le point de retirer {{count}} utilisateur(s) de ce plan de gestion. Cette action est définitive.",
+        "titleNoReferent": "Le plan n'aura plus de référent",
+        "lastReferent": "⚠ Le plan n'aura plus aucun référent. Seuls les administrateurs de l'organisme gestionnaire, le rédacteur général et le super administrateur pourront encore le modifier et gérer ses utilisateurs."
       }
     },
     "linkPlanToSite": {

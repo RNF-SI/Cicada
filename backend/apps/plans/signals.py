@@ -78,6 +78,71 @@ def rattacher_organisme_du_redacteur_referent(sender, instance, action, pk_set, 
             rattacher_organisme_redacteur(instance, user)
 
 
+def aligner_membres_sur_referents(sender, instance, action, pk_set, reverse, **kwargs):
+    """#789 — un référent du plan a toujours sa ligne ``CorRolePlan(referent=True)``.
+
+    Le retrait d'un utilisateur du plan (``remove_member``) et la liste
+    « Utilisateurs du plan » lisent ``CorRolePlan`` ; plusieurs chemins (créateur,
+    formulaire, duplications) n'écrivaient que ``PlanGestion.referents``. Les
+    écritures passent par ``update()`` : pas de ``post_save``, donc pas d'aller-retour
+    avec ``aligner_referents_sur_membre``.
+    """
+    from .models import CorRolePlan
+
+    if action == 'pre_clear':
+        lignes = (CorRolePlan.objects.filter(id_role=instance) if reverse
+                  else CorRolePlan.objects.filter(plan_de_gestion=instance))
+        lignes.update(referent=False)
+        return
+    if action not in ('post_add', 'post_remove') or not pk_set:
+        return
+    paires = ([(instance.pk, pk) for pk in pk_set] if not reverse
+              else [(pk, instance.pk) for pk in pk_set])
+    for plan_id, role_id in paires:
+        lignes = CorRolePlan.objects.filter(plan_de_gestion_id=plan_id, id_role_id=role_id)
+        if action == 'post_add':
+            if not lignes.update(referent=True):
+                CorRolePlan.objects.bulk_create(
+                    [CorRolePlan(plan_de_gestion_id=plan_id, id_role_id=role_id, referent=True)],
+                    ignore_conflicts=True,
+                )
+        else:
+            # Retirer le rôle de référent garde l'utilisateur comme membre.
+            lignes.update(referent=False)
+
+
+@receiver(post_save, sender='plans.CorRolePlan')
+def aligner_referents_sur_membre(sender, instance, **kwargs):
+    """#789 — sens inverse : la ligne membre fait foi pour la relation ``referents``."""
+    if kwargs.get('raw'):
+        return
+    plan = instance.plan_de_gestion
+    present = plan.referents.filter(pk=instance.id_role_id).exists()
+    if instance.referent and not present:
+        plan.referents.add(instance.id_role_id)
+    elif not instance.referent and present:
+        plan.referents.remove(instance.id_role_id)
+
+
+@receiver(post_delete, sender='plans.CorRolePlan')
+def retirer_referent_avec_membre(sender, instance, **kwargs):
+    """#789 — supprimer la ligne membre retire aussi le rôle de référent."""
+    from django.db.models import QuerySet
+
+    from apps.users.models import Role
+
+    from .models import PlanGestion
+
+    # Plan ou utilisateur supprimé : Django efface déjà la table de liaison.
+    origin = kwargs.get('origin')
+    origin_model = origin.model if isinstance(origin, QuerySet) else type(origin)
+    if origin_model in (PlanGestion, Role):
+        return
+    PlanGestion.referents.through.objects.filter(
+        plangestion_id=instance.plan_de_gestion_id, role_id=instance.id_role_id,
+    ).delete()
+
+
 def _connecter_referents():
     from .models import PlanGestion
 
@@ -85,6 +150,11 @@ def _connecter_referents():
         rattacher_organisme_du_redacteur_referent,
         sender=PlanGestion.referents.through,
         dispatch_uid='plans_rattacher_organisme_redacteur_referent',
+    )
+    m2m_changed.connect(
+        aligner_membres_sur_referents,
+        sender=PlanGestion.referents.through,
+        dispatch_uid='plans_aligner_membres_sur_referents',
     )
 
 

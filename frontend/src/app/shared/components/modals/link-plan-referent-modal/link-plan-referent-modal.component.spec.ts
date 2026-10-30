@@ -21,7 +21,7 @@ describe('LinkPlanReferentModalComponent — rédacteur externe (#714)', () => {
   let redacteursInstance: any[] = [];
   beforeEach(() => { redacteursInstance = []; });
 
-  async function setup(membres: any[] = []): Promise<LinkPlanReferentModalComponent> {
+  async function setup(membres: any[] = [], referents: any[] = []): Promise<LinkPlanReferentModalComponent> {
     adminService = {
       getUsers: jest.fn(() => of({ results: [candidat] })),
       getRedacteursExternesForPlan: jest.fn(() => of(redacteursInstance)),
@@ -43,7 +43,7 @@ describe('LinkPlanReferentModalComponent — rédacteur externe (#714)', () => {
           },
         },
         { provide: MatDialogRef, useValue: { close } },
-        { provide: MAT_DIALOG_DATA, useValue: { plan: { id_pg: 7, nom: 'Plan', membres } } },
+        { provide: MAT_DIALOG_DATA, useValue: { plan: { id_pg: 7, nom: 'Plan', membres, referents } } },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(LinkPlanReferentModalComponent);
@@ -145,6 +145,50 @@ describe('LinkPlanReferentModalComponent — rédacteur externe (#714)', () => {
       expect(component.userAssignments()[0].user.is_redacteur_externe).toBe(true);
       component.setAddAsReferent(true);
       expect(component.userAssignments()[0].user.is_redacteur_externe).toBe(true);
+    });
+  });
+
+  describe('#789 — référent sans ligne membre, dernier référent', () => {
+    const sophie = { id_role: 5, email: 'sophie@rnf.fr', nom_complet: 'Sophie' };
+    const membre = { id_role: 6, email: 'm@rnf.fr', referent: false };
+
+    function confirmer(component: LinkPlanReferentModalComponent): jest.Mock {
+      const open = jest.fn(() => ({ afterClosed: () => of(true) }));
+      (component as any).dialog = { open };
+      return open;
+    }
+
+    it('liste le référent absent des membres', async () => {
+      const component = await setup([membre], [sophie]);
+      expect(component.visibleAssignments.map(a => a.user.id_role)).toEqual([6, 5]);
+      expect(component.visibleAssignments[1].user.referent).toBe(true);
+    });
+
+    it('alerte au retrait du dernier référent, puis retire', async () => {
+      const component = await setup([], [sophie]);
+      const open = confirmer(component);
+      component.removeUser(component.userAssignments()[0]);
+      expect(component.retireDernierReferent()).toBe(true);
+      component.onSave();
+      const { data } = (open.mock.calls[0] as any[])[1];
+      expect(data.message).toContain('modals.linkPlanReferent.confirmRemove.lastReferent');
+      expect(adminService['removeMemberFromPlan']).toHaveBeenCalledWith(7, 5);
+    });
+
+    it('alerte aussi quand le dernier référent repasse membre', async () => {
+      const component = await setup([{ ...sophie, referent: true }, membre]);
+      const open = confirmer(component);
+      component.toggleReferent(component.userAssignments()[0]);
+      component.onSave();
+      expect(open).toHaveBeenCalled();
+      const { data } = (open.mock.calls[0] as any[])[1];
+      expect(data.title).toBe('modals.linkPlanReferent.confirmRemove.titleNoReferent');
+    });
+
+    it('pas d\'alerte s\'il reste un référent', async () => {
+      const component = await setup([{ ...sophie, referent: true }, { ...membre, referent: true }]);
+      component.removeUser(component.userAssignments()[0]);
+      expect(component.retireDernierReferent()).toBe(false);
     });
   });
 });

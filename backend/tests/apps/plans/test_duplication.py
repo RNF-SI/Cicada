@@ -284,7 +284,8 @@ class TestCopyReferents:
             copy_fichiers=False, copy_enjeux=False,
         )
 
-        assert set(new_plan.referents.values_list('pk', flat=True)) == {ref1.pk, ref2.pk}
+        # #789 — le duplicateur (utilisateur simple) devient lui aussi référent.
+        assert set(new_plan.referents.values_list('pk', flat=True)) == {ref1.pk, ref2.pk, user.pk}
 
     def test_copy_referents_false(self, source_plan, user):
         ref = RoleFactory()
@@ -296,7 +297,8 @@ class TestCopyReferents:
             copy_fichiers=False, copy_enjeux=False,
         )
 
-        assert new_plan.referents.count() == 0
+        # #789 — seul le duplicateur reste référent de la copie.
+        assert list(new_plan.referents.values_list('pk', flat=True)) == [user.pk]
 
 
 # =============================================================================
@@ -918,8 +920,8 @@ class TestFullHierarchyDuplication:
         # Verify sites copied
         assert CorSitePg.objects.filter(plan_de_gestion=new_plan).count() == 1
 
-        # Verify referents copied
-        assert new_plan.referents.count() == 1
+        # Verify referents copied (+ the duplicating user, #789)
+        assert new_plan.referents.count() == 2
 
         # Verify enjeu
         new_enjeu = Enjeu.objects.get(id_pg=new_plan)
@@ -1135,9 +1137,23 @@ class TestAutoAccess:
             id_role=user, plan_de_gestion=new_plan
         ).count() == 1
 
+    def test_super_admin_pas_referent_de_la_copie(self, api_client, source_plan):
+        """#736/#789 — le super admin qui duplique ne devient pas référent."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+        response = api_client.post(
+            f'/api/plans/plans/{source_plan.id_pg}/duplicate/', data={}, format='json',
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+        new_plan = PlanGestion.objects.get(pk=response.data['id_pg'])
+        assert not new_plan.referents.filter(pk=admin.pk).exists()
+
     def test_api_returns_membre_data(self, api_client, source_plan):
         """Test that the API response includes the user's membership."""
-        admin = SuperAdminFactory()
+        # #736/#789 — un super admin ne devient pas référent de la copie :
+        # on teste avec un référent du plan source.
+        admin = RoleFactory()
+        source_plan.referents.add(admin)
         api_client.force_authenticate(user=admin)
 
         response = api_client.post(
