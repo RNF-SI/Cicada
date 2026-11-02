@@ -543,6 +543,28 @@ class TestReparationCategoriesReserve:
         r = categories_reserve.reparer()
         assert r['categories_restaurees'] == [] and r['actions_corrigees'] == 0
 
+    def test_reparation_automatique_par_la_migration(self, degats):
+        """La mise à jour se fait par le bouton, sans commande : la migration
+        0146 applique la réparation avec ses modèles historiques et marque
+        l'index de recherche périmé (reconstruit au démarrage)."""
+        import importlib
+
+        from django.db import connection
+        from django.db.migrations.loader import MigrationLoader
+
+        etat = MigrationLoader(connection).project_state(
+            ('plans', '0146_reparer_categories_reserve'))
+        migration = importlib.import_module(
+            'apps.plans.migrations.0146_reparer_categories_reserve')
+        migration.reparer(etat.apps, None)
+
+        degats['corrigee'].refresh_from_db()
+        ms = Nomenclature.objects.get(pk=degats['ct88']['MS'].pk)
+        assert ms.actif and degats['corrigee'].id_categorie_action_reserve == ms
+        assert not Nomenclature.objects.get(pk=degats['ge'].pk).actif
+        degats['retouchee'].refresh_from_db()
+        assert degats['retouchee'].id_categorie_action_reserve == degats['ct88']['EI']
+
 
 @pytest.mark.django_db
 class TestInstanceEnRetard:

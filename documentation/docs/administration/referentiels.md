@@ -212,16 +212,17 @@ Dans le formulaire d'une action, la catégorie d'action réserve est **pré-remp
 
 #### Réparer une instance passée à GestRef avant #788
 
-Avant la correction #788, un passage remplaçait les catégories des réserves par celles de GestRef (MS, EI, CI, PR, PA, CC désactivées, libellés de CS, IP, SP remplacés, catégorie des actions modifiée). Sur une instance où `passage_types_action gestref_v1 --appliquer` a été lancé avant la mise à jour :
+Avant la correction #788, un passage remplaçait les catégories des réserves par celles de GestRef (MS, EI, CI, PR, PA, CC désactivées, libellés de CS, IP, SP remplacés, catégorie des actions modifiée).
+
+**La réparation est automatique** : la mise à jour par le bouton l'applique une seule fois, par la migration `plans.0146_reparer_categories_reserve`. Elle s'applique aussi quand l'instance saute plusieurs versions. **Aucune commande n'est à lancer.** Sur une instance qui n'a jamais appliqué de passage, elle ne change rien. Si des actions sont corrigées, l'index de recherche est reconstruit au même démarrage.
+
+La commande `reparer_categories_reserve` reste disponible pour **consulter** ce que la réparation fait ou a fait. Sans option, elle n'écrit rien :
 
 ```bash
-# Simulation : catégories à rétablir, actions corrigées, actions sans trace
 docker compose exec web python manage.py reparer_categories_reserve
-# Réparation
-docker compose exec web python manage.py reparer_categories_reserve --appliquer
 ```
 
-La commande réactive les 9 catégories avec leurs libellés d'origine (fichier des nomenclatures), désactive celles créées par le passage (identifiants ≥ 500 000) et rend à chaque action du journal sa catégorie d'avant le passage, sauf si elle a été changée à la main depuis. Elle liste ce qu'elle ne peut pas retrouver : les actions qui portent encore une catégorie GestRef sans trace dans le journal, et le nombre d'actions sans type ni catégorie (le passage pouvait effacer la catégorie d'une action sans type sans la journaliser) — à reprendre à la main ou à comparer avec une sauvegarde antérieure au passage. Relancée, elle ne change plus rien.
+La réparation réactive les 9 catégories avec leurs libellés d'origine (fichier des nomenclatures), désactive celles créées par le passage (identifiants ≥ 500 000) et rend à chaque action du journal sa catégorie d'avant le passage, sauf si elle a été changée à la main depuis. Elle liste ce qu'elle ne peut pas retrouver : les actions qui portent encore une catégorie GestRef sans trace dans le journal, et le nombre d'actions sans type ni catégorie (le passage pouvait effacer la catégorie d'une action sans type sans la journaliser) — à reprendre à la main dans l'application. Une fois appliquée, elle ne change plus rien.
 
 Une version suivante (GestRef V2) se prépare de la même façon, avec `"depuis": "GESTREF_V1"` ; un type présent dans les deux versions est repris tel quel.
 

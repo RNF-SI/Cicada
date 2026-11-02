@@ -17,6 +17,11 @@ leur libellé Gestref à CS, IP, SP, créait des catégories à partir de l'id
 Ce qui n'a laissé aucune trace est listé, pas deviné : actions portant une
 catégorie de passage hors journal, et actions sans type dont la catégorie a pu
 être effacée (la boucle d'avant #788 ne journalisait pas). Simulation par défaut.
+
+La réparation s'applique **d'elle-même, une seule fois**, par la migration
+``plans.0146_reparer_categories_reserve`` (mise à jour par le bouton, sans
+geste manuel) ; la commande ``reparer_categories_reserve`` reste pour la
+simulation. ``modeles`` permet à la migration de passer ses modèles historiques.
 """
 import re
 from collections import Counter
@@ -25,10 +30,7 @@ from pathlib import Path
 from django.db import transaction
 from django.utils import timezone
 
-from apps.core.models import Nomenclature
-
 from . import referentiel_actions as ref
-from .models_referentiel import PassageReferentielObjet, VersionReferentielActions
 
 FICHIER_NOMENCLATURES = (
     Path(__file__).resolve().parents[2] / 'nomenclatures_data' / 'nomenclatures_inserts.sql'
@@ -70,8 +72,19 @@ def _a_restaurer(op, obj) -> bool:
     return actuelle.cd_nomenclature == ref.categorie_du_code(code_type)
 
 
-def reparer(*, appliquer=False) -> dict:
+def _modeles_courants() -> dict:
+    from apps.core.models import Nomenclature
     from .models_operations import Operation
+    from .models_referentiel import PassageReferentielObjet, VersionReferentielActions
+    return {'Nomenclature': Nomenclature, 'Operation': Operation,
+            'PassageReferentielObjet': PassageReferentielObjet,
+            'VersionReferentielActions': VersionReferentielActions}
+
+
+def reparer(*, appliquer=False, modeles=None) -> dict:
+    m = modeles or _modeles_courants()
+    Nomenclature, Operation = m['Nomenclature'], m['Operation']
+    PassageReferentielObjet = m['PassageReferentielObjet']
 
     ct88 = categories_ct88()
     par_id = Nomenclature.objects.in_bulk([c['id'] for c in ct88])
@@ -124,12 +137,14 @@ def reparer(*, appliquer=False) -> dict:
         'actions_sans_type_ni_categorie': a_verifier,
     }
     if appliquer:
-        _appliquer(ct88, par_id, de_passage, corrections)
+        _appliquer(m, ct88, par_id, de_passage, corrections)
     return rapport
 
 
 @transaction.atomic
-def _appliquer(ct88, par_id, de_passage, corrections) -> None:
+def _appliquer(m, ct88, par_id, de_passage, corrections) -> None:
+    Nomenclature = m['Nomenclature']
+    VersionReferentielActions = m['VersionReferentielActions']
     for c in ct88:
         if c['id'] in par_id:
             Nomenclature.objects.filter(pk=c['id']).update(

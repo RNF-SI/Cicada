@@ -90,6 +90,35 @@ Contexte :
    Aucun export concerné → dis-le dans le récap (« exports : RAS, vérifié
    <modules regardés> »).
 
+5quinquies. MISE À JOUR DES INSTANCES — OBLIGATOIRE dès que la correction exige
+   de modifier des données existantes, de recharger un référentiel ou de
+   rattraper un état (réparation, reprise, regroupement, nouvelle valeur par
+   défaut…). Les instances se mettent à jour **uniquement par le bouton de
+   mise à jour** (APT + `migrate` + `docker/entrypoint.sh`) : jamais de SQL à
+   la main, jamais de commande `manage.py` à lancer par un exploitant, jamais
+   d'« étape manuelle après déploiement » dans le commentaire.
+   - Correction **une seule fois** par instance (données à réparer, à
+     regrouper, à convertir) → **migration de données** (`RunPython`,
+     réversible ou `noop` en retour), qui passe aussi quand une mise à jour
+     saute plusieurs versions. Modèles historiques (`apps.get_model`) ; si la
+     logique vit dans un module de l'app, le rendre paramétrable par ses
+     modèles (cf. `categories_reserve.reparer(modeles=…)`, migration
+     `plans.0146`). Sans signal dans une migration : marquer l'index de
+     recherche périmé si des objets indexés changent
+     (`ContenuIndexe.index_version=0` → `rebuild_search_index --if-stale`).
+   - Contenu **livré avec le code** (référentiel, fiche, nomenclature) →
+     rechargement **idempotent au démarrage** depuis `docker/entrypoint.sh`
+     (cf. `import_campanule` qui recharge une fiche changée).
+   - Ne jamais relancer à chaque démarrage une réparation qui écraserait un
+     choix fait depuis par un utilisateur : ce cas-là est une migration.
+   - Une commande `manage.py` peut exister en plus, pour **simuler** ; jamais
+     comme seul moyen d'appliquer.
+   - Test : la migration (ou le rechargement) appliquée sur un état « cassé »
+     produit l'état attendu, et ne change rien sur une instance saine.
+   - Récap et commentaire : dire comment la mise à jour s'applique
+     (« automatique : migration 0xxx » / « au démarrage ») ; rien à faire
+     à la main.
+
 6. Commit atomique (tests, seed, documentation et exports compris) :
    `fix(<scope>): <le nouveau symptôme> (#$ARGUMENTS)`.
 7. Commente le résumé sur l'issue avec une section « À vérifier » (étapes,
@@ -103,4 +132,5 @@ Contexte :
    correction : oui/non), autres tests impactés, seed modifié (oui/non),
    documentation mise à jour (pages, ou « RAS » + ce qui a été vérifié),
    exports impactés (lesquels, ou « RAS » + ce qui a été vérifié),
+   mise à jour des instances (automatique : migration / démarrage, ou « RAS »),
    questions posées, et confirmation que le commentaire a été posté.
