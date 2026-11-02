@@ -174,11 +174,14 @@
             <span class="detail-value">{{ p.date_publi }}</span>
           </div>
         }
+        @if (p.infos_complementaires) {
+          <p class="section-text" data-testid="protocole-infos-complementaires">{{ p.infos_complementaires }}</p>
+        }
       </div>
     </div>
 
     <!-- Liens -->
-    @if (p.url || p.url_perm || p.url_complementaire) {
+    @if (p.url || p.url_perm || p.url_complementaire || p.references?.length) {
       <div class="protocol-section">
         <h4 class="section-label">{{ 'campanule.dialog.liens' | translate }}</h4>
         <div class="links-list">
@@ -201,6 +204,13 @@
             </a>
           }
         </div>
+        @if (p.references?.length) {
+          <div class="detail-card" data-testid="protocole-references">
+            @for (ref of p.references; track $index) {
+              <p class="section-text">{{ ref }}</p>
+            }
+          </div>
+        }
       </div>
     }
   }

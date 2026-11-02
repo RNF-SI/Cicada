@@ -49,7 +49,6 @@ def _protocole(cd, court, complet, cible, indicateur, description, objectif):
             "description": f"{_DESCRIPTION_COMMUNE} {description}",
             "descr_objectif_prot": f"{_OBJECTIF_COMMUN} {objectif}",
             "url": _URL,
-            "url_perm": _URL,
             "obsolete": "false",
         },
     }

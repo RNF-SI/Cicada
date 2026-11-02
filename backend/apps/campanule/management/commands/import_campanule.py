@@ -311,14 +311,36 @@ class Command(BaseCommand):
         return MHEO_PROTOCOLES + RNF_PROTOCOLES
 
     def _mheo_installed(self):
-        """Vérifie que CHAQUE protocole hors INPN est présent : un protocole
-        ajouté depuis (#781) doit être chargé sur une instance qui a déjà les
-        précédents."""
-        from apps.campanule.models import CampanuleProtocole
-        attendus = {p['cd_protocole'] for p in self._protocoles_hors_inpn()}
-        presents = set(CampanuleProtocole.objects.filter(
-            cd_protocole__in=attendus).values_list('cd_protocole', flat=True))
-        return presents == attendus
+        """Vérifie que CHAQUE protocole hors INPN est présent et à jour : un
+        protocole ajouté depuis (#781), ou une fiche corrigée, doit être chargé
+        sur une instance qui a déjà les précédents."""
+        from apps.campanule.models import (
+            CampanuleProtBiblioRel,
+            CampanuleProtEchantillonnage,
+            CampanuleProtocole,
+        )
+        attendus = {p['cd_protocole']: p for p in self._protocoles_hors_inpn()}
+        presents = CampanuleProtocole.objects.in_bulk(list(attendus))
+        if set(presents) != set(attendus):
+            return False
+        champs = {f.name for f in CampanuleProtocole._meta.concrete_fields}
+        champs_ech = [f.name for f in CampanuleProtEchantillonnage._meta.concrete_fields
+                      if f.name not in ('cd_prot_echantillonnage', 'cd_protocole')]
+        for cd, proto in attendus.items():
+            p = presents[cd]
+            # Un champ que la fiche ne renseigne plus doit être vide en base.
+            for champ in champs - {'cd_protocole'}:
+                if getattr(p, champ) != proto['fields'].get(champ):
+                    return False
+            ech = proto.get('echantillonnage')
+            en_base = list(CampanuleProtEchantillonnage.objects
+                           .filter(cd_protocole=cd).values(*champs_ech))
+            if en_base != ([{c: ech.get(c) for c in champs_ech}] if ech else []):
+                return False
+            nb_refs = CampanuleProtBiblioRel.objects.filter(cd_protocole=cd).count()
+            if nb_refs != len(proto.get('references', [])):
+                return False
+        return True
 
     def _load_mheo(self):
         """
@@ -337,11 +359,16 @@ class Command(BaseCommand):
             CampanuleTechnique,
             CampanuleProtMethRel,
             CampanuleProtTechRel,
+            CampanuleProtBiblioRel,
+            CampanuleDocsWeb,
         )
 
         self.stdout.write('  Chargement des protocoles standardisés MhéO et RNF ...')
 
         # Nettoyage idempotent de la plage MhéO.
+        CampanuleProtBiblioRel.objects.filter(
+            cd_protocole__gt=MHEO_BASE).delete()
+        CampanuleDocsWeb.objects.filter(cd_doc__gt=MHEO_BASE).delete()
         CampanuleProtTechRel.objects.filter(
             cd_protocole__gt=MHEO_BASE).delete()
         CampanuleProtMethRel.objects.filter(
@@ -359,6 +386,7 @@ class Command(BaseCommand):
         next_methode = MHEO_BASE + 1
         next_technique = MHEO_BASE + 1
         next_ech = MHEO_BASE + 1
+        next_doc = MHEO_BASE + 1
 
         protocoles = self._protocoles_hors_inpn()
         for proto in protocoles:
@@ -388,6 +416,13 @@ class Command(BaseCommand):
                     cd_methode=next_methode,
                 )
                 next_methode += 1
+
+            # Références (#781) : affichées avec les liens de la fiche.
+            for reference in proto.get('references', []):
+                CampanuleDocsWeb.objects.create(cd_doc=next_doc, reference=reference)
+                CampanuleProtBiblioRel.objects.create(
+                    cd_protocole=cd_protocole, cd_doc=next_doc)
+                next_doc += 1
 
             for lb_technique, descr in proto.get('techniques', []):
                 CampanuleTechnique.objects.create(

@@ -11,6 +11,8 @@ from .models import (
     CampanuleProtEchantillonnage,
     CampanuleProtMethRel,
     CampanuleProtTechRel,
+    CampanuleProtBiblioRel,
+    CampanuleDocsWeb,
 )
 
 
@@ -67,6 +69,7 @@ class CampanuleProtocoleDetailSerializer(serializers.ModelSerializer):
     echantillonnages = serializers.SerializerMethodField()
     methodes = serializers.SerializerMethodField()
     techniques = serializers.SerializerMethodField()
+    references = serializers.SerializerMethodField()
 
     class Meta:
         model = CampanuleProtocole
@@ -80,10 +83,21 @@ class CampanuleProtocoleDetailSerializer(serializers.ModelSerializer):
             'echelle_restit', 'saisie', 'biologie', 'abiotique',
             'nature_donnees', 'analyse_reference',
             'guide_sinp_donnees', 'norme', 'indicateur',
+            'infos_complementaires', 'references',
             'uuid',
             # Nested
             'echantillonnages', 'methodes', 'techniques',
         ]
+
+    @extend_schema_field(serializers.ListField(child=serializers.CharField()))
+    def get_references(self, obj):
+        """Références bibliographiques du protocole (DOCS-Web), dans l'ordre."""
+        docs = (CampanuleProtBiblioRel.objects
+                .filter(cd_protocole=obj.cd_protocole)
+                .order_by('cd_doc').values_list('cd_doc', flat=True))
+        refs = dict(CampanuleDocsWeb.objects.filter(cd_doc__in=list(docs))
+                    .values_list('cd_doc', 'reference'))
+        return [refs[d] for d in docs if refs.get(d)]
 
     @extend_schema_field(CampanuleEchantillonnageSerializer(many=True))
     def get_echantillonnages(self, obj):

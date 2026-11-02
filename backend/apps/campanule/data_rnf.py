@@ -113,12 +113,7 @@ RNF_PROTOCOLES = [
             nature_donnees="Données qualitatives (entretiens semi-directifs)",
             echelle_restit="Locale (aire protégée et son territoire)",
             url=_URL_DAT,
-            url_perm=_URL_DAT,
-        ),
-        "echantillonnage": {
-            "periode_an": "Principalement en amont du plan de gestion",
-            "duree": "L'enquête dure environ 6 mois",
-            "commentaire": (
+            infos_complementaires=(
                 "Qui le réalise ? Une personne extérieure au site afin d'avoir le "
                 "regard le plus objectif : idéalement un stagiaire ou un CDD. La "
                 "personne doit avoir une expérience en conduite d'entretiens (ex. "
@@ -131,6 +126,10 @@ RNF_PROTOCOLES = [
                 "d'Ancrage Territorial ». Prestations d'appui au DAT proposées par "
                 "RNF : contacter ombeline.chidaine@rnfrance.org."
             ),
+        ),
+        "echantillonnage": {
+            "periode_an": "Principalement en amont du plan de gestion",
+            "duree": "L'enquête dure environ 6 mois",
         },
         "methode": (
             "Enquête sociologique auprès d'acteurs ciblés du territoire, par "
@@ -195,7 +194,6 @@ RNF_PROTOCOLES = [
             echelle_restit="Locale (aire protégée et territoire environnant)",
             date_publi="2023",
             url=_URL_GUIDE_NATURADAPT,
-            url_perm=_URL_GUIDE_NATURADAPT,
             url_complementaire=_URL_RESSOURCES_NATURADAPT,
         ),
         "echantillonnage": {
@@ -207,13 +205,15 @@ RNF_PROTOCOLES = [
             ),
             "commentaire": (
                 "Articulation : constitue une base pour l'élaboration du plan "
-                "d'adaptation au changement climatique.\n"
-                f"Références : {_REFERENCE_GUIDE} Diagnostic : fiches pratiques "
-                "n°5, 6 et 7, consacrées à l'analyse des effets, à l'évaluation des "
-                "vulnérabilités et opportunités et au contenu du diagnostic.\n"
-                f"{_RETOURS_EXPERIENCE}"
+                "d'adaptation au changement climatique."
             ),
         },
+        "references": [
+            f"{_REFERENCE_GUIDE} Diagnostic : fiches pratiques n°5, 6 et 7, "
+            "consacrées à l'analyse des effets, à l'évaluation des vulnérabilités "
+            "et opportunités et au contenu du diagnostic.",
+            _RETOURS_EXPERIENCE,
+        ],
         "methode": (
             "Caractérisation du climat passé et futur, identification des objets "
             "d'analyse du territoire, puis évaluation de leur sensibilité et de "
@@ -281,7 +281,6 @@ RNF_PROTOCOLES = [
             echelle_restit="Locale (aire protégée, interactions avec le territoire)",
             date_publi="2023",
             url=_URL_GUIDE_NATURADAPT,
-            url_perm=_URL_GUIDE_NATURADAPT,
             url_complementaire=_URL_RESSOURCES_NATURADAPT,
         ),
         "echantillonnage": {
@@ -293,12 +292,14 @@ RNF_PROTOCOLES = [
             "commentaire": (
                 "Articulation : élaboré à partir du diagnostic de vulnérabilité et "
                 "d'opportunité ; peut alimenter la révision des documents de "
-                "gestion existants.\n"
-                f"Références : {_REFERENCE_GUIDE} Plan d'adaptation : fiche "
-                "pratique n°8, présentant des exemples de mesures d'adaptation.\n"
-                f"{_RETOURS_EXPERIENCE}"
+                "gestion existants."
             ),
         },
+        "references": [
+            f"{_REFERENCE_GUIDE} Plan d'adaptation : fiche pratique n°8, "
+            "présentant des exemples de mesures d'adaptation.",
+            _RETOURS_EXPERIENCE,
+        ],
         "methode": (
             "À partir des résultats du diagnostic de vulnérabilité et "
             "d'opportunité, réflexion prospective, définition et hiérarchisation "

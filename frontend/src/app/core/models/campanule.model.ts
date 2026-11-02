@@ -98,6 +98,10 @@ export interface CampanuleProtocoleDetail {
   guide_sinp_donnees?: string;
   norme?: string;
   indicateur?: string;
+  /** Hors catalogue INPN (#781) : qui le réalise, coût, ressources… */
+  infos_complementaires?: string | null;
+  /** Références bibliographiques, affichées avec les liens (#781). */
+  references?: string[];
   uuid?: string;
   // Nested
   echantillonnages?: CampanuleEchantillonnage[];

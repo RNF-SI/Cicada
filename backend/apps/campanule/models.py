@@ -102,6 +102,11 @@ class CampanuleProtocole(models.Model):
     indicateur = models.TextField(
         _("Indicateur"), null=True, blank=True
     )
+    infos_complementaires = models.TextField(
+        _("Informations complémentaires"), null=True, blank=True,
+        help_text=_("Protocoles hors catalogue INPN (#781) : qui le réalise, "
+                    "coût, ressources…"),
+    )
     categorie_prot = models.CharField(
         _("Catégorie"), max_length=255, null=True, blank=True,
         db_index=True

@@ -253,3 +253,61 @@ class TestImportProtocolesRnf:
         call_command('import_campanule')
         assert CampanuleProtocole.objects.filter(cd_protocole__gt=RNF_BASE).count() == 3
         assert AutocompleteProtocole.objects.filter(cd_protocole__gt=RNF_BASE).count() == 3
+
+
+@pytest.mark.django_db(transaction=True)
+class TestFicheProtocolesRnf:
+    """#781 retour 30/10 — rubriques de la fiche des protocoles RNF."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self):
+        _ensure_imported()
+
+    def _detail(self, cd):
+        from apps.campanule.serializers import CampanuleProtocoleDetailSerializer
+        return CampanuleProtocoleDetailSerializer(
+            CampanuleProtocole.objects.get(cd_protocole=cd)).data
+
+    def test_aucun_lien_permanent_inpn_hors_catalogue_inpn(self):
+        """« Lien permanent INPN » ne s'affiche que pour un protocole INPN."""
+        from apps.campanule.data_mheo import MHEO_BASE
+        assert not CampanuleProtocole.objects.filter(
+            cd_protocole__gt=MHEO_BASE, url_perm__isnull=False).exists()
+
+    def test_references_natur_adapt_dans_les_liens(self):
+        from apps.campanule.data_rnf import RNF_BASE
+        for cd, fiche in ((RNF_BASE + 2, 'n°5, 6 et 7'), (RNF_BASE + 3, 'n°8')):
+            data = self._detail(cd)
+            refs = ' '.join(data['references'])
+            assert 'Guide méthodologique Natur\'Adapt' in refs and fiche in refs
+            assert 'Retours d\'expérience' in refs
+            # Plus dans les précisions de l'échantillonnage.
+            assert 'Références' not in data['echantillonnages'][0]['commentaire']
+            assert 'Retours' not in data['echantillonnages'][0]['commentaire']
+
+    def test_dat_qui_cout_ressources_en_infos_complementaires(self):
+        from apps.campanule.data_rnf import RNF_BASE
+        data = self._detail(RNF_BASE + 1)
+        infos = data['infos_complementaires']
+        for attendu in ('Qui le réalise ?', 'Combien ça coûte ?', 'ombeline.chidaine'):
+            assert attendu in infos
+        assert not data['echantillonnages'][0]['commentaire']
+
+    def test_fiche_corrigee_rechargee_sur_une_instance_deja_equipee(self):
+        """Une instance qui a déjà les protocoles RNF (ancienne fiche) reçoit la
+        fiche corrigée au démarrage suivant, sans --force."""
+        from apps.campanule.data_rnf import RNF_BASE
+        CampanuleProtocole.objects.filter(cd_protocole=RNF_BASE + 1).update(
+            url_perm='https://ancrage.reserves-naturelles.org/',
+            infos_complementaires=None)
+        call_command('import_campanule')
+        p = CampanuleProtocole.objects.get(cd_protocole=RNF_BASE + 1)
+        assert p.url_perm is None and p.infos_complementaires
+
+    def test_fiche_a_jour_pas_rechargee(self):
+        """Fiches à jour : le démarrage ne recharge rien."""
+        from io import StringIO
+        call_command('import_campanule')
+        out = StringIO()
+        call_command('import_campanule', stdout=out)
+        assert 'déjà installé' in out.getvalue()
