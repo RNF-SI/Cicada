@@ -229,6 +229,17 @@ export class PlanExportsComponent implements OnInit {
           request: id => this.adminService.downloadArborescenceTemplate(id, false),
           filename: slug => `arborescence-${slug}.xlsx`,
         },
+        {
+          // #786 — actions de gestion dans le classeur d'import des actions,
+          // réimportable dans un autre plan ou sur une autre instance.
+          key: 'actions',
+          testId: 'actions-export-reimportable',
+          icon: 'fi-rr-download',
+          labelKey: 'plans.exports.actions',
+          hintKey: 'plans.exports.actionsHint',
+          request: id => this.adminService.downloadActionsTemplate(id),
+          filename: slug => `actions-${slug}.xlsx`,
+        },
       ],
     },
   ];

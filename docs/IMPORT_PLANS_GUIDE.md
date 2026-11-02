@@ -121,7 +121,27 @@ organismes existants y sont listés en référence, avec un code et un identifia
 technique) :
 
 Onglets : `Lisez-moi`, `Indicateurs` (référence), `Postes` (référence),
-`Organismes` (référence), `Listes` (masqué), `Actions`, `Budgets`, `RH`.
+`Organismes` (référence), `Listes` (masqué), `Actions`, `Budgets`, `RH`, puis
+(#786, facultatifs à l'import) `Annees`, `Emprises`, `Fonctions`, `Suivis`,
+`Protocoles`.
+
+**Réimport sur une autre instance (#786)** — l'export (page Exports, « Actions
+(format réimportable) », `GET …/export-actions-xlsx/`) porte toute la
+programmation, pas le réalisé. Aucun identifiant local n'est requis à l'import
+(`services_import_actions_fiche.resoudre_references()`) : indicateur par son id
+s'il est du plan, sinon par son **nom** (et son enjeu) ; organisme par son nom
+parmi les gestionnaires des sites, sinon dans l'instance (avertissement), sinon
+erreur ; poste par libellé + organisme, sinon **créé** avec ses fonctions
+(onglet `Fonctions`, type de poste par code de nomenclature) ; sites par code
+INPN puis nom ; métriques par nom. Suivis / protocoles créés. Colonnes ajoutées à
+`Actions` : déclinaison par type de poste (#773, relue — vide : règle d'avant,
+coûts détaillés ⇒ par poste), programmation globale (#735, lignes « Période »
+dans `Budgets` / `RH`), catégorie réserve, partenaires, fréquence, mois par
+défaut, sites, métriques, suivi… Le détail des coûts des modes `none` / `by_org`
+(#735) est porté tel quel (côté fonctionnement). `Annees` garde aussi les
+lignes d'organisme sans montant et, pour les données antérieures à #560, les
+totaux enregistrés (budget, jours) — repris seulement là où `Budgets` / `RH` ne
+disent rien. Import : création seule (plan sans action).
 
 - `Actions` — une action par ligne : `code`, `indicateur` (code de référence),
   `libellé`, `type d'action`, `priorité`, `année début` / `année fin`, puis le

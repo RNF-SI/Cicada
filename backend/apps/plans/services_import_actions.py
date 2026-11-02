@@ -28,6 +28,11 @@ comme le ferait la fiche action pour le mode choisi :
 Les postes du plan et les organismes gestionnaires de ses sites sont listés
 dans des onglets de référence (``Postes``, ``Organismes``). Les actions sont
 créées en statut ``draft``.
+
+#786 — le classeur exporté se réimporte sur une **autre instance** : le reste
+de la fiche (années et mois, emprises, sites, métriques, suivis et protocoles,
+programmation globale, réglages #773) et la résolution des références par nom
+vivent dans ``services_import_actions_fiche.py``.
 """
 
 from __future__ import annotations
@@ -57,6 +62,7 @@ from .models_operations import (
 )
 from .services_export_finance import ORG_VENTILATION_MODES, TYPE_VENTILATION_MODES
 from .rh_total import fusionner_temps_total
+from . import services_import_actions_fiche as fiche
 from .services_import import (
     ERROR,
     FORMAT_VERSION,
@@ -191,6 +197,7 @@ def _poste_ref_rows(postes, poste_code_by_id) -> list[dict]:
                 "type": " · ".join(types),
                 "organisme": p.organisme_affichage or "",
                 "cout_jour": p.cout_jour if p.cout_jour is not None else "",
+                **fiche.ligne_objet(p, fiche.CHAMPS_POSTE),
                 "id": p.id_poste,
             }
         )
@@ -216,6 +223,25 @@ def _plan_organismes(plan) -> list[tuple[object, list[int]]]:
         entry = by_org.setdefault(org.id_organisme, (org, []))
         entry[1].append(cor.id_site_id)
     return sorted(by_org.values(), key=lambda e: (e[0].nom_organisme or "").lower())
+
+
+def _plan_organismes_exportes(plan) -> list[tuple[object, list[int]]]:
+    """Gestionnaires des sites du plan, puis les autres organismes que ses
+    actions utilisent (lignes de ventilation ou de temps saisies avant un
+    changement de gestionnaire) — sans eux, ces montants seraient perdus (#786)."""
+    from apps.users.models import BibOrganismes
+
+    gestionnaires = _plan_organismes(plan)
+    connus = {org.id_organisme for org, _s in gestionnaires}
+    ops = _plan_operations(plan)
+    ids = set(OperationAnneeOrganisme.objects.filter(
+        id_operation_annee__id_operation__in=ops).values_list("id_organisme_id", flat=True))
+    ids |= set(OperationAnneeRH.objects.filter(
+        id_operation_annee__id_operation__in=ops, id_organisme__isnull=False,
+    ).values_list("id_organisme_id", flat=True))
+    autres = BibOrganismes.objects.filter(id_organisme__in=ids - connus)
+    return gestionnaires + sorted(
+        ((org, []) for org in autres), key=lambda e: (e[0].nom_organisme or "").lower())
 
 
 def _organisme_ref_rows(organismes, org_code_by_id) -> list[dict]:
@@ -270,36 +296,42 @@ def _parse_categorie(value):
     return _CATEGORIE_BY_TEXT.get(_norm(value))
 
 
-def _salary_option_available(mode, detail) -> bool:
-    """La case « saisie automatique du coût salarial » existe dès que les coûts
-    sont détaillés (``salaryOptionAvailable`` — #735 : le temps est alors
-    décliné par poste, quel que soit le mode)."""
-    return bool(detail)
+def _salary_option_available(detail, par_poste) -> bool:
+    """La case « saisie automatique du coût salarial » n'existe que si les
+    coûts sont détaillés ET le temps décliné par poste (``salaryOptionAvailable``,
+    #773)."""
+    return bool(detail) and bool(par_poste)
 
 
-def _salary_is_computed(mode, detail, auto) -> bool:
+def _salary_is_computed(detail, par_poste, auto) -> bool:
     """Coût salarial calculé (jours × coût jour) plutôt que saisi — même règle
     que ``salaryIsComputed`` (``shared/utils/operation-budget.ts``) : c'est la
     valeur que la fiche action enregistre dans ``cout_salarial_auto``."""
-    if _salary_option_available(mode, detail):
-        return auto
-    return True
+    if not detail:
+        return True
+    return bool(par_poste) and bool(auto)
+
+
+def _par_poste(mode, par_poste) -> bool:
+    """Temps décliné par poste (``tempsParPoste``) : modes « + type de poste »
+    ou case « Déclinaison par type de poste » (#773)."""
+    return mode in _POSTE_MODES or bool(par_poste)
 
 
 def _budget_layout(mode, detail) -> str:
     """Famille de montants que le mode enregistre (``budgetMode()`` du front) :
-    ``total`` (sans type de budget), ``enveloppes`` (fonctionnement /
-    investissement saisis) ou ``detail`` (types de coût)."""
-    if mode not in TYPE_VENTILATION_MODES:
-        return "total"
-    return "detail" if detail else "enveloppes"
+    ``detail`` (types de coût — dans tous les modes depuis #735), ``enveloppes``
+    (fonctionnement / investissement saisis) ou ``total`` (sans type de budget)."""
+    if detail:
+        return "detail"
+    return "enveloppes" if mode in TYPE_VENTILATION_MODES else "total"
 
 
-def _rh_target(mode, detail=False) -> str:
+def _rh_target(mode, par_poste=False) -> str:
     """Cible des lignes de temps de travail (``rhModeFor()`` du front) : par
-    poste dans les modes « + type de poste » et dès que les coûts sont
-    détaillés (#735)."""
-    if mode in _POSTE_MODES or detail:
+    poste dans les modes « + type de poste » ou si la case « Déclinaison par
+    type de poste » est cochée (#773)."""
+    if _par_poste(mode, par_poste):
         return "poste"
     if mode in _RH_ORG_MODES:
         return "organisme"
@@ -376,6 +408,13 @@ _ACTION_COLUMNS = [
     ("operateurs", "opérateurs", False, "Texte libre.", None, 30),
     ("financeurs", "financeurs", False, "Texte libre.", None, 30),
     ("description", "description", False, "", None, 40),
+    # #786 — reste de la fiche action et réglages #735 / #773.
+    *fiche.COLONNES_ACTION_REFS,
+    *[
+        (c.cle, c.entete, False, c.aide,
+         c.genre[4:] if c.genre.startswith("nom:") else None, c.largeur)
+        for c in fiche.CHAMPS_ACTION
+    ],
 ]
 
 # Colonnes de l'onglet de référence « Indicateurs » (lecture seule à la saisie).
@@ -393,6 +432,8 @@ _POSTE_REF_COLUMNS = [
     ("type", "type de poste", 20),
     ("organisme", "organisme", 30),
     ("cout_jour", "coût jour (€)", 14),
+    # #786 — de quoi recréer le poste dans un autre plan.
+    *[(c.cle, c.entete, c.largeur) for c in fiche.CHAMPS_POSTE],
     ("id", "id (technique — ne pas modifier)", 26),
 ]
 
@@ -525,15 +566,23 @@ _BUDGET_TEXT_COLS = ("autre_cout_commentaire", "autre_cout_invest_commentaire")
 _BUDGET_HEADER_BY_KEY = {c[0]: c[1] for c in _BUDGET_COLUMNS}
 
 
+_BUDGET_INVEST_COLS = (
+    "cout_salarial_invest", "cout_prestataire_invest", "autre_cout_invest",
+    "autre_cout_invest_commentaire",
+)
+
+
 def _allowed_budget_cols(mode, detail, salary_computed) -> tuple[str, ...]:
     layout = _budget_layout(mode, detail)
     if layout == "total":
         return _BUDGET_TOTAL_COLS
     if layout == "enveloppes":
         return _BUDGET_ENVELOPE_COLS
-    if salary_computed:
-        return _BUDGET_DETAIL_COLS
-    return _BUDGET_SALARY_COLS + _BUDGET_DETAIL_COLS
+    cols = _BUDGET_DETAIL_COLS if salary_computed else _BUDGET_SALARY_COLS + _BUDGET_DETAIL_COLS
+    if mode not in TYPE_VENTILATION_MODES:
+        # #735 — sans type de budget, le détail est rangé côté fonctionnement.
+        cols = tuple(c for c in cols if c not in _BUDGET_INVEST_COLS)
+    return cols
 
 
 # Onglet « RH » : temps de travail par (action, année[, poste | organisme]),
@@ -587,7 +636,7 @@ _RH_HEADERS = {
 
 def _nomenclature_values() -> dict[str, list[str]]:
     values: dict[str, list[str]] = {}
-    for type_mnemo in (_TYPE_ACTION, _PRIORITE):
+    for type_mnemo in (_TYPE_ACTION, _PRIORITE, "CATEGORIE_ACTION_RESERVE"):
         labels = list(
             Nomenclature.objects.filter(id_type__mnemonique=type_mnemo, actif=True)
             .order_by("id_nomenclature")
@@ -615,8 +664,10 @@ def _render_actions_workbook(
     plan=None,
     with_hints=False,
     example_name=None,
+    fiche_rows=None,
 ) -> bytes:
-    """Assemble le classeur des actions à partir de données déjà préparées."""
+    """Assemble le classeur des actions à partir de données déjà préparées.
+    ``fiche_rows`` : lignes des onglets de la fiche (#786), par clé d'onglet."""
     wb = Workbook()
     wb.remove(wb.active)
 
@@ -665,6 +716,14 @@ def _render_actions_workbook(
         list_ranges,
         hint_row=hints.get("rh"),
     )
+    # #786 — reste de la fiche action (onglets facultatifs à l'import).
+    fiche_rows = fiche_rows or {}
+    for key, (name, columns, description) in fiche.ONGLETS_FICHE.items():
+        dropdowns = {"action": actions_range} if columns[0][0] == "action" else {}
+        if key == "fonctions":
+            dropdowns = {"poste": poste_code_range, "finance_par_defaut": "oui_non"}
+        _write_simple_sheet(wb, name, description, columns, fiche_rows.get(key, []),
+                            dropdowns=dropdowns)
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -684,12 +743,17 @@ def build_actions_workbook(plan) -> bytes:
     }
     postes = _plan_postes(plan)
     poste_code_by_id = {p.id_poste: f"Q{i}" for i, p in enumerate(postes, start=1)}
-    organismes = _plan_organismes(plan)
+    organismes = _plan_organismes_exportes(plan)
     org_code_by_id = {
         org.id_organisme: f"O{i}" for i, (org, _s) in enumerate(organismes, start=1)
     }
 
-    action_rows = _extract_actions(plan, code_by_id)
+    fiche_rows, fiche_actions = fiche.extraire_fiche(
+        _plan_operations(plan).select_related("id_suivi", "id_categorie_action_reserve")
+        if code_by_id else [],
+        _op_code, poste_code_by_id, postes, org_code_by_id,
+    )
+    action_rows = _extract_actions(plan, code_by_id, fiche_actions)
     budget_rows = _extract_budgets(plan, org_code_by_id)
     rh_rows = _extract_rh(plan, poste_code_by_id, org_code_by_id)
 
@@ -703,6 +767,7 @@ def build_actions_workbook(plan) -> bytes:
         rh_rows,
         plan=plan,
         with_hints=not action_rows,
+        fiche_rows=fiche_rows,
     )
 
 
@@ -1005,10 +1070,17 @@ def _write_lisez_moi(wb: Workbook, plan, example_name=None, with_hints=False) ->
     ]
     lines += [
         (
-            "• Coût salarial : dans les modes « + type de poste », il est calculé "
-            "(jours × coût jour du poste) quand « saisie automatique du coût "
-            "salarial » = Oui ; sinon, et dans les autres modes détaillés, "
-            "saisissez-le dans les colonnes « coût salarial ».",
+            "• Coût salarial : quand les coûts sont détaillés et le temps décliné "
+            "par poste (colonne « déclinaison par type de poste »), il est calculé "
+            "(jours × coût jour du poste) si « saisie automatique du coût "
+            "salarial » = Oui ; sinon, saisissez-le dans les colonnes « coût "
+            "salarial ».",
+            None,
+        ),
+        (
+            "• Programmation globale (colonne du même nom = Oui) : budget et temps "
+            "se saisissent une fois pour la période, sur les lignes dont l'année "
+            "vaut « Période » dans « Budgets » et « RH ».",
             None,
         ),
         (
@@ -1023,9 +1095,29 @@ def _write_lisez_moi(wb: Workbook, plan, example_name=None, with_hints=False) ->
             None,
         ),
         (
-            "• Les postes du plan sont listés dans l'onglet « Postes » (créez-les "
-            "d'abord via la page « Postes / RH » du plan) ; les organismes "
-            "gestionnaires des sites du plan dans l'onglet « Organismes ».",
+            "• Les postes du plan sont listés dans l'onglet « Postes », leurs "
+            "fonctions dans « Fonctions » ; les organismes dans l'onglet "
+            "« Organismes ».",
+            None,
+        ),
+        ("", None),
+        ("Reprise dans un autre plan ou une autre instance", Font(bold=True, color=_PRIMARY)),
+        (
+            "• Importez d'abord l'arborescence (classeur « contenu du plan »), "
+            "puis ce classeur, dans un plan sans action.",
+            None,
+        ),
+        (
+            "• Les indicateurs sont retrouvés par leur nom, les organismes par "
+            "leur nom, les sites par leur code INPN (ou leur nom), les métriques "
+            "par leur nom. Un poste absent du plan est créé avec ses fonctions ; "
+            "les suivis et protocoles des actions CS sont créés.",
+            None,
+        ),
+        (
+            "• Onglets de la fiche : « Annees » (années programmées et mois), "
+            "« Emprises » (GeoJSON), « Suivis » et « Protocoles ». Seule la "
+            "programmation est reprise : le suivi des réalisations ne l'est pas.",
             None,
         ),
         (
@@ -1124,6 +1216,13 @@ def _write_listes(wb) -> dict[str, str]:
     return ranges
 
 
+_OUI_NON_COLUMNS = {
+    "declinaison_par_type_cout", "cout_salarial_auto", "declinaison_par_poste",
+    "programmation_globale",
+    *(c.cle for c in fiche.CHAMPS_ACTION if c.genre == "bool"),
+}
+
+
 def _write_actions(wb, rows, ref_code_range, list_ranges, hint_row=None) -> None:
     ws = wb.create_sheet("Actions")
     desc = ws.cell(
@@ -1182,7 +1281,7 @@ def _write_actions(wb, rows, ref_code_range, list_ranges, hint_row=None) -> None
             dv = DataValidation(
                 type="list", formula1=list_ranges[_MODE_LIST], allow_blank=True
             )
-        elif key in ("declinaison_par_type_cout", "cout_salarial_auto"):
+        elif key in _OUI_NON_COLUMNS:
             dv = DataValidation(type="list", formula1='"Oui,Non"', allow_blank=True)
         elif nomencl and list_ranges.get(nomencl):
             dv = DataValidation(
@@ -1205,8 +1304,10 @@ def _oui_non(value: bool) -> str:
     return "Oui" if value else "Non"
 
 
-def _extract_actions(plan, code_by_id) -> list[dict]:
-    """Actions existantes du plan, pour le pré-remplissage (export/sauvegarde)."""
+def _extract_actions(plan, code_by_id, extra=None) -> list[dict]:
+    """Actions existantes du plan, pour le pré-remplissage (export/sauvegarde).
+    ``extra`` : colonnes de la fiche (#786), par code d'action."""
+    extra = extra or {}
     if not code_by_id:
         return []
     rows = []
@@ -1214,6 +1315,7 @@ def _extract_actions(plan, code_by_id) -> list[dict]:
     for op in ops:
         mode = op.ventilation_mode or "none"
         detail = op.declinaison_par_type_cout
+        par_poste = op.temps_par_poste()
         rows.append(
             {
                 "code": _op_code(op),
@@ -1225,15 +1327,14 @@ def _extract_actions(plan, code_by_id) -> list[dict]:
                 "annee_max": op.annee_max if op.annee_max is not None else "",
                 "mode_ventilation": _MODE_LABELS.get(mode, ""),
                 # Réglages exportés seulement là où la fiche les propose.
-                "declinaison_par_type_cout": _oui_non(detail)
-                if mode in TYPE_VENTILATION_MODES
-                else "",
+                "declinaison_par_type_cout": _oui_non(detail),
                 "cout_salarial_auto": _oui_non(op.cout_salarial_auto)
-                if _salary_option_available(mode, detail)
+                if _salary_option_available(detail, par_poste)
                 else "",
                 "operateurs": op.operateurs or "",
                 "financeurs": op.financeurs or "",
                 "description": op.description or "",
+                **extra.get(_op_code(op), {}),
             }
         )
     return rows
@@ -1408,12 +1509,12 @@ def _cell_value(value):
 def _extract_budgets(plan, org_code_by_id) -> list[dict]:
     """Montants existants, dans les colonnes du mode de chaque action."""
     rows = []
-    for op in _plan_operations(plan).prefetch_related("operation_annees__organismes"):
+    for op in _plan_operations(plan):
         mode = op.ventilation_mode or "none"
         cols = _allowed_budget_cols(
             mode, op.declinaison_par_type_cout, op.cout_salarial_auto
         )
-        for oa in op.operation_annees.all():
+        for oa in fiche.annees_operation(op):
             if mode in ORG_VENTILATION_MODES:
                 sources = [
                     (org_code_by_id.get(oao.id_organisme_id, ""), oao)
@@ -1422,20 +1523,14 @@ def _extract_budgets(plan, org_code_by_id) -> list[dict]:
             else:
                 sources = [("", oa)]
             for org_code, src in sources:
-                row = {"action": _op_code(op), "annee": oa.annee, "organisme": org_code}
+                row = {"action": _op_code(op), "annee": fiche.cellule_annee(oa.annee),
+                       "organisme": org_code}
                 for col in cols:
                     if col == "budget_total":
                         # Par organisme, le total est rangé côté fonctionnement.
                         value = (
                             src.budget_fonctionnement if mode == "by_org" else src.budget
                         )
-                        if mode == "by_org" and op.declinaison_par_type_cout:
-                            # #735 — détail des coûts : le classeur n'en porte
-                            # que la somme (relue comme un total).
-                            parts = [src.cout_salarial, src.cout_stage,
-                                     src.cout_prestataire, src.autre_cout]
-                            if any(v is not None for v in parts):
-                                value = sum(v or 0 for v in parts)
                     else:
                         value = getattr(src, col)
                     row[col] = _cell_value(value)
@@ -1447,7 +1542,7 @@ def _extract_budgets(plan, org_code_by_id) -> list[dict]:
 def _extract_rh(plan, poste_code_by_id, org_code_by_id) -> list[dict]:
     rows = []
     for op in _plan_operations(plan):
-        for oa in op.operation_annees.all().order_by("annee"):
+        for oa in fiche.annees_operation(op):
             for rh in oa.rh_lignes.all().order_by("id_operation_annee_rh"):
                 categorie, _finance = CategorieDepense.resolve(
                     rh.categorie_depense, rh.finance
@@ -1455,7 +1550,7 @@ def _extract_rh(plan, poste_code_by_id, org_code_by_id) -> list[dict]:
                 rows.append(
                     {
                         "action": _op_code(op),
-                        "annee": oa.annee if oa.annee is not None else "",
+                        "annee": fiche.cellule_annee(oa.annee),
                         "poste": poste_code_by_id.get(rh.id_poste_id, ""),
                         "organisme": ""
                         if rh.id_poste_id
@@ -1496,13 +1591,17 @@ def parse_actions_workbook(source) -> dict:
             "Onglets « Indicateurs » et « Actions » attendus dans le fichier."
         )
 
-    # Référence code → id_indicateur (colonne 1 = code, colonne 4 = id).
+    # Référence code → id_indicateur (colonne 1 = code, colonne 4 = id), et
+    # nom + enjeu pour le retrouver dans un autre plan (#786).
     ref_map: dict[str, int] = {}
+    ref_noms: dict[str, tuple] = {}
     for values in ref.iter_rows(min_row=_FIRST_DATA_ROW, values_only=True):
         code = _cell_str(values[0] if len(values) > 0 else None)
         ident = _as_int(values[3] if len(values) > 3 else None)
-        if code and ident is not None:
+        if code:
             ref_map[code] = ident
+            ref_noms[code] = (_cell_str(values[1] if len(values) > 1 else None),
+                              _cell_str(values[2] if len(values) > 2 else None))
 
     # Actions.
     header_to_key = {_norm(header): key for key, header, *_ in _ACTION_COLUMNS}
@@ -1544,14 +1643,29 @@ def parse_actions_workbook(source) -> dict:
     budgets = _parse_flat_sheet(ws_by_name.get(_norm("Budgets")), _BUDGET_HEADERS)
     rh = _parse_flat_sheet(ws_by_name.get(_norm("RH")), _RH_HEADERS)
 
-    return {
+    postes_rows = _parse_flat_sheet(
+        ws_by_name.get(_norm("Postes")),
+        {_norm(h): k for k, h, _w in _POSTE_REF_COLUMNS}, first_key="code")
+    organismes_rows = _parse_flat_sheet(
+        ws_by_name.get(_norm("Organismes")),
+        {_norm(h): k for k, h, _w in _ORGANISME_REF_COLUMNS}, first_key="code")
+    out = {
         "actions": actions,
         "indicateurs": ref_map,
+        "indicateurs_noms": ref_noms,
         "postes": _parse_ref_codes(ws_by_name.get(_norm("Postes"))),
+        "postes_details": {_cell_str(r.get("code")): r for r in postes_rows},
         "organismes": _parse_ref_codes(ws_by_name.get(_norm("Organismes"))),
+        "organismes_noms": {_cell_str(r.get("code")): _cell_str(r.get("organisme"))
+                            for r in organismes_rows},
         "budgets": budgets,
         "rh": rh,
     }
+    # #786 — onglets de la fiche (absents d'un classeur plus ancien).
+    for key, (name, columns, _d) in fiche.ONGLETS_FICHE.items():
+        out[key] = _parse_flat_sheet(ws_by_name.get(_norm(name)), fiche.entetes(columns),
+                                     first_key=columns[0][0])
+    return out
 
 
 def _parse_ref_codes(ws) -> dict[str, int]:
@@ -1573,12 +1687,12 @@ def _parse_ref_codes(ws) -> dict[str, int]:
     for values in ws.iter_rows(min_row=_FIRST_DATA_ROW, values_only=True):
         code = _cell_str(values[0] if values else None)
         ident = _as_int(values[id_idx] if id_idx < len(values) else None)
-        if code and ident is not None:
+        if code:
             codes[code] = ident
     return codes
 
 
-def _parse_flat_sheet(ws, headers_map) -> list[dict]:
+def _parse_flat_sheet(ws, headers_map, first_key="action") -> list[dict]:
     """Lit un onglet à plat (en-tête ligne 2, données dès la ligne 3) en
     rapprochant les en-têtes de ``headers_map`` (``{en-tête normalisé: clé}``)."""
     if ws is None:
@@ -1604,7 +1718,7 @@ def _parse_flat_sheet(ws, headers_map) -> list[dict]:
             record[key] = value
         if not has_value:
             continue
-        if _is_example_row(record.get("action")):  # ligne exemple du modèle
+        if _is_example_row(record.get(first_key)):  # ligne exemple du modèle
             continue
         record["_row"] = r
         rows.append(record)
@@ -1659,13 +1773,21 @@ def _resolve_settings(action_row, budget_rows, rh_rows) -> dict:
 
     detail = _parse_bool(action_row.get("declinaison_par_type_cout"))
     if detail is None:
-        # Défaut du modèle (cochée), sauf si seules les enveloppes sont saisies.
-        detail = not (has_envelopes and not has_detail)
-    if mode not in TYPE_VENTILATION_MODES:
-        # #735 — la fiche propose aussi le détail des coûts en modes « aucune »
-        # et « par organisme », mais le classeur ne porte que leur total :
-        # l'action importée est saisie en total.
-        detail = False
+        if mode in TYPE_VENTILATION_MODES:
+            # Défaut du modèle (cochée), sauf si seules les enveloppes sont saisies.
+            detail = not (has_envelopes and not has_detail)
+        else:
+            # #735 — « aucune » / « par organisme » : détaillé si des types de
+            # coût sont saisis, total sinon.
+            detail = has_detail
+
+    # #773 — temps par poste : case relue, sinon déduite des lignes « RH ».
+    par_poste = _parse_bool(action_row.get("declinaison_par_poste"))
+    if par_poste is None:
+        # Classeur sans la colonne : règle d'avant #773, que la migration 0140
+        # a reportée sur les actions existantes (coûts détaillés ⇒ par poste).
+        par_poste = detail
+    par_poste = _par_poste(mode, par_poste)
 
     auto = _parse_bool(action_row.get("cout_salarial_auto"))
     if auto is None:
@@ -1674,8 +1796,11 @@ def _resolve_settings(action_row, budget_rows, rh_rows) -> dict:
     return {
         "mode": mode,
         "detail": detail,
+        "par_poste": par_poste,
         "auto": auto,
-        "salary_computed": _salary_is_computed(mode, detail, auto),
+        "salary_computed": _salary_is_computed(detail, par_poste, auto),
+        # #735 — budget et temps saisis une fois pour la période.
+        "globale": _parse_bool(action_row.get("programmation_globale")) is True,
     }
 
 
@@ -1715,6 +1840,8 @@ def _mode_phrase(settings) -> str:
 def validate_actions_import(plan, parsed: dict) -> ImportReport:
     report = ImportReport()
     resolver = _NomenclatureResolver()
+    # #786 — codes du classeur rattachés au plan cible par leur nom.
+    parsed = fiche.resoudre_references(plan, parsed, report)
 
     plan_indicateur_ids = {ind.id_indicateur for ind, _ in _plan_indicateurs(plan)}
     if not plan_indicateur_ids:
@@ -1779,7 +1906,10 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
                     r,
                     "indicateur",
                     ERROR,
-                    f"L'indicateur « {ind_code} » n'appartient pas à ce plan.",
+                    f"L'indicateur « {ind_code} »"
+                    f"{fiche.nom_reference(parsed, 'indicateurs', ind_code)} n'appartient "
+                    "pas à ce plan, qui n'a aucun indicateur de ce nom : importez "
+                    "d'abord l'arborescence du plan d'origine.",
                 )
 
         for col, type_mnemo, label in (
@@ -1828,6 +1958,8 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
         for col, label in (
             ("declinaison_par_type_cout", "déclinaison par type de coût"),
             ("cout_salarial_auto", "saisie automatique du coût salarial"),
+            ("declinaison_par_poste", "déclinaison par type de poste"),
+            ("programmation_globale", "programmation globale"),
         ):
             raw = _cell_str(row.get(col))
             if raw and _parse_bool(raw) is None:
@@ -1842,29 +1974,15 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
             continue
         mode, detail = settings["mode"], settings["detail"]
         r = row["_row"]
-        if (
-            _cell_str(row.get("declinaison_par_type_cout"))
-            and mode not in TYPE_VENTILATION_MODES
-        ):
-            report.add(
-                "Actions",
-                r,
-                "declinaison_par_type_cout",
-                WARNING,
-                f"Sans effet en mode « {_MODE_LABELS[mode]} » (réservé aux modes "
-                "« par type de budget ») : la valeur est ignorée.",
-            )
-        if _cell_str(row.get("cout_salarial_auto")) and not _salary_option_available(
-            mode, detail
-        ):
+        if (_parse_bool(row.get("cout_salarial_auto")) is False
+                and not _salary_option_available(detail, settings["par_poste"])):
             report.add(
                 "Actions",
                 r,
                 "cout_salarial_auto",
                 WARNING,
-                "Sans effet pour ce paramétrage (réservé aux modes « + type de "
-                "poste » avec déclinaison par type de coût) : la valeur est "
-                "ignorée.",
+                "Sans effet pour ce paramétrage (réservé aux coûts détaillés "
+                "avec déclinaison par type de poste) : la valeur est ignorée.",
             )
 
     # --- Budgets et RH (facultatifs), rattachés aux actions par leur code ---
@@ -1884,7 +2002,8 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
     poste_ref = parsed.get("postes", {})
     plan_poste_ids = {p.id_poste for p in _plan_postes(plan)}
     org_ref = parsed.get("organismes", {})
-    plan_org_ids = {org.id_organisme for org, _s in _plan_organismes(plan)}
+    plan_org_ids = {org.id_organisme for org, _s in _plan_organismes(plan)} | set(
+        parsed.get("organismes_hors_gestionnaires", ()))
 
     def _check_action_annee(sheet, row, ac):
         rr = row["_row"]
@@ -1898,11 +2017,18 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
                 ERROR,
                 f"Action « {ac} » introuvable dans l'onglet « Actions ».",
             )
-        annee = _as_int(row.get("annee"))
+        annee, ok = fiche.lire_annee(row.get("annee"))
         if not _cell_str(row.get("annee")):
             report.add(sheet, rr, "annee", ERROR, "L'année est obligatoire.")
-        elif annee is None:
+        elif not ok:
             report.add(sheet, rr, "annee", ERROR, "L'année doit être un nombre.")
+        elif annee is None:
+            # #735 — ligne de la programmation globale.
+            if not (settings_by_code.get(ac) or {}).get("globale"):
+                report.add(
+                    sheet, rr, "annee", ERROR,
+                    f"« {fiche.ANNEE_GLOBALE} » est réservé aux actions en "
+                    "programmation globale (colonne « programmation globale »).")
         elif ac in spans:
             amin, amax = spans[ac]
             if amin is not None and amax is not None and not (amin <= annee <= amax):
@@ -1928,12 +2054,27 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
                 sheet, row["_row"], col, ERROR, f"{label} ne peut pas être négatif."
             )
 
+    a_creer = parsed.get("postes_a_creer", {})
+
     def _check_ref(sheet, row, col, ref, plan_ids, what, where):
         """Code de poste / d'organisme : connu de l'onglet de référence et
-        appartenant bien au plan."""
+        appartenant bien au plan (ou poste à créer, #786)."""
         code = _cell_str(row.get(col))
+        if col == "poste" and code in a_creer:
+            return
         ident = ref.get(code)
-        if ident is None:
+        if code in ref and ident not in plan_ids:
+            cle = "postes" if col == "poste" else "organismes"
+            report.add(
+                sheet,
+                row["_row"],
+                col,
+                ERROR,
+                f"{what} « {code} »{fiche.nom_reference(parsed, cle, code)} "
+                + ("n'appartient pas aux organismes gestionnaires des sites de "
+                   "ce plan." if col == "organisme" else "n'appartient pas à ce plan."),
+            )
+        elif ident is None:
             report.add(
                 sheet,
                 row["_row"],
@@ -2052,7 +2193,7 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
         if settings is None:
             continue
         mode = settings["mode"]
-        target = _rh_target(mode, settings["detail"])
+        target = _rh_target(mode, settings["par_poste"])
         if _check_target("RH", row, "poste", target == "poste", settings, "Poste"):
             _check_ref(
                 "RH", row, "poste", poste_ref, plan_poste_ids, "Poste", "Postes"
@@ -2080,6 +2221,12 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
                 "budget » distinguent fonctionnement et investissement) : la "
                 "catégorie est conservée mais n'apparaîtra pas dans la fiche.",
             )
+
+    # #786 — reste de la fiche action.
+    fiche.valider_fiche(
+        plan, parsed, report, resolver, action_codes,
+        {c for c, st in settings_by_code.items() if st.get("globale")},
+    )
 
     report.summary = {
         "actions": len(parsed.get("actions", [])),
@@ -2116,7 +2263,7 @@ def _store_budget_row(target, row, allowed, mode) -> None:
 def _year_total(op, oa, org_lines, rh_lines) -> Decimal | None:
     """Budget total d'une année, calculé comme la fiche action l'enregistre
     dans ``OperationAnnee.budget`` (toutes familles de coût confondues)."""
-    if op.ventilation_mode == "none":
+    if op.ventilation_mode == "none" and not op.declinaison_par_type_cout:
         return oa.budget
     fields = (
         _BUDGET_ENVELOPE_COLS + _BUDGET_SALARY_COLS + tuple(
@@ -2150,6 +2297,9 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
     report = validate_actions_import(plan, parsed)
     if not report.can_import:
         raise ValueError(report)
+    # #786 — mêmes rattachements que la validation, postes absents créés.
+    parsed = fiche.resoudre_references(plan, parsed, ImportReport())
+    parsed["postes"] = {**parsed.get("postes", {}), **fiche.creer_postes(plan, parsed)}
 
     resolver = _NomenclatureResolver()
     ref_map = parsed.get("indicateurs", {})
@@ -2184,9 +2334,10 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
             description=_cell_str(row.get("description")) or None,
             # #600 — paramétrage budgétaire, enregistré comme par la fiche action.
             ventilation_mode=settings["mode"],
-            declinaison_par_poste=_rh_target(settings["mode"], settings["detail"]) == "poste",
+            declinaison_par_poste=settings["par_poste"],
             declinaison_par_type_cout=settings["detail"],
             cout_salarial_auto=settings["salary_computed"],
+            programmation_globale=settings["globale"],
             statut="draft",
             ordre=i,
             id_utilisateur_ajout=user,
@@ -2214,6 +2365,10 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
 
     org_ref = parsed.get("organismes", {})
     organismes = {org.id_organisme: (org, sites) for org, sites in _plan_organismes(plan)}
+    from apps.users.models import BibOrganismes
+    for org in BibOrganismes.objects.filter(
+            id_organisme__in=parsed.get("organismes_hors_gestionnaires", ())):
+        organismes.setdefault(org.id_organisme, (org, []))
     org_lines: dict[tuple[str, int], dict[int, OperationAnneeOrganisme]] = {}
     orgs_by_action: dict[str, set[int]] = {}
 
@@ -2232,8 +2387,8 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
     touched: set[tuple[str, int]] = set()
     for row in parsed.get("budgets", []):
         code = _cell_str(row.get("action"))
-        annee = _as_int(row.get("annee"))
-        if code not in op_by_code or annee is None:
+        annee, ok = fiche.lire_annee(row.get("annee"))
+        if code not in op_by_code or not ok:
             continue
         settings = settings_by_code[code]
         allowed = _allowed_budget_cols(
@@ -2255,10 +2410,10 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
     n_rh = 0
     for row in parsed.get("rh", []):
         code = _cell_str(row.get("action"))
-        annee = _as_int(row.get("annee"))
-        if code not in op_by_code or annee is None:
+        annee, ok = fiche.lire_annee(row.get("annee"))
+        if code not in op_by_code or not ok:
             continue
-        target = _rh_target(settings_by_code[code]["mode"], settings_by_code[code]["detail"])
+        target = _rh_target(settings_by_code[code]["mode"], settings_by_code[code]["par_poste"])
         poste = (
             postes_by_id.get(poste_ref.get(_cell_str(row.get("poste"))))
             if target == "poste"
@@ -2294,7 +2449,7 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         op = op_by_code[code]
         oa = annee_index[(code, annee)]
         rh_lines = rh_by_year.get((code, annee), [])
-        if _rh_target(op.ventilation_mode, op.declinaison_par_type_cout) == "organisme":
+        if _rh_target(op.ventilation_mode, op.declinaison_par_poste) == "organisme":
             # Temps de chaque organisme reporté sur sa ligne de ventilation
             # (créée si l'organisme n'a que du temps, sans budget).
             for rh in rh_lines:
@@ -2319,6 +2474,9 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
     # comme l'enregistre la fiche action.
     for code in {code for code, _annee in touched}:
         fusionner_temps_total(op_by_code[code])
+
+    # #786 — reste de la fiche : suivis, sites, métriques, années, emprises.
+    fiche.appliquer_fiche(plan, parsed, user, op_by_code, _get_annee, resolver)
 
     # Les organismes de la ventilation sont ceux des sites de l'action : sans ce
     # rattachement, la fiche action ne les proposerait pas (plan multi-sites).

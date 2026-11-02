@@ -117,6 +117,12 @@ def test_build_actions_workbook_lists_indicateurs():
         "Actions",
         "Budgets",
         "RH",
+        # #786 — reste de la fiche action (réimport sur une autre instance).
+        "Annees",
+        "Emprises",
+        "Fonctions",
+        "Suivis",
+        "Protocoles",
     ]
     assert wb["Listes"].sheet_state == "hidden"
     # L'indicateur du plan est listé, avec son id technique.
@@ -361,14 +367,16 @@ def test_build_actions_workbook_lists_postes():
     assert {"Postes", "Organismes", "Budgets", "RH"} <= set(wb.sheetnames)
     ws = wb["Postes"]
     headers = [c.value for c in ws[2]]
+    # #786 — colonnes de quoi recréer le poste dans un autre plan, avant l'id.
     assert headers == [
         "code", "poste", "type de poste", "organisme", "coût jour (€)",
-        "id (technique — ne pas modifier)",
+        "nom local", "organisme (saisi)", "nombre de postes", "ETP total",
+        "commentaire", "id (technique — ne pas modifier)",
     ]
     assert ws.cell(row=3, column=1).value == "Q1"
     assert ws.cell(row=3, column=2).value == "Garde"
     assert ws.cell(row=3, column=5).value == 250
-    assert ws.cell(row=3, column=6).value == poste.id_poste
+    assert ws.cell(row=3, column=11).value == poste.id_poste
     assert parse_actions_workbook(build_actions_workbook(plan))["postes"] == {
         "Q1": poste.id_poste
     }
@@ -1043,29 +1051,31 @@ def test_aller_retour_par_mode(mode):
 
 
 @pytest.mark.parametrize(
-    "mode, detail, auto, computed, layout",
+    "mode, detail, par_poste, auto, computed, layout",
     [
-        # #735 (retour 21/10) — coûts détaillés : temps par poste dans tous
-        # les modes, donc le choix du gestionnaire (calculé ou saisi).
-        ("none", True, False, False, "total"),
-        ("by_org", True, True, True, "total"),
-        ("by_type", True, True, True, "detail"),
-        ("by_org_type", True, False, False, "detail"),
+        # #773 / #786 — la case « Déclinaison par type de poste » est distincte :
+        # coûts détaillés + temps par poste → choix du gestionnaire ; coûts
+        # détaillés sans poste → coût salarial toujours saisi.
+        ("none", True, True, False, False, "detail"),
+        ("none", True, False, True, False, "detail"),
+        ("by_org", True, True, True, True, "detail"),
+        ("by_type", True, True, True, True, "detail"),
+        ("by_org_type", True, False, True, False, "detail"),
         # Coûts non détaillés : valeur historique « calculé ».
-        ("none", False, False, True, "total"),
-        ("by_type", False, False, True, "enveloppes"),
+        ("none", False, False, False, True, "total"),
+        ("by_type", False, False, False, True, "enveloppes"),
         # « + type de poste » : le choix du gestionnaire.
-        ("by_type_poste", True, True, True, "detail"),
-        ("by_type_poste", True, False, False, "detail"),
-        ("by_org_type_poste", True, False, False, "detail"),
-        ("by_org_type_poste", False, False, True, "enveloppes"),
+        ("by_type_poste", True, True, True, True, "detail"),
+        ("by_type_poste", True, True, False, False, "detail"),
+        ("by_org_type_poste", True, True, False, False, "detail"),
+        ("by_org_type_poste", False, True, False, True, "enveloppes"),
     ],
 )
-def test_regles_cout_salarial_et_disposition(mode, detail, auto, computed, layout):
+def test_regles_cout_salarial_et_disposition(mode, detail, par_poste, auto, computed, layout):
     """Miroir de ``salaryIsComputed`` / ``budgetMode()`` côté front."""
     from apps.plans.services_import_actions import _budget_layout, _salary_is_computed
 
-    assert _salary_is_computed(mode, detail, auto) is computed
+    assert _salary_is_computed(detail, par_poste, auto) is computed
     assert _budget_layout(mode, detail) == layout
 
 
@@ -1169,7 +1179,10 @@ def test_reglages_sans_effet_avertissent():
     report = validate_actions_import(plan, parsed)
     assert report.can_import
     warned = {i["column"] for i in report.issues if i["level"] == "warning"}
-    assert {"declinaison_par_type_cout", "cout_salarial_auto"} <= warned
+    # #735 / #786 — la déclinaison par type de coût existe dans tous les
+    # modes : seule la case du coût salarial est sans effet ici.
+    assert "cout_salarial_auto" in warned
+    assert "declinaison_par_type_cout" not in warned
 
 
 def test_message_colonne_hors_mode_liste_les_colonnes_attendues():
@@ -1226,8 +1239,7 @@ def test_classeur_listes_deroulantes_parametrage():
     rh = _validations("RH")
     assert "Organismes" in rh["organisme"] and "Postes" in rh["poste"]
     assert "Listes" in rh["catégorie de dépense"]
-    listes = [c.value for c in wb["Listes"]["A"] + wb["Listes"]["B"]
-              + wb["Listes"]["C"] + wb["Listes"]["D"]]
+    listes = [c.value for row in wb["Listes"].iter_rows() for c in row]
     assert _MODE_LABELS["by_org_type_poste"] in listes
     assert "Bénévolat partenariat" in listes
 

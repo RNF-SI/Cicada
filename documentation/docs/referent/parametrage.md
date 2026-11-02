@@ -33,7 +33,11 @@ Pour reprendre un plan existant sans tout ressaisir à la main, la page « Param
 Si le plan contient déjà une arborescence, vous choisissez d'ajouter le contenu du fichier à l'existant ou de remplacer tout le contenu (action irréversible, une confirmation est demandée).
 
 4. **Corriger sans repasser par Excel** : le bouton « Corriger dans un tableau » affiche le contenu du fichier à l'écran, cellules en erreur en rouge. Corrigez-les directement, cliquez sur « Revalider », puis « Importer ».
-5. **Import des actions** : même principe, avec le classeur des actions (actions, lignes de budget et de ressources humaines).
+5. **Import des actions** : même principe, avec le classeur des actions (actions, lignes de budget et de ressources humaines), dans un plan qui a déjà son arborescence et aucune action. Le classeur « Actions (format réimportable) » de la rubrique Exports s'y importe tel quel, y compris sur une autre instance :
+    - les indicateurs, organismes, sites et métriques sont retrouvés par leur nom (code INPN pour un site) ;
+    - un poste absent du plan est créé avec ses fonctions, et le rapport d'import l'annonce ;
+    - les suivis et protocoles des actions CS sont créés ;
+    - un organisme introuvable dans l'instance est une erreur ; un organisme qui existe mais ne gère aucun site du plan est signalé en avertissement.
 
 <figure markdown="span">
 ![Import de l'arborescence - statut valide](../assets/figures/fig34.webp){ loading=lazy }

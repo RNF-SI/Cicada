@@ -3244,6 +3244,8 @@
       "annee": "Année :",
       "arborescence": "Exporter le contenu de ce plan (Excel)",
       "arborescenceHint": "Sauvegarde du contenu déjà saisi dans ce plan, au format du modèle d'import : réimportable dans un autre plan en brouillon. Vide tant que le plan n'a pas d'arborescence.",
+      "actions": "Exporter les actions (format réimportable, Excel)",
+      "actionsHint": "Toutes les actions du plan au format du modèle d'import des actions : programmation, budget, temps de travail, postes, emprises, suivis et protocoles. À réimporter, après l'arborescence, dans un plan sans action, sur cette instance ou une autre. Le suivi des réalisations n'en fait pas partie.",
       "downloadError": "Le téléchargement de l'export a échoué."
     },
     "import": {

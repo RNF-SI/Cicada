@@ -65,6 +65,7 @@ describe('PlanExportsComponent (#617)', () => {
       downloadRhSuivi: jest.fn().mockImplementation(blob),
       downloadArborescenceTemplate: jest.fn().mockImplementation(blob),
       downloadFichesSuivi: jest.fn().mockImplementation(blob),
+      downloadActionsTemplate: jest.fn().mockImplementation(blob),
     };
     mockSnackBar = { open: jest.fn() };
 
@@ -158,6 +159,10 @@ describe('PlanExportsComponent (#617)', () => {
     // Export du contenu = modèle pré-rempli (empty = false).
     byId('arbo-export-prefilled').click();
     expect(mockAdminService.downloadArborescenceTemplate).toHaveBeenCalledWith(10, false);
+
+    // #786 — actions au format réimportable.
+    byId('actions-export-reimportable').click();
+    expect(mockAdminService.downloadActionsTemplate).toHaveBeenCalledWith(10);
   });
 
   it('#727 — fiches de suivi : export de l\'année choisie', () => {
