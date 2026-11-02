@@ -121,6 +121,7 @@ def test_build_actions_workbook_lists_indicateurs():
         "Annees",
         "Emprises",
         "Fonctions",
+        "Financements",  # #790
         "Suivis",
         "Protocoles",
     ]

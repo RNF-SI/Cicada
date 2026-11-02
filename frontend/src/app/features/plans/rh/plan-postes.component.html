@@ -98,6 +98,11 @@
           }
         </div>
       }
+
+      <!-- #790 — financeurs du plan, séparés des postes -->
+      @if (planId(); as id) {
+        <app-plan-financeurs [planId]="id" [canManage]="canManage()"></app-plan-financeurs>
+      }
     }
   </main>
 </div>

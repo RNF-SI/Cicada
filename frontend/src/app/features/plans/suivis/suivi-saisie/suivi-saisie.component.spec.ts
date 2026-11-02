@@ -1137,6 +1137,7 @@ describe('SuiviSaisieComponent — bouton Effacer après enregistrement (#758)',
     c.operation = signal<any>({ operation_annees: oa ? [oa] : [] });
     c.operationId = signal(5);
     c.selectedYear = signal(2025);
+    c.financeursAnnee = signal([]);  // #790
     c.currentOperationAnnee = computed(
       () => c.operation()?.operation_annees?.find((o: any) => o.annee === c.selectedYear()) ?? null,
     );
@@ -1644,5 +1645,56 @@ describe('SuiviSaisieComponent — #735 sans type de budget', () => {
   it('rappel du prévu de la période : deux tuiles prévu / réalisé, sans fonctionnement hors type de budget', () => {
     expect(html).toContain('class="prevu-periode__tile"');
     expect(html).toMatch(/@if \(showInvest\(\) && p\.invest\)/);
+  });
+});
+
+describe('SuiviSaisieComponent — montants par financeur (#790)', () => {
+  function finComp(): any {
+    const c: any = comp();
+    c.operation = signal({
+      finances: [
+        { id_financeur: 1, libelle: 'Agence RMC', categorie_affichage: "Agence de l'eau", montant: '900.00' },
+        { id_financeur: 2, libelle: 'Commune', categorie_affichage: 'Communes', montant: null },
+      ],
+    });
+    c.financeursPlan = signal([
+      { id_financeur: 1, nom: 'Agence RMC', categorie_affichage: "Agence de l'eau" },
+      { id_financeur: 2, nom: 'Commune', categorie_affichage: 'Communes' },
+      { id_financeur: 3, nom: 'Région', categorie_affichage: 'Fonds spécial' },
+    ]);
+    c.financeursAnnee = signal([]);
+    return c;
+  }
+
+  it('reprend les financeurs prévus et les montants saisis de l\'année', () => {
+    const c = finComp();
+    c.hydrateFinanceurs({ realisation: { financeurs: [
+      { id_financeur: 1, montant: '400.00' },
+      { id_financeur: 3, nom: 'Région', categorie_affichage: 'Fonds spécial', montant: '50.00' },
+    ] } });
+    expect(c.financeursAnnee().map((l: any) => [l.nom, l.prevu, l.montant, l.prevuParAction])).toEqual([
+      ['Agence RMC', 900, 400, true],
+      ['Commune', null, null, true],
+      ['Région', null, 50, false],
+    ]);
+    expect(c.totalFinanceursAnnee()).toBe(450);
+  });
+
+  it('ajoute un financeur non prévu et envoie les seules lignes saisies', () => {
+    const c = finComp();
+    c.hydrateFinanceurs({ realisation: { financeurs: [] } });
+    expect(c.financeursAjoutables().map((f: any) => f.nom)).toEqual(['Région']);
+    c.financeurAAjouter = 3;
+    c.ajouterFinanceurNonPrevu();
+    c.setMontantFinanceur(1, '120');
+    c.setMontantFinanceur(3, '30.5');
+    expect(c.financeursAEnvoyer()).toEqual([
+      { id_financeur: 1, montant: '120.00' },
+      { id_financeur: 3, montant: '30.50' },
+    ]);
+    // Un financeur prévu ne se retire pas ; un non prévu, si.
+    c.retirerFinanceur(1);
+    c.retirerFinanceur(3);
+    expect(c.financeursAnnee().map((l: any) => l.id_financeur)).toEqual([1, 2]);
   });
 });

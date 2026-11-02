@@ -168,6 +168,14 @@ def source():
         geom=GEOSGeometry(POLY, srid=4326), emprise_suit_sites=False)
     a1.sites.add(site)
     a1.metriques.add(met)
+    # #790 — financeurs du plan et montant prévu global.
+    from apps.plans.models_operations import FinanceOperation, Financeur
+    cat_fin = _nom("CATEGORIE_FINANCE", "AGENCE", "Agence de l'eau")
+    for nom, cat, libre, montant in (("Agence RMC", cat_fin, "", Decimal("1500")),
+                                     ("Mécène local", None, "Mécénat", None)):
+        f = Financeur.pour(plan, nom, cat, libre)
+        FinanceOperation.objects.create(id_operation=a1, id_financeur=f, libelle=nom,
+                                        id_categorie=cat, montant=montant)
     oa = OperationAnnee.objects.get(id_operation=a1, annee=2024)
     oa.periodicite_mensuelle = {str(m): m == 7 for m in range(1, 13)}
     oa.geom = GEOSGeometry(POLY_2024, srid=4326)
@@ -231,6 +239,9 @@ def _snapshot(plan):
             sites=sorted(s.id_inpn for s in op.sites.all()),
             metriques=sorted(m.nom_metrique for m in op.metriques.all()),
             suivi=suivi, annees=annees,
+            financements=sorted(
+                (f.id_financeur.nom, f.id_financeur.categorie_affichage, f.montant)
+                for f in op.finances.all()),
         )
     postes = sorted(
         (p.libelle, p.nom_local, p.commentaire, p.nombre, p.cout_jour, org(p.id_organisme),

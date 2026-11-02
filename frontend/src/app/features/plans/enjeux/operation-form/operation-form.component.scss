@@ -626,6 +626,23 @@ app-form-field.finance-categorie {
   width: auto;
 }
 
+// #790 — montant prévu global par financeur (facultatif).
+app-form-field.finance-montant {
+  flex: 0 0 150px;
+  min-width: 0;
+  width: auto;
+}
+
+.finance-total {
+  margin: $spacing-xs 0;
+  font-weight: 600;
+  color: $primary-color;
+}
+
+.finance-ecart {
+  margin-top: $spacing-sm;
+}
+
 .finance-remove-btn {
   flex-shrink: 0;
   width: 38px;

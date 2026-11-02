@@ -1271,9 +1271,74 @@ class OperationAnneeOrganisme(models.Model):
         return f"OpAnnée {self.id_operation_annee_id} - Org {self.id_organisme_id}"
 
 
+class Financeur(models.Model):
+    """
+    #790 — Financeur d'un plan de gestion (« Postes / RH / Financeurs »).
+
+    Un nom et une catégorie — de la liste ``CATEGORIE_FINANCE`` ou, à défaut,
+    une catégorie libre propre à ce plan (``categorie_libre``, jamais ajoutée à
+    la liste commune). Même nom + même catégorie = un seul financeur. Les
+    actions y renvoient par ``FinanceOperation.id_financeur`` (montant prévu
+    global, facultatif) ; le suivi par ``RealisationFinanceur`` (montant
+    annuel). Le financement ne sort jamais de l'instance (fiche publique).
+    """
+
+    id_financeur = models.AutoField(primary_key=True)
+    id_pg = models.ForeignKey(
+        'plans.PlanGestion', on_delete=models.CASCADE, related_name='financeurs',
+        db_column='id_pg', verbose_name=_("Plan de gestion"),
+    )
+    nom = models.CharField(_("Nom"), max_length=255)
+    id_categorie = models.ForeignKey(
+        'core.Nomenclature', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='financeurs_categorie', db_column='id_categorie',
+        verbose_name=_("Catégorie"),
+        limit_choices_to={'id_type__mnemonique': 'CATEGORIE_FINANCE'},
+    )
+    categorie_libre = models.CharField(
+        _("Autre catégorie"), max_length=255, blank=True, default='',
+        help_text=_("Catégorie hors liste, propre à ce plan."),
+    )
+    date_ajout = models.DateTimeField(_("Date d'ajout"), auto_now_add=True)
+    date_maj = models.DateTimeField(_("Date de modification"), auto_now=True)
+
+    class Meta:
+        db_table = '"general"."t_financeurs"'
+        db_table_comment = "Financeurs d'un plan de gestion (#790)"
+        verbose_name = _("Financeur")
+        verbose_name_plural = _("Financeurs")
+        ordering = ['nom', 'id_financeur']
+
+    def __str__(self):
+        return self.nom
+
+    @property
+    def categorie_affichage(self) -> str:
+        if self.id_categorie_id:
+            return self.id_categorie.label
+        return self.categorie_libre or ''
+
+    @classmethod
+    def pour(cls, plan, nom, id_categorie=None, categorie_libre=''):
+        """Financeur du plan de ce nom et de cette catégorie (créé au besoin)."""
+        nom = (nom or '').strip()
+        cat_id = getattr(id_categorie, 'pk', id_categorie)
+        libre = '' if cat_id else (categorie_libre or '').strip()
+        existant = cls.objects.filter(
+            id_pg=plan, nom__iexact=nom, id_categorie_id=cat_id,
+            categorie_libre__iexact=libre,
+        ).first()
+        return existant or cls.objects.create(
+            id_pg=plan, nom=nom, id_categorie_id=cat_id, categorie_libre=libre)
+
+
 class FinanceOperation(models.Model):
     """
     Source de financement d'une opération.
+
+    #790 — rattachée au financeur du plan (``id_financeur``), avec un montant
+    prévu **global sur l'action** (facultatif). ``libelle`` / ``id_categorie``
+    restent la copie du financeur, lue par les exports et l'exploration.
     """
 
     id_finance_operation = models.AutoField(primary_key=True)
@@ -1283,6 +1348,15 @@ class FinanceOperation(models.Model):
         related_name='finances',
         db_column='id_operation',
         verbose_name=_("Opération")
+    )
+    id_financeur = models.ForeignKey(
+        Financeur, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='financements', db_column='id_financeur',
+        verbose_name=_("Financeur"),
+    )
+    montant = models.DecimalField(
+        _("Montant prévu (€)"), max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text=_("Montant global sur l'action (facultatif, #790)."),
     )
     libelle = models.CharField(_("Libellé"), max_length=255)
     id_categorie = models.ForeignKey(
@@ -1465,6 +1539,34 @@ class RealisationOperationAnnee(models.Model):
             return self.id_operation_annee.id_operation.get_plan_de_gestion()
         except Exception:
             return None
+
+
+class RealisationFinanceur(models.Model):
+    """
+    #790 — Montant réalisé d'un financeur sur une année du suivi. Un financeur
+    non prévu par l'action peut y figurer. Le réalisé est annuel, le prévu
+    global : on compare le total réalisé au prévu (comme #735).
+    """
+
+    id_realisation_financeur = models.AutoField(primary_key=True)
+    id_realisation_operation_annee = models.ForeignKey(
+        RealisationOperationAnnee, on_delete=models.CASCADE,
+        related_name='financeurs', db_column='id_realisation_operation_annee',
+    )
+    id_financeur = models.ForeignKey(
+        Financeur, on_delete=models.CASCADE, related_name='realisations',
+        db_column='id_financeur',
+    )
+    montant = models.DecimalField(
+        _("Montant réalisé (€)"), max_digits=12, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        db_table = '"general"."t_realisations_financeurs"'
+        db_table_comment = "Montants réalisés par financeur et par année (#790)"
+        constraints = [models.UniqueConstraint(
+            fields=['id_realisation_operation_annee', 'id_financeur'],
+            name='uniq_realisation_financeur')]
+        ordering = ['id_realisation_financeur']
 
 
 class RealisationOperationAnneeOrganisme(models.Model):

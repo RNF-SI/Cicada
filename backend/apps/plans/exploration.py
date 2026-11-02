@@ -59,7 +59,7 @@ CLES_SENSIBLES = frozenset({
     'annual_mesures',
     # Programmation, budget, RH, financement
     'operation_annees', 'nb_operation_annees', 'finances', 'nb_finances',
-    'financeurs', 'ventilation_mode', 'declinaison_par_poste',
+    'financeurs', 'financeurs_bilan', 'ventilation_mode', 'declinaison_par_poste',
     'declinaison_par_type_cout', 'cout_salarial_auto',
     'rh_lignes', 'organismes_annee',
     # Réalisations

@@ -1,0 +1,63 @@
+<section class="financeurs-section" data-testid="plan-financeurs">
+  <h2>{{ 'plans.financeurs.title' | translate }}</h2>
+  <p class="subtitle">{{ 'plans.financeurs.intro' | translate }}</p>
+
+  @if (financeurs().length === 0) {
+    <p class="text-mention">{{ 'plans.financeurs.empty' | translate }}</p>
+  } @else {
+    <div class="financeurs-list">
+      @for (f of financeurs(); track f.id_financeur) {
+        <app-entity-tile icon="fi-rr-coins" [name]="f.nom"
+                         [subtitle]="f.categorie_affichage">
+          @if (canManage()) {
+            <div tileAction class="tile-actions">
+              <button type="button" class="icon-btn-flat" (click)="modifier(f)"
+                      [title]="'common.actions.edit' | translate">
+                <i class="fi fi-rr-pencil"></i>
+              </button>
+              <button type="button" class="icon-btn-flat danger" (click)="supprimer(f)"
+                      [title]="'common.actions.delete' | translate">
+                <i class="fi fi-rr-trash"></i>
+              </button>
+            </div>
+          }
+        </app-entity-tile>
+      }
+    </div>
+  }
+
+  @if (canManage()) {
+    <div class="financeur-form form-row-aligned">
+      <app-form-field [label]="'plans.financeurs.nom' | translate" required>
+        <input type="text" [(ngModel)]="nom" data-testid="financeur-nom">
+      </app-form-field>
+      <app-form-field [label]="'plans.financeurs.categorie' | translate">
+        <select [(ngModel)]="categorie" data-testid="financeur-categorie">
+          <option [ngValue]="null">—</option>
+          @for (c of categories(); track c.id_nomenclature) {
+            <option [ngValue]="c.id_nomenclature">{{ c.label }}</option>
+          }
+          <option [ngValue]="AUTRE">{{ 'plans.financeurs.autreCategorie' | translate }}</option>
+        </select>
+      </app-form-field>
+      @if (categorie === AUTRE) {
+        <app-form-field [label]="'plans.financeurs.categorieLibre' | translate"
+                        [helpText]="'plans.financeurs.categorieLibreHint' | translate" required>
+          <input type="text" [(ngModel)]="categorieLibre" data-testid="financeur-categorie-libre">
+        </app-form-field>
+      }
+      <div class="form-actions">
+        <button mat-flat-button color="primary" type="button" [disabled]="!peutEnregistrer()"
+                (click)="enregistrer()" data-testid="financeur-enregistrer">
+          {{ (enEdition ? 'common.actions.save' : 'plans.financeurs.add') | translate }}
+        </button>
+        @if (enEdition) {
+          <button mat-button type="button" (click)="annuler()">{{ 'common.actions.cancel' | translate }}</button>
+        }
+      </div>
+    </div>
+    @if (erreur()) {
+      <p class="text-error">{{ erreur() }}</p>
+    }
+  }
+</section>

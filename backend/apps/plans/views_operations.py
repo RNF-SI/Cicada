@@ -17,7 +17,7 @@ from decimal import Decimal
 
 from .models_operations import (
     Operation, CorOperationMetrique, OperationAnnee, OperationAnneeOrganisme,
-    FinanceOperation, RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
+    FinanceOperation, Financeur, RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
     OperationRealisationGlobale,
     Fonction, Poste,
 )
@@ -37,7 +37,7 @@ from .reorder import do_reorder
 from .serializers_operations import (
     OperationSerializer, OperationListSerializer, OperationCreateSerializer,
     RealisationOperationAnneeSerializer, RealisationOperationAnneeOrganismeSerializer,
-    FonctionSerializer, PosteSerializer, PosteWriteSerializer, SuiviReglagesSerializer, SuiviDefaultsSerializer,
+    FonctionSerializer, FinanceurSerializer, PosteSerializer, PosteWriteSerializer, SuiviReglagesSerializer, SuiviDefaultsSerializer,
 )
 from .filters_operations import OperationFilter
 from drf_spectacular.types import OpenApiTypes
@@ -1999,6 +1999,43 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
 # =============================================================================
 # Ressources humaines (#560)
 # =============================================================================
+
+class FinanceurViewSet(viewsets.ModelViewSet):
+    """
+    #790 — Financeurs d'un plan (« Postes / RH / Financeurs »).
+
+    - GET    /api/plans/financeurs/?id_pg={id}      Liste (scopée par permissions)
+    - GET    /api/plans/financeurs/by-plan/{id}/    Financeurs d'un plan
+    - POST   /api/plans/financeurs/                 Créer (nom + catégorie)
+    - PATCH  /api/plans/financeurs/{id}/            Modifier (répercuté sur les actions)
+    - DELETE /api/plans/financeurs/{id}/            Supprimer (et ses montants)
+
+    Comme les postes, donnée administrative modifiable quel que soit le statut
+    du plan. Une catégorie hors liste reste propre au plan (``categorie_libre``).
+    """
+
+    queryset = Financeur.objects.select_related('id_pg', 'id_categorie')
+    serializer_class = FinanceurSerializer
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = {'id_pg': ['exact']}
+    ordering = ['nom', 'id_financeur']
+
+    def get_queryset(self):
+        return _scope_poste_queryset(self.queryset, self.request.user)
+
+    def perform_create(self, serializer):
+        plan = serializer.validated_data.get('id_pg')
+        if plan is None or not _user_can_access_plan(self.request.user, plan):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Vous n'avez pas accès à ce plan de gestion.")
+        serializer.save()
+
+    @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
+    def by_plan(self, request, plan_id=None):
+        qs = self.get_queryset().filter(id_pg=plan_id)
+        return Response(FinanceurSerializer(qs, many=True, context={'request': request}).data)
+
 
 def _scope_poste_queryset(queryset, user):
     """Scope les postes selon les plans accessibles à l'utilisateur."""

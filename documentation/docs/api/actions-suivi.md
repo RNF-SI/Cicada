@@ -14,6 +14,7 @@ Une **action** (`Operation`, clé `id_operation`) est rattachée à un ou plusie
 | `GET …/ventilation-defaults/{plan_id}/` | Mode de ventilation et réglages budgétaires de la dernière action saisie, proposés par défaut à une nouvelle action |
 | `GET …/{id}/export-fiche-xlsx/` | La fiche de cette seule action (Excel) |
 | `GET/POST /api/plans/postes/`, `GET …/by-plan/{plan_id}/`, `GET/POST /api/plans/fonctions/` | Postes (ressources humaines) du plan et fonctions types |
+| `GET/POST /api/plans/financeurs/`, `GET …/by-plan/{plan_id}/` | Financeurs du plan (#790) : nom + catégorie de la liste ou `categorie_libre` propre au plan. Montant prévu global par action dans `finances[].montant` de l'action, réalisé annuel dans `financeurs` de l'upsert du suivi ; bilan en lecture : `financeurs_bilan` du détail de l'action |
 
 ### Mode de ventilation
 

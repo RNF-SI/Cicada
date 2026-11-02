@@ -23,7 +23,7 @@ from apps.plans.models_indicateurs import (
 )
 from apps.plans.models_operations import (
     Protocole, SuiviInventaire, Operation,
-    CorOperationSite, OperationAnnee, OperationAnneeOrganisme, FinanceOperation
+    CorOperationSite, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, Financeur
 )
 from apps.users.models import Role, Site
 
@@ -5938,9 +5938,12 @@ class EnjeuxSeeder(BaseSeeder):
             fdata = finance_configs.get(op.libelle, [('DREAL', cat_finance_etat)])
             for lib, cat in fdata:
                 if cat:
+                    # #790 — rattaché au financeur du plan (nom + catégorie).
+                    plan = op.get_plan_de_gestion()
+                    financeur = Financeur.pour(plan, lib, cat) if plan else None
                     FinanceOperation.objects.update_or_create(
                         id_operation=op, libelle=lib,
-                        defaults={'id_categorie': cat}
+                        defaults={'id_categorie': cat, 'id_financeur': financeur}
                     )
                     finances_created += 1
 

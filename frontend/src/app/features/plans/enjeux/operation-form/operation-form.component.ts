@@ -37,11 +37,11 @@ import { MetriqueFormComponent } from '../../../../shared/components/metrique-fo
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { AdminService } from '../../../../core/services/admin.service';
 import { RhService } from '../../../../core/services/rh.service';
-import { Poste, CategorieDepense } from '../../../../core/models/rh.model';
+import { Financeur, Poste, CategorieDepense } from '../../../../core/models/rh.model';
 import { InventaireService } from '../../../../core/services/inventaire.service';
 import { ReorderService, OperationCodePreviewParams } from '../../../../core/services/reorder.service';
 import { SuiviInventaireDetail } from '../../../../core/models/inventaire.model';
-import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef, MetriqueFormData, MetriqueRef, Enjeu, Protocole } from '../../../../core/models/enjeu.model';
+import { Operation, OperationCreatePayload, OperationStatut, OperationAnnee, OperationAnneeOrganisme, FinanceOperation, FinanceursBilan, SuiviInventaire, TaxonRef, HabitatRef, GeologieRef, MetriqueFormData, MetriqueRef, Enjeu, Protocole } from '../../../../core/models/enjeu.model';
 import { PlanSite, PlanSiteOrganisme } from '../../../../core/models/admin.model';
 import { ProtocoleCampanuleDialogComponent } from '../../../../shared/components/modals/protocole-campanule-dialog/protocole-campanule-dialog.component';
 import { FrequencyApplyDialogComponent, FrequencyApplyDialogResult } from '../../../../shared/components/modals/frequency-apply-dialog/frequency-apply-dialog.component';
@@ -636,6 +636,12 @@ export class OperationFormComponent implements OnInit {
 
   // Finances
   finances: FinanceOperation[] = [];
+  /** #790 — financeurs du plan (page « Postes / RH / Financeurs »). */
+  financeursPlan = signal<Financeur[]>([]);
+  /** #790 — sélecteur de catégorie : « autre catégorie, propre au plan ». */
+  readonly AUTRE_CATEGORIE_FINANCE = -1;
+  /** #790 — bilan du dernier enregistrement (alerte d'écart, Q3). */
+  financeursBilan = signal<FinanceursBilan | null>(null);
 
   // Per-organisme budget data: key = `${yearIndex}-${organismeId}`
   // #600 — s'ajoutent aux coûts (stage / prestataire / autre + commentaire).
@@ -1255,6 +1261,11 @@ export class OperationFormComponent implements OnInit {
             this.postes.set(list);
             this.syncRhLines();
           });
+          // #790 — financeurs du plan, proposés dans la section « Financeurs ».
+          this.rhService.getFinanceursByPlan(plan.id_pg).subscribe({
+            next: (list) => this.financeursPlan.set(list),
+            error: () => this.financeursPlan.set([]),
+          });
           this.applyPlanReadOnly(plan.statut);
           this.computeYears(plan.annee_debut, planEndYear(plan));  // #672
           // Extract plan sites
@@ -1811,10 +1822,16 @@ export class OperationFormComponent implements OnInit {
       this.programmationMensuelleDefaut = { ...op.programmation_mensuelle_defaut };
     }
 
-    // Restore finances
+    // Restore finances (#790 : montant, catégorie libre propre au plan)
     if (op.finances && op.finances.length > 0) {
-      this.finances = op.finances.map(f => ({ ...f }));
+      this.finances = op.finances.map(f => ({
+        ...f,
+        categorie_libre: f.financeur_categorie_libre || '',
+        id_categorie: f.id_categorie ?? (f.financeur_categorie_libre ? this.AUTRE_CATEGORIE_FINANCE : null),
+        montant: f.montant ?? null,
+      }));
     }
+    this.financeursBilan.set(op.financeurs_bilan ?? null);
   }
 
   save(): void {
@@ -2416,15 +2433,21 @@ export class OperationFormComponent implements OnInit {
       payload.operation_annees = anneesToSave;
     }
 
-    // Finances (relational)
-    if (this.finances.length > 0) {
-      payload.finances = this.finances
-        .filter(f => f.libelle?.trim())
-        .map(f => ({
+    // Finances (relational) — toujours envoyées : retirer le dernier
+    // financeur doit vider la liste côté serveur. #790 : le serveur rattache
+    // chaque ligne au financeur du plan (même nom + même catégorie).
+    payload.finances = this.finances
+      .filter(f => f.libelle?.trim())
+      .map(f => {
+        const autre = f.id_categorie === this.AUTRE_CATEGORIE_FINANCE;
+        const montant = f.montant === '' || f.montant == null ? null : Number(f.montant);
+        return {
           libelle: f.libelle.trim(),
-          id_categorie: f.id_categorie || undefined
-        }));
-    }
+          id_categorie: autre ? null : (f.id_categorie || null),
+          categorie_libre: autre ? (f.categorie_libre || '').trim() : '',
+          montant: montant != null && isFinite(montant) ? montant.toFixed(2) : null,
+        };
+      });
 
     // Emprise spatiale (#342) : incluse uniquement si modifiée localement
     // (undefined = on ne touche pas au serveur ; null = effacement explicite).
@@ -4242,7 +4265,24 @@ export class OperationFormComponent implements OnInit {
   // ════════════════════════════════════════════════
 
   addFinance(): void {
-    this.finances.push({ libelle: '', id_categorie: null });
+    this.finances.push({ libelle: '', id_categorie: null, categorie_libre: '', montant: null });
+  }
+
+  /** #790 — un nom connu du plan reprend la catégorie de ce financeur. */
+  onFinanceurNom(finance: FinanceOperation): void {
+    const nom = (finance.libelle || '').trim().toLowerCase();
+    const connu = this.financeursPlan().find(f => f.nom.trim().toLowerCase() === nom);
+    if (!connu) return;
+    finance.id_categorie = connu.id_categorie ?? (connu.categorie_libre ? this.AUTRE_CATEGORIE_FINANCE : null);
+    finance.categorie_libre = connu.categorie_libre || '';
+  }
+
+  /** #790 — somme des montants saisis (null si aucun). */
+  totalMontantsFinanceurs(): number | null {
+    const montants = this.finances
+      .map(f => (f.montant === '' || f.montant == null ? null : Number(f.montant)))
+      .filter((m): m is number => m != null && isFinite(m));
+    return montants.length ? montants.reduce((a, b) => a + b, 0) : null;
   }
 
   removeFinance(index: number): void {

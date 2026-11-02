@@ -26,6 +26,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { RhService } from '../../../core/services/rh.service';
 import { Poste, PosteFonction } from '../../../core/models/rh.model';
 import { posteDisplayLabel } from '../../../shared/utils/poste-label';
+import { PlanFinanceursComponent } from './plan-financeurs/plan-financeurs.component';
 import {
   PosteFormDialogComponent,
   PosteFormDialogData,
@@ -42,7 +43,8 @@ import {
     HeaderComponent,
     PlanSidebarComponent,
     EntityTileComponent,
-    TagComponent
+    TagComponent,
+    PlanFinanceursComponent,
 ],
   templateUrl: './plan-postes.component.html',
   changeDetection: ChangeDetectionStrategy.Eager,

@@ -27,7 +27,7 @@ DOMAINES = [
     ("arborescence", r"^/api/plans/(enjeux|enjeux-fichiers|facteurs-influence|pressions|"
                      r"objectifs-long-terme|niveaux-exigence|objectifs-operationnels|"
                      r"resultats-attendus|indicateurs|metriques|mesures|indicateur-mesures)/"),
-    ("actions-suivi", r"^/api/(plans/(operations|realisations|realisations-organismes|postes|fonctions)|inventaires)/"),
+    ("actions-suivi", r"^/api/(plans/(operations|realisations|realisations-organismes|postes|fonctions|financeurs)|inventaires)/"),
     ("plans", r"^/api/plans/"),
     ("referentiels", r"^/api/(taxref|habref|inpg|campanule|nomenclatures)/"),
     ("notifications", r"^/api/(notifications|validations|activity|modules)/"),

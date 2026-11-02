@@ -13,7 +13,9 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
-import { Fonction, Poste, PostePayload, TypePoste } from '../models/rh.model';
+import {
+  Financeur, FinanceurPayload, Fonction, Poste, PostePayload, TypePoste,
+} from '../models/rh.model';
 
 @Injectable({ providedIn: 'root' })
 export class RhService {
@@ -93,5 +95,23 @@ export class RhService {
 
   deletePoste(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/postes/${id}/`);
+  }
+
+  // ---- Financeurs du plan (#790) -----------------------------------------
+
+  getFinanceursByPlan(planId: number): Observable<Financeur[]> {
+    return this.http.get<Financeur[]>(`${this.apiUrl}/financeurs/by-plan/${planId}/`);
+  }
+
+  createFinanceur(payload: FinanceurPayload): Observable<Financeur> {
+    return this.http.post<Financeur>(`${this.apiUrl}/financeurs/`, payload);
+  }
+
+  updateFinanceur(id: number, payload: Partial<FinanceurPayload>): Observable<Financeur> {
+    return this.http.patch<Financeur>(`${this.apiUrl}/financeurs/${id}/`, payload);
+  }
+
+  deleteFinanceur(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/financeurs/${id}/`);
   }
 }

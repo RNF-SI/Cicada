@@ -2,7 +2,7 @@
 
 La fiche d'un plan s'organise autour d'une barre latérale :
 
-- Paramétrage : les Paramètres du plan (import, suppression de version) et les Postes / RH ;
+- Paramétrage : les Paramètres du plan (import, suppression de version) et les Postes / RH / Financeurs ;
 - Vue d'ensemble : la synthèse du plan (enjeux, objectifs, actions, documents) ;
 - Détails et saisie : la liste des enjeux et des facteurs clés de réussite (FCR) et leur contenu ;
 - Suivis : bilan, suivi des actions, tableau de bord ;

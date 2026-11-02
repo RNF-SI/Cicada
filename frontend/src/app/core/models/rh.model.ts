@@ -139,3 +139,31 @@ export interface OperationRHLigne {
   categorie_depense?: CategorieDepense;
   categorie_depense_display?: string | null;
 }
+
+/** #790 — Financeur d'un plan : un nom et une catégorie (liste ou libre). */
+export interface Financeur {
+  id_financeur: number;
+  id_pg: number;
+  nom: string;
+  id_categorie: number | null;
+  categorie_label?: string | null;
+  /** Catégorie hors liste, propre à ce plan. */
+  categorie_libre: string;
+  categorie_affichage: string;
+  nb_actions?: number;
+}
+
+export interface FinanceurPayload {
+  id_pg: number;
+  nom: string;
+  id_categorie: number | null;
+  categorie_libre: string;
+}
+
+/** #790 — montant réalisé d'un financeur sur une année du suivi. */
+export interface RealisationFinanceur {
+  id_financeur: number;
+  nom?: string;
+  categorie_affichage?: string;
+  montant: string | number | null;
+}

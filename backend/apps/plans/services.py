@@ -560,7 +560,7 @@ class PlanDuplicationService:
         from .models_operations import (
             SuiviInventaire, Operation, OperationAnnee,
             OperationAnneeOrganisme, OperationAnneeRH, FinanceOperation,
-            CorOperationSite, CorOperationMetrique,
+            CorOperationSite, CorOperationMetrique, Financeur,
         )
 
         poste_map = poste_map or {}
@@ -641,7 +641,13 @@ class PlanDuplicationService:
                     )
                     new_rh.save()
 
-            # Financements.
-            for old_fin in FinanceOperation.objects.filter(id_operation=old_op):
+            # Financements — rattachés aux financeurs de la nouvelle version
+            # (même nom, même catégorie), montant prévu compris (#790).
+            for old_fin in FinanceOperation.objects.filter(
+                    id_operation=old_op).select_related('id_financeur'):
                 new_fin = dup(old_fin, user, id_operation=new_op)
+                if old_fin.id_financeur_id:
+                    f = old_fin.id_financeur
+                    new_fin.id_financeur = Financeur.pour(
+                        new_plan, f.nom, f.id_categorie_id, f.categorie_libre)
                 new_fin.save()

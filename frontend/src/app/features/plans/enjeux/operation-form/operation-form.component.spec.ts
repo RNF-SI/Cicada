@@ -1866,6 +1866,35 @@ describe('OperationFormComponent — programmation globale sur la période (#735
     expect(payload.operation_annees.map((a: any) => a.periodicite)).toEqual([true, true]);
   });
 
+  it('#790 — financeurs : montant prévu, catégorie libre, liste vidée', () => {
+    const c = makeComp();
+    (c as any).AUTRE_CATEGORIE_FINANCE = -1;
+    (c as any).finances = [
+      { libelle: ' Agence RMC ', id_categorie: 3, categorie_libre: '', montant: '600' },
+      { libelle: 'Commune', id_categorie: (c as any).AUTRE_CATEGORIE_FINANCE,
+        categorie_libre: 'Mécénat local', montant: null },
+    ];
+    expect((c as any).buildPayload().finances).toEqual([
+      { libelle: 'Agence RMC', id_categorie: 3, categorie_libre: '', montant: '600.00' },
+      { libelle: 'Commune', id_categorie: null, categorie_libre: 'Mécénat local', montant: null },
+    ]);
+    expect(c.totalMontantsFinanceurs()).toBe(600);
+    // Retirer le dernier financeur doit vider la liste côté serveur.
+    (c as any).finances = [];
+    expect((c as any).buildPayload().finances).toEqual([]);
+  });
+
+  it('#790 — un nom connu du plan reprend la catégorie du financeur', () => {
+    const c = makeComp();
+    (c as any).AUTRE_CATEGORIE_FINANCE = -1;
+    (c as any).financeursPlan = signal([{ id_financeur: 1, id_pg: 1, nom: 'Région', id_categorie: null,
+      categorie_libre: 'Fonds spécial', categorie_affichage: 'Fonds spécial' }]);
+    const f: any = { libelle: 'région', id_categorie: null };
+    c.onFinanceurNom(f);
+    expect(f.id_categorie).toBe((c as any).AUTRE_CATEGORIE_FINANCE);
+    expect(f.categorie_libre).toBe('Fonds spécial');
+  });
+
   it('action annuelle : aucune ligne globale', () => {
     const c = makeComp();
     c.updateTypeFonct(0, '1000');

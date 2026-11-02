@@ -334,14 +334,20 @@ def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
         "Périodicité", ["x" if month_flags.get(m) else "" for m in range(1, 13)], "sub",
     )])
 
-    financeurs = []
-    for f in op.finances.all():
-        lbl = _txt(f.libelle)
-        cat = _txt(getattr(getattr(f, "id_categorie", None), "label", ""))
-        financeurs.append(" — ".join(x for x in (lbl, cat) if x))
+    # #790 — mêmes lignes que la fiche Excel (`fiche.financeurs_rows`).
+    lignes, note = fiche.financeurs_rows(op)
+    if lignes:
+        d.grid(["Financeurs et types de financement", "Montant prévu"], [
+            (label, [fiche._euro(m) if m is not None else "—"], style)
+            for label, m, style in lignes
+        ])
+    extra = []
+    if note:
+        extra.append(("Écart avec le budget prévu", note))
     if _txt(op.financeurs):
-        financeurs.append(_txt(op.financeurs))
-    d.kv([("Financeurs et types de financement", " ; ".join(financeurs))])
+        extra.append(("Financeurs (texte libre)", _txt(op.financeurs)))
+    if extra:
+        d.kv(extra)
 
     # ---- 4) Indicateurs de réponse ----
     d.section("4) Indicateurs de réponse")

@@ -46,6 +46,8 @@ from .models_operations import (
     CorOperationSite,
     OperationAnnee,
     FinanceOperation,
+    Financeur,
+    RealisationFinanceur,
     OperationRealisationGlobale,
     Fonction,
     Poste,

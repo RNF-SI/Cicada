@@ -37,7 +37,7 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { RealisationService } from '../../../../core/services/realisation.service';
 import { RhService } from '../../../../core/services/rh.service';
-import { Poste, OperationRHLigne, CategorieDepense } from '../../../../core/models/rh.model';
+import { Financeur, Poste, OperationRHLigne, CategorieDepense, RealisationFinanceur } from '../../../../core/models/rh.model';
 import { Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
 import {
   Operation,
@@ -236,6 +236,11 @@ export class SuiviSaisieComponent implements OnInit {
 
   // #560 — postes du PG, cibles possibles du temps de travail réalisé.
   postes = signal<Poste[]>([]);
+  /** #790 — financeurs du plan et montants de l'année affichée. */
+  financeursPlan = signal<Financeur[]>([]);
+  financeursAnnee = signal<LigneFinanceurSuivi[]>([]);
+  /** Financeur choisi dans « ajouter un financeur non prévu ». */
+  financeurAAjouter: number | null = null;
 
   /**
    * Ce que le tableau RH cible, aligné sur le mode de saisie de l'action :
@@ -1092,6 +1097,11 @@ export class SuiviSaisieComponent implements OnInit {
         this.rhService.getPostesByPlan(plan.id_pg).subscribe(
           (list) => this.postes.set(list),
         );
+        // #790 — financeurs du plan (ajout d'un financeur non prévu).
+        this.rhService.getFinanceursByPlan(plan.id_pg).subscribe({
+          next: (list) => this.financeursPlan.set(list),
+          error: () => this.financeursPlan.set([]),
+        });
         this.applyReadOnlyLock();
       },
       error: (err) => {
@@ -1408,6 +1418,7 @@ export class SuiviSaisieComponent implements OnInit {
     });
     this.hydrateOrganismesArray(oa);
     this.hydrateRhArray(oa);
+    this.hydrateFinanceurs(oa);
     this.applyReadOnlyLock();
   }
 
@@ -1967,6 +1978,8 @@ export class SuiviSaisieComponent implements OnInit {
     // la position hors du bloc ci-dessus. Sémantique « replace-all » côté API :
     // on envoie l'état complet de l'année, les lignes vides sont écartées.
     annualPayload.rh_lignes = this.rhLignesAEnvoyer();
+    // #790 — montants par financeur de l'année (facultatifs, replace-all).
+    annualPayload.financeurs = this.financeursAEnvoyer();
 
     // Emprise réalisée : on n'inclut le champ dans le payload que si
     // l'utilisateur l'a modifié localement (sinon on ne touche pas au
@@ -2132,4 +2145,93 @@ export class SuiviSaisieComponent implements OnInit {
       },
     });
   }
+
+  // ════════════════════════════════════════════════
+  // #790 — Montants par financeur (facultatifs)
+  // ════════════════════════════════════════════════
+
+  /**
+   * Lignes de l'année : les financeurs prévus par l'action (montant prévu
+   * global), puis ceux déjà saisis au suivi sans être prévus. Le prévu étant
+   * global, il se compare au total réalisé de toutes les années (fiche action).
+   */
+  private hydrateFinanceurs(oa: OperationAnnee | null | undefined): void {
+    const saisis = new Map<number, RealisationFinanceur>();
+    for (const r of oa?.realisation?.financeurs ?? []) saisis.set(r.id_financeur, r);
+    const lignes: LigneFinanceurSuivi[] = [];
+    const vus = new Set<number>();
+    for (const f of this.operation()?.finances ?? []) {
+      if (f.id_financeur == null || vus.has(f.id_financeur)) continue;
+      vus.add(f.id_financeur);
+      lignes.push({
+        id_financeur: f.id_financeur, nom: f.libelle,
+        categorie: f.categorie_affichage || f.categorie_label || '',
+        prevu: f.montant == null || f.montant === '' ? null : Number(f.montant),
+        prevuParAction: true,
+        montant: this.montantSaisi(saisis.get(f.id_financeur)?.montant),
+      });
+    }
+    for (const r of saisis.values()) {
+      if (vus.has(r.id_financeur)) continue;
+      lignes.push({
+        id_financeur: r.id_financeur, nom: r.nom || '', categorie: r.categorie_affichage || '',
+        prevu: null, prevuParAction: false, montant: this.montantSaisi(r.montant),
+      });
+    }
+    this.financeursAnnee.set(lignes);
+    this.financeurAAjouter = null;
+  }
+
+  private montantSaisi(v: string | number | null | undefined): number | null {
+    if (v == null || v === '') return null;
+    const n = Number(v);
+    return isFinite(n) ? n : null;
+  }
+
+  /** Financeurs du plan pas encore présents sur l'année (financeur non prévu). */
+  financeursAjoutables(): Financeur[] {
+    const presents = new Set(this.financeursAnnee().map(l => l.id_financeur));
+    return this.financeursPlan().filter(f => !presents.has(f.id_financeur));
+  }
+
+  ajouterFinanceurNonPrevu(): void {
+    const f = this.financeursPlan().find(x => x.id_financeur === this.financeurAAjouter);
+    if (!f) return;
+    this.financeursAnnee.update(l => [...l, {
+      id_financeur: f.id_financeur, nom: f.nom, categorie: f.categorie_affichage,
+      prevu: null, prevuParAction: false, montant: null,
+    }]);
+    this.financeurAAjouter = null;
+  }
+
+  retirerFinanceur(id: number): void {
+    this.financeursAnnee.update(l => l.filter(x => x.id_financeur !== id || x.prevuParAction));
+  }
+
+  setMontantFinanceur(id: number, valeur: string | number | null): void {
+    this.financeursAnnee.update(l => l.map(x =>
+      x.id_financeur === id ? { ...x, montant: this.montantSaisi(valeur) } : x));
+  }
+
+  totalFinanceursAnnee(): number | null {
+    const m = this.financeursAnnee().map(l => l.montant).filter((v): v is number => v != null);
+    return m.length ? m.reduce((a, b) => a + b, 0) : null;
+  }
+
+  /** Payload : les lignes saisies (un financeur prévu laissé vide n'est pas envoyé). */
+  financeursAEnvoyer(): { id_financeur: number; montant: string | null }[] {
+    return this.financeursAnnee()
+      .filter(l => l.montant != null || !l.prevuParAction)
+      .map(l => ({ id_financeur: l.id_financeur, montant: l.montant != null ? l.montant.toFixed(2) : null }));
+  }
+}
+
+/** #790 — ligne du tableau « montants par financeur » de la saisie du suivi. */
+export interface LigneFinanceurSuivi {
+  id_financeur: number;
+  nom: string;
+  categorie: string;
+  prevu: number | null;
+  prevuParAction: boolean;
+  montant: number | null;
 }

@@ -1,7 +1,7 @@
 /**
  * Models for Enjeux (conservation issues) and FCR (Key Success Factors)
  */
-import { OperationRHLigne } from './rh.model';
+import { OperationRHLigne, RealisationFinanceur } from './rh.model';
 import type { TypeActionAActualiser } from '../services/referentiel-actions.service';
 
 /**
@@ -674,6 +674,8 @@ export interface RealisationOperationAnnee {
   financeurs_realises?: string | null;
   // #560 — lignes RH réalisées (personne/fonction × jours × financé).
   rh_lignes?: OperationRHLigne[];
+  /** #790 — montants réalisés par financeur sur l'année. */
+  financeurs?: RealisationFinanceur[];
   date_ajout?: string;
   date_maj?: string;
   id_utilisateur_maj?: number | null;
@@ -768,6 +770,8 @@ export interface RealisationUpsertPayload {
   financeurs_realises?: string | null;
   // #560 — lignes RH réalisées (remplacement complet à chaque upsert).
   rh_lignes?: OperationRHLigne[];
+  /** #790 — remplacement complet des montants par financeur de l'année. */
+  financeurs?: { id_financeur: number; montant: string | null }[];
   /** Emprise spatiale réalisée (GeoJSON), null pour effacer. */
   geom_realisee?: GeoJSONGeometry | null;
 }
@@ -799,9 +803,38 @@ export interface RealisationOrganismeUpsertPayload {
  */
 export interface FinanceOperation {
   id_finance_operation?: number;
+  /** #790 — financeur du plan (résolu par le serveur depuis nom + catégorie). */
+  id_financeur?: number | null;
   libelle: string;
   id_categorie?: number | null;
   categorie_label?: string;
+  /** #790 — catégorie hors liste, propre au plan (écriture). */
+  categorie_libre?: string;
+  /** Lecture : catégorie libre du financeur du plan. */
+  financeur_categorie_libre?: string;
+  categorie_affichage?: string;
+  /** #790 — montant prévu global sur l'action, facultatif (décimal DRF). */
+  montant?: string | number | null;
+}
+
+/** #790 — ligne du bilan des coûts par financeur (montants en chaînes DRF). */
+export interface FinanceurBilanLigne {
+  id_financeur: number;
+  nom: string;
+  categorie: string;
+  prevu: string | null;
+  prevu_par_action: boolean;
+  realise: string | null;
+  realise_par_annee: Record<string, string>;
+}
+
+export interface FinanceursBilan {
+  lignes: FinanceurBilanLigne[];
+  total_prevu: string | null;
+  total_realise: string | null;
+  budget_prevu: string | null;
+  /** Somme des montants ≠ budget prévu : alerte, jamais bloquante. */
+  ecart_budget: boolean;
 }
 
 export interface MetriqueRef {
@@ -950,6 +983,8 @@ export interface Operation {
   /** #761 — réglages du suivi déjà posés pour l'action (sinon : ceux du 1er suivi du plan). */
   reglages_suivi_definis?: boolean;
   finances?: FinanceOperation[];
+  /** #790 — bilan prévu / réalisé par financeur (détail de l'action). */
+  financeurs_bilan?: FinanceursBilan | null;
   // #355 — Niveau de réalisation GLOBAL (sur la période) : surcharge sinon calcul auto
   niveau_realisation_global_mnemonique?: string | null;
   niveau_realisation_global_label?: string | null;

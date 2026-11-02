@@ -2,7 +2,7 @@
 
 ## 4.3.1. Les postes (ressources humaines)
 
-La page Postes / RH décrit les types de postes qui travaillent sur le plan : leur fonction, le nombre de personnes, leur organisme et le coût jour de chaque personne. Aucune donnée nominative n'est enregistrée (RGPD) : un poste est décrit par sa fonction, pas par la personne qui l'occupe.
+La page **Postes / RH / Financeurs** décrit les types de postes qui travaillent sur le plan : leur fonction, le nombre de personnes, leur organisme et le coût jour de chaque personne. Aucune donnée nominative n'est enregistrée (RGPD) : un poste est décrit par sa fonction, pas par la personne qui l'occupe.
 
 Cliquez sur « Ajouter un type de poste » puis :
 
@@ -14,6 +14,13 @@ Cliquez sur « Ajouter un type de poste » puis :
 - Éventuellement, un nom local du poste (ex. « garde du secteur nord »), qui remplace la fonction dans les fiches action, et un commentaire (il est recommandé d'éviter l'utilisation des noms ou prénoms, par soucis de respect du RGPD).
 
 **Ces postes alimentent ensuite le temps de travail des actions et le calcul automatique du coût salarial (jours × coût jour).**
+
+**Financeurs.** Sous les postes, la rubrique « Financeurs » liste les financeurs du plan. Un financeur se définit par :
+
+- un **nom** ;
+- une **catégorie** : celle de la liste proposée, ou « Autre catégorie (propre à ce plan)… ». Une catégorie ainsi ajoutée ne l'est que pour ce plan, pas pour les autres.
+
+Même nom et même catégorie désignent un seul financeur ; deux noms différents dans la même catégorie font deux financeurs. Les montants se saisissent, si vous le souhaitez, dans la fiche de chaque action (montant prévu sur l'action, [§ 4.8.1](actions.md#481-la-saisie-dune-action-de-gestion)) et au suivi (montant de l'année, [§ 4.9.2](suivi.md#492-le-suivi-des-actions-de-gestion)). Ils ne sont jamais obligatoires. Supprimer un financeur retire aussi ses montants.
 
 <figure markdown="span">
 ![Page et fenêtre d'ajout de postes/RH](../assets/figures/fig33.webp){ loading=lazy }

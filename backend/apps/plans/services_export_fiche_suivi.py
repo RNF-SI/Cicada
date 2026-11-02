@@ -7,7 +7,8 @@ la saisie du suivi, la fiche de l'action pour l'année ouverte (même vide).
 
 Chaque fiche met en regard, colonne « Prévu » / colonne « Réalisé » :
 identification (enjeu, indicateur d'état ou de pression, OLT / OO), niveau de
-réalisation, opérateurs et financeurs (réalisé seul), temps de travail par poste, budget par
+réalisation, opérateurs et financeurs (réalisé seul), temps de travail par poste,
+financement par financeur (prévu global / réalisé de l'année, #790), budget par
 poste de dépense, indicateurs de réponse (valeur cible / valeur saisie),
 résultat de l'indicateur d'état ou de pression (grille des scores), emprise
 prévue et réalisée sur une même carte, commentaires.
@@ -303,6 +304,27 @@ def _render(ws, plan, op, annee, code):
             _cmp(w, label, _SANS_OBJET if globale else fa._euro(p), fa._euro(r))
     _cmp(w, "Total budget", _SANS_OBJET if globale else fa._euro(cell.tot),
          fa._euro(cell.rtot), total=True)
+
+    # --- Financeurs (#790) : prévu global sur l'action, réalisé de l'année ---
+    from .financeurs import bilan_financeurs
+    bilan = bilan_financeurs(op)
+    if bilan["lignes"]:
+        w.section("Financement par financeur (€)")
+        _cmp_header(w, "Financeur", "Prévu (période)", f"Réalisé {annee}")
+        tp = tr = None
+        for l in bilan["lignes"]:
+            r = l["realise_par_annee"].get(annee)
+            nom = " — ".join(x for x in (fa._txt(l["nom"]), fa._txt(l["categorie"])) if x)
+            if not l["prevu_par_action"]:
+                nom += " (non prévu)"
+            _cmp(w, nom, fa._euro(l["prevu"]) if l["prevu"] is not None else "—",
+                 fa._euro(r) if r is not None else "—")
+            if l["prevu"] is not None:
+                tp = (tp or 0) + l["prevu"]
+            if r is not None:
+                tr = (tr or 0) + r
+        _cmp(w, "Total des financeurs", fa._euro(tp) if tp is not None else "—",
+             fa._euro(tr) if tr is not None else "—", total=True)
 
     # --- Indicateurs de réponse ---
     w.section("Indicateurs de réponse")

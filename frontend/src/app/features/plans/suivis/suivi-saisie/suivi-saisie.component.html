@@ -1151,6 +1151,81 @@
           }
         </section>
 
+        <!-- #790 — Montants par financeur de l'année (facultatifs) -->
+        <section class="saisie-card" data-testid="suivi-financeurs">
+          <div class="card-header">
+            <img src="assets/images/ellipses/ellipse-yellow.png" alt="" class="card-ellipse">
+            <h2 class="card-title">{{ 'plans.financeurs.suiviTitle' | translate:{ annee: selectedYear() } }}</h2>
+          </div>
+          <p class="text-mention">{{ 'plans.financeurs.suiviHint' | translate }}</p>
+          @if (financeursAnnee().length) {
+            <table class="realisation-matrix financeurs-table">
+              <thead>
+                <tr>
+                  <th>{{ 'plans.financeurs.colFinanceur' | translate }}</th>
+                  <th>{{ 'plans.financeurs.colCategorie' | translate }}</th>
+                  <th class="num">{{ 'plans.financeurs.colPrevu' | translate }}</th>
+                  <th class="num">{{ 'plans.financeurs.colMontantAnnee' | translate:{ annee: selectedYear() } }}</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (l of financeursAnnee(); track l.id_financeur) {
+                  <tr>
+                    <td>{{ l.nom }}@if (!l.prevuParAction) { <span class="text-mention">({{ 'plans.financeurs.nonPrevu' | translate }})</span> }</td>
+                    <td>{{ l.categorie }}</td>
+                    <td class="num">@if (l.prevu !== null) { {{ l.prevu | number:'1.0-2' }} € } @else { — }</td>
+                    <td class="num">
+                      <input type="number" min="0" step="0.01" class="financeur-montant"
+                             [value]="l.montant ?? ''" [disabled]="formVerrouille()"
+                             (input)="setMontantFinanceur(l.id_financeur, $any($event.target).value)"
+                             [attr.aria-label]="l.nom"
+                             [attr.data-testid]="'financeur-montant-' + l.id_financeur">
+                    </td>
+                    <td>
+                      @if (!l.prevuParAction && !formVerrouille()) {
+                        <button type="button" class="icon-btn-flat danger" (click)="retirerFinanceur(l.id_financeur)"
+                                [title]="'common.actions.delete' | translate">
+                          <i class="fi fi-rr-trash"></i>
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+              @if (totalFinanceursAnnee(); as total) {
+                <tfoot>
+                  <tr>
+                    <td colspan="3">{{ 'plans.financeurs.total' | translate }}</td>
+                    <td class="num">{{ total | number:'1.0-2' }} €</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              }
+            </table>
+          }
+          @if (!formVerrouille()) {
+            @if (financeursAjoutables().length) {
+              <div class="financeur-ajout">
+                <select [(ngModel)]="financeurAAjouter" [ngModelOptions]="{standalone: true}"
+                        [attr.aria-label]="'plans.financeurs.suiviAjouter' | translate"
+                        data-testid="financeur-ajout">
+                  <option [ngValue]="null">{{ 'plans.financeurs.suiviAjouter' | translate }}…</option>
+                  @for (f of financeursAjoutables(); track f.id_financeur) {
+                    <option [ngValue]="f.id_financeur">{{ f.nom }} — {{ f.categorie_affichage }}</option>
+                  }
+                </select>
+                <button type="button" mat-stroked-button [disabled]="financeurAAjouter === null"
+                        (click)="ajouterFinanceurNonPrevu()">
+                  {{ 'common.actions.add' | translate }}
+                </button>
+              </div>
+            } @else if (!financeursPlan().length) {
+              <p class="text-mention">{{ 'plans.financeurs.suiviAucun' | translate }}</p>
+            }
+          }
+        </section>
+
         <!-- Détails -->
         <section class="saisie-card">
           <div class="card-header">

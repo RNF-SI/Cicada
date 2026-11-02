@@ -841,3 +841,38 @@ describe('OperationFicheComponent — #735 (retour 21/10) sans type de budget', 
     expect(fixture.nativeElement.textContent).toContain('plans.suivis.actions.fiche.budgetInvestissement');
   });
 });
+
+describe('OperationFicheComponent — bilan par financeur (#790)', () => {
+  const opAvec = (annees: any[], extra: Record<string, unknown> = {}): Operation => ({
+    id_operation: 42, libelle: 'Action test', metriques: [], operation_annees: annees,
+    finances: [], ...extra,
+  } as unknown as Operation);
+  const bilan = {
+    lignes: [
+      { id_financeur: 1, nom: 'Agence RMC', categorie: "Agence de l'eau", prevu: '600.00',
+        prevu_par_action: true, realise: '400.00', realise_par_annee: { '2024': '400.00' } },
+      { id_financeur: 2, nom: 'Région', categorie: 'Fonds spécial', prevu: null,
+        prevu_par_action: false, realise: '50.00', realise_par_annee: { '2024': '50.00' } },
+    ],
+    total_prevu: '600.00', total_realise: '450.00', budget_prevu: '1000.00', ecart_budget: true,
+  };
+
+  it('affiche prévu / réalisé par financeur, le non prévu et l\'alerte d\'écart', () => {
+    const fixture = setup(opAvec(
+      [{ annee: 2024, periodicite: true, budget: '1000.00' }],
+      { financeurs_bilan: bilan, finances: [{ libelle: 'Agence RMC' }] } as any,
+    ));
+    const el: HTMLElement = fixture.nativeElement;
+    const table = el.querySelector('[data-testid="fiche-financeurs"]')!;
+    expect(table).toBeTruthy();
+    expect(table.textContent).toContain('Agence RMC');
+    expect(table.textContent).toContain('600');
+    expect(table.textContent).toContain('plans.financeurs.nonPrevu');
+    expect(el.querySelector('[data-testid="fiche-financeurs-ecart"]')).toBeTruthy();
+  });
+
+  it('sans financeur : pas de tableau bilan', () => {
+    const fixture = setup(opAvec([{ annee: 2024, periodicite: true, budget: '1000.00' }]));
+    expect(fixture.componentInstance.financeursBilan()).toBeNull();
+  });
+});

@@ -1544,27 +1544,55 @@
 
               <!-- #343 — Financeur textuel supprimé : seuls les financeurs structurés (libellé + catégorie) ci-dessous sont conservés. -->
 
-              <!-- Finances (relational) -->
+              <!-- Finances (relational) — #790 : financeurs du plan + montant prévu global -->
               <label class="app-mat-label">{{ 'enjeux.operations.financeursLabel' | translate }}</label>
-              <div class="finances-section">
+              <div class="finances-section" data-testid="operation-financeurs">
+                <datalist id="financeurs-plan">
+                  @for (f of financeursPlan(); track f.id_financeur) {
+                    <option [value]="f.nom">{{ f.categorie_affichage }}</option>
+                  }
+                </datalist>
                 @for (finance of finances; track $index) {
                   <div class="finance-row">
                     <app-form-field class="finance-libelle" [label]="'enjeux.operations.financeLibelleLabel' | translate">
-  <input [(ngModel)]="finance.libelle" [ngModelOptions]="{standalone: true}">
-</app-form-field>
+                      <input [(ngModel)]="finance.libelle" [ngModelOptions]="{standalone: true}"
+                             list="financeurs-plan" (change)="onFinanceurNom(finance)">
+                    </app-form-field>
                     <app-form-field class="finance-categorie" [label]="'enjeux.operations.categorieFinanceLabel' | translate">
                       <select [(ngModel)]="finance.id_categorie" [ngModelOptions]="{standalone: true}">
                         <option [ngValue]="null">—</option>
                         @for (cat of categorieFinanceOptions(); track cat.id_nomenclature) {
                           <option [ngValue]="cat.id_nomenclature">{{ cat.label }}</option>
                         }
+                        <option [ngValue]="AUTRE_CATEGORIE_FINANCE">{{ 'plans.financeurs.autreCategorie' | translate }}</option>
                       </select>
+                    </app-form-field>
+                    @if (finance.id_categorie === AUTRE_CATEGORIE_FINANCE) {
+                      <app-form-field class="finance-categorie" [label]="'plans.financeurs.categorieLibre' | translate">
+                        <input [(ngModel)]="finance.categorie_libre" [ngModelOptions]="{standalone: true}">
+                      </app-form-field>
+                    }
+                    <app-form-field class="finance-montant" [label]="'plans.financeurs.montant' | translate"
+                                    [helpText]="$first ? ('plans.financeurs.montantHint' | translate) : undefined">
+                      <input type="number" min="0" step="0.01" [(ngModel)]="finance.montant"
+                             [ngModelOptions]="{standalone: true}" data-testid="finance-montant">
                     </app-form-field>
                     <button type="button" class="finance-remove-btn" (click)="removeFinance($index)"
                             [title]="'common.actions.delete' | translate"
                             [attr.aria-label]="'common.actions.delete' | translate">
                       <i class="fi fi-rr-trash"></i>
                     </button>
+                  </div>
+                }
+                @if (totalMontantsFinanceurs(); as total) {
+                  <p class="finance-total">{{ 'plans.financeurs.totalMontants' | translate:{ total: (total | number:'1.0-2') } }}</p>
+                }
+                @if (financeursBilan()?.ecart_budget) {
+                  <div class="info-block info-block-warning finance-ecart" data-testid="finance-ecart">
+                    <i class="fi fi-rr-info"></i>
+                    <span>{{ 'plans.financeurs.ecartBudgetEnregistre' | translate:{
+                      total: (financeursBilan()!.total_prevu | number:'1.0-2'),
+                      budget: (financeursBilan()!.budget_prevu | number:'1.0-2') } }}</span>
                   </div>
                 }
                 <button type="button" class="add-link-btn" (click)="addFinance()">

@@ -260,6 +260,16 @@ COLONNES_FONCTIONS = [
     ("finance_par_defaut", "financée par défaut", False, "Oui / Non.", 12),
     ("pourcentage", "pourcentage", False, "Part du poste consacrée à la fonction.", 12),
 ]
+COLONNES_FINANCEMENTS = [
+    ("action", "action", True, "Code de l'action (onglet « Actions »).", 12),
+    ("financeur", "financeur", True, "Nom du financeur.", 30),
+    ("categorie", "catégorie", False,
+     "Catégorie de financement (liste) ; vide si « autre catégorie ».", 22),
+    ("categorie_libre", "autre catégorie", False,
+     "Catégorie hors liste, propre au plan.", 22),
+    ("montant", "montant prévu (€)", False,
+     "Montant global sur l'action, facultatif (#790).", 14),
+]
 COLONNES_SUIVIS = _colonnes(CHAMPS_SUIVI, prefixe=[
     ("code", "code", True, "Code du suivi (ex : S1), repris dans l'onglet « Actions ».", 10),
 ])
@@ -276,6 +286,9 @@ ONGLETS_FICHE = {
     "fonctions": ("Fonctions", COLONNES_FONCTIONS,
                   "Fonctions de chaque poste. Un poste absent du plan cible y est "
                   "créé avec ses fonctions."),
+    "financements": ("Financements", COLONNES_FINANCEMENTS,
+                     "Financeurs de chaque action et montant prévu (facultatif). "
+                     "Même nom + même catégorie = un seul financeur du plan."),
     "suivis": ("Suivis", COLONNES_SUIVIS,
                "Suivis / inventaires des actions CS (créés à l'import)."),
     "protocoles": ("Protocoles", COLONNES_PROTOCOLES,
@@ -363,6 +376,17 @@ def extraire_fiche(ops, op_code, poste_code_by_id, postes, org_code_by_id=None):
                         {"suivi": s_code, **ligne_objet(proto, CHAMPS_PROTOCOLE)})
             extra["suivi"] = suivi_codes[op.id_suivi_id]
         colonnes_action[code] = extra
+        for fin in op.finances.select_related("id_financeur", "id_categorie").order_by(
+                "id_finance_operation"):
+            f = fin.id_financeur
+            rows["financements"].append({
+                "action": code,
+                "financeur": f.nom if f else fin.libelle,
+                "categorie": (f.id_categorie.label if f and f.id_categorie_id else
+                              (fin.id_categorie.label if fin.id_categorie_id else "")),
+                "categorie_libre": f.categorie_libre if f else "",
+                "montant": vers_cellule(fin.montant, "decimal"),
+            })
 
         for i, partie in enumerate(_parties(_geojson(op.geom)), start=1):
             if partie:
@@ -569,6 +593,17 @@ def valider_fiche(plan, parsed, report, resolver, action_codes, globales):
             report.add("Fonctions", row["_row"], "type_poste", WARNING,
                        f"Type de poste « {tp} » inconnu : la fonction sera créée sans type.")
 
+    for row in parsed.get("financements", []):
+        if _str(row.get("action")) not in action_codes:
+            report.add("Financements", row["_row"], "action", ERROR,
+                       f"Action « {_str(row.get('action'))} » introuvable dans l'onglet « Actions ».")
+        if not _str(row.get("financeur")):
+            report.add("Financements", row["_row"], "financeur", ERROR, "Nom obligatoire.")
+        for col, genre in (("categorie", "nom:CATEGORIE_FINANCE"), ("montant", "decimal")):
+            _v, err = depuis_cellule(row.get(col), genre, resolver)
+            if err:
+                report.add("Financements", row["_row"], col, ERROR, f"« {col} » : {err}.")
+
     codes_suivis = set()
     for row in parsed.get("suivis", []):
         code = _str(row.get("code"))
@@ -749,6 +784,20 @@ def appliquer_fiche(plan, parsed, user, op_by_code, get_annee, resolver):
         proto = Protocole.objects.create(
             id_utilisateur_ajout=user, **{k: v for k, v in valeurs.items() if v is not None})
         suivi.protocoles.add(proto)
+
+    # Financements (#790) : financeur du plan retrouvé ou créé.
+    from .models_operations import FinanceOperation, Financeur
+    for row in parsed.get("financements", []):
+        op = op_by_code.get(_str(row.get("action")))
+        if op is None or not _str(row.get("financeur")):
+            continue
+        cat = depuis_cellule(row.get("categorie"), "nom:CATEGORIE_FINANCE", resolver)[0]
+        financeur = Financeur.pour(plan, _str(row.get("financeur")), cat,
+                                   _str(row.get("categorie_libre")))
+        FinanceOperation.objects.create(
+            id_operation=op, id_financeur=financeur, libelle=financeur.nom,
+            id_categorie=financeur.id_categorie,
+            montant=depuis_cellule(row.get("montant"), "decimal")[0])
 
     sites = _sites_du_plan(plan)
     for row in parsed.get("actions", []):

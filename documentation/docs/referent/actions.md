@@ -8,7 +8,12 @@ Une action se saisit via son formulaire dédié (bouton « Ajouter une action »
 - Le code de l'action, calculé automatiquement (ex. CS1) et affiché en direct ; le champ « Numéro fixé » permet d'imposer son numéro ;
 - L'intitulé (s'il reste vide, il est rempli automatiquement avec le libellé du type d'action GestRef à l'enregistrement, sans son code, déjà affiché à côté de l'action), les métriques associées et la priorité ;
 - Pour une action d'inventaire ou de suivi : les détails de l'inventaire ou du suivi (objectif, cible, taxons ou habitats rattachés), les protocoles et la bancarisation de la donnée ;
-- La programmation : sites concernés, années, temps de travail, budget et mois prévus ; opérateurs, partenaires et financeurs ;
+- La programmation : sites concernés, années, temps de travail, budget et mois prévus ; opérateurs, partenaires et financeurs. Pour chaque financeur :
+    - son nom : ceux du plan sont proposés à la saisie, et un nom nouveau crée le financeur du plan ;
+    - sa catégorie ;
+    - si vous le souhaitez, un **montant prévu sur l'action**, global, pas année par année.
+
+    La somme des montants s'affiche. Si elle diffère du budget prévu de l'action, une alerte le signale, sans bloquer l'enregistrement ;
 - La localisation (emprise spatiale) — une case permet de reprendre l'emprise du ou des sites ; elle reste cochée à la réouverture de l'action, et la décocher retire les contours des sites pour revenir à l'emprise dessinée ou importée auparavant (carte vide s'il n'y en avait pas). Pour dessiner l'emprise, cliquez sur « Dessiner / importer », puis sur **« Tracer un contour »** en haut à gauche de la carte ; pour charger un fichier (GeoJSON ou shapefile en .zip), sur **« Importer »** en haut à droite ;
 - Les indicateurs de réponse : un intitulé (obligatoire), puis soit une métrique simple avec une valeur cible, soit une grille de scoring à 5 niveaux (case « Utiliser une grille de scoring »), construite comme celle des métriques des indicateurs état et pression ([§ 4.7](indicateurs-metriques.md)).
 
@@ -65,7 +70,7 @@ Le formulaire propose deux boutons :
 
 ## 4.8.2. La fiche action
 
-Chaque action peut être visualisée sous le format d'une fiche de consultation qui rassemble toutes ses informations de manière plus visuelle : indicateurs et métriques liés, description, protocole et objectifs, temporalité, acteurs, programmation (budget, détail des coûts, temps de travail, financements), indicateurs de réponse, emprise spatiale et réalisation.
+Chaque action peut être visualisée sous le format d'une fiche de consultation qui rassemble toutes ses informations de manière plus visuelle : indicateurs et métriques liés, description, protocole et objectifs, temporalité, acteurs, programmation (budget, détail des coûts, temps de travail, **bilan des coûts par financeur** : prévu sur l'action, réalisé total de toutes les années, écart, et financeurs apparus au seul suivi marqués « non prévu »), indicateurs de réponse, emprise spatiale et réalisation.
 
 Depuis la fiche, vous pouvez :
 

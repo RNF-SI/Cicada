@@ -12,7 +12,8 @@ from .rh_total import est_temps_total_unique, fusionner_annee, fusionner_temps_t
 from .models_operations import (
     Protocole, SuiviInventaire,
     Operation, CorOperationSite, CorOperationMetrique,
-    OperationAnnee, OperationAnneeOrganisme, FinanceOperation,
+    OperationAnnee, OperationAnneeOrganisme, FinanceOperation, Financeur,
+    RealisationFinanceur,
     RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
     Fonction, Poste, PosteFonction,
     OperationAnneeRH, RealisationOperationAnneeRH,
@@ -634,6 +635,17 @@ class GeoJSONGeometryField(serializers.Field):
             raise serializers.ValidationError(str(e))
 
 
+class RealisationFinanceurSerializer(serializers.ModelSerializer):
+    """#790 — montant réalisé d'un financeur sur l'année."""
+    nom = serializers.CharField(source='id_financeur.nom', read_only=True)
+    categorie_affichage = serializers.CharField(
+        source='id_financeur.categorie_affichage', read_only=True)
+
+    class Meta:
+        model = RealisationFinanceur
+        fields = ['id_financeur', 'nom', 'categorie_affichage', 'montant']
+
+
 class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
     """Réalisation annuelle d'une opération (1-1 avec OperationAnnee)."""
     niveau_realisation_label = serializers.CharField(
@@ -647,6 +659,8 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
     geom_realisee = GeoJSONGeometryField(required=False, allow_null=True)
     # #560 — lignes RH réalisées (écriture imbriquée, remplacement complet)
     rh_lignes = RealisationOperationAnneeRHSerializer(many=True, required=False)
+    # #790 — montants réalisés par financeur (remplacement complet).
+    financeurs = RealisationFinanceurSerializer(many=True, required=False)
 
     class Meta:
         model = RealisationOperationAnnee
@@ -668,7 +682,7 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             'cout_prestataire_invest_realise', 'autre_cout_invest_realise',
             'autre_cout_invest_commentaire_realise',
             'operateurs_realises', 'financeurs_realises',
-            'rh_lignes',
+            'rh_lignes', 'financeurs',
             'date_ajout', 'date_maj', 'id_utilisateur_maj',
         ]
         read_only_fields = [
@@ -724,19 +738,50 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         rh_data = validated_data.pop('rh_lignes', None)
+        fin_data = validated_data.pop('financeurs', None)
         instance = super().create(validated_data)
         if rh_data is not None:
             self._set_rh_lignes(instance, rh_data)
             self._fusionner_temps_total(instance)
+        if fin_data is not None:
+            self._set_financeurs(instance, fin_data)
         return instance
 
     def update(self, instance, validated_data):
         rh_data = validated_data.pop('rh_lignes', None)
+        fin_data = validated_data.pop('financeurs', None)
         instance = super().update(instance, validated_data)
         if rh_data is not None:
             self._set_rh_lignes(instance, rh_data)
             self._fusionner_temps_total(instance)
+        if fin_data is not None:
+            self._set_financeurs(instance, fin_data)
         return instance
+
+    def validate_financeurs(self, value):
+        """#790 — financeurs du plan de l'action uniquement, une ligne chacun."""
+        if self.instance is None:
+            return value
+        plan = self.instance.id_operation_annee.id_operation.get_plan_de_gestion()
+        vus = set()
+        for ligne in value:
+            f = ligne['id_financeur']
+            if plan is not None and f.id_pg_id != plan.pk:
+                raise serializers.ValidationError(_(
+                    "Ce financeur n'appartient pas à ce plan de gestion."))
+            if f.pk in vus:
+                raise serializers.ValidationError(_("Un financeur ne figure qu'une fois par année."))
+            vus.add(f.pk)
+        return value
+
+    @staticmethod
+    def _set_financeurs(instance, fin_data):
+        RealisationFinanceur.objects.filter(id_realisation_operation_annee=instance).delete()
+        RealisationFinanceur.objects.bulk_create([
+            RealisationFinanceur(id_realisation_operation_annee=instance,
+                                 id_financeur=l['id_financeur'], montant=l.get('montant'))
+            for l in fin_data
+        ])
 
     @staticmethod
     def _fusionner_temps_total(instance):
@@ -808,17 +853,78 @@ class OperationAnneeSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_operation_annee']
 
 
-class FinanceOperationSerializer(serializers.ModelSerializer):
-    """Serializer pour une source de financement d'opération."""
+class FinanceurSerializer(serializers.ModelSerializer):
+    """#790 — Financeur d'un plan (nom + catégorie de la liste ou libre)."""
     categorie_label = serializers.CharField(source='id_categorie.label', read_only=True)
+    categorie_affichage = serializers.CharField(read_only=True)
+    nb_actions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Financeur
+        fields = [
+            'id_financeur', 'id_pg', 'nom', 'id_categorie', 'categorie_label',
+            'categorie_libre', 'categorie_affichage', 'nb_actions',
+        ]
+        read_only_fields = ['id_financeur']
+        extra_kwargs = {'id_categorie': {'required': False, 'allow_null': True}}
+
+    @extend_schema_field(OpenApiTypes.INT)
+    def get_nb_actions(self, obj):
+        return obj.financements.count()
+
+    def validate(self, attrs):
+        plan = attrs.get('id_pg', getattr(self.instance, 'id_pg', None))
+        nom = (attrs.get('nom', getattr(self.instance, 'nom', '')) or '').strip()
+        cat = attrs.get('id_categorie', getattr(self.instance, 'id_categorie', None))
+        libre = '' if cat else (attrs.get(
+            'categorie_libre', getattr(self.instance, 'categorie_libre', '')) or '').strip()
+        if not nom:
+            raise serializers.ValidationError({'nom': _("Le nom du financeur est obligatoire.")})
+        attrs['nom'], attrs['categorie_libre'] = nom, libre
+        doublon = Financeur.objects.filter(
+            id_pg=plan, nom__iexact=nom, id_categorie=cat, categorie_libre__iexact=libre)
+        if self.instance is not None:
+            doublon = doublon.exclude(pk=self.instance.pk)
+        if doublon.exists():
+            raise serializers.ValidationError({'nom': _(
+                "Ce plan a déjà un financeur de ce nom dans cette catégorie.")})
+        return attrs
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        # Les lignes des actions recopient le financeur (exports, exploration).
+        instance.financements.update(libelle=instance.nom, id_categorie=instance.id_categorie)
+        return instance
+
+
+class FinanceOperationSerializer(serializers.ModelSerializer):
+    """Source de financement d'une action : un financeur du plan et son
+    montant prévu global, facultatif (#790). ``libelle`` / ``id_categorie``
+    seuls (ancien format, import) rattachent au financeur du même nom et de la
+    même catégorie, créé au besoin."""
+    categorie_label = serializers.CharField(source='id_categorie.label', read_only=True)
+    categorie_affichage = serializers.CharField(
+        source='id_financeur.categorie_affichage', read_only=True)
+    categorie_libre = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    financeur_categorie_libre = serializers.CharField(
+        source='id_financeur.categorie_libre', read_only=True, default='')
+    libelle = serializers.CharField(required=False, allow_blank=True, max_length=255)
+    id_financeur = serializers.PrimaryKeyRelatedField(
+        queryset=Financeur.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = FinanceOperation
         fields = [
-            'id_finance_operation', 'libelle',
-            'id_categorie', 'categorie_label'
+            'id_finance_operation', 'id_financeur', 'libelle',
+            'id_categorie', 'categorie_label', 'categorie_libre', 'financeur_categorie_libre',
+            'categorie_affichage', 'montant',
         ]
         read_only_fields = ['id_finance_operation']
+
+    def validate(self, attrs):
+        if not attrs.get('id_financeur') and not (attrs.get('libelle') or '').strip():
+            raise serializers.ValidationError(_("Choisissez un financeur ou saisissez son nom."))
+        return attrs
 
 
 class ProtocoleSerializer(serializers.ModelSerializer):
@@ -1113,6 +1219,8 @@ class OperationSerializer(serializers.ModelSerializer):
     # #761 — sinon, le suivi propose les réglages du 1er suivi du plan.
     reglages_suivi_definis = serializers.BooleanField(read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
+    # #790 — bilan des coûts par financeur (fiche action), détail seulement.
+    financeurs_bilan = serializers.SerializerMethodField()
     suivi_inventaire = SuiviInventaireSerializer(source='id_suivi', read_only=True)
     geom_geojson = serializers.SerializerMethodField()
     # #355/#379 — statut de réalisation global (sur la période)
@@ -1167,7 +1275,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'id_indicateur',
             'metriques', 'metrique_ids',
             'site_ids', 'nb_sites', 'enjeu_slug',
-            'operation_annees', 'finances',
+            'operation_annees', 'finances', 'financeurs_bilan',
             'niveau_realisation_global_mnemonique',
             'niveau_realisation_global_label',
             'niveau_realisation_global_manuel',
@@ -1175,6 +1283,14 @@ class OperationSerializer(serializers.ModelSerializer):
             'date_ajout', 'date_maj', 'createur_nom'
         ]
         read_only_fields = ['id_operation', 'date_ajout', 'date_maj']
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_financeurs_bilan(self, obj):
+        view = self.context.get('view')
+        if view is not None and getattr(view, 'action', None) != 'retrieve':
+            return None
+        from .financeurs import bilan_financeurs_json
+        return bilan_financeurs_json(obj)
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_enjeu_slug(self, obj):
@@ -1710,13 +1826,27 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                 ])
 
     def _create_finances(self, operation, finances_data):
-        """Create FinanceOperation objects in bulk."""
+        """Lignes de financement, rattachées aux financeurs du plan (#790)."""
         if not finances_data:
             return
-        FinanceOperation.objects.bulk_create([
-            FinanceOperation(id_operation=operation, **finance)
-            for finance in finances_data
-        ])
+        plan = operation.get_plan_de_gestion()
+        lignes = []
+        for finance in finances_data:
+            financeur = finance.get('id_financeur')
+            if financeur is not None and plan is not None and financeur.id_pg_id != plan.pk:
+                raise serializers.ValidationError({'finances': [_(
+                    "Ce financeur n'appartient pas à ce plan de gestion.")]})
+            if financeur is None and plan is not None:
+                financeur = Financeur.pour(
+                    plan, finance.get('libelle'), finance.get('id_categorie'),
+                    finance.get('categorie_libre', ''))
+            lignes.append(FinanceOperation(
+                id_operation=operation, id_financeur=financeur,
+                libelle=financeur.nom if financeur else (finance.get('libelle') or '').strip(),
+                id_categorie=financeur.id_categorie if financeur else finance.get('id_categorie'),
+                montant=finance.get('montant'),
+            ))
+        FinanceOperation.objects.bulk_create(lignes)
 
     def create(self, validated_data):
         validated_data.pop('id_type_action_attendu', None)

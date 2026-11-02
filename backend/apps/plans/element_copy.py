@@ -64,8 +64,18 @@ class ElementCopyService:
             for old_rh in OperationAnneeRH.objects.filter(id_operation_annee=old_oa):
                 dup(old_rh, user, id_operation_annee=new_oa).save()
 
-        for old_fin in FinanceOperation.objects.filter(id_operation=old_op):
-            dup(old_fin, user, id_operation=new_op).save()
+        # #790 — un financeur appartient à un plan : rattaché à celui du plan
+        # de la copie (même nom, même catégorie) s'il diffère.
+        from .models_operations import Financeur
+        plan = new_op.get_plan_de_gestion()
+        for old_fin in FinanceOperation.objects.filter(
+                id_operation=old_op).select_related('id_financeur'):
+            new_fin = dup(old_fin, user, id_operation=new_op)
+            f = old_fin.id_financeur
+            if f is not None and plan is not None and f.id_pg_id != plan.pk:
+                new_fin.id_financeur = Financeur.pour(
+                    plan, f.nom, f.id_categorie_id, f.categorie_libre)
+            new_fin.save()
 
         return new_op
 

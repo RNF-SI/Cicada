@@ -376,7 +376,50 @@
             </table>
           }
 
-          @if (financements().length) {
+          <!-- #790 — bilan des coûts par financeur : prévu global, réalisé total -->
+          @if (financeursBilan(); as bilan) {
+            <h3 class="fiche-subtitle">{{ 'plans.financeurs.bilanTitle' | translate }}</h3>
+            <table class="fiche-table" data-testid="fiche-financeurs">
+              <thead>
+                <tr>
+                  <th>{{ 'plans.financeurs.colFinanceur' | translate }}</th>
+                  <th>{{ 'plans.financeurs.colCategorie' | translate }}</th>
+                  <th class="num">{{ 'plans.financeurs.colPrevu' | translate }}</th>
+                  <th class="num">{{ 'plans.financeurs.colRealise' | translate }}</th>
+                  <th class="num">{{ 'plans.financeurs.colEcart' | translate }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (l of bilan.lignes; track l.id_financeur) {
+                  <tr>
+                    <td>{{ l.nom }}@if (!l.prevu_par_action) { <span class="text-mention">({{ 'plans.financeurs.nonPrevu' | translate }})</span> }</td>
+                    <td>{{ l.categorie }}</td>
+                    <td class="num">@if (l.prevu !== null) { {{ +l.prevu | number:'1.0-2' }} € } @else { — }</td>
+                    <td class="num">@if (l.realise !== null) { {{ +l.realise | number:'1.0-2' }} € } @else { — }</td>
+                    <td class="num">@if (l.prevu !== null && l.realise !== null) { {{ (+l.realise - +l.prevu) | number:'1.0-2' }} € } @else { — }</td>
+                  </tr>
+                }
+              </tbody>
+              @if (bilan.total_prevu !== null || bilan.total_realise !== null) {
+                <tfoot>
+                  <tr>
+                    <td colspan="2">{{ 'plans.financeurs.total' | translate }}</td>
+                    <td class="num">@if (bilan.total_prevu !== null) { {{ +bilan.total_prevu | number:'1.0-2' }} € } @else { — }</td>
+                    <td class="num">@if (bilan.total_realise !== null) { {{ +bilan.total_realise | number:'1.0-2' }} € } @else { — }</td>
+                    <td class="num"></td>
+                  </tr>
+                </tfoot>
+              }
+            </table>
+            @if (bilan.ecart_budget) {
+              <div class="info-block info-block-warning" data-testid="fiche-financeurs-ecart">
+                <i class="fi fi-rr-info"></i>
+                <span>{{ 'plans.financeurs.ecartBudget' | translate:{
+                  total: (+bilan.total_prevu! | number:'1.0-2'),
+                  budget: (+bilan.budget_prevu! | number:'1.0-2') } }}</span>
+              </div>
+            }
+          } @else if (financements().length) {
             <dl class="fiche-grid">
               <dt>{{ 'plans.suivis.actions.fiche.financements' | translate }}</dt>
               <dd>

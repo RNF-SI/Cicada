@@ -397,6 +397,11 @@ export class OperationFicheComponent implements OnInit {
 
   /** Sources de financement de l'action. */
   readonly financements = computed(() => this.operation()?.finances ?? []);
+  /** #790 — bilan par financeur, seulement s'il y a au moins un financeur. */
+  readonly financeursBilan = computed(() => {
+    const b = this.operation()?.financeurs_bilan;
+    return b && b.lignes.length ? b : null;
+  });
 
   /**
    * #557 — Suivi/inventaire et protocole associés (actions de type « CS »).

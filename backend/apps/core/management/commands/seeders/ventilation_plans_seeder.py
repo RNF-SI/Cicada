@@ -79,6 +79,8 @@ from apps.plans.models_operations import (
     CorOperationMetrique,
     CorOperationSite,
     FinanceOperation,
+    Financeur,
+    RealisationFinanceur,
     Fonction,
     Operation,
     OperationAnnee,
@@ -381,6 +383,10 @@ _ACTIONS = [
 
 # Suivi de réalisation : niveau + ratio appliqué au prévisionnel, par ancienneté
 # de l'année. Les années futures ne sont pas suivies.
+_REALISATION_PAR_ANNEE_MNEMO = (
+    ('TERMINE', Decimal('0.95')), ('PARTIEL', Decimal('0.55')), ('EN_COURS', Decimal('0.40')),
+)
+
 _REALISATION_PAR_ANNEE = [
     ('TERMINE', Decimal('0.95')),   # année courante − 2
     ('PARTIEL', Decimal('0.55')),   # année courante − 1
@@ -607,6 +613,9 @@ class VentilationPlansSeeder(BaseSeeder):
             plans.append(plan)
             self.log_item('plan', f'{plan.nom} ({len(actions)} actions aux réglages différents)')
 
+        for op in Operation.objects.filter(code_operation__startswith=VENTILATION_OP_CODE_PREFIX):
+            self._financer(op)
+
         self.log_summary(len(plans), 'plans « Ventilation » créés (brouillons + validés)')
         self.log_summary(nb_ops, 'actions programmées (budget + RH + suivi)')
         self.context.set('ventilation_plans', plans)
@@ -819,12 +828,44 @@ class VentilationPlansSeeder(BaseSeeder):
         self._create_suivi(op, plan, prefixe, action, admin, nomenclatures)
         CorOperationMetrique.objects.get_or_create(id_operation=op, id_metrique=metrique)
         CorOperationSite.objects.get_or_create(id_operation=op, id_site=site)
+        # #790 — financeurs du plan (même nom + même catégorie = un seul) ;
+        # montants posés après la programmation (``_financer``).
         for libelle, categorie in action['finances']:
+            financeur = Financeur.pour(plan, libelle, nomenclatures['finance'].get(categorie))
             FinanceOperation.objects.update_or_create(
                 id_operation=op, libelle=libelle,
-                defaults={'id_categorie': nomenclatures['finance'].get(categorie)},
+                defaults={'id_categorie': financeur.id_categorie, 'id_financeur': financeur},
             )
         return op
+
+    @staticmethod
+    def _financer(op) -> None:
+        """#790 — montant prévu par financeur (le budget prévu de l'action,
+        réparti 60 / 40, au dernier le reste) et réalisé annuel : la même part
+        du budget réalisé de chaque année suivie (niveau × prévu / nb années)."""
+        from apps.plans.financeurs import budget_prevu
+
+        lignes = list(op.finances.order_by('id_finance_operation'))
+        if not lignes:
+            return
+        budget = budget_prevu(op).quantize(Decimal('1'))
+        parts = [Decimal('0.6'), Decimal('0.4')] if len(lignes) == 2 else [Decimal(1)]
+        reste = budget
+        for i, fin in enumerate(lignes):
+            montant = reste if i == len(lignes) - 1 else (budget * parts[i]).quantize(Decimal('1'))
+            reste -= montant
+            fin.montant = montant
+            fin.save(update_fields=['montant'])
+        annees = OperationAnnee.objects.filter(id_operation=op).count() or 1
+        for real in RealisationOperationAnnee.objects.filter(
+                id_operation_annee__id_operation=op).select_related('id_operation_annee'):
+            ratio = dict(_REALISATION_PAR_ANNEE_MNEMO).get(
+                getattr(real.id_niveau_realisation, 'mnemonique', None), Decimal('0'))
+            for fin in lignes:
+                RealisationFinanceur.objects.update_or_create(
+                    id_realisation_operation_annee=real, id_financeur=fin.id_financeur,
+                    defaults={'montant': (fin.montant / annees * ratio).quantize(Decimal('1'))},
+                )
 
     def _create_suivi(self, op, plan, prefixe, action, admin, nomenclatures) -> None:
         """

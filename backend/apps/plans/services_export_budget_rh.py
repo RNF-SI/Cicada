@@ -568,7 +568,98 @@ def _build_budget_workbook(plan, *, suivi) -> bytes:
         _synthese_sheet(wb, pf, used, fmt=_fmt_euro, prev_attr="tot", real_attr="rtot",
                         subtitle=f"BUDGET SUIVI (€) — synthèse par action ({perimetre})")
         _budget_detail_sheet(wb, pf, used)
+    # #790 — montants par financeur (facultatifs) : onglet seulement si une
+    # action en porte.
+    _financeurs_sheet(wb, pf, used, suivi=suivi)
     return _save(wb)
+
+
+FINANCEURS_SHEET = "Par financeur"
+
+
+def _financeurs_sheet(wb, pf, used, *, suivi):
+    """#790 — Prévu (global sur la période de chaque action) et, au suivi,
+    réalisé par année, par financeur du plan ; puis le détail par action."""
+    from .financeurs import bilan_financeurs
+
+    par_action = []
+    for af in pf.actions:
+        b = bilan_financeurs(af.op)
+        lignes = [l for l in b["lignes"] if l["prevu"] is not None
+                  or (suivi and l["realise"] is not None)]
+        if lignes:
+            par_action.append((af, lignes))
+    if not par_action:
+        return
+    years = list(pf.years)
+    ws = wb.create_sheet(_title(FINANCEURS_SHEET, used))
+    heads = ["Financeur", "Catégorie", "Prévu (période)"]
+    if suivi:
+        heads += [f"Réalisé {year_label(y)}" for y in years] + ["Réalisé TOTAL"]
+    ncols = len(heads)
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=ncols)
+    _set(ws, 1, 1, _plan_title(pf.plan), font=_F_TITLE, align=_AL_L)
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=ncols)
+    _set(ws, 2, 1, f"BUDGET {'SUIVI' if suivi else 'PRÉVISIONNEL'} (€) — par financeur "
+         "(montants facultatifs ; le prévu est global sur la période de l'action)",
+         font=_F_SUB, align=_AL_L)
+    for c, h in enumerate(heads, start=1):
+        _set(ws, 3, c, h, fill=_HDR_FILL, font=_F_HDR, align=_AL_C)
+    ws.column_dimensions["A"].width = 40
+    ws.column_dimensions["B"].width = 24
+    for c in range(3, ncols + 1):
+        ws.column_dimensions[get_column_letter(c)].width = 14
+
+    def _ligne(r, label, cat, prevu, par_annee, *, font=_F_CELL, fill=None):
+        _set(ws, r, 1, label, font=font, fill=fill, align=_AL_L)
+        _set(ws, r, 2, cat, font=font, fill=fill, align=_AL_L)
+        _set(ws, r, 3, _fmt_euro(prevu) if prevu is not None else "—", font=font, fill=fill)
+        if suivi:
+            # Total sur toutes les années saisies, même hors période du plan.
+            tot = sum(par_annee.values(), _ZERO)
+            for i, y in enumerate(years):
+                v = par_annee.get(y)
+                _set(ws, r, 4 + i, _fmt_euro(v) if v is not None else "—", font=font, fill=fill)
+            _set(ws, r, 4 + len(years), _fmt_euro(tot) if par_annee else "—",
+                 font=font, fill=fill)
+
+    # Synthèse par financeur (même nom + même catégorie, #790 Q2).
+    synthese: dict = {}
+    for _af, lignes in par_action:
+        for l in lignes:
+            e = synthese.setdefault(l["id_financeur"], {
+                "nom": l["nom"], "cat": l["categorie"], "prevu": None, "annees": {}})
+            if l["prevu"] is not None:
+                e["prevu"] = (e["prevu"] or _ZERO) + l["prevu"]
+            for y, v in l["realise_par_annee"].items():
+                e["annees"][y] = e["annees"].get(y, _ZERO) + v
+    r = 4
+    ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+    _set(ws, r, 1, "► Synthèse par financeur", fill=_SECTION_FILL, font=_F_SECTION, align=_AL_L)
+    r += 1
+    tot_p, tot_a = None, {}
+    for e in sorted(synthese.values(), key=lambda e: e["nom"].lower()):
+        _ligne(r, e["nom"], e["cat"], e["prevu"], e["annees"])
+        if e["prevu"] is not None:
+            tot_p = (tot_p or _ZERO) + e["prevu"]
+        for y, v in e["annees"].items():
+            tot_a[y] = tot_a.get(y, _ZERO) + v
+        r += 1
+    _ligne(r, "TOTAL", "", tot_p, tot_a, font=_F_TOTAL, fill=_TOTAL_FILL)
+    r += 2
+
+    ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+    _set(ws, r, 1, "► Détail par action", fill=_SECTION_FILL, font=_F_SECTION, align=_AL_L)
+    r += 1
+    for af, lignes in par_action:
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=ncols)
+        _set(ws, r, 1, " ".join(x for x in (af.code, af.libelle) if x), font=_F_TOTAL, align=_AL_L)
+        r += 1
+        for l in lignes:
+            nom = l["nom"] + ("" if l["prevu_par_action"] else " (non prévu)")
+            _ligne(r, f"   {nom}", l["categorie"], l["prevu"], l["realise_par_annee"])
+            r += 1
+    ws.freeze_panes = "B4"
 
 
 def build_budget_previsionnel_workbook(plan) -> bytes:

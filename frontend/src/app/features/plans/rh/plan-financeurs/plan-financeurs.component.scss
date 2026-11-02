@@ -1,0 +1,38 @@
+@import 'variables';
+
+.financeurs-section {
+  margin-top: $spacing-xl;
+  padding-top: $spacing-lg;
+  border-top: 1px solid $gray-light;
+
+  h2 {
+    margin: 0 0 $spacing-xs;
+  }
+
+  .subtitle {
+    margin: 0 0 $spacing-md;
+    color: $gray-dark;
+    max-width: 640px;
+  }
+}
+
+.financeurs-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.tile-actions {
+  display: flex;
+  gap: $spacing-xxs;
+}
+
+.financeur-form {
+  align-items: end;
+
+  .form-actions {
+    display: flex;
+    gap: $spacing-xs;
+  }
+}

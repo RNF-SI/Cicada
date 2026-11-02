@@ -1011,3 +1011,18 @@ textarea.full-width {
   gap: $spacing-xs;
   margin-bottom: $spacing-md;
 }
+
+// #790 — montants par financeur de l'année.
+.financeurs-table {
+  .financeur-montant {
+    width: 130px;
+    text-align: right;
+  }
+}
+
+.financeur-ajout {
+  display: flex;
+  gap: $spacing-sm;
+  align-items: center;
+  margin-top: $spacing-sm;
+}

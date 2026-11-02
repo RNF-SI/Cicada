@@ -693,6 +693,29 @@ def _cost_lines(af, cell_for):
     ]
 
 
+def financeurs_rows(op):
+    """#790 — Financeurs de l'action et montant prévu global, commun aux fiches
+    Excel et Word : ``(lignes, note)`` avec ``lignes`` = [(libellé, montant |
+    None, style)] (style ``None`` ou ``total``) et ``note`` l'alerte d'écart
+    avec le budget prévu (jamais bloquante), ou ``""``."""
+    from .financeurs import bilan_financeurs
+
+    bilan = bilan_financeurs(op)
+    lignes = []
+    for l in bilan["lignes"]:
+        if not l["prevu_par_action"]:
+            continue  # financeur apparu au seul suivi : pas dans la programmation
+        lignes.append((" — ".join(x for x in (_txt(l["nom"]), _txt(l["categorie"])) if x),
+                       l["prevu"], None))
+    if bilan["total_prevu"] is not None:
+        lignes.append(("Total des financeurs", bilan["total_prevu"], "total"))
+    note = ""
+    if bilan["ecart_budget"]:
+        note = (f"La somme des montants par financeur ({_euro(bilan['total_prevu'])}) "
+                f"diffère du budget prévu de l'action ({_euro(bilan['budget_prevu'])}).")
+    return lignes, note
+
+
 def finance_rows(af, org_names, cols):
     """Lignes du volet financier prévisionnel d'une fiche action, communes à
     l'Excel et au Word : ``[(libellé, [valeurs par colonne] | None, style)]``,
@@ -1118,15 +1141,22 @@ def _render_action(ws, op, years, *, is_cs, code_local=""):
     month_flags = _monthly_flags(op, annees)
     _render_monthly(w, months, month_flags)
 
-    # Financeurs
-    financeurs = []
-    for f in op.finances.all():
-        lbl = _txt(f.libelle)
-        cat = _txt(getattr(getattr(f, "id_categorie", None), "label", ""))
-        financeurs.append(" — ".join(x for x in (lbl, cat) if x))
+    # Financeurs (#790 : montant prévu global par financeur, facultatif)
+    lignes, note = financeurs_rows(op)
+    if lignes:
+        w.blank()
+        w.year_header("Financeurs et types de financement", ["prevu"], ["Montant prévu"])
+        for label, montant, style in lignes:
+            total = style == "total"
+            w.cost_row(label, {"prevu": montant}, ["prevu"],
+                       fmt=lambda v: _euro(v) if v is not None else "—",
+                       fill=_TOTAL_FILL if total else _SUBLABEL_FILL,
+                       font=_F_TOTAL if total else _F_SUBLABEL,
+                       label_font=_F_TOTAL if total else None)
+        if note:
+            w.kv("Écart avec le budget prévu", note, fill=_LABEL_FILL)
     if _txt(op.financeurs):
-        financeurs.append(_txt(op.financeurs))
-    w.kv("Financeurs et types de financement", " ; ".join(financeurs), fill=_LABEL_FILL)
+        w.kv("Financeurs (texte libre)", _txt(op.financeurs), fill=_LABEL_FILL)
 
     # ---- 4) Indicateurs de réponse (#626) ----
     w.section("4) Indicateurs de réponse")
