@@ -118,8 +118,14 @@ class TestClasseur:
     def test_contenu_prevu_realise(self, plan):
         _wb, rows = _texts(build_fiche_suivi_workbook(plan, 2024))
         assert "Partiellement réalisée" in _row(rows, "Niveau de réalisation")
+        # #727 (retour 30/10) — opérateurs et financeurs : le réalisé seul,
+        # plus de colonne « Prévu ».
         operateurs = _row(rows, "Opérateurs")
-        assert "Garde technicien" in operateurs and "Garde + stagiaire" in operateurs
+        assert "Garde + stagiaire" in operateurs
+        assert "Garde technicien" not in operateurs
+        assert "Agence de l'eau" not in _row(rows, "Financeurs")
+        i = rows.index(operateurs)
+        assert "Prévu" not in rows[i - 1]
         # #727 — prévu en D:F (index 3), réalisé en G:I (index 6) : la fiche
         # s'élargit à 9 colonnes pour la grille des scores (6 paliers).
         garde = next(r for r in rows if r[0] == "Garde technicien")

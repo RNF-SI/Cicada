@@ -7,7 +7,7 @@ la saisie du suivi, la fiche de l'action pour l'année ouverte (même vide).
 
 Chaque fiche met en regard, colonne « Prévu » / colonne « Réalisé » :
 identification (enjeu, indicateur d'état ou de pression, OLT / OO), niveau de
-réalisation, opérateurs et financeurs, temps de travail par poste, budget par
+réalisation, opérateurs et financeurs (réalisé seul), temps de travail par poste, budget par
 poste de dépense, indicateurs de réponse (valeur cible / valeur saisie),
 résultat de l'indicateur d'état ou de pression (grille des scores), emprise
 prévue et réalisée sur une même carte, commentaires.
@@ -274,9 +274,10 @@ def _render(ws, plan, op, annee, code):
     w.section(f"Réalisation {annee}")
     niveau = getattr(real, "id_niveau_realisation", None) if real else None
     w.kv("Niveau de réalisation", fa._txt(getattr(niveau, "label", "")) or "Non saisi")
-    _cmp_header(w)
-    _cmp(w, "Opérateurs", fa._txt(op.operateurs), fa._txt(getattr(real, "operateurs_realises", "")))
-    _cmp(w, "Financeurs", fa._txt(op.financeurs), fa._txt(getattr(real, "financeurs_realises", "")))
+    # #727 (retour 30/10) — opérateurs et financeurs : le réalisé seul, la
+    # colonne « Prévu » est retirée (le prévu reste sur la fiche action).
+    w.kv("Opérateurs", fa._txt(getattr(real, "operateurs_realises", "")) or "—")
+    w.kv("Financeurs", fa._txt(getattr(real, "financeurs_realises", "")) or "—")
 
     # --- Temps de travail ---
     w.section("Temps de travail (jours)")
