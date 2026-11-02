@@ -96,8 +96,17 @@ Points d'attention :
   des colonnes **multi-valeurs**.
 - `Indicateurs` : le parent est **soit** un niveau d'exigence (`N…`) **soit** un
   résultat attendu (`R…`) — jamais les deux.
-- `Metriques` : seul le libellé est importé ; l'indicateur reste
-  « indéterminé » (aucune grille de scoring en V1).
+- `Metriques` (format 1.1, #787) : libellé, type, unité, **format** (Simple /
+  Grille), pondération, état de référence et paramètres du bloc principal
+  (intitulé, sens, bornes extrêmes, parenthèses ET/OU).
+- `Blocs` (facultatif) : blocs complémentaires d'une métrique (`metrique`,
+  `bloc` = 1, 2…, opérateur OU / ET, sens, bornes, parenthèses).
+- `Grilles` (facultatif) : une ligne par métrique, bloc (`0` = principal) et
+  palier (1 très mauvais … 5 très bon) — bornes inf / sup, borne sup incluse,
+  valeur (Chiffre), libellé (Texte), non utilisé. Seuils contrôlés par les
+  règles de la saisie (`apps/plans/grille_metrique.py`) en **avertissement** (grille reprise telle quelle : des grilles antérieures à ces contrôles existent) ; les erreurs de forme (nombre, palier, bloc inconnu) bloquent. Une métrique sans
+  ligne reste « indéterminée ». Un classeur 1.0 (sans ces onglets) reste
+  importable. Les mesures ne sont ni exportées ni importées.
 - `Taxons` / `Habitats` : rattachés à un **enjeu** (`E…`) via la colonne
   `cible`. `cd_nom` (taxon) est un entier obligatoire, `cd_hab` (habitat) est
   obligatoire ; le nom est facultatif (repris du référentiel INPN à
@@ -271,7 +280,7 @@ cd frontend && npm run e2e -- e2e/tests/features/import-plan.spec.ts \
 
 ## Limites connues (V1)
 
-- Pas de grille de scoring des métriques (indicateur « indéterminé »).
+- Pas de mesures d'indicateurs (seul le paramétrage des métriques, #787).
 - Responsabilités (site/organisme) non gérées dans l'arborescence.
 - Pas de suivis / inventaires ni de protocoles CAMPanule.
 - Les postes ne se créent pas par l’import : ils doivent exister sur le plan

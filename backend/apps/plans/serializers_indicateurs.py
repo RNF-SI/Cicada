@@ -3,6 +3,8 @@ Serializers pour l'API REST Indicateurs, Métriques et Mesures.
 """
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
+
+from .grille_metrique import erreurs_grille
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from .serializers_operations import OperationNestedSerializer
@@ -288,9 +290,6 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
                 format_mnemo = Nomenclature.objects.get(pk=format_met.pk).mnemonique
             except Nomenclature.DoesNotExist:
                 format_mnemo = None
-        if format_mnemo == 'SIMPLE':
-            return attrs
-
         # Mnémonique du type (NUMERIQUE / CHIFFRE / TEXTE / INDETERMINE).
         mnemo = getattr(type_met, 'mnemonique', None)
         if mnemo is None and type_met and hasattr(type_met, 'pk'):
@@ -299,87 +298,27 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
                 mnemo = Nomenclature.objects.get(pk=type_met.pk).mnemonique
             except Nomenclature.DoesNotExist:
                 mnemo = None
-        # Par défaut (type absent), on traite comme NUMERIQUE (comportement historique).
-        is_numerique = mnemo is None or mnemo == 'NUMERIQUE'
 
-        # Chiffre / Texte : chaque niveau ACTIF (non « non utilisé ») doit avoir
-        # une valeur (val pour Chiffre, label pour Texte) — évite une grille
-        # incomplète qui fausserait le scoring.
-        if mnemo in ('CHIFFRE', 'TEXTE'):
-            inactive_raw = attrs.get(
-                'inactive_levels',
-                getattr(self.instance, 'inactive_levels', None) if self.instance else None,
-            ) or []
-            try:
-                inactive_set = {int(x) for x in inactive_raw}
-            except (TypeError, ValueError):
-                inactive_set = set()
-            field = 'val' if mnemo == 'CHIFFRE' else 'label'
-            for level in range(1, 6):
-                if level in inactive_set:
-                    continue
-                attr_name = f'score_{level}_{field}'
-                value = attrs.get(
-                    attr_name,
-                    getattr(self.instance, attr_name, None) if self.instance else None,
-                )
-                missing = value is None if mnemo == 'CHIFFRE' else not (value or '').strip()
-                if missing:
-                    raise serializers.ValidationError({
-                        attr_name: _("Chaque niveau actif doit avoir une valeur (ou être marqué « non utilisé »).")
-                    })
-            return attrs
+        def courant(nom, defaut=None):
+            return attrs.get(nom, getattr(self.instance, nom, defaut) if self.instance else defaut)
 
-        if not is_numerique:
-            return attrs
-
-        sens = attrs.get(
-            'sens_variation',
-            getattr(self.instance, 'sens_variation', 'CROISSANT') if self.instance else 'CROISSANT'
+        # Règles de la grille partagées avec l'import de l'arborescence (#787).
+        # Valeurs / libellés : relus sur l'instance en mise à jour partielle ;
+        # bornes : celles envoyées (comportement historique).
+        valeurs = {}
+        for n in range(1, 6):
+            valeurs[f'score_{n}_val'] = courant(f'score_{n}_val')
+            valeurs[f'score_{n}_label'] = courant(f'score_{n}_label')
+            valeurs[f'score_{n}_inf'] = attrs.get(f'score_{n}_inf')
+            valeurs[f'score_{n}_sup'] = attrs.get(f'score_{n}_sup')
+        erreurs = erreurs_grille(
+            type_mnemo=mnemo, format_mnemo=format_mnemo,
+            sens=courant('sens_variation', 'CROISSANT'),
+            inactive=courant('inactive_levels'), valeurs=valeurs,
         )
-
-        # Niveaux désactivés : sautés par les validateurs de bornes / continuité.
-        inactive = attrs.get(
-            'inactive_levels',
-            getattr(self.instance, 'inactive_levels', None) if self.instance else None
-        ) or []
-        try:
-            inactive_set = {int(x) for x in inactive}
-        except (TypeError, ValueError):
-            inactive_set = set()
-
-        # Validate inf < sup for each level (always true regardless of direction)
-        for level in range(1, 6):
-            if level in inactive_set:
-                continue
-            inf_val = attrs.get(f'score_{level}_inf')
-            sup_val = attrs.get(f'score_{level}_sup')
-            if inf_val is not None and sup_val is not None and inf_val >= sup_val:
-                raise serializers.ValidationError({
-                    f'score_{level}_sup': _("La borne sup doit être strictement supérieure à la borne inf.")
-                })
-
-        # Validate continuity between adjacent levels — en sautant les niveaux
-        # inactifs (un niveau marqué « non utilisé » casse volontairement la
-        # continuité avec ses voisins).
-        # Ascending: score_N_sup == score_(N+1)_inf (boundary = upper end of N)
-        # Descending: score_N_inf == score_(N+1)_sup (boundary = lower end of N)
-        for n in range(1, 5):
-            if n in inactive_set or (n + 1) in inactive_set:
-                continue
-            if sens == 'DECROISSANT':
-                val_n = attrs.get(f'score_{n}_inf')
-                val_next = attrs.get(f'score_{n + 1}_sup')
-            else:
-                val_n = attrs.get(f'score_{n}_sup')
-                val_next = attrs.get(f'score_{n + 1}_inf')
-
-            if val_n is not None and val_next is not None and val_n != val_next:
-                raise serializers.ValidationError(
-                    _("Les bornes entre les scores %(n)s et %(next)s doivent être égales pour assurer la continuité.")
-                    % {'n': n, 'next': n + 1}
-                )
-
+        if erreurs:
+            champ, message = erreurs[0]
+            raise serializers.ValidationError({champ: message} if champ else message)
         return attrs
 
 

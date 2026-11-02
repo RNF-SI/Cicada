@@ -38,11 +38,18 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
+from decimal import Decimal, InvalidOperation
+
 from apps.core.models import Nomenclature
+
+from .grille_metrique import LIBELLES_PALIERS, erreurs_grille
 
 # Version du format de fichier — incrémentée si la structure des onglets change.
 # Écrite dans l'onglet « Lisez-moi » et (à terme) vérifiée à l'import.
-FORMAT_VERSION = "1.0"
+FORMAT_VERSION = "1.1"
+# 1.1 (#787) : paramétrage des métriques (format, pondération, état de
+# référence, bloc principal) et onglets « Blocs » / « Grilles » (facultatifs :
+# un classeur 1.0 reste importable, ses métriques restent sans grille).
 
 
 # ---------------------------------------------------------------------------
@@ -88,11 +95,18 @@ class Sheet:
     description: str
     columns: list[Column]
     rows: Callable = None  # plan -> iterable d'objets (pré-remplissage)
+    # Onglet absent d'un classeur plus ancien : lu comme vide (#787).
+    optional: bool = False
 
 
 # ---------------------------------------------------------------------------
 # Helpers de pré-remplissage
 # ---------------------------------------------------------------------------
+
+
+# #787 — vocabulaires de la grille de scores.
+_SENS_LABEL = {"CROISSANT": "Croissant", "DECROISSANT": "Décroissant"}
+_OPERATEUR_LABEL = {"OR": "OU", "AND": "ET"}
 
 
 def _nom_label(nomenclature) -> str:
@@ -206,6 +220,8 @@ class _PlanRows:
     ra: list = field(default_factory=list)
     indicateurs: list = field(default_factory=list)
     metriques: list = field(default_factory=list)
+    blocs: list = field(default_factory=list)
+    grilles: list = field(default_factory=list)
     taxons: list = field(default_factory=list)
     habitats: list = field(default_factory=list)
 
@@ -394,6 +410,68 @@ def _emit_indicateur(alloc, rows, ind, parent_code: str) -> None:
                 "type_metrique": _nom_label(met.type_metrique),
                 "unite": met.unite or "",
                 "description": met.description or "",
+                # #787 — paramétrage de la métrique et de son bloc principal.
+                "format": _nom_label(met.format_metrique),
+                "ponderation": _num(met.ponderation),
+                "etat_reference": met.etat_reference or "",
+                "bloc_intitule": met.bloc_intitule or "",
+                "sens": _SENS_LABEL.get(met.sens_variation, ""),
+                "borne_basse": _oui_non(met.has_borne_score1),
+                "borne_haute": _oui_non(met.has_borne_score5),
+                "parentheses_ouvrantes": met.group_open or "",
+                "parentheses_fermantes": met.group_close or "",
+            }
+        )
+        _emit_grille(rows, m_code, 0, met, avec_valeurs=True)
+        for blk in met.score_blocks.all().order_by("position", "id_score_block"):
+            rows.blocs.append(
+                {
+                    "metrique": m_code,
+                    "bloc": blk.position,
+                    "intitule": blk.intitule or "",
+                    "unite": blk.unite or "",
+                    "operateur": _OPERATEUR_LABEL.get(blk.logical_op, ""),
+                    "sens": _SENS_LABEL.get(blk.sens_variation, ""),
+                    "borne_basse": _oui_non(blk.has_borne_score1),
+                    "borne_haute": _oui_non(blk.has_borne_score5),
+                    "parentheses_ouvrantes": blk.group_open or "",
+                    "parentheses_fermantes": blk.group_close or "",
+                }
+            )
+            _emit_grille(rows, m_code, blk.position, blk, avec_valeurs=False)
+
+
+def _num(value):
+    """Décimal → nombre de cellule (entier quand il l'est), vide si absent."""
+    if value is None:
+        return ""
+    d = Decimal(value)
+    return int(d) if d == d.to_integral_value() else float(d)
+
+
+def _emit_grille(rows, m_code, bloc, obj, *, avec_valeurs) -> None:
+    """Une ligne par palier renseigné d'un bloc (0 = bloc principal) — #787."""
+    inactifs = {int(x) for x in (obj.inactive_levels or []) if str(x).isdigit()}
+    for n in range(1, 6):
+        inf, sup = getattr(obj, f"score_{n}_inf"), getattr(obj, f"score_{n}_sup")
+        val = getattr(obj, f"score_{n}_val", None) if avec_valeurs else None
+        label = getattr(obj, f"score_{n}_label", None) if avec_valeurs else None
+        inclusive = getattr(obj, f"score_{n}_sup_inclusive")
+        if (inf is None and sup is None and val is None and not label
+                and n not in inactifs and inclusive):
+            continue
+        rows.grilles.append(
+            {
+                "metrique": m_code,
+                "bloc": bloc,
+                "palier": n,
+                "niveau": LIBELLES_PALIERS[n],
+                "borne_inf": _num(inf),
+                "borne_sup": _num(sup),
+                "sup_incluse": _oui_non(inclusive),
+                "valeur": _num(val),
+                "libelle": label or "",
+                "non_utilise": "Oui" if n in inactifs else "",
             }
         )
 
@@ -1018,8 +1096,9 @@ def _build_schema() -> list[Sheet]:
         Sheet(
             key="metriques",
             name="Metriques",
-            description="Métriques d'un indicateur. En V1, seul le libellé est importé : "
-            "l'indicateur reste « indéterminé » tant qu'aucune grille n'est saisie.",
+            description="Métriques d'un indicateur et paramétrage de leur bloc "
+            "principal. La grille de scores se saisit dans l'onglet Grilles, les "
+            "blocs complémentaires dans l'onglet Blocs.",
             rows=lambda rows: rows.metriques,
             columns=[
                 Column(
@@ -1041,6 +1120,76 @@ def _build_schema() -> list[Sheet]:
                 Column("type_metrique", "type", nomenclature="TYPE_METRIQUE", width=16),
                 Column("unite", "unité", width=16),
                 Column("description", "description", width=40),
+                Column("format", "format", nomenclature="FORMAT_METRIQUE", width=14,
+                       help="Simple (valeur libre) ou Grille (grille de scores). "
+                       "Vide : grille pour un indicateur d'état ou de pression."),
+                Column("ponderation", "pondération", width=12,
+                       help="Pondération de la métrique dans l'indicateur (nombre)."),
+                Column("etat_reference", "état de référence", width=30),
+                Column("bloc_intitule", "intitulé du bloc principal", width=22,
+                       help="Quand la métrique combine plusieurs blocs (onglet Blocs)."),
+                Column("sens", "sens", vocab="sens", width=14,
+                       help="Sens de variation de la grille : Croissant ou Décroissant."),
+                Column("borne_basse", "borne extrême basse", boolean=True, width=12,
+                       help="Le palier « Très mauvais » a une borne extrême."),
+                Column("borne_haute", "borne extrême haute", boolean=True, width=12,
+                       help="Le palier « Très bon » a une borne extrême."),
+                Column("parentheses_ouvrantes", "parenthèses ouvrantes", width=12,
+                       help="Nombre de « ( » ouvertes avant le bloc principal (combinaison ET/OU)."),
+                Column("parentheses_fermantes", "parenthèses fermantes", width=12,
+                       help="Nombre de « ) » fermées après le bloc principal."),
+            ],
+        ),
+        Sheet(
+            key="blocs",
+            name="Blocs",
+            description="Blocs complémentaires d'une métrique numérique, combinés au "
+            "bloc principal (et entre eux) en ET / OU. Leur grille est dans l'onglet "
+            "Grilles (colonne « bloc » = numéro du bloc).",
+            rows=lambda rows: rows.blocs,
+            optional=True,
+            columns=[
+                Column("metrique", "métrique", required=True, ref="metriques", width=12,
+                       help="Code de la métrique (ex : M1)."),
+                Column("bloc", "bloc", required=True, width=8,
+                       help="Numéro du bloc complémentaire : 1, 2, 3…"),
+                Column("intitule", "intitulé", width=24),
+                Column("unite", "unité", width=12),
+                Column("operateur", "opérateur", vocab="operateur", width=12,
+                       help="Combinaison avec le bloc qui précède : OU ou ET."),
+                Column("sens", "sens", vocab="sens", width=14),
+                Column("borne_basse", "borne extrême basse", boolean=True, width=12),
+                Column("borne_haute", "borne extrême haute", boolean=True, width=12),
+                Column("parentheses_ouvrantes", "parenthèses ouvrantes", width=12),
+                Column("parentheses_fermantes", "parenthèses fermantes", width=12),
+            ],
+        ),
+        Sheet(
+            key="grilles",
+            name="Grilles",
+            description="Grille de scores des métriques : une ligne par métrique, bloc "
+            "(0 = bloc principal) et palier (1 = très mauvais … 5 = très bon). "
+            "Une métrique sans ligne reste sans grille (indicateur « indéterminé »).",
+            rows=lambda rows: rows.grilles,
+            optional=True,
+            columns=[
+                Column("metrique", "métrique", required=True, ref="metriques", width=12,
+                       help="Code de la métrique (ex : M1)."),
+                Column("bloc", "bloc", required=True, width=8,
+                       help="0 pour le bloc principal, sinon le numéro du bloc de l'onglet Blocs."),
+                Column("palier", "palier", required=True, width=8,
+                       help="1 = Très mauvais, 2 = Mauvais, 3 = Moyen, 4 = Bon, 5 = Très bon."),
+                Column("niveau", "niveau", width=14,
+                       help="Rappel du libellé du palier (non relu à l'import)."),
+                Column("borne_inf", "borne inf", width=12,
+                       help="Métrique en intervalle numérique."),
+                Column("borne_sup", "borne sup", width=12),
+                Column("sup_incluse", "borne sup incluse", boolean=True, width=12,
+                       help="Oui par défaut."),
+                Column("valeur", "valeur", width=12, help="Métrique « Chiffre »."),
+                Column("libelle", "libellé", width=30, help="Métrique « Texte »."),
+                Column("non_utilise", "non utilisé", boolean=True, width=12,
+                       help="Palier non utilisé par la grille."),
             ],
         ),
         Sheet(
@@ -1156,6 +1305,12 @@ def _write_lisez_moi(wb: Workbook, plan, example_name=None, with_hints=False) ->
         (
             "• Un onglet par niveau de l'arborescence : Enjeux, Facteurs, Pressions, "
             "OLT, NE, OO, RA, Indicateurs, Métriques.",
+            None,
+        ),
+        (
+            "• Le paramétrage des métriques suit : grille de scores dans l'onglet "
+            "Grilles (une ligne par métrique, bloc et palier), blocs complémentaires "
+            "dans l'onglet Blocs. Les mesures saisies ne sont ni exportées ni importées.",
             None,
         ),
         (
@@ -1294,6 +1449,8 @@ def _write_listes(
     for vocab_key, name, vocab in (
         ("ecolo", "Types écologiques", TYPES_ECOLOGIQUES),
         ("socio", "Types socio-éco", TYPES_SOCIOECO),
+        ("sens", "Sens de variation", list(_SENS_LABEL.values())),
+        ("operateur", "Opérateur", list(_OPERATEUR_LABEL.values())),
     ):
         letter = get_column_letter(col_idx)
         ws.cell(row=1, column=col_idx, value=name).font = Font(bold=True)
@@ -1412,7 +1569,9 @@ def _write_sheet(
             ref = list_ranges.get(f"vocab:{col.vocab}")
             if ref:
                 dv = DataValidation(type="list", formula1=ref, allow_blank=True)
-                strict = False  # types multiples possibles → aide non bloquante
+                # Types multiples possibles → aide non bloquante ; une seule
+                # valeur pour le sens et l'opérateur de la grille (#787).
+                strict = col.vocab in ("sens", "operateur")
                 multi_example = "Habitat,Espèce"
         if dv is not None:
             if strict:
@@ -1541,6 +1700,7 @@ from .models_enjeux import (
 from .models_indicateurs import (
     Indicateur,
     Metrique,
+    MetriqueScoreBlock,
 )
 
 
@@ -1704,6 +1864,9 @@ def parse_workbook(source) -> dict[str, list[dict]]:
     parsed: dict[str, list[dict]] = {}
     for sheet in _build_schema():
         ws = ws_by_name.get(_norm(sheet.name))
+        if ws is None and sheet.optional:
+            parsed[sheet.key] = []
+            continue
         if ws is None:
             raise ArborescenceImportError(
                 f"Onglet « {sheet.name} » introuvable dans le fichier."
@@ -2262,9 +2425,15 @@ def validate_import(
 
     # --- Métriques ---
     for row in parsed.get("metriques", []):
-        _req("metriques", row, "nom_metrique", "nom")
+        # #339 — comme à la saisie, une métrique « Indéterminé » peut rester
+        # sans intitulé (sinon son plan ne se réimporterait pas, #787).
+        type_met = resolver.resolve("TYPE_METRIQUE", _cell_str(row.get("type_metrique")))
+        if getattr(type_met, "mnemonique", None) != "INDETERMINE":
+            _req("metriques", row, "nom_metrique", "nom")
         _ref("metriques", row, "indicateur", "indicateurs", "indicateur")
         _nomenclature("metriques", row, "type_metrique", "TYPE_METRIQUE", "type")
+        _nomenclature("metriques", row, "format", "FORMAT_METRIQUE", "format")
+    _valider_grilles(parsed, report, resolver, _ref)
 
     # --- Taxons / Habitats (rattachés à un enjeu) ---
     def _check_cible(sheet_key, row):
@@ -2600,16 +2769,38 @@ def execute_import(
 
     # --- Métriques ---
     n_metriques = 0
+    grilles = _grilles_par_bloc(parsed)
+    blocs = {(_cell_str(r.get("metrique")), _as_int(r.get("bloc"))): r
+             for r in parsed.get("blocs", [])}
     for i, row in enumerate(parsed.get("metriques", [])):
-        Metrique.objects.create(
+        m_code = _cell_str(row.get("code"))
+        metrique = Metrique.objects.create(
             id_indicateur=indicateur_map.get(_cell_str(row.get("indicateur"))),
             nom_metrique=_cell_str(row.get("nom_metrique")),
             type_metrique=nom("TYPE_METRIQUE", row.get("type_metrique")),
+            format_metrique=nom("FORMAT_METRIQUE", row.get("format")),
             unite=_cell_str(row.get("unite")) or None,
             description=_cell_str(row.get("description")) or None,
+            ponderation=_as_decimal(row.get("ponderation")),
+            etat_reference=_cell_str(row.get("etat_reference")) or None,
+            bloc_intitule=_cell_str(row.get("bloc_intitule")) or None,
             ordre=i,
             id_utilisateur_ajout=user,
+            **_params_bloc(row),
+            **_champs_grille(grilles.get((m_code, 0), []), avec_valeurs=True),
         )
+        for (code, num), brow in sorted(blocs.items(), key=lambda kv: kv[0][1] or 0):
+            if code != m_code:
+                continue
+            MetriqueScoreBlock.objects.create(
+                id_metrique=metrique,
+                position=num,
+                intitule=_cell_str(brow.get("intitule")) or None,
+                unite=_cell_str(brow.get("unite")) or None,
+                logical_op=_OPERATEUR_CODE.get(_norm(brow.get("operateur")), "OR"),
+                **_params_bloc(brow),
+                **_champs_grille(grilles.get((m_code, num), []), avec_valeurs=False),
+            )
         n_metriques += 1
     counts["metriques"] = n_metriques
 
@@ -2648,6 +2839,175 @@ def execute_import(
 # ===========================================================================
 # Édition assistée (correction interactive #9) et mapping (#10)
 # ===========================================================================
+
+
+# ---------------------------------------------------------------------------
+# Paramétrage des métriques : blocs et grilles (#787)
+# ---------------------------------------------------------------------------
+
+_SENS_CODE = {_norm(v): k for k, v in _SENS_LABEL.items()} | {_norm(k): k for k in _SENS_LABEL}
+_OPERATEUR_CODE = {_norm(v): k for k, v in _OPERATEUR_LABEL.items()} | {
+    _norm(k): k for k in _OPERATEUR_LABEL}
+
+
+def _as_decimal(value):
+    text = _cell_str(value).replace(",", ".").replace(" ", "")
+    if not text:
+        return None
+    try:
+        return Decimal(text)
+    except InvalidOperation:
+        return None
+
+
+def _params_bloc(row) -> dict:
+    """Sens, bornes extrêmes et parenthèses d'un bloc (principal ou non)."""
+    return {
+        "sens_variation": _SENS_CODE.get(_norm(row.get("sens")), "CROISSANT"),
+        "has_borne_score1": _parse_bool(row.get("borne_basse")) is True,
+        "has_borne_score5": _parse_bool(row.get("borne_haute")) is True,
+        "group_open": _as_int(row.get("parentheses_ouvrantes")) or 0,
+        "group_close": _as_int(row.get("parentheses_fermantes")) or 0,
+    }
+
+
+def _grilles_par_bloc(parsed) -> dict:
+    """Lignes de l'onglet Grilles par (code métrique, n° de bloc)."""
+    out: dict = {}
+    for row in parsed.get("grilles", []):
+        cle = (_cell_str(row.get("metrique")), _as_int(row.get("bloc")))
+        out.setdefault(cle, []).append(row)
+    return out
+
+
+def _champs_grille(lignes, *, avec_valeurs) -> dict:
+    """Champs ``score_N_*`` et ``inactive_levels`` d'un bloc, depuis ses lignes."""
+    champs: dict = {}
+    inactifs = []
+    for row in lignes:
+        n = _as_int(row.get("palier"))
+        if n not in LIBELLES_PALIERS:
+            continue
+        champs[f"score_{n}_inf"] = _as_decimal(row.get("borne_inf"))
+        champs[f"score_{n}_sup"] = _as_decimal(row.get("borne_sup"))
+        champs[f"score_{n}_sup_inclusive"] = _parse_bool(row.get("sup_incluse")) is not False
+        if avec_valeurs:
+            champs[f"score_{n}_val"] = _as_decimal(row.get("valeur"))
+            champs[f"score_{n}_label"] = _cell_str(row.get("libelle")) or None
+        if _parse_bool(row.get("non_utilise")):
+            inactifs.append(n)
+    champs["inactive_levels"] = sorted(inactifs)
+    return champs
+
+
+def _valider_grilles(parsed, report, resolver, _ref) -> None:
+    """Contrôle des onglets Blocs et Grilles (erreurs de forme bloquantes) et
+    de la cohérence des seuils avec les règles de la saisie (``erreurs_grille``,
+    en avertissement : des grilles antérieures à ces contrôles existent)."""
+    blocs_sheet, grilles_sheet = _sheet_name("blocs"), _sheet_name("grilles")
+    metriques = {_cell_str(r.get("code")): r for r in parsed.get("metriques", [])}
+
+    def _num_ok(sheet, row, col, label, entier=False):
+        v = _cell_str(row.get(col))
+        if not v:
+            return
+        ok = _as_int(v) is not None if entier else _as_decimal(v) is not None
+        if not ok:
+            report.add(sheet, row["_row"], col, ERROR, f"« {label} » doit être un nombre.")
+
+    def _sens_ok(sheet, row):
+        v = _cell_str(row.get("sens"))
+        if v and _norm(v) not in _SENS_CODE:
+            report.add(sheet, row["_row"], "sens", ERROR,
+                       f"Sens « {v} » non reconnu (Croissant ou Décroissant).")
+
+    for row in parsed.get("metriques", []):
+        _num_ok("Metriques", row, "ponderation", "pondération")
+        _sens_ok("Metriques", row)
+        for col in ("parentheses_ouvrantes", "parentheses_fermantes"):
+            _num_ok("Metriques", row, col, "parenthèses", entier=True)
+
+    blocs_connus = set()
+    for row in parsed.get("blocs", []):
+        _ref("blocs", row, "metrique", "metriques", "métrique")
+        num = _as_int(row.get("bloc"))
+        if num is None or num < 1:
+            report.add(blocs_sheet, row["_row"], "bloc", ERROR,
+                       "Le numéro de bloc doit être un entier à partir de 1.")
+            continue
+        cle = (_cell_str(row.get("metrique")), num)
+        if cle in blocs_connus:
+            report.add(blocs_sheet, row["_row"], "bloc", ERROR,
+                       f"Bloc {num} en double pour la métrique {cle[0]}.")
+        blocs_connus.add(cle)
+        _sens_ok(blocs_sheet, row)
+        op = _cell_str(row.get("operateur"))
+        if op and _norm(op) not in _OPERATEUR_CODE:
+            report.add(blocs_sheet, row["_row"], "operateur", ERROR,
+                       f"Opérateur « {op} » non reconnu (OU ou ET).")
+        for col in ("parentheses_ouvrantes", "parentheses_fermantes"):
+            _num_ok(blocs_sheet, row, col, "parenthèses", entier=True)
+
+    vus = set()
+    valides: dict = {}
+    for row in parsed.get("grilles", []):
+        _ref("grilles", row, "metrique", "metriques", "métrique")
+        code = _cell_str(row.get("metrique"))
+        num, palier = _as_int(row.get("bloc")), _as_int(row.get("palier"))
+        if palier not in LIBELLES_PALIERS:
+            report.add(grilles_sheet, row["_row"], "palier", ERROR,
+                       "Le palier doit être un entier de 1 (très mauvais) à 5 (très bon).")
+            continue
+        if num is None or num < 0 or (num > 0 and (code, num) not in blocs_connus):
+            report.add(grilles_sheet, row["_row"], "bloc", ERROR,
+                       "Bloc inconnu : 0 pour le bloc principal, sinon un numéro "
+                       "de l'onglet Blocs pour cette métrique.")
+            continue
+        if (code, num, palier) in vus:
+            report.add(grilles_sheet, row["_row"], "palier", ERROR,
+                       f"Palier {palier} en double (métrique {code}, bloc {num}).")
+            continue
+        vus.add((code, num, palier))
+        bad = False
+        for col, label in (("borne_inf", "borne inf"), ("borne_sup", "borne sup"),
+                           ("valeur", "valeur")):
+            v = _cell_str(row.get(col))
+            if v and _as_decimal(v) is None:
+                report.add(grilles_sheet, row["_row"], col, ERROR,
+                           f"« {label} » doit être un nombre.")
+                bad = True
+        if not bad and code in metriques:
+            valides.setdefault((code, num), []).append(row)
+
+    # Cohérence des seuils, bloc par bloc, avec les règles de la saisie.
+    blocs_par_cle = {(_cell_str(r.get("metrique")), _as_int(r.get("bloc"))): r
+                     for r in parsed.get("blocs", [])}
+    for (code, num), lignes in valides.items():
+        met = metriques[code]
+        type_nom = resolver.resolve("TYPE_METRIQUE", _cell_str(met.get("type_metrique")))
+        format_nom = resolver.resolve("FORMAT_METRIQUE", _cell_str(met.get("format")))
+        champs = _champs_grille(lignes, avec_valeurs=(num == 0))
+        source = met if num == 0 else blocs_par_cle.get((code, num), {})
+        erreurs = erreurs_grille(
+            # Les blocs complémentaires sont toujours numériques.
+            type_mnemo=getattr(type_nom, "mnemonique", None) if num == 0 else "NUMERIQUE",
+            format_mnemo=getattr(format_nom, "mnemonique", None),
+            sens=_SENS_CODE.get(_norm(source.get("sens")), "CROISSANT"),
+            inactive=champs["inactive_levels"],
+            valeurs=champs,
+        )
+        par_palier = {_as_int(r.get("palier")): r for r in lignes}
+        for champ, message in erreurs:
+            n = int(champ.split("_")[1]) if champ else None
+            row = par_palier.get(n) or lignes[0]
+            colonne = {"inf": "borne_inf", "sup": "borne_sup", "val": "valeur",
+                       "label": "libelle"}.get(champ.split("_", 2)[2]) if champ else None
+            # Avertissement, pas erreur : des grilles saisies avant ces
+            # contrôles existent en base ; les refuser empêcherait de
+            # réimporter un plan exporté. La grille est reprise telle quelle.
+            report.add(grilles_sheet, row["_row"], colonne, WARNING,
+                       f"Métrique {code}, bloc {num} : {message} "
+                       "La grille est reprise telle quelle : vérifiez-la après l'import.")
 
 
 def describe_schema() -> list[dict]:

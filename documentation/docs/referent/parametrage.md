@@ -27,7 +27,7 @@ Pour reprendre un plan existant sans tout ressaisir à la main, la page « Param
 - **Import de l'arborescence (enjeux, facteurs, pressions, objectifs, indicateurs, métriques) :**
 
 1. **Partir d'un modèle** : téléchargez le modèle à remplir et/ou un exemple complet pour vous inspirer.
-2. **Remplir le fichier dans Excel** : les onglets sont reliés par des codes (E1, F1…) et des listes déroulantes vous guident.
+2. **Remplir le fichier dans Excel** : les onglets sont reliés par des codes (E1, F1…) et des listes déroulantes vous guident. Le paramétrage des métriques suit le même chemin : format, pondération et état de référence dans l'onglet « Metriques », grille de scores dans l'onglet « Grilles » (une ligne par métrique, bloc et palier, de 1 = très mauvais à 5 = très bon), blocs complémentaires dans l'onglet « Blocs ». Un plan exporté puis réimporté garde ainsi ses grilles, y compris celles des indicateurs de réponse ; les mesures saisies, elles, ne sont pas reprises. Les seuils sont contrôlés comme à la saisie (borne supérieure au-dessus de la borne inférieure, paliers jointifs) : une grille qui ne les respecte pas est signalée en avertissement et reprise telle quelle, à vérifier après l'import.
 3. **Importer votre fichier** : CICADA vérifie le fichier et affiche soit « Fichier valide » avec le nombre d'éléments qui seront créés, soit la liste des anomalies (onglet, ligne, colonne).
 
 Si le plan contient déjà une arborescence, vous choisissez d'ajouter le contenu du fichier à l'existant ou de remplacer tout le contenu (action irréversible, une confirmation est demandée).
