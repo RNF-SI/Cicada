@@ -356,7 +356,9 @@ Après un échec, le paquet installé est plus récent que la version en service
 sudo cicada-update rollback --oui
 ```
 
-La version précédente revient avec la base sauvegardée **juste avant** la mise à jour : tout ce qui a été saisi depuis est perdu (la commande le rappelle et attend `--oui`). Pour garder les saisies, préférez attendre une version corrective.
+La version précédente revient avec la base sauvegardée **juste avant** la mise à jour : tout ce qui a été saisi depuis est perdu (la commande le rappelle et attend `--oui`). Pour garder les saisies, préférez attendre une version corrective. La page *Administration › Mise à jour* ne présente pas ce retour comme un échec, et propose de nouveau la mise à jour.
+
+**Revenir à une version plus ancienne que la précédente** : voir [§ 7](#revenir-version-ancienne).
 
 ??? note "Première mise à jour vers une version qui apporte ces protections"
     Elle est lancée par le service de mise à jour de la version précédente. En cas d'échec, le retour arrière se fait quand même ; ce service signale alors l'échec du paquet (« dpkg returned an error code »), et le paquet reste à configurer : `sudo dpkg --configure -a` le termine, sans nouvelle tentative.
@@ -396,15 +398,46 @@ sudo cicada-restore NOM --fichiers --oui   # la base et les fichiers déposés
 
 La restauration est **tout ou rien** : elle se fait dans une seule transaction, avec le compte de l'application (aucun super-utilisateur, donc aussi sur un PostgreSQL existant), et le nombre de lignes de chaque table est contrôlé avant de valider. Une archive abîmée ou un manque de droits laissent la base telle qu'elle était. L'application est arrêtée pendant l'opération puis relancée.
 
-Une sauvegarde d'une version **plus récente** que celle en service est refusée (l'application ne saurait pas lire cette base) ; une sauvegarde plus ancienne est mise à niveau par les migrations au redémarrage.
+Une sauvegarde d'une version **plus récente** que celle en service est refusée (l'application ne saurait pas lire cette base) ; une sauvegarde plus ancienne est mise à niveau par les migrations au redémarrage. `sudo cicada-backup --liste` indique la version de chaque sauvegarde.
+
+### Revenir à une version plus ancienne {#revenir-version-ancienne}
+
+`cicada-update rollback` ne revient qu'à la version d'avant la **dernière** mise à jour. Pour remettre l'instance dans une version plus ancienne (un défaut découvert plusieurs versions après sa livraison), repartez d'une **sauvegarde faite dans cette version** :
+
+```bash
+sudo cicada-backup --liste                                   # repérer une sauvegarde de la version voulue
+sudo cicada-restore NOM --avec-sa-version                    # explique ce qui va changer
+sudo cicada-restore NOM --avec-sa-version --oui              # version et base de la sauvegarde
+sudo cicada-restore NOM --avec-sa-version --fichiers --oui   # … et ses fichiers déposés
+```
+
+Une ancienne version ne sait pas lire une base migrée depuis (tables et colonnes ajoutées) : la seule façon sûre d'y revenir est de reprendre **sa** base. **Tout ce qui a été saisi depuis la sauvegarde est perdu**. Défaire les migrations ne le sauverait pas : une migration de données ne se défait pas, et retirer une colonne efface son contenu.
+
+Le déroulé est celui d'une mise à jour, avec les mêmes protections :
+
+1. **Contrôles**, puis téléchargement des images de la version. Si elles manquent, rien n'a changé et l'application n'a pas été arrêtée.
+2. Arrêt de l'application, puis **sauvegarde de l'état actuel**.
+3. Restauration de la base de la sauvegarde (tout ou rien), passage à sa version avec **ses** fichiers de déploiement (conservés dans chaque sauvegarde), démarrage vérifié.
+4. En cas d'échec, retour automatique à la version et à la base d'avant. Si le serveur redémarre en cours de route, la reprise se fait au démarrage.
+
+La configuration actuelle (`/var/lib/cicada/.env`) est gardée, seule `CICADA_VERSION` change ; la configuration de l'époque reste lisible dans le fichier `env` de la sauvegarde.
+
+Ensuite :
+
+- `sudo cicada-update rollback --oui` défait ce retour : la version et la base d'avant reviennent ;
+- le paquet installé reste plus récent que la version en service. L'application propose de nouveau la mise à jour, que le bouton ou `sudo cicada-update retry` relance quand la cause est corrigée. Les données de la sauvegarde sont alors mises à niveau par les migrations.
+
+Une sauvegarde qui ne contient pas les fichiers de déploiement (faite par une version qui ne les gardait pas encore) reste utilisable tant que le serveur garde ceux de sa version, c'est-à-dire pour les cinq dernières versions installées. Sinon, la commande le dit et ne change rien.
 
 ### Serveur perdu : repartir d'une sauvegarde
 
-Sur un nouveau serveur : installer CICADA ([§ 2](#2-installer)) **dans la même version** que la sauvegarde, avec une base vide, puis copier le dossier de sauvegarde dans `/var/backups/cicada/` et :
+Sur un nouveau serveur : installer CICADA ([§ 2](#2-installer)) avec une base vide, puis copier le dossier de sauvegarde dans `/var/backups/cicada/` et :
 
 ```bash
-sudo cicada-restore NOM --fichiers --oui
+sudo cicada-restore NOM --avec-sa-version --fichiers --oui
 ```
+
+L'instance repasse dans la version de la sauvegarde, même si le dépôt n'en propose plus qu'une plus récente. Si la sauvegarde a été faite dans la version installée, `sudo cicada-restore NOM --fichiers --oui` suffit.
 
 Le fichier `env` de la sauvegarde contient l'ancienne configuration (secrets, adresse du hub, jetons) : reprenez-en ce qui doit l'être dans `/var/lib/cicada/.env`, puis `cicada_compose up -d` ([§ 8](#8-modifier-la-configuration)). Copiez aussi `/etc/cicada/instance_token` de l'ancien serveur si vous l'avez : c'est l'identité de l'instance auprès du serveur de suivi.
 

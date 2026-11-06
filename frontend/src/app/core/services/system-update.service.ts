@@ -2,8 +2,13 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of } from 'rxjs';
 
-/** Issue d'une mise à jour, écrite par le serveur (#796) */
-export type SystemUpdateOutcome = 'reussie' | 'a_jour' | 'annulee' | 'echec_retour_fait' | 'echec_sans_retour';
+/**
+ * Issue d'une mise à jour, écrite par le serveur (#796). `retour_demande` :
+ * retour à la version d'avant voulu par l'administrateur
+ * (`cicada-update rollback`), pas un échec (#800).
+ */
+export type SystemUpdateOutcome =
+  'reussie' | 'a_jour' | 'annulee' | 'echec_retour_fait' | 'echec_sans_retour' | 'retour_demande';
 
 export interface SystemUpdateResult {
   success: boolean;
@@ -14,6 +19,8 @@ export interface SystemUpdateResult {
   statut?: SystemUpdateOutcome;
   depart?: string | null;
   cible?: string;
+  /** bouton, commande, paquet, reprise, ou retour_version (cicada-restore --avec-sa-version, #800) */
+  origine?: string | null;
   /** Vrai si la version précédente et la base d'avant ont été rétablies */
   retour_arriere?: boolean;
   sauvegarde?: string | null;

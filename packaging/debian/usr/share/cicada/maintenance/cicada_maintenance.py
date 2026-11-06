@@ -5,7 +5,7 @@ Utilisé par les commandes du serveur, en root :
 
     cicada-update   état, mise à jour, nouvelle tentative, retour arrière, reprise
     cicada-backup   sauvegarde (base, fichiers déposés, configuration)
-    cicada-restore  restauration d'une sauvegarde
+    cicada-restore  restauration d'une sauvegarde, avec ou sans sa version (#800)
 
 et par le paquet lui-même : le postinst lance `cicada-update deploy`, si bien
 que le bouton « Mettre à jour », `apt install` et `dpkg -i` suivent le même
@@ -58,6 +58,7 @@ APPLICATION = ['frontend', 'celery-beat', 'celery-worker', 'web']
 IMAGES_CICADA = ('ghcr.io/rnf-si/cicada-backend', 'ghcr.io/rnf-si/cicada-frontend')
 
 COMMANDE_REPRISE = 'sudo cicada-update rollback'
+RETOUR_VERSION = 'retour_version'  # origine d'une tentative lancée par cicada-restore --avec-sa-version
 
 
 class ErreurMaintenance(Exception):
@@ -196,6 +197,24 @@ class Instance:
         copie = self.c.etat / 'compose' / str(version)
         return copie if version and copie.is_dir() else self.c.compose
 
+    def source_compose(self, version):
+        """Dossier qui porte VRAIMENT les fichiers compose de cette version,
+        ou None : contrairement à dossier_compose(), pas de repli sur ceux du
+        paquet quand ils sont d'une autre version."""
+        copie = self.c.etat / 'compose' / str(version)
+        if version and copie.is_dir():
+            return copie
+        if version and version == self.version_paquet():
+            return self.c.compose
+        return None
+
+    @staticmethod
+    def copier_compose(source, destination):
+        destination.mkdir(parents=True, exist_ok=True)
+        for f in Path(source).iterdir():
+            if f.is_file() and (f.name.startswith('docker-compose') or f.name == 'compose-files.sh'):
+                shutil.copy2(f, destination / f.name)
+
     def fichiers_compose(self, dossier):
         noms = ['docker-compose.yml']
         if self.base_docker():
@@ -264,12 +283,15 @@ class Instance:
         d'échange monté dans le conteneur web)."""
         try:
             self.c.echanges.mkdir(parents=True, exist_ok=True)
+            demande = t['statut'] == RETOUR_FAIT and bool(t.get('demande'))
             resultat = {
-                'success': t['statut'] in (REUSSIE, A_JOUR),
+                'success': t['statut'] in (REUSSIE, A_JOUR) or demande,
                 'version': t['cible'],
                 'timestamp': t.get('fin') or horodatage(),
                 'error': t.get('cause') or None,
-                'statut': t['statut'],
+                # Retour voulu par l'administrateur (rollback) : pas un échec
+                'statut': 'retour_demande' if demande else t['statut'],
+                'origine': t.get('origine'),
                 'depart': t.get('depart'),
                 'cible': t['cible'],
                 'retour_arriere': t['statut'] == RETOUR_FAIT,
@@ -359,10 +381,17 @@ class Instance:
             if self.c.env.exists():
                 shutil.copy2(self.c.env, dossier / 'env')
                 os.chmod(dossier / 'env', 0o600)
+            # Fichiers de déploiement de la version sauvegardée : la sauvegarde
+            # suffit seule à remettre cette version (#800), même quand le preinst
+            # n'en garde plus la copie.
+            source = self.source_compose(self.version_en_service())
+            if source:
+                self.copier_compose(source, dossier / 'compose')
             manifeste = {
                 'date': horodatage(), 'raison': raison, 'version': self.version_en_service(),
                 'version_outil': version_outil, 'base': resultat.get('base'),
-                'fichiers': resultat.get('fichiers'), 'configuration': (dossier / 'env').exists(), 'ok': True,
+                'fichiers': resultat.get('fichiers'), 'configuration': (dossier / 'env').exists(),
+                'compose': (dossier / 'compose' / 'docker-compose.yml').exists(), 'ok': True,
             }
             (dossier / 'sauvegarde.json').write_text(json.dumps(manifeste, indent=1, ensure_ascii=False))
         except Exception:
@@ -557,8 +586,8 @@ class Instance:
     # Images
     # ------------------------------------------------------------------
 
-    def images(self, version):
-        r = self.compose('config', '--images', version=version)
+    def images(self, version, fichiers_de=None):
+        r = self.compose('config', '--images', version=version, fichiers_de=fichiers_de)
         if r.returncode != 0:
             raise ErreurMaintenance(f"Configuration Docker illisible : {self.resume(r, 300)}")
         return [l.strip() for l in r.stdout.splitlines() if l.strip()]
@@ -566,11 +595,11 @@ class Instance:
     def image_presente(self, image):
         return self.run(['docker', 'image', 'inspect', image]).returncode == 0
 
-    def tirer_images(self, version):
+    def tirer_images(self, version, fichiers_de=None):
         """Images de la version, avant tout arrêt. Celles de CICADA ne changent
         jamais pour un numéro donné : déjà présentes, elles ne sont pas
         retéléchargées."""
-        for image in self.images(version):
+        for image in self.images(version, fichiers_de=fichiers_de):
             if image.startswith(IMAGES_CICADA) and self.image_presente(image):
                 continue
             self.dire(f"  téléchargement de {image}…")
@@ -669,7 +698,7 @@ class Instance:
                 return self._terminer(t, SANS_RETOUR, f"Sauvegarde impossible ({e}) et application non relancée : {cause}")
             return self._terminer(t, ANNULEE, f"Sauvegarde impossible : {e} — mise à jour annulée, "
                                               f"application relancée en {depart}")
-        self.noter(t, sauvegarde=str(dossier), etape='bascule')
+        self.noter(t, sauvegarde=str(dossier), outil=cible, etape='bascule')
         self.ecrire_version(cible)
         self.noter(t, etape='demarrage')
         cause = self.demarrer(cible, t=t, exiges=t.get('services'))
@@ -690,7 +719,7 @@ class Instance:
             if not t.get('sauvegarde'):
                 raise ErreurMaintenance("aucune sauvegarde d'avant la mise à jour")
             self.demarrer_base()
-            self.outil_base('restaurer', t['sauvegarde'], False, self._version_outil(t))
+            self.outil_base('restaurer', t['sauvegarde'], bool(t.get('fichiers')), self._version_outil(t))
         except ErreurMaintenance as e:
             return self._terminer(t, SANS_RETOUR, f"{cause} ; restauration de la base impossible : {e}. "
                                   f"Application arrêtée, sauvegarde conservée ({t.get('sauvegarde')}). "
@@ -701,22 +730,31 @@ class Instance:
             self.arreter_application()
             return self._terminer(t, SANS_RETOUR, f"{cause} ; la version {depart} ne redémarre pas non plus : "
                                   f"{cause_retour}. Application arrêtée, base restaurée. Reprise : {COMMANDE_REPRISE}")
+        avant = "le retour de version" if t.get('origine') == RETOUR_VERSION else "la mise à jour"
         return self._terminer(t, RETOUR_FAIT, f"{cause} — retour à la version {depart} effectué, "
-                              "données d'avant la mise à jour")
+                              f"données d'avant {avant}")
 
     def _version_outil(self, t):
-        """Image qui porte cicada-db : la cible (téléchargée pour la mise à
-        jour), à défaut celle du paquet installé."""
-        for v in (t.get('cible'), self.version_paquet()):
+        """Image qui porte cicada-db : celle qui a fait la sauvegarde d'avant
+        (`outil`), sinon la cible (téléchargée pour la mise à jour), à défaut
+        celle du paquet installé. Jamais la version d'arrivée d'un retour de
+        version : elle peut être antérieure à l'outil (#800)."""
+        candidats = (t.get('outil'), self.version_paquet()) if t.get('origine') == RETOUR_VERSION \
+            else (t.get('outil'), t.get('cible'), self.version_paquet())
+        for v in candidats:
             if v and self.image_presente(f'{IMAGES_CICADA[0]}:{v}'):
                 return v
-        return t.get('cible') or self.version_paquet()
+        return t.get('outil') or self.version_paquet()
 
     def _terminer(self, t, statut, cause):
         self.noter(t, statut=statut, cause=cause, fin=horodatage(), etape='termine')
         self.ecrire_resultat(t)
-        if statut == REUSSIE:
+        if statut == REUSSIE and t.get('origine') == RETOUR_VERSION:
+            self.dire(f"=== Instance revenue en {t['cible']} (pour défaire : sudo cicada-update rollback --oui) ===")
+        elif statut == REUSSIE:
             self.dire(f"=== Mise à jour vers {t['cible']} terminée ===")
+        elif statut == RETOUR_FAIT and t.get('demande'):
+            self.dire(f"=== Retour à la version {t['depart']} effectué ===")
         elif statut == RETOUR_FAIT:
             self.dire(f"=== ÉCHEC de la mise à jour vers {t['cible']} : {cause} ===")
         else:
@@ -775,6 +813,7 @@ class Instance:
                     raise ErreurMaintenance(
                         f"Retour à {t['depart']} avec la base du {t.get('debut')} : tout ce qui a été saisi depuis "
                         f"la mise à jour sera perdu. Pour confirmer : sudo cicada-update rollback --oui")
+                self.noter(t, demande=True)
                 return self.retour_arriere(t, f"Retour demandé à la version {t['depart']}")
             return self.retour_arriere(t, t.get('cause') or 'Reprise du retour arrière')
         finally:
@@ -814,37 +853,125 @@ class Instance:
     def restaurer(self, nom, fichiers=False, confirme=False):
         verrou = self.verrou()
         try:
+            return self._restaurer(nom, fichiers, confirme)
+        finally:
+            verrou.close()
+
+    def _restaurer(self, nom, fichiers=False, confirme=False):
+        dossier = self.trouver_sauvegarde(nom)
+        m = json.loads((dossier / 'sauvegarde.json').read_text())
+        en_service = self.version_en_service()
+        option = ' --fichiers' if fichiers else ''
+        if cle_version(m.get('version')) > cle_version(en_service):
+            raise ErreurMaintenance(
+                f"Sauvegarde faite en {m.get('version')}, plus récente que la version en service ({en_service}) : "
+                "l'application ne saurait pas lire cette base. Pour remettre l'instance en "
+                f"{m.get('version')} avec cette base : sudo cicada-restore {dossier.name} --avec-sa-version{option}")
+        if fichiers and not m.get('fichiers'):
+            raise ErreurMaintenance("Cette sauvegarde ne contient pas les fichiers déposés")
+        if not confirme:
+            plus_ancienne = m.get('version') and m.get('version') != en_service
+            raise ErreurMaintenance(
+                f"La base sera remplacée par celle du {m.get('date')} ({m.get('raison')}) : tout ce qui a été "
+                f"saisi depuis sera perdu. Pour confirmer : sudo cicada-restore {dossier.name}{option} --oui"
+                + (f"\nSauvegarde faite en {m.get('version')} : la version {en_service} la mettra à niveau au "
+                   f"démarrage. Pour revenir plutôt en {m.get('version')} : sudo cicada-restore {dossier.name} "
+                   f"--avec-sa-version{option}" if plus_ancienne else ''))
+        self.dire(f"=== Restauration de la sauvegarde {dossier.name} ===")
+        services = self.services_stables()
+        self.arreter_application()
+        try:
+            self.demarrer_base()
+            self.outil_base('restaurer', dossier, fichiers, self.version_paquet())
+        except ErreurMaintenance as e:
+            cause = self.demarrer(en_service, exiges=services)
+            raise ErreurMaintenance(f"Restauration annulée, base inchangée : {e}"
+                                    + (f" ; application non relancée : {cause}" if cause else
+                                       " ; application relancée"))
+        cause = self.demarrer(en_service, exiges=services)
+        if cause:
+            raise ErreurMaintenance(f"Base restaurée, mais l'application ne redémarre pas : {cause}")
+        self.dire("=== Restauration terminée, application relancée ===")
+        return dossier
+
+    def revenir_a(self, nom, fichiers=False, confirme=False):
+        """Remet l'instance dans la version d'une sauvegarde, avec sa base
+        (#800) : seul retour sûr vers une version plus ancienne, son code ne
+        sachant pas lire une base migrée depuis. Même filet qu'une mise à
+        jour : rien n'est arrêté tant que les images ne sont pas là, l'état
+        actuel est sauvegardé, et un échec y ramène."""
+        verrou = self.verrou()
+        try:
+            self._reprendre(origine='reprise')
             dossier = self.trouver_sauvegarde(nom)
             m = json.loads((dossier / 'sauvegarde.json').read_text())
-            en_service = self.version_en_service()
-            if cle_version(m.get('version')) > cle_version(en_service):
-                raise ErreurMaintenance(
-                    f"Sauvegarde faite en {m.get('version')}, plus récente que la version en service ({en_service}) : "
-                    "l'application ne saurait pas lire cette base. Mettre d'abord l'instance en "
-                    f"{m.get('version')} (sudo cicada-update install {m.get('version')})")
+            cible, depart = m.get('version'), self.version_en_service()
+            option = ' --fichiers' if fichiers else ''
+            if not cible:
+                raise ErreurMaintenance("Sauvegarde sans version notée : elle ne peut pas remettre une version")
+            if cible == depart:
+                self.dire(f"Sauvegarde faite dans la version en service ({cible}) : restauration de la base seule")
+                return {'statut': REUSSIE if self._restaurer(nom, fichiers, confirme) else ANNULEE,
+                        'cible': cible, 'depart': depart}
             if fichiers and not m.get('fichiers'):
                 raise ErreurMaintenance("Cette sauvegarde ne contient pas les fichiers déposés")
+            compose = dossier / 'compose'
+            if not (compose / 'docker-compose.yml').exists():
+                compose = self.source_compose(cible)
+            if not compose:
+                raise ErreurMaintenance(
+                    f"Les fichiers de déploiement de la version {cible} ne sont ni dans la sauvegarde ni sur le "
+                    "serveur : retour impossible avec cette sauvegarde (une plus récente : sudo cicada-backup --liste)")
             if not confirme:
                 raise ErreurMaintenance(
-                    f"La base sera remplacée par celle du {m.get('date')} ({m.get('raison')}) : tout ce qui a été "
-                    f"saisi depuis sera perdu. Pour confirmer : sudo cicada-restore {dossier.name}"
-                    + (' --fichiers' if fichiers else '') + ' --oui')
-            self.dire(f"=== Restauration de la sauvegarde {dossier.name} ===")
-            services = self.services_stables()
+                    f"L'instance repassera de {depart} à {cible}, avec la base du {m.get('date')} ({m.get('raison')}) : "
+                    "tout ce qui a été saisi depuis sera perdu (l'état actuel est sauvegardé avant). Pour confirmer : "
+                    f"sudo cicada-restore {dossier.name} --avec-sa-version{option} --oui")
+
+            t = {'id': uuid.uuid4().hex[:12], 'origine': RETOUR_VERSION, 'depart': depart, 'cible': cible,
+                 'debut': horodatage(), 'statut': EN_COURS, 'etape': 'controles', 'source': dossier.name,
+                 'fichiers': bool(fichiers)}
+            self.noter(t)
+            self.dire(f"=== Retour de CICADA {depart} → {cible} avec la sauvegarde {dossier.name} ===")
+            try:
+                self.controler_espace()
+                if compose != self.source_compose(cible):
+                    self.copier_compose(compose, self.c.etat / 'compose' / cible)
+                self.noter(t, etape='images')
+                self.tirer_images(cible, fichiers_de=cible)
+            except ErreurMaintenance as e:
+                return self._terminer(t, ANNULEE, f"{e} — rien n'a changé, l'application n'a pas été arrêtée")
+
+            self.noter(t, etape='arret', services=self.services_stables())
+            self.dire("  arrêt de l'application…")
             self.arreter_application()
+            self.noter(t, etape='sauvegarde')
+            # Outil de sauvegarde : celui du paquet installé. Ni la version en
+            # service ni celle d'arrivée ne le portent forcément (antérieures à #796).
+            outil = self.version_paquet()
+            try:
+                avant = self.sauvegarder(f'avant-retour-{depart}-vers-{cible}', version_outil=outil)
+            except ErreurMaintenance as e:
+                cause = self.demarrer(depart, t=t, exiges=t.get('services'))
+                if cause:
+                    return self._terminer(t, SANS_RETOUR, f"Sauvegarde impossible ({e}) et application non relancée : {cause}")
+                return self._terminer(t, ANNULEE, f"Sauvegarde de l'état actuel impossible : {e} — retour annulé, "
+                                                  f"application relancée en {depart}")
+            self.noter(t, sauvegarde=str(avant), outil=outil, etape='bascule')
             try:
                 self.demarrer_base()
-                self.outil_base('restaurer', dossier, fichiers, self.version_paquet())
+                self.outil_base('restaurer', dossier, fichiers, outil)
             except ErreurMaintenance as e:
-                cause = self.demarrer(en_service, exiges=services)
-                raise ErreurMaintenance(f"Restauration annulée, base inchangée : {e}"
-                                        + (f" ; application non relancée : {cause}" if cause else
-                                           " ; application relancée"))
-            cause = self.demarrer(en_service, exiges=services)
-            if cause:
-                raise ErreurMaintenance(f"Base restaurée, mais l'application ne redémarre pas : {cause}")
-            self.dire("=== Restauration terminée, application relancée ===")
-            return dossier
+                return self.retour_arriere(t, f"Restauration de la sauvegarde {dossier.name} impossible : {e}")
+            self.ecrire_version(cible)
+            self.noter(t, etape='demarrage')
+            cause = self.demarrer(cible, fichiers_de=cible, t=t, exiges=t.get('services'))
+            if cause is None:
+                # Images de la version de départ gardées : défaire le retour
+                # (cicada-update rollback) ne demande aucun téléchargement.
+                return self._terminer(t, REUSSIE, None)
+            self.dire(f"  ✗ {cause}")
+            return self.retour_arriere(t, cause)
         finally:
             verrou.close()
 
@@ -951,6 +1078,8 @@ def main_update(argv=None, instance=None):
             t = i.deployer(origine='commande', forcer=True)
         elif args.action == 'rollback':
             t = i.revenir(confirme=args.oui)
+            if t.get('statut') == RETOUR_FAIT and t.get('demande'):
+                return 0
         elif args.action == 'resume':
             t = i.reprendre() or {'statut': A_JOUR}
             if t.get('statut') == A_JOUR:
@@ -1014,6 +1143,8 @@ def main_restore(argv=None, instance=None):
         description="Restaure une sauvegarde de la base (tout ou rien) et relance l'application.")
     parser.add_argument('sauvegarde', help='nom du dossier (sudo cicada-backup --liste) ou chemin')
     parser.add_argument('--fichiers', action='store_true', help='restaurer aussi les fichiers déposés')
+    parser.add_argument('--avec-sa-version', action='store_true',
+                        help="remettre aussi la version de CICADA de la sauvegarde (retour à une version plus ancienne)")
     parser.add_argument('--oui', action='store_true', help='confirmer (les saisies faites depuis seront perdues)')
     args = parser.parse_args(argv)
     i = instance or Instance()
@@ -1021,6 +1152,8 @@ def main_restore(argv=None, instance=None):
         print("À lancer en root : sudo cicada-restore …", file=sys.stderr)
         return 1
     try:
+        if args.avec_sa_version:
+            return CODES.get(i.revenir_a(args.sauvegarde, fichiers=args.fichiers, confirme=args.oui).get('statut'), 1)
         i.restaurer(args.sauvegarde, fichiers=args.fichiers, confirme=args.oui)
         return 0
     except ErreurMaintenance as e:

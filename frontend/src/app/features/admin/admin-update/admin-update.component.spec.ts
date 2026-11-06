@@ -104,6 +104,16 @@ describe('AdminUpdateComponent', () => {
     expect(page.querySelector('[data-testid="update-last-failure"]')).toBeNull();
   });
 
+  it("n'affiche pas d'échec après un retour demandé par l'administrateur (#800)", () => {
+    const page = creer(info({
+      current_version: '0.1.69',
+      last_update: { ...ECHEC_RETOUR_FAIT, success: true, statut: 'retour_demande', cible: '0.1.70',
+                     error: 'Retour demandé à la version 0.1.69' },
+    }));
+    expect(page.querySelector('[data-testid="update-last-failure"]')).toBeNull();
+    expect(page.textContent).toContain('Mettre à jour');
+  });
+
   it("signale un service resté en échec après une mise à jour réussie", () => {
     const page = creer(info({
       current_version: '0.1.70', update_available: false,

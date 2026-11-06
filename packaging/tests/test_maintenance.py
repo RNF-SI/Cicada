@@ -19,6 +19,7 @@ import importlib.util
 import io
 import json
 import pathlib
+import shutil
 import subprocess
 import sys
 
@@ -59,6 +60,8 @@ class Serveur:
         self.toujours_casses = set()    # services qui bouclent dans toutes les versions
         self.demarrages_instables = {}  # service → redémarrages au lancement, puis il tient
         self.outil_en_echec = {}        # action cicada-db → message
+        self.archives_illisibles = set()  # sauvegardes dont la restauration échoue
+        self.sans_outil = set()         # versions dont l'image n'a pas cicada-db (antérieures à #796)
         self.paquet = depart
         self.depot_apt = {'1.0.0', '1.1.0'}
         self.postinst = None            # appelé par « apt-get install » (déroulé du paquet)
@@ -153,6 +156,8 @@ class Serveur:
             action = args[args.index('web') + 1]
             if f'{BACKEND}:{version}' not in self.images:
                 return subprocess.CompletedProcess(cmd, 1, '', 'image absente')
+            if version in self.sans_outil:
+                return subprocess.CompletedProcess(cmd, 127, '', 'exec: "cicada-db": executable file not found in $PATH')
             if action in self.outil_en_echec:
                 return ok(json.dumps({'ok': False, 'erreur': self.outil_en_echec[action]}))
             if action == 'sauvegarder':
@@ -162,6 +167,8 @@ class Serveur:
                 if '--fichiers' in args:
                     resultat['fichiers'] = {'taille': 100, 'nombre': 3}
                 return ok('Sauvegarde…\n' + json.dumps({'ok': True, **resultat}))
+            if action == 'restaurer' and str(dossier) in self.archives_illisibles:
+                return ok(json.dumps({'ok': False, 'erreur': "Restauration annulée, la base n'a pas été modifiée"}))
             if action == 'restaurer':
                 self.base = copy.deepcopy(self.archives[str(dossier)])
                 return ok(json.dumps({'ok': True, 'base': {}}))
@@ -266,6 +273,9 @@ def test_mise_a_jour_reussie(instance):
     manifeste = json.loads((sauvegarde / 'sauvegarde.json').read_text())
     assert manifeste['ok'] and manifeste['version'] == '1.0.0' and manifeste['fichiers']['nombre'] == 3
     assert (sauvegarde / 'env').read_text().startswith('SECRET_KEY=')
+    # Fichiers de déploiement de la version sauvegardée (#800)
+    assert (sauvegarde / 'compose/docker-compose.yml').read_text() == '# 1.0.0\n'
+    assert manifeste['compose'] is True
     assert oct((sauvegarde / 'env').stat().st_mode)[-3:] == '600'
     assert oct((instance.racine / 'var/lib/cicada/.env').stat().st_mode)[-3:] == '600'
     r = resultat(instance)
@@ -481,6 +491,15 @@ def test_retour_manuel_apres_une_mise_a_jour_reussie_demande_confirmation(instan
     assert t['statut'] == cm.RETOUR_FAIT
     assert version_env(instance) == '1.0.0'
     assert instance.serveur.base['donnees'] == ['plan A', 'plan B']
+    # Retour voulu, pas un échec : la page de mise à jour n'affiche pas « a échoué »
+    r = resultat(instance)
+    assert r['statut'] == 'retour_demande' and r['success'] is True and r['retour_arriere'] is True
+
+
+def test_rollback_demande_rend_0(instance):
+    instance.deployer()
+    assert cm.main_update(['rollback', '--oui'], instance=instance) == 0
+    assert version_env(instance) == '1.0.0'
 
 
 # --- Bouton « Mettre à jour » : paquet APT, puis déroulé par le postinst ------------
@@ -562,8 +581,187 @@ def test_restauration_refusee_d_une_sauvegarde_plus_recente(instance):
     dossier = instance.sauvegarder('apres-maj')
     instance.ecrire_version('1.0.0')
 
-    with pytest.raises(cm.ErreurMaintenance, match='plus récente'):
+    with pytest.raises(cm.ErreurMaintenance, match='plus récente.*--avec-sa-version'):
         instance.restaurer(dossier.name, confirme=True)
+
+
+# --- Retour à une version plus ancienne depuis une sauvegarde (#800) ---------------
+
+def monter(instance, version):
+    """Nouveau paquet comme apt le pose : le preinst copie les fichiers compose
+    de la version remplacée, puis le postinst déroule la mise à jour."""
+    serveur, racine = instance.serveur, instance.racine
+    copie = racine / 'var/lib/cicada/maintenance/compose' / serveur.paquet
+    copie.mkdir(parents=True, exist_ok=True)
+    for f in (racine / 'usr/share/cicada').glob('docker-compose*.yml'):
+        (copie / f.name).write_text(f.read_text())
+    for f in (racine / 'usr/share/cicada').glob('docker-compose*.yml'):
+        f.write_text(f'# {version}\n')
+    (racine / 'usr/share/cicada/VERSION').write_text(version + '\n')
+    serveur.paquet = version
+    serveur.registre |= set(images_de(version))
+    serveur.depot_apt = {version}
+    t = instance.deployer(origine='paquet')
+    assert t['statut'] == cm.REUSSIE
+    return t
+
+
+@pytest.fixture
+def trois_versions(instance):
+    """Sauvegarde quotidienne faite en 1.0.0, puis deux mises à jour (1.1.0,
+    1.2.0) et des saisies ; la copie du preinst et les images de 1.0.0 ont
+    disparu depuis (le paquet n'en garde que 5, le nettoyage les a retirées)."""
+    for nom in ('docker-compose.yml', 'docker-compose.db.yml', 'docker-compose.frontend-ports.yml'):
+        (instance.racine / 'usr/share/cicada' / nom).write_text('# 1.1.0\n')
+    sauvegarde = instance.sauvegarder('quotidienne', version_outil='1.0.0')
+    # Comme 0.1.69 sur le banc VM : la version d'arrivée du retour n'a pas l'outil
+    instance.serveur.sans_outil.add('1.0.0')
+    instance.deployer()
+    monter(instance, '1.2.0')
+    instance.serveur.base['donnees'].append('saisi en 1.2.0')
+    shutil.rmtree(instance.racine / 'var/lib/cicada/maintenance/compose/1.0.0')
+    instance.serveur.images -= set(images_de('1.0.0'))
+    env = instance.racine / 'var/lib/cicada/.env'
+    env.write_text(env.read_text() + 'CICADA_HUB_URL=https://hub.exemple\n')
+    assert version_env(instance) == '1.2.0' and instance.serveur.base['schema'] == '1.2.0'
+    instance.serveur.appels.clear()
+    return sauvegarde.name
+
+
+def test_retour_a_une_version_plus_ancienne_avec_sa_base(instance, trois_versions):
+    with pytest.raises(cm.ErreurMaintenance, match='1.0.0.*--avec-sa-version --oui'):
+        instance.revenir_a(trois_versions)
+    assert instance.serveur.arrets() == [] and version_env(instance) == '1.2.0'
+
+    t = instance.revenir_a(trois_versions, confirme=True)
+
+    assert t['statut'] == cm.REUSSIE and t['depart'] == '1.2.0' and t['cible'] == '1.0.0'
+    assert version_env(instance) == '1.0.0'
+    assert instance.serveur.application_en_service() == (True, '1.0.0')
+    # La base de la sauvegarde, pas la base de 1.2.0 sous le code de 1.0.0
+    assert instance.serveur.base == {'schema': '1.0.0', 'donnees': ['plan A', 'plan B']}
+    # Les fichiers compose de 1.0.0, repris de la sauvegarde
+    assert all('maintenance/compose/1.0.0' in f for f in instance.serveur.derniers_fichiers)
+    assert (instance.racine / 'var/lib/cicada/maintenance/compose/1.0.0/docker-compose.yml').read_text() == '# 1.0.0\n'
+    # Configuration actuelle conservée : seule la version change
+    assert 'CICADA_HUB_URL=https://hub.exemple' in (instance.racine / 'var/lib/cicada/.env').read_text()
+    # État d'avant sauvegardé, résultat publié pour la page de mise à jour
+    assert 'avant-retour-1.2.0-vers-1.0.0' in t['sauvegarde']
+    assert resultat(instance)['statut'] == 'reussie' and resultat(instance)['cible'] == '1.0.0'
+    # Images de la version de départ gardées : défaire le retour sans téléchargement
+    assert f'{BACKEND}:1.2.0' in instance.serveur.images
+
+
+def test_retour_a_une_version_se_defait_par_rollback(instance, trois_versions):
+    instance.revenir_a(trois_versions, confirme=True)
+
+    t = instance.revenir(confirme=True)
+
+    assert t['statut'] == cm.RETOUR_FAIT
+    assert version_env(instance) == '1.2.0'
+    assert instance.serveur.application_en_service() == (True, '1.2.0')
+    assert 'saisi en 1.2.0' in instance.serveur.base['donnees']
+    r = resultat(instance)
+    assert r['statut'] == 'retour_demande' and r['origine'] == 'retour_version'
+
+
+def test_retour_depuis_une_version_sans_l_outil(instance, trois_versions):
+    """Instance revenue en 1.0.0 (image sans cicada-db) : un nouveau retour,
+    vers une sauvegarde de 1.1.0, se fait avec l'outil du paquet installé."""
+    instance.serveur.images |= set(images_de('1.1.0'))
+    instance.ecrire_version('1.1.0')
+    en_1_1 = instance.sauvegarder('quotidienne-1.1.0').name
+    instance.ecrire_version('1.2.0')
+    instance.revenir_a(trois_versions, confirme=True)
+    assert version_env(instance) == '1.0.0'
+
+    t = instance.revenir_a(en_1_1, confirme=True)
+
+    assert t['statut'] == cm.REUSSIE, t.get('cause')
+    assert version_env(instance) == '1.1.0'
+
+
+def test_apres_un_retour_la_mise_a_jour_se_relance(instance, trois_versions):
+    instance.revenir_a(trois_versions, confirme=True)
+    assert cm.main_update(['deploy'], instance=instance) == 0  # paquet reconfiguré : relance permise
+
+    assert version_env(instance) == '1.2.0'
+    assert instance.serveur.base == {'schema': '1.2.0', 'donnees': ['plan A', 'plan B']}
+
+
+def test_retour_a_une_version_images_introuvables_rien_ne_change(instance, trois_versions):
+    instance.serveur.registre.discard(f'{BACKEND}:1.0.0')
+
+    t = instance.revenir_a(trois_versions, confirme=True)
+
+    assert t['statut'] == cm.ANNULEE and "rien n'a changé" in t['cause']
+    assert instance.serveur.arrets() == []
+    assert version_env(instance) == '1.2.0' and 'saisi en 1.2.0' in instance.serveur.base['donnees']
+
+
+def test_retour_a_une_version_restauration_en_echec(instance, trois_versions):
+    dossier = instance.dossier_sauvegardes() / trois_versions
+    instance.serveur.archives_illisibles.add(str(dossier))
+
+    t = instance.revenir_a(trois_versions, confirme=True)
+
+    assert t['statut'] == cm.RETOUR_FAIT
+    assert 'Restauration de la sauvegarde' in t['cause'] and 'retour à la version 1.2.0 effectué' in t['cause']
+    assert version_env(instance) == '1.2.0'
+    assert instance.serveur.application_en_service() == (True, '1.2.0')
+    assert instance.serveur.base['schema'] == '1.2.0' and 'saisi en 1.2.0' in instance.serveur.base['donnees']
+
+
+def test_retour_a_une_version_qui_ne_demarre_pas(instance, trois_versions):
+    instance.serveur.web_casse.add('1.0.0')
+
+    t = instance.revenir_a(trois_versions, confirme=True)
+
+    assert t['statut'] == cm.RETOUR_FAIT
+    assert version_env(instance) == '1.2.0'
+    assert instance.serveur.application_en_service() == (True, '1.2.0')
+    assert instance.serveur.base == {'schema': '1.2.0', 'donnees': ['plan A', 'plan B', 'saisi en 1.2.0']}
+
+
+def test_retour_a_une_version_interrompu_puis_repris(instance, trois_versions):
+    """Serveur coupé pendant le démarrage de 1.0.0 : la reprise remet 1.2.0 et sa base."""
+    instance.demarrer = lambda *a, **k: (_ for _ in ()).throw(KeyboardInterrupt)
+    with pytest.raises(KeyboardInterrupt):
+        instance.revenir_a(trois_versions, confirme=True)
+    del instance.demarrer
+    instance.serveur.web_casse.clear()
+    assert instance.tentative()['etape'] == 'demarrage'
+
+    t = instance.reprendre()
+
+    assert t['statut'] == cm.RETOUR_FAIT
+    assert version_env(instance) == '1.2.0'
+    assert 'saisi en 1.2.0' in instance.serveur.base['donnees']
+
+
+def test_retour_a_une_version_sans_fichiers_de_deploiement_refuse(instance, trois_versions):
+    shutil.rmtree(instance.dossier_sauvegardes() / trois_versions / 'compose')
+
+    with pytest.raises(cm.ErreurMaintenance, match='fichiers de déploiement'):
+        instance.revenir_a(trois_versions, confirme=True)
+    assert instance.serveur.arrets() == [] and version_env(instance) == '1.2.0'
+
+
+def test_retour_a_une_version_avec_les_fichiers_deposes(instance, trois_versions):
+    instance.revenir_a(trois_versions, fichiers=True, confirme=True)
+
+    restaurations = [c for c in instance.serveur.appels if 'restaurer' in c]
+    assert '--fichiers' in restaurations[-1]
+    # Défaire le retour remet aussi les fichiers d'avant
+    instance.revenir(confirme=True)
+    restaurations = [c for c in instance.serveur.appels if 'restaurer' in c]
+    assert '--fichiers' in restaurations[-1]
+
+
+def test_cicada_restore_avec_sa_version(instance, trois_versions):
+    assert cm.main_restore([trois_versions, '--avec-sa-version'], instance=instance) == 1
+    assert cm.main_restore([trois_versions, '--avec-sa-version', '--oui'], instance=instance) == 0
+    assert version_env(instance) == '1.0.0'
 
 
 def test_etat_lisible_sans_l_application(instance):

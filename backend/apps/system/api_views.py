@@ -82,8 +82,9 @@ def get_update_info():
         # Déclencheur déposé par le bouton et pas encore consommé par l'updater
         'update_pending': UPDATE_TRIGGER_FILE.exists(),
         # Dernière mise à jour : success, version, timestamp, error, et depuis
-        # #796 statut (reussie, annulee, echec_retour_fait, echec_sans_retour),
-        # depart, cible, retour_arriere, sauvegarde, journal, commande
+        # #796 statut (reussie, annulee, echec_retour_fait, echec_sans_retour,
+        # retour_demande #800), origine, depart, cible, retour_arriere,
+        # sauvegarde, journal, commande
         'last_update': _read_json(UPDATE_RESULT_FILE),
         # Dernière sauvegarde de l'instance et nombre conservé (#796)
         'last_backup': _read_json(BACKUPS_FILE),
@@ -120,7 +121,9 @@ ETAT_MISE_A_JOUR = inline_serializer('SystemVersion', fields={
         help_text="Résultat de la dernière mise à jour, ou nul : `success`, `version`, `timestamp`, "
                   "`error` (cause lisible), `statut` (`reussie`, `a_jour`, `annulee` — rien n'a changé —, "
                   "`echec_retour_fait` — version précédente et base d'avant rétablies —, "
-                  "`echec_sans_retour` — application arrêtée, reprise par `commande`), `depart`, "
+                  "`echec_sans_retour` — application arrêtée, reprise par `commande` —, `retour_demande` — "
+                  "retour à la version d'avant voulu par l'administrateur, pas un échec), `origine` (`bouton`, "
+                  "`commande`, `paquet`, `reprise`, `retour_version` — retour à la version d'une sauvegarde), `depart`, "
                   "`cible`, `retour_arriere`, `sauvegarde`, `journal`, `avertissement` (service déjà en "
                   "échec avant la mise à jour, toujours en échec après)."),
     'last_backup': serializers.DictField(

@@ -12,7 +12,9 @@
 #  3. `cicada-update status` explique l'état sans l'application ;
 #  4. cause corrigée (bon backend), `cicada-update retry` réussit ;
 #  5. sauvegarde, restauration (tout ou rien), vérification ;
-#  6. services (sauvegarde quotidienne, reprise au démarrage), bouton du nouveau
+#  6. retour à la version initiale depuis une de ses sauvegardes (#800), défait
+#     par rollback, puis refait et suivi d'une nouvelle mise à jour ;
+#  7. services (sauvegarde quotidienne, reprise au démarrage), bouton du nouveau
 #     service.
 # Le backend testé arrive par --backend-image (image non publiée) ; le frontend
 # est celui de la version initiale, ré-étiqueté.
@@ -91,6 +93,81 @@ depot_local() {  # depot_local TO — dépôt APT servant le paquet testé
     echo "deb [trusted=yes] file:$DEPOT ./" > /etc/apt/sources.list.d/banc-depot.list
     apt-get update -qq 2>/dev/null
     check "apt propose cicada $1" bash -c "apt-cache policy cicada | grep -qE '(Candidat|Candidate) *: *$1'"
+}
+
+retour_version_checks() {  # retour_version_checks FROM TO — instance en TO
+    local from="$1" to="$2" nom out rc
+    step "Retour à $from depuis une sauvegarde faite en $from (#800)"
+    nom="$(python3 - "$from" <<'PY'
+import json, pathlib, sys
+for d in sorted(pathlib.Path('/var/backups/cicada').iterdir(), reverse=True):
+    try:
+        m = json.loads((d / 'sauvegarde.json').read_text())
+    except (OSError, ValueError):
+        continue
+    if m.get('ok') and m.get('version') == sys.argv[1]:
+        print(d.name)
+        break
+PY
+)"
+    check "Sauvegarde faite en $from disponible" test -n "$nom"
+    [ -n "$nom" ] || return
+    record INFO "Sauvegarde utilisée" "$nom"
+    check "Elle porte les fichiers de déploiement de $from" test -f "/var/backups/cicada/$nom/compose/docker-compose.yml"
+    # Copie du preinst retirée : la sauvegarde doit suffire seule
+    rm -rf "/var/lib/cicada/maintenance/compose/$from"
+    docker exec cicada_prod_web python manage.py shell -c "
+from apps.users.models import Role
+Role.objects.create_user(email='apres@bench.test', password='$TEMOIN_PASSWORD', nom_role='Apres', prenom_role='Banc', active=True)
+print('ok')" >/dev/null 2>&1
+    check "Saisie faite en $to (à perdre)" test "$(login_code apres@bench.test "$TEMOIN_PASSWORD")" = 200
+
+    out="$(cicada-restore "$nom" 2>&1)"; rc=$?
+    check "Sans l'option, la restauration renvoie vers --avec-sa-version" \
+        bash -c "[ $rc -ne 0 ] && grep -q -- '--avec-sa-version' <<< \"\$1\"" _ "$out"
+    out="$(cicada-restore "$nom" --avec-sa-version 2>&1)"; rc=$?
+    check "Retour refusé sans --oui" bash -c "[ $rc -ne 0 ] && grep -q -- '--oui' <<< \"\$1\"" _ "$out"
+    check "Rien n'a changé sans --oui" images_sur "$to"
+
+    out="$(cicada-restore "$nom" --avec-sa-version --oui 2>&1)"; rc=$?
+    echo "$out" | grep -E '===|✓|✗' | sed 's/^/   /'
+    check "cicada-restore --avec-sa-version --oui" test "$rc" = 0
+    check "Les 4 conteneurs sur $from" images_sur "$from"
+    check "CICADA_VERSION=$from" test "$(env_value CICADA_VERSION)" = "$from"
+    check "Fichiers compose de $from repris de la sauvegarde" test -f "/var/lib/cicada/maintenance/compose/$from/docker-compose.yml"
+    wait_for 120 test "$(http_code "http://127.0.0.1:$FRONTEND_PORT/")" = 200
+    check "Application servie en $from" test "$(http_code "http://127.0.0.1:$FRONTEND_PORT/")" = 200
+    check "Témoin de la sauvegarde présent" test "$(login_code "$TEMOIN_EMAIL" "$TEMOIN_PASSWORD")" = 200
+    check "Saisie faite en $to absente (base de la sauvegarde)" \
+        test "$(app_sql "select count(*) from utilisateurs.t_roles where email='apres@bench.test'")" = 0
+    check "Résultat lu par l'application : reussie vers $from" \
+        bash -c "[ \"\$1\" = reussie ] && [ \"\$2\" = '$from' ]" _ "$(resultat statut)" "$(resultat cible)"
+    check "Heartbeat : version en service annoncée ($from)" test "$(python3 -c \
+        "import importlib.machinery as m; print(m.SourceFileLoader('hb', '/usr/bin/cicada-heartbeat').load_module().get_version())" 2>/dev/null)" = "$from"
+    out="$(cicada-update status 2>&1)"
+    check "status : en service $from, paquet $to, mise à jour proposée" bash -c \
+        "grep -q 'Version en service *: $from' <<< \"\$1\" && grep -q 'cicada-update retry' <<< \"\$1\"" _ "$out"
+
+    step "Retour défait : cicada-update rollback --oui"
+    out="$(cicada-update rollback --oui 2>&1)"; rc=$?
+    echo "$out" | grep -E '===|✓|✗' | sed 's/^/   /'
+    check "cicada-update rollback --oui réussit" test "$rc" = 0
+    check "Les 4 conteneurs sur $to" images_sur "$to"
+    wait_for 120 test "$(http_code "http://127.0.0.1:$FRONTEND_PORT/")" = 200
+    check "Saisie faite en $to retrouvée" test "$(login_code apres@bench.test "$TEMOIN_PASSWORD")" = 200
+
+    step "Nouveau retour à $from, puis remise à jour : cicada-update retry"
+    out="$(cicada-restore "$nom" --avec-sa-version --oui 2>&1)"; rc=$?
+    check "Retour à $from" bash -c "[ $rc -eq 0 ] && [ \"\$1\" = '$from' ]" _ "$(env_value CICADA_VERSION)"
+    out="$(cicada-update retry 2>&1)"; rc=$?
+    echo "$out" | grep -E '===|✓|✗' | sed 's/^/   /'
+    check "cicada-update retry réussit" test "$rc" = 0
+    check "Les 4 conteneurs sur $to" images_sur "$to"
+    wait_for 120 test "$(http_code "http://127.0.0.1:$FRONTEND_PORT/")" = 200
+    check "Témoin conservé après la remise à jour" test "$(login_code "$TEMOIN_EMAIL" "$TEMOIN_PASSWORD")" = 200
+    local pending
+    pending="$(docker exec cicada_prod_web python manage.py showmigrations --plan 2>/dev/null | grep -c '^\[ \]')"
+    check "Toutes les migrations de $to appliquées" test "${pending:-x}" = 0
 }
 
 maj_checks() {
@@ -195,6 +272,9 @@ Role.objects.filter(email='$TEMOIN_EMAIL').update(email='modifie@bench.test')" >
     wait_for 120 test "$(http_code "http://127.0.0.1:$FRONTEND_PORT/")" = 200
     check "Témoin rétabli (connexion)" test "$(login_code "$TEMOIN_EMAIL" "$TEMOIN_PASSWORD")" = 200
     check "Application en $to après la restauration" images_sur "$to"
+
+    # ------------------------------------------------------------------
+    retour_version_checks "$from" "$to"
 
     # ------------------------------------------------------------------
     step "Services du paquet"
