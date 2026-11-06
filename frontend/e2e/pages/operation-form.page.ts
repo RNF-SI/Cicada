@@ -299,7 +299,7 @@ export class OperationFormPage {
     await this.addFinanceBtn.click();
     await this.page.waitForTimeout(200);
     const lastRow = this.financeRows.last();
-    await lastRow.locator('input').fill(libelle);
+    await lastRow.locator('.finance-libelle input').fill(libelle);
   }
 
   /**

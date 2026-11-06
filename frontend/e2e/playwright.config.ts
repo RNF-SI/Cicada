@@ -31,7 +31,9 @@ export default defineConfig({
   workers: isCI ? 2 : 2,
   timeout: 60000,
   reporter: isCI
-    ? [['html', { outputFolder: '../playwright-report' }], ['junit', { outputFile: '../e2e-results.xml' }]]
+    // `line` nomme chaque échec dès qu'il survient : si le job dépasse son
+    // délai, le rapport HTML n'est jamais écrit et le journal seul reste.
+    ? [['line'], ['html', { outputFolder: '../playwright-report' }], ['junit', { outputFile: '../e2e-results.xml' }]]
     : [['html', { outputFolder: '../playwright-report', open: 'never' }]],
 
   use: {

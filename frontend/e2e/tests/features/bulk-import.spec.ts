@@ -21,7 +21,7 @@ test.describe('Bulk Site Import', () => {
       await page.waitForTimeout(1000);
 
       // Look for the bulk import button
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await expect(bulkImportBtn).toBeVisible();
     });
 
@@ -29,7 +29,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await expect(bulkImportBtn).toBeVisible();
     });
 
@@ -37,7 +37,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await expect(bulkImportBtn).not.toBeVisible();
     });
 
@@ -45,7 +45,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await expect(bulkImportBtn).not.toBeVisible();
     });
 
@@ -58,7 +58,7 @@ test.describe('Bulk Site Import', () => {
       await page.waitForTimeout(1000);
 
       // Click bulk import button
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await bulkImportBtn.click();
 
       // Dialog should open
@@ -73,7 +73,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await bulkImportBtn.click();
 
       const dialog = page.locator('mat-dialog-container');
@@ -93,7 +93,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await bulkImportBtn.click();
 
       const dialog = page.locator('mat-dialog-container');
@@ -112,7 +112,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await bulkImportBtn.click();
 
       const dialog = page.locator('mat-dialog-container');
@@ -128,7 +128,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await bulkImportBtn.click();
 
       const dialog = page.locator('mat-dialog-container');
@@ -147,7 +147,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await bulkImportBtn.click();
 
       const dialog = page.locator('mat-dialog-container');
@@ -169,7 +169,7 @@ test.describe('Bulk Site Import', () => {
       await page.goto('/sites');
       await page.waitForTimeout(1000);
 
-      const bulkImportBtn = page.locator('.btn-import, button:has-text("Import en masse")');
+      const bulkImportBtn = page.locator('button:has-text("Import en masse")');
       await bulkImportBtn.click();
 
       const dialog = page.locator('mat-dialog-container');
