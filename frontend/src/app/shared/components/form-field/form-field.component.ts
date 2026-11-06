@@ -12,7 +12,7 @@ import { NgControl } from '@angular/forms';
  * mais le contrôle de formulaire reste dans le `<input>`, `<textarea>` ou `<select>` projeté.
  *
  * @example Basique
- * <app-form-field label="Nom du site" required>
+ * <app-form-field label="Nom du site" [required]="true">
  *   <input type="text" formControlName="name" />
  * </app-form-field>
  *

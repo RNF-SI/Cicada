@@ -361,7 +361,7 @@ Checkbox custom (carré arrondi, **sans cercle Material**). Compatible Reactive 
 Wrapper pour champs compacts : label **au-dessus** du champ, asterisque rouge si requis, état erreur. Plus dense que Material.
 
 ```html
-<app-form-field label="Nom du site" required>
+<app-form-field label="Nom du site" [required]="true">
   <input type="text" formControlName="name" />
 </app-form-field>
 
@@ -377,7 +377,7 @@ Wrapper pour champs compacts : label **au-dessus** du champ, asterisque rouge si
 | Input | Type | Défaut | Description |
 |-------|------|--------|-------------|
 | `label` | `string` | `''` | Label au-dessus du champ |
-| `required` | `boolean` | `false` | Ajoute astérisque rouge |
+| `required` | `boolean` | `false` | Ajoute astérisque rouge — toujours `[required]="true"` : l'attribut nu vaut `""` et casse le build de production (AOT strict), sans que Jest ni `tsc` le voient |
 | `helpText` | `string?` | — | Aide ENTRE label et champ |
 | `error` | `string \| null` | — | Message d'erreur (active l'état erreur) |
 | `suffix` | `string?` | — | Suffixe (ex: 'ha', '€') |

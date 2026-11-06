@@ -28,7 +28,7 @@
 
   @if (canManage()) {
     <div class="financeur-form form-row-aligned">
-      <app-form-field [label]="'plans.financeurs.nom' | translate" required>
+      <app-form-field [label]="'plans.financeurs.nom' | translate" [required]="true">
         <input type="text" [(ngModel)]="nom" data-testid="financeur-nom">
       </app-form-field>
       <app-form-field [label]="'plans.financeurs.categorie' | translate">
@@ -42,7 +42,7 @@
       </app-form-field>
       @if (categorie === AUTRE) {
         <app-form-field [label]="'plans.financeurs.categorieLibre' | translate"
-                        [helpText]="'plans.financeurs.categorieLibreHint' | translate" required>
+                        [helpText]="'plans.financeurs.categorieLibreHint' | translate" [required]="true">
           <input type="text" [(ngModel)]="categorieLibre" data-testid="financeur-categorie-libre">
         </app-form-field>
       }
