@@ -1,0 +1,12 @@
+[Unit]
+Description=Sauvegarde quotidienne de CICADA (base, fichiers déposés, configuration)
+After=docker.service network-online.target
+Requires=docker.service
+ConditionPathExists=/var/lib/cicada/.env
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cicada-backup --raison quotidienne
+User=root
+Nice=10
+IOSchedulingClass=idle

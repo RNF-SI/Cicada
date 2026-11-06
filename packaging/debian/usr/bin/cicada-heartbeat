@@ -10,6 +10,7 @@ from pathlib import Path
 TOKEN_FILE = "/etc/cicada/instance_token"
 CONFIG_FILE = "/etc/cicada/cicada.conf"
 VERSION_FILE = "/usr/share/cicada/VERSION"
+ENV_FILE = "/var/lib/cicada/.env"
 # Dossier d'échange avec l'application, monté dans le conteneur web à
 # /var/lib/cicada (voir docker-compose.yml) : elle y lit ce fichier.
 UPDATE_FILE = "/var/lib/cicada/updates/update_available.json"
@@ -50,6 +51,18 @@ def get_token():
     return token_path.read_text().strip()
 
 def get_version():
+    """Version EN SERVICE (CICADA_VERSION du .env, celle des conteneurs), pas
+    celle du paquet : après une mise à jour annulée ou défaite (#796), le
+    paquet est plus récent que l'application, et le serveur de suivi doit
+    continuer à proposer la mise à jour."""
+    try:
+        for line in Path(ENV_FILE).read_text().splitlines():
+            if line.startswith('CICADA_VERSION='):
+                running = line.split('=', 1)[1].strip()
+                if running:
+                    return running
+    except OSError:
+        pass
     version_path = Path(VERSION_FILE)
     if version_path.exists():
         return version_path.read_text().strip() or "unknown"

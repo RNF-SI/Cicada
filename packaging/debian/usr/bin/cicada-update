@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+"""cicada-update — voir /usr/share/cicada/maintenance/cicada_maintenance.py (#796)."""
+import sys
+
+sys.path.insert(0, '/usr/share/cicada/maintenance')
+
+from cicada_maintenance import main_update  # noqa: E402
+
+sys.exit(main_update())

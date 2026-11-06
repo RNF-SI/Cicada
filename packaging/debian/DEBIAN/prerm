@@ -18,12 +18,14 @@ case "$ACTION" in
             systemctl stop cicada-updater.service || true
             systemctl stop cicada-updater.path || true
             systemctl stop cicada-heartbeat-check.path || true
+            systemctl stop cicada-backup.timer cicada-backup.service || true
         fi
 
         # Arrêter les conteneurs Docker si en cours d'exécution
         # Mêmes fichiers compose qu'au démarrage : avec le seul fichier de base,
         # le conteneur de base de données (docker-compose.db.yml) restait lancé.
-        # Les volumes (données) sont conservés : pas de --volumes.
+        # Les volumes (données) sont conservés : pas de --volumes. Les
+        # sauvegardes (/var/backups/cicada) aussi, même en purge (#796).
         if [ -f "/var/lib/cicada/.env" ] && command -v docker >/dev/null 2>&1; then
             . /usr/share/cicada/compose-files.sh
             # shellcheck disable=SC2046

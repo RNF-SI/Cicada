@@ -27,6 +27,9 @@ UPDATE_RESULT_FILE = Path("/var/lib/cicada/update_result.json")
 # Déposé par le bouton « Vérifier les mises à jour » : cicada-heartbeat-check.path
 # lance alors le heartbeat sur l'hôte, qui le supprime en démarrant.
 CHECK_TRIGGER_FILE = Path("/var/lib/cicada/check_trigger.json")
+# #796 — résumé des sauvegardes, écrit par cicada-backup / cicada-update sur
+# l'hôte (les sauvegardes elles-mêmes restent dans un dossier réservé à root).
+BACKUPS_FILE = Path("/var/lib/cicada/backups.json")
 
 
 def _read_json(path: Path):
@@ -78,8 +81,12 @@ def get_update_info():
         'check_pending': CHECK_TRIGGER_FILE.exists(),
         # Déclencheur déposé par le bouton et pas encore consommé par l'updater
         'update_pending': UPDATE_TRIGGER_FILE.exists(),
-        # Dernière mise à jour faite par l'updater : success, version, timestamp, error
+        # Dernière mise à jour : success, version, timestamp, error, et depuis
+        # #796 statut (reussie, annulee, echec_retour_fait, echec_sans_retour),
+        # depart, cible, retour_arriere, sauvegarde, journal, commande
         'last_update': _read_json(UPDATE_RESULT_FILE),
+        # Dernière sauvegarde de l'instance et nombre conservé (#796)
+        'last_backup': _read_json(BACKUPS_FILE),
     }
 
 
@@ -104,10 +111,22 @@ ETAT_MISE_A_JOUR = inline_serializer('SystemVersion', fields={
     'update_pending': serializers.BooleanField(
         help_text="Un déclencheur a été déposé et n'est pas encore consommé par "
                   "cicada-updater."),
+    'last_check_error': serializers.CharField(
+        allow_null=True, help_text="Échec de la dernière interrogation de l'API de suivi."),
+    'check_pending': serializers.BooleanField(
+        help_text="Vérification demandée, pas encore prise en charge par l'hôte."),
     'last_update': serializers.DictField(
         allow_null=True,
-        help_text="Résultat de la dernière mise à jour (`success`, `version`, "
-                  "`timestamp`, `error`), ou nul."),
+        help_text="Résultat de la dernière mise à jour, ou nul : `success`, `version`, `timestamp`, "
+                  "`error` (cause lisible), `statut` (`reussie`, `a_jour`, `annulee` — rien n'a changé —, "
+                  "`echec_retour_fait` — version précédente et base d'avant rétablies —, "
+                  "`echec_sans_retour` — application arrêtée, reprise par `commande`), `depart`, "
+                  "`cible`, `retour_arriere`, `sauvegarde`, `journal`, `avertissement` (service déjà en "
+                  "échec avant la mise à jour, toujours en échec après)."),
+    'last_backup': serializers.DictField(
+        allow_null=True,
+        help_text="Sauvegardes de l'instance (`nombre`, `dossier`, `derniere` : `nom`, `date`, "
+                  "`raison`, `version`, `taille`), ou nul si aucune n'est connue."),
 })
 
 

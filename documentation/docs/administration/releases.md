@@ -186,7 +186,7 @@ sudo apt install cicada
 
 ## 7. Déployer sur un serveur (staging ou production)
 
-Le déploiement se fait par **installation directe du `.deb`**. Le `postinst` du paquet est autonome : il met à jour `CICADA_VERSION` dans l’environnement, puis lance `docker compose pull` et `up -d`. Il n’y a **rien à lancer à la main** ensuite.
+Le déploiement se fait par **installation directe du `.deb`**. Le `postinst` du paquet est autonome : il lance `cicada-update deploy` — contrôle de l'espace disque, téléchargement des images, arrêt, sauvegarde vérifiée, passage à la nouvelle version, vérification, et **retour automatique** à la version précédente en cas d'échec (#796, détail : [Installation § 6](installation.md#6-mettre-à-jour)). Il n’y a **rien à lancer à la main** ensuite. Après coup, `sudo cicada-update status` dit ce qui s'est passé.
 
 ### 7.1 Prérequis
 
@@ -212,7 +212,7 @@ ssh <user>@<serveur>
 sudo dpkg -i cicada_X.Y.Z_amd64.deb
 ```
 
-⚠️ **Prévenir les utilisateurs en production** : le redémarrage des conteneurs coupe le service 20 à 40 secondes.
+⚠️ **Prévenir les utilisateurs en production** : l'application est coupée de la sauvegarde jusqu'au redémarrage, quelques minutes selon la taille de la base. En cas d'échec, la version précédente est rétablie (procédure : [Installation, « Une mise à jour s'est mal passée »](installation.md#maj-mal-passee)).
 
 ### 7.4 Vérifications post-déploiement
 
@@ -223,6 +223,7 @@ Les commandes `docker` passent toutes par `sudo` (l’utilisateur de service n�
 ```bash
 ccd='sudo docker compose -f /usr/share/cicada/docker-compose.yml -f /usr/share/cicada/docker-compose.db.yml -f /usr/share/cicada/docker-compose.frontend-ports.yml --env-file /var/lib/cicada/.env'
 
+sudo cicada-update status   # version en service, issue de la mise à jour, sauvegarde prise avant
 $ccd ps                      # les images doivent porter le tag :X.Y.Z
 $ccd logs web --tail=40      # attendre « === Initialisation terminée === »
 grep CICADA_VERSION /var/lib/cicada/.env

@@ -204,6 +204,41 @@ class TestSystemVersionEndpoint:
         assert data['update_available'] is False
 
 
+    def test_echec_avec_retour_arriere_et_derniere_sauvegarde(self, api_client, tmp_path, monkeypatch):
+        """#796 — la page dit ce qui s'est passé (cause, retour arrière fait ou
+        non) et quand date la dernière sauvegarde, écrits par le serveur."""
+        from apps.system import api_views
+        resultat = {
+            'success': False, 'version': '0.1.70', 'timestamp': '2026-11-06T10:05:00+01:00',
+            'error': "L'application ne démarre pas : ProgrammingError — retour à la version 0.1.69 effectué",
+            'statut': 'echec_retour_fait', 'depart': '0.1.69', 'cible': '0.1.70', 'retour_arriere': True,
+            'sauvegarde': '20261106-100000-avant-maj-0.1.69-vers-0.1.70', 'commande': None,
+            'journal': '/var/log/cicada/maj-20261106-100400-cicada_prod_web.log',
+        }
+        sauvegardes = {'nombre': 3, 'dossier': '/var/backups/cicada', 'derniere': {
+            'nom': '20261106-100000-avant-maj-0.1.69-vers-0.1.70', 'date': '2026-11-06T10:00:40+01:00',
+            'raison': 'avant-maj-0.1.69-vers-0.1.70', 'version': '0.1.69', 'taille': 45000000}}
+        (tmp_path / 'update_result.json').write_text(json.dumps(resultat))
+        (tmp_path / 'backups.json').write_text(json.dumps(sauvegardes))
+        for nom, fichier in (('UPDATE_RESULT_FILE', 'update_result.json'), ('BACKUPS_FILE', 'backups.json'),
+                             ('UPDATE_AVAILABLE_FILE', 'absent.json'), ('UPDATE_TRIGGER_FILE', 'absent.json'),
+                             ('CHECK_TRIGGER_FILE', 'absent.json')):
+            monkeypatch.setattr(api_views, nom, tmp_path / fichier)
+        api_client.force_authenticate(user=SuperAdminFactory())
+
+        data = api_client.get('/api/system/version/').json()
+
+        assert data['last_update']['statut'] == 'echec_retour_fait'
+        assert data['last_update']['retour_arriere'] is True
+        assert data['last_backup'] == sauvegardes
+
+    def test_sans_sauvegarde_connue(self, api_client, tmp_path, monkeypatch):
+        from apps.system import api_views
+        monkeypatch.setattr(api_views, 'BACKUPS_FILE', tmp_path / 'absent.json')
+        api_client.force_authenticate(user=SuperAdminFactory())
+        assert api_client.get('/api/system/version/').json()['last_backup'] is None
+
+
 # =============================================================================
 # POST /api/system/check-update/
 # =============================================================================

@@ -14,6 +14,7 @@ ENV DJANGO_SETTINGS_MODULE=config.settings.development
 WORKDIR /app
 
 # Installation des dépendances système pour PostGIS
+# (client PostgreSQL : tests de cicada-db, sauvegarde / restauration — #796)
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
@@ -23,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     libproj-dev \
     gosu \
     netcat-traditional \
+    postgresql-client-17 \
     && rm -rf /var/lib/apt/lists/*
 
 # Installation des dépendances Python

@@ -1,0 +1,17 @@
+[Unit]
+Description=Reprise d'une mise à jour de CICADA interrompue (redémarrage du serveur)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+ConditionPathExists=/var/lib/cicada/maintenance/tentative.json
+
+[Service]
+Type=oneshot
+# Sans effet si aucune mise à jour n'était en cours ; sinon, retour à la
+# version de départ depuis la sauvegarde d'origine (cf. cicada-update resume).
+ExecStart=/usr/bin/cicada-update resume
+SuccessExitStatus=10 11 12
+User=root
+
+[Install]
+WantedBy=multi-user.target

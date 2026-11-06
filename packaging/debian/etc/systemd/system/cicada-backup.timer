@@ -1,0 +1,12 @@
+[Unit]
+Description=Sauvegarde quotidienne de CICADA
+
+[Timer]
+# Avant la publication vers le hub (1h-5h) et le heartbeat (3h) ; avec
+# Persistent, une nuit manquée (serveur éteint) est rattrapée au démarrage.
+OnCalendar=*-*-* 00:45:00
+RandomizedDelaySec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

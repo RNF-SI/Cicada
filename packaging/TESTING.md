@@ -203,6 +203,8 @@ Avant de publier un nouveau package, vérifier :
 - [ ] `./test-install-quick.sh` — fichiers installés aux bons emplacements
 - [ ] `./test-install.sh` — services systemd configurés, token généré
 - [ ] `./test-upgrade-vm.sh --from <version_actuelle> --to <nouvelle_version>` — upgrade fonctionne
+- [ ] `packaging/check-installer.sh` — dont `tests/test_maintenance.py` : chaque cas d'échec d'une mise à jour (annulée, retour arrière, reprise après interruption, retour impossible), sauvegardes (#796)
+- [ ] `vm-bench/bench.sh run upgrade-rollback --from-deb <paquet publié> --backend-image <image>` (et `upgrade-rollback-external`) dès que la mise à jour, la sauvegarde ou le `postinst` changent
 - [ ] Les images Docker `ghcr.io/rnf-si/cicada-backend:<version>` et `cicada-frontend:<version>` sont publiées
 - [ ] Les notes de version (changelog) sont à jour
 

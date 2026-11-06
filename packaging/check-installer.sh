@@ -5,7 +5,9 @@
 #    qu'à l'exécution de la ligne, c'est-à-dire chez le client. C'est ce qui a
 #    cassé toutes les installations neuves de 0.1.56 à 0.1.58.
 # 2. pytest : déroule l'installateur web de bout en bout pour chaque
-#    configuration du formulaire (tests/test_install_service.py).
+#    configuration du formulaire (tests/test_install_service.py), et la mise à
+#    jour dans chaque cas d'échec — retour arrière, reprise, sauvegarde
+#    (tests/test_maintenance.py, #796).
 #
 # Appelé par build-deb.sh et par la CI. Outils pris dans $CHECK_PYTHON s'il
 # est fourni, sinon installés dans un venv temporaire.
@@ -27,8 +29,12 @@ fi
 echo "==> pyflakes (code Python du paquet)"
 "$PY" -m pyflakes \
     debian/usr/share/cicada/install/*.py \
+    debian/usr/share/cicada/maintenance/*.py \
     debian/usr/bin/cicada-updater \
-    debian/usr/bin/cicada-heartbeat
+    debian/usr/bin/cicada-heartbeat \
+    debian/usr/bin/cicada-update \
+    debian/usr/bin/cicada-backup \
+    debian/usr/bin/cicada-restore
 
-echo "==> pytest (installateur web)"
+echo "==> pytest (installateur web, mise à jour et sauvegarde)"
 "$PY" -m pytest -q -p no:cacheprovider tests/

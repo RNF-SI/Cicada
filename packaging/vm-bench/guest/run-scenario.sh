@@ -145,6 +145,9 @@ else
     install_cicada() { apt-get install -y "$INITIAL_DEB"; }
 fi
 note "cicada $PKG_VERSION"
+# L'instantané socle vieillit : sans index à jour, les dépendances du paquet
+# (python3-venv…) sont introuvables sur les miroirs (404).
+apt-get update -qq >/dev/null 2>&1 || note "apt-get update en échec"
 if apt_out="$(install_cicada 2>&1)"; then
     record PASS "Installation du paquet (dépendances résolues)"
 else

@@ -89,6 +89,8 @@ problèmes d'une installation, pas seulement le premier.
 | `upgrade` | installe `--from-deb` (ancien paquet, ex. l'artefact CI 0.1.47), crée des données, puis `dpkg -i` du paquet testé comme sur le staging et la prod : redéploiement, images, migrations, données conservées | #222 |
 | `behind-apache` | Apache de l'hôte devant CICADA + « GeoNature » sur `:8000` : vhost de l'ancien guide (consigné) puis vhost du guide actuel (contrôlé) | #231 |
 | `remove` | installation standard puis `apt remove` : plus aucun conteneur, volume de la base conservé | — |
+| `upgrade-rollback` | **mise à jour sûre**, base en conteneur : depuis une version publiée (`--from-deb`, son ancien service de mise à jour), clic « Mettre à jour » vers le paquet testé (dépôt APT local) dont une migration échoue après une autre validée → retour automatique, base d'avant, `dpkg --configure -a` sans nouvelle tentative, `cicada-update status` ; puis bon backend et `cicada-update retry`, sauvegarde / restauration / vérification, services. Backend testé par `--backend-image` | #796 |
+| `upgrade-rollback-external` | même déroulé, PostgreSQL existant préparé par `cicada-prepare-db` : compte de l'application sans super-utilisateur | #796 |
 
 Ajouter un scénario : un fichier `scenarios/<nom>.sh` avec une ligne
 `# DESCRIPTION:` et la fonction `scenario_db_answers` (fragment JSON des

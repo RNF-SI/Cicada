@@ -29,7 +29,7 @@ Une fois activée, la connexion par mot de passe CICADA, l'inscription et « Mot
 
 <p class="lead">Mise à jour :</p>
 
-Consulter la version installée et la dernière version disponible, et déclencher une mise à jour.
+Consulter la version installée et la dernière version disponible, et déclencher une mise à jour. L'application est indisponible quelques minutes : une sauvegarde de la base, des fichiers déposés et de la configuration est faite avant, et **si la mise à jour échoue, la version précédente est rétablie automatiquement**, avec les données d'avant. La page indique la date de la dernière sauvegarde (faite aussi chaque nuit) et, après un échec, ce qui s'est passé : mise à jour annulée sans changement, version précédente rétablie, ou application arrêtée avec la commande à lancer sur le serveur. Le détail, et ce que fait l'administrateur du serveur quand l'application ne répond plus : [Une mise à jour s'est mal passée](../administration/installation.md#maj-mal-passee).
 
 <p class="lead">Référentiels :</p>
 

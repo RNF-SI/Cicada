@@ -7,69 +7,16 @@ TOKEN_FILE="$CONFIG_DIR/instance_token"
 ENV_FILE="$CICADA_DIR/.env"
 LOCK_FILE="$CICADA_DIR/.install_lock"
 COMPOSE_DIR="/usr/share/cicada"
-VERSION_FILE="$COMPOSE_DIR/VERSION"
 
-# --- Fonctions utilitaires (style Zacharie : awk, plus robuste) ---
-
-# Version du paquet installé (fichier du paquet, pas le conffile cicada.conf)
-get_config_version() {
-    if [ -f "$VERSION_FILE" ]; then
-        tr -d '[:space:]' < "$VERSION_FILE"
-    fi
-}
-
-update_env_version() {
-    if [ ! -f "$ENV_FILE" ]; then
-        return 0
-    fi
-    local target_version
-    target_version="$(get_config_version)"
-    if [ -z "$target_version" ]; then
-        return 0
-    fi
-    if grep -q '^CICADA_VERSION=' "$ENV_FILE"; then
-        sed -i "s/^CICADA_VERSION=.*/CICADA_VERSION=$target_version/" "$ENV_FILE"
-    else
-        echo "CICADA_VERSION=$target_version" >> "$ENV_FILE"
-    fi
-}
-
-# compose_files_args() : partagée avec prerm
-. "$COMPOSE_DIR/compose-files.sh"
-
-restart_stack_if_configured() {
-    if [ ! -f "$ENV_FILE" ]; then
-        return 0
-    fi
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "  [WARN] Docker non disponible, la stack n'a pas été redéployée."
-        return 0
-    fi
-
-    local compose_args
-    compose_args="$(compose_files_args)"
-
-    echo "  [..] Téléchargement des nouvelles images Docker..."
-    # shellcheck disable=SC2086
-    if docker compose $compose_args --env-file "$ENV_FILE" pull 2>/dev/null; then
-        echo "  [OK] Images Docker téléchargées"
-    else
-        echo "  [WARN] Échec du téléchargement. Lancez manuellement :"
-        echo "         cd $COMPOSE_DIR && docker compose $compose_args --env-file $ENV_FILE pull"
-    fi
-
-    echo "  [..] Redémarrage de la stack Docker..."
-    # shellcheck disable=SC2086
-    if docker compose $compose_args --env-file "$ENV_FILE" up -d 2>/dev/null; then
-        echo "  [OK] Stack Docker redémarrée"
-    else
-        echo "  [WARN] Échec du redémarrage. Lancez manuellement :"
-        echo "         cd $COMPOSE_DIR && docker compose $compose_args --env-file $ENV_FILE up -d"
-    fi
-}
+# Redéploiement : `cicada-update deploy` (#796) — contrôles, images, arrêt,
+# sauvegarde vérifiée, bascule, vérification, retour arrière en cas d'échec.
+# Même déroulé pour le bouton « Mettre à jour », `apt install` et `dpkg -i`.
 
 # --- Création des répertoires ---
 mkdir -p "$CICADA_DIR/data" "$CONFIG_DIR" "/var/log/cicada"
+# #796 — état des mises à jour (copies des fichiers compose, tentative en
+# cours) et sauvegardes : root seul (la configuration y est copiée).
+install -d -m 0700 "$CICADA_DIR/maintenance" /var/backups/cicada
 # #764 — certificat de l'autorité de la base UsersHub (USERSHUB_DB_SSLROOTCERT),
 # monté en lecture seule dans le conteneur web.
 mkdir -p "$CONFIG_DIR/usershub"
@@ -123,6 +70,9 @@ if [ -d /run/systemd/system ]; then
     systemctl enable --now cicada-heartbeat.timer || true
     systemctl enable --now cicada-updater.path || true
     systemctl enable --now cicada-heartbeat-check.path || true
+    # #796 — sauvegarde quotidienne, reprise d'une mise à jour interrompue au démarrage
+    systemctl enable --now cicada-backup.timer || true
+    systemctl enable cicada-reprise.service || true
     if ! systemctl is-active --quiet cicada-installer.service && [ ! -f "$ENV_FILE" ]; then
         echo "  [WARN] L'installateur web n'a pas démarré : sudo systemctl status cicada-installer"
     fi
@@ -134,19 +84,23 @@ fi
 if [ -f "$ENV_FILE" ]; then
     # Instance déjà configurée → mise à jour
     touch "$LOCK_FILE"
-
-    NEW_VERSION="$(get_config_version)"
-    CURRENT_VERSION="$(awk -F= '/^CICADA_VERSION=/{print $2; exit}' "$ENV_FILE")"
-
-    if [ -n "$NEW_VERSION" ] && [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+    rc=0
+    /usr/bin/cicada-update deploy --origine paquet || rc=$?
+    if [ "$rc" -ne 0 ]; then
         echo ""
-        echo "=== Mise à jour CICADA : $CURRENT_VERSION → $NEW_VERSION ==="
-        update_env_version
-        echo "  [OK] CICADA_VERSION=$NEW_VERSION dans .env"
-        restart_stack_if_configured
-        echo "=== Mise à jour terminée ==="
-    else
-        echo "CICADA : version déjà à jour ($NEW_VERSION)"
+        echo "  État et reprise, sans passer par l'application :"
+        echo "    sudo cicada-update status"
+        echo "  Procédure : /aide/administration/installation/ (« Une mise à jour s'est mal passée »)"
+        # Mise à jour lancée par le bouton d'une version antérieure : son
+        # service (cicada-updater d'avant #796) réécrit la version dans .env
+        # et relance les conteneurs APRÈS apt, ce qui défairait le retour
+        # arrière. Seul un échec d'apt l'arrête : on le lui donne. Le paquet
+        # reste « à configurer » ; `dpkg --configure -a` le termine sans
+        # nouvelle tentative (sudo cicada-update retry pour réessayer).
+        etat_updater="$(systemctl show -p ActiveState --value cicada-updater.service 2>/dev/null || true)"
+        if [ -z "${CICADA_UPDATER_V2:-}" ] && { [ "$etat_updater" = activating ] || [ "$etat_updater" = active ]; }; then
+            exit 1
+        fi
     fi
 else
     # Première installation → l'utilisateur doit passer par l'installateur web

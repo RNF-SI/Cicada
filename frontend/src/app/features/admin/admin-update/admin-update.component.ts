@@ -8,9 +8,13 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import {
   SystemUpdateService,
+  SystemUpdateOutcome,
   SystemUpdateResult,
   SystemVersionInfo
 } from '../../../core/services/system-update.service';
+
+/** Issues d'échec qui ont un libellé propre (#796) */
+const FAILURE_OUTCOMES: SystemUpdateOutcome[] = ['annulee', 'echec_retour_fait', 'echec_sans_retour'];
 
 /**
  * Phases d'une mise à jour, telles que la page les suit après le clic :
@@ -60,6 +64,12 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
   readonly targetVersion = signal<string | null>(null);
   /** Message d'erreur de l'updater, en phase « failed » */
   readonly failureMessage = signal<string | null>(null);
+  /** Issue de l'échec (annulée, retour arrière fait ou non), en phase « failed » (#796) */
+  readonly failureOutcome = signal<SystemUpdateOutcome | null>(null);
+  /** Version rétablie, ou à rétablir, en phase « failed » */
+  readonly failureDepart = signal<string | null>(null);
+  /** Commande à lancer sur le serveur quand l'application est restée arrêtée */
+  readonly failureCommande = signal<string | null>(null);
 
   /** Résultat connu avant le clic : un résultat différent = celui de cette mise à jour */
   private resultBefore: string | null = null;
@@ -109,6 +119,8 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
     this.resultBefore = this.resultKey(info?.last_update);
     this.targetVersion.set(latest);
     this.failureMessage.set(null);
+    this.failureOutcome.set(null);
+    this.failureCommande.set(null);
     this.systemUpdateService.triggerUpdate(latest).subscribe({
       next: () => {
         this.updating.set(false);
@@ -184,7 +196,34 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
 
   /** Icône et libellé à afficher pour la phase courante */
   get phaseKey(): string {
+    const outcome = this.failureOutcome();
+    if (this.phase() === 'failed' && outcome && FAILURE_OUTCOMES.includes(outcome)) {
+      return `admin.update.outcome.${outcome}`;
+    }
     return `admin.update.progress.${this.phase()}`;
+  }
+
+  /**
+   * #796 — Dernière tentative en échec, à rappeler à l'ouverture de la page
+   * tant que la version visée n'est pas en service : sans cela, un échec
+   * survenu en l'absence de l'administrateur passait inaperçu.
+   */
+  lastFailure(): SystemUpdateResult | null {
+    const info = this.versionInfo();
+    const last = info?.last_update;
+    if (!last || last.success || !last.statut || !FAILURE_OUTCOMES.includes(last.statut)) return null;
+    if (last.cible && last.cible === info?.current_version) return null;
+    return last;
+  }
+
+  /** Mise à jour réussie, mais un service déjà en échec avant elle l'est encore (#796) */
+  lastWarning(): string | null {
+    const last = this.versionInfo()?.last_update;
+    return last?.success && last.avertissement ? last.avertissement : null;
+  }
+
+  outcomeKey(result: SystemUpdateResult): string {
+    return `admin.update.outcome.${result.statut}`;
   }
 
   get isInProgress(): boolean {
@@ -229,6 +268,9 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
         this.phase.set('failed');
         this.systemUpdateService.markUpdateFinished();
         this.failureMessage.set(result.error ?? null);
+        this.failureOutcome.set(result.statut ?? null);
+        this.failureDepart.set(result.depart ?? null);
+        this.failureCommande.set(result.commande ?? null);
       }
       return;
     }
@@ -251,6 +293,13 @@ export class AdminUpdateComponent implements OnInit, OnDestroy {
 
   private resultKey(result: SystemUpdateResult | null | undefined): string | null {
     return result ? `${result.timestamp}|${result.version ?? ''}|${result.success}` : null;
+  }
+
+  /** Taille lisible (octets → Mo / Go) */
+  formatSize(bytes: number | null | undefined): string {
+    const n = Number(bytes) || 0;
+    if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Go`;
+    return `${Math.max(1, Math.round(n / 1024 ** 2)).toLocaleString('fr-FR')} Mo`;
   }
 
   formatDate(value: string | null): string {

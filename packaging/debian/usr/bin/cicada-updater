@@ -1,169 +1,63 @@
 #!/usr/bin/env python3
 """Service de mise à jour (exécuté en root).
-   Déclenché par systemd (cicada-updater.path) quand update_trigger.json est créé.
-   Met à jour le paquet APT, la version dans .env, tire les images Docker et redémarre la stack.
+
+Déclenché par systemd (cicada-updater.path) quand le bouton « Mettre à jour »
+de l'administration dépose update_trigger.json. Installe le paquet de la
+version demandée : son postinst déroule la mise à jour (sauvegarde vérifiée,
+bascule, vérification, retour arrière automatique en cas d'échec — #796) et
+écrit le résultat lu par la page d'administration. Même déroulé que
+`sudo cicada-update install <version>`, sans passer par l'application.
 """
-import re
-import sys
 import json
+import re
 import subprocess
-import logging
+import sys
 from pathlib import Path
-from datetime import datetime
+
+sys.path.insert(0, '/usr/share/cicada/maintenance')
+
+from cicada_maintenance import CODES, ErreurMaintenance, Instance, horodatage  # noqa: E402
 
 # Dossier d'échange avec l'application (monté dans le conteneur web à
 # /var/lib/cicada) : le bouton « Mettre à jour » y dépose le déclencheur.
-UPDATES_DIR = "/var/lib/cicada/updates"
-TRIGGER_FILE = f"{UPDATES_DIR}/update_trigger.json"
-RESULT_FILE = f"{UPDATES_DIR}/update_result.json"
-ENV_FILE = "/var/lib/cicada/.env"
-COMPOSE_DIR = "/usr/share/cicada"
-LOG_FILE = "/var/log/cicada/updater.log"
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()]
-)
-logger = logging.getLogger('cicada.updater')
-
-
-def _get_compose_f_args():
-    """Construit la liste des -f pour docker compose à partir du .env (même logique que l'installateur)."""
-    if not Path(ENV_FILE).exists():
-        return ['-f', f'{COMPOSE_DIR}/docker-compose.yml', '-f', f'{COMPOSE_DIR}/docker-compose.db.yml']
-    db_type = 'docker'
-    traefik_enabled = False
-    for line in Path(ENV_FILE).read_text().splitlines():
-        if line.startswith('DB_TYPE='):
-            db_type = line.split('=', 1)[1].strip()
-        elif line.startswith('TRAEFIK_ENABLED='):
-            traefik_enabled = line.split('=', 1)[1].strip().lower() in ('true', '1', 'yes')
-    compose_files = [f'{COMPOSE_DIR}/docker-compose.yml']
-    if db_type == 'docker':
-        compose_files.append(f'{COMPOSE_DIR}/docker-compose.db.yml')
-    if traefik_enabled:
-        compose_files.append(f'{COMPOSE_DIR}/docker-compose.traefik.yml')
-    else:
-        compose_files.append(f'{COMPOSE_DIR}/docker-compose.frontend-ports.yml')
-    return sum([['-f', f] for f in compose_files], [])
-
-
-def _update_env_version(version: str) -> None:
-    """Met à jour CICADA_VERSION dans /var/lib/cicada/.env."""
-    path = Path(ENV_FILE)
-    if not path.exists():
-        logger.warning(".env absent, pas de mise à jour de CICADA_VERSION")
-        return
-    lines = path.read_text().splitlines()
-    updated = False
-    for i, line in enumerate(lines):
-        if line.startswith('CICADA_VERSION='):
-            lines[i] = f'CICADA_VERSION={version}'
-            updated = True
-            break
-    if not updated:
-        lines.append(f'CICADA_VERSION={version}')
-    path.write_text('\n'.join(lines) + '\n')
-    logger.info(f"CICADA_VERSION mis à jour à {version} dans .env")
+TRIGGER_FILE = Path("/var/lib/cicada/updates/update_trigger.json")
 
 
 def main():
-    trigger_path = Path(TRIGGER_FILE)
-
-    if not trigger_path.exists():
-        logger.info("Pas de mise à jour demandée")
-        return
-
+    instance = Instance()
+    if not TRIGGER_FILE.exists():
+        instance.dire("Pas de mise à jour demandée")
+        return 0
     try:
-        trigger = json.loads(trigger_path.read_text())
-        version = trigger.get('version')
+        trigger = json.loads(TRIGGER_FILE.read_text())
+    except (OSError, ValueError):
+        trigger = {}
+    # Déclencheur consommé dès maintenant : la page d'administration lit sa
+    # présence comme « en attente » et son absence comme « en cours » ; et un
+    # échec plus bas ne doit pas laisser un déclencheur que cicada-updater.path
+    # relancerait sans fin.
+    TRIGGER_FILE.unlink(missing_ok=True)
+    version = str(trigger.get('version') or '')
+    # Le déclencheur est écrit depuis le conteneur de l'application : ne passer
+    # à apt qu'un numéro de version bien formé.
+    if not re.fullmatch(r'\d+\.\d+\.\d+', version):
+        instance.dire(f"Version refusée dans le déclencheur : {version!r}")
+        return 1
+    instance.dire(f"Mise à jour vers {version} demandée par {trigger.get('requested_by', '?')}")
+    try:
+        t = instance.installer(version, origine='bouton')
+    except ErreurMaintenance as e:
+        t = {'statut': 'annulee', 'cible': version, 'cause': str(e), 'fin': horodatage()}
+        instance.dire(f"ÉCHEC : {e}")
+        instance.ecrire_resultat(t)
 
-        if not version:
-            logger.error("Version non spécifiée dans le trigger")
-            trigger_path.unlink()
-            return
-        # Le déclencheur est écrit depuis le conteneur de l'application : ne
-        # passer à apt qu'un numéro de version bien formé.
-        if not re.fullmatch(r'\d+\.\d+\.\d+', str(version)):
-            logger.error(f"Version refusée dans le trigger : {version!r}")
-            trigger_path.unlink()
-            return
-
-        logger.info(f"Mise à jour vers {version} demandée par {trigger.get('requested_by', '?')}")
-        # Déclencheur consommé dès maintenant : la page d'administration lit sa
-        # présence comme « en attente » et son absence comme « en cours » ; et
-        # un échec plus bas ne laisserait pas un déclencheur que cicada-updater.path
-        # relancerait sans fin.
-        trigger_path.unlink()
-
-        # 1. Mise à jour du paquet APT
-        subprocess.run(['apt-get', 'update', '-qq'], check=True)
-        # Non interactif : sans ces options, dpkg pose une question dès que
-        # /etc/cicada/cicada.conf a été modifié localement, et apt échoue.
-        # confdef = choix par défaut, confold = garder le fichier de l'admin.
-        subprocess.run(['apt-get', 'install', '-y', '-qq',
-                        '-o', 'Dpkg::Options::=--force-confdef',
-                        '-o', 'Dpkg::Options::=--force-confold',
-                        f'cicada={version}'], check=True)
-
-        # 2. Mettre à jour CICADA_VERSION dans .env pour que Docker utilise les nouvelles images
-        _update_env_version(version)
-
-        # 3. Docker compose : pull puis up -d (mêmes fichiers que l'installateur)
-        if not Path(ENV_FILE).exists():
-            logger.warning(".env absent (installation non finalisée?), pas de mise à jour des conteneurs")
-        elif subprocess.run(['which', 'docker'], capture_output=True).returncode != 0:
-            logger.warning("Docker non trouvé, pas de mise à jour des conteneurs")
-        else:
-            compose_f = _get_compose_f_args()
-            base_cmd = ['docker', 'compose'] + compose_f + ['--env-file', ENV_FILE]
-            pull_cmd = base_cmd + ['pull']
-            logger.info("Téléchargement des nouvelles images Docker...")
-            r = subprocess.run(pull_cmd, cwd=COMPOSE_DIR, capture_output=True, text=True, timeout=600)
-            if r.returncode != 0:
-                logger.warning(f"docker compose pull a échoué: {r.stderr or r.stdout}")
-            else:
-                up_cmd = base_cmd + ['up', '-d']
-                logger.info("Redémarrage de la stack Docker...")
-                r2 = subprocess.run(up_cmd, cwd=COMPOSE_DIR, capture_output=True, text=True, timeout=300)
-                if r2.returncode != 0:
-                    logger.warning(f"docker compose up a échoué: {r2.stderr or r2.stdout}")
-
-        # 4. Redémarrer l'installateur (service web)
-        subprocess.run(['systemctl', 'restart', 'cicada-installer'], check=True, capture_output=True)
-
-        # 4 bis. Heartbeat immédiat : le serveur de suivi connaît la nouvelle
-        # version sans attendre la nuit, et update_available.json est remis
-        # à jour (sinon la page d'administration proposerait encore la mise
-        # à jour qui vient d'être faite). Non bloquant : sans réseau, tant pis.
-        subprocess.run(['systemctl', 'start', 'cicada-heartbeat.service'], capture_output=True, timeout=60)
-
-        # 5. Écrire le résultat (lu par la page d'administration)
-        Path(RESULT_FILE).write_text(json.dumps({
-            'success': True,
-            'version': version,
-            'timestamp': datetime.now().isoformat()
-        }))
-        logger.info(f"Mise à jour vers {version} terminée")
-
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Erreur de mise à jour (commande): {e}")
-        Path(RESULT_FILE).write_text(json.dumps({
-            'success': False,
-            'error': str(e),
-            'timestamp': datetime.now().isoformat()
-        }))
-        sys.exit(1)
-    except Exception as e:
-        logger.error(f"Erreur de mise à jour: {e}")
-        Path(RESULT_FILE).write_text(json.dumps({
-            'success': False,
-            'error': str(e),
-            'timestamp': datetime.now().isoformat()
-        }))
-        sys.exit(1)
+    # L'installateur web sert le code de la version installée.
+    subprocess.run(['systemctl', 'try-restart', 'cicada-installer'], capture_output=True)
+    # Heartbeat immédiat : le serveur de suivi connaît la version en service
+    # sans attendre la nuit, et update_available.json est remis à jour.
+    subprocess.run(['systemctl', 'start', 'cicada-heartbeat.service'], capture_output=True, timeout=60)
+    return CODES.get(t.get('statut'), 1)
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

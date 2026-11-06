@@ -100,7 +100,7 @@ n'est prévenu. Détail : [Releases et mises à jour](releases.md).
 | | API de suivi | `/opt/tracking-api` (sur le serveur de production : `/home/tracking/Cicada/tracking-api`), son `.env` (`LATEST_VERSION`), service `cicada-tracking-api`, admin sur `/admin/` | `tracking-api/INSTALLATION.md` |
 | **Hub** | recherche transverse | `/opt/cicada-hub`, `.env.hub.prod`, `enroler_instance <id>` (délivre les 2 jetons) | [Hub d'exploration fédérée](hub.md) |
 | **Serveur de bases** | PostgreSQL + PostGIS | `cicada-prepare-db --client <ip-instance>` | [Installation](installation.md) étape 3 |
-| **Instance** | l'application | `/var/lib/cicada/.env` (configuration, root seul), `/etc/cicada/` (jeton, URL de suivi), `/var/log/cicada/` (`heartbeat.log`, `updater.log`), `/var/lib/cicada/updates/` (échange avec le bouton « Mettre à jour ») | [Installation](installation.md) |
+| **Instance** | l'application | `/var/lib/cicada/.env` (configuration, root seul), `/etc/cicada/` (jeton, URL de suivi), `/var/log/cicada/` (`heartbeat.log`, `updater.log`, journaux des mises à jour en échec), `/var/lib/cicada/updates/` (échange avec le bouton « Mettre à jour »), `/var/backups/cicada/` (sauvegardes, root seul), `/var/lib/cicada/maintenance/` (mise à jour en cours, fichiers compose des versions précédentes) ; `cicada-update`, `cicada-backup`, `cicada-restore` | [Installation](installation.md) §§ 6–7 |
 
 ## Vérifier que tout est relié
 

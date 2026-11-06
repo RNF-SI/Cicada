@@ -16,6 +16,9 @@ WORKDIR /app
 
 # Dependances systeme pour PostGIS + netcat pour les health checks
 # build-essential sert aux dependances Python a compiler, supprime apres pip install
+# postgresql-client-17 : pg_dump / pg_restore / psql de cicada-db (sauvegarde
+# avant mise a jour et retour arriere, #796). Meme version majeure que la base
+# en conteneur ; couvre aussi un PostgreSQL existant en 15 ou 16.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
@@ -24,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgeos-dev \
     libproj-dev \
     netcat-traditional \
+    postgresql-client-17 \
     && rm -rf /var/lib/apt/lists/*
 
 # Dependances Python
@@ -41,6 +45,11 @@ RUN mkdir -p /app/media /app/static /app/logs
 # Script d'initialisation
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Sauvegarde / restauration de la base, lancee par les commandes du serveur
+# (cicada-backup, cicada-restore, cicada-update) dans un conteneur ponctuel (#796)
+COPY docker/cicada_db.py /usr/local/bin/cicada-db
+RUN chmod 755 /usr/local/bin/cicada-db
 
 # Utilisateur non-root
 RUN groupadd -r cicada && useradd -r -g cicada -d /app -s /sbin/nologin cicada \

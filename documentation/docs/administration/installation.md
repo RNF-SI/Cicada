@@ -298,68 +298,115 @@ Les référentiels (nomenclatures, TaxRef, HabRef, INPG, CAMPanule, découpage a
 
 ### Ce qui se passe à chaque mise à jour
 
-Le paquet met à jour la version dans `/var/lib/cicada/.env`, télécharge les nouvelles images et redémarre l'application (~30 s d'interruption). Au démarrage, l'application applique seule les migrations de la base, complète les référentiels et son index de recherche. **Il n'y a jamais de `migrate` à lancer à la main.**
+Le bouton de l'application, `apt install cicada` et `dpkg -i` suivent **le même déroulé**, sans rien à lancer à la main (jamais de `migrate`) :
 
-Faites une [sauvegarde](#7-sauvegarder-et-restaurer) avant.
+| Étape | Si elle échoue |
+|---|---|
+| 1. Contrôle de l'espace disque | mise à jour **annulée, rien n'a changé** |
+| 2. Téléchargement des nouvelles images | mise à jour **annulée, rien n'a changé** (l'application tourne toujours) |
+| 3. Arrêt de l'application — la coupure commence | — |
+| 4. [Sauvegarde vérifiée](#7-sauvegarder-et-restaurer) de la base, des fichiers déposés et de la configuration | mise à jour annulée, application relancée telle quelle |
+| 5. Passage à la nouvelle version : migrations de la base, référentiels, index de recherche | **retour automatique** à la version précédente, avec la base d'avant la mise à jour |
+| 6. Vérification : l'application répond, le frontend et les tâches de fond tournent — du moins ceux qui tournaient avant : un service déjà en échec avant la mise à jour ne la fait pas défaire, il est signalé | idem |
+
+Comptez quelques minutes de coupure (étapes 3 à 6). Les anciennes images sont ensuite supprimées, sauf celles de la version précédente.
+
+Si le serveur redémarre en pleine mise à jour, elle est reprise au démarrage suivant (`cicada-reprise.service`) : retour à la version précédente depuis la sauvegarde d'origine.
 
 ### Depuis l'application (recommandé)
 
-*Administration > Mise à jour* (super administrateur) : quand une version plus récente est publiée, le bouton **« Mettre à jour »** lance la mise à jour sur le serveur, et la page en suit l'avancement. Elle est prévenue de la nouvelle version par le heartbeat quotidien.
-
-En cas d'échec : `sudo journalctl -u cicada-updater.service` et `/var/log/cicada/updater.log`.
+*Administration > Mise à jour* (super administrateur) : quand une version plus récente est publiée, le bouton **« Mettre à jour »** lance la mise à jour sur le serveur, et la page en suit l'avancement. Elle est prévenue de la nouvelle version par le heartbeat quotidien. Elle affiche aussi la dernière sauvegarde et, en cas d'échec, ce qui s'est passé (annulée, version précédente rétablie, ou application arrêtée).
 
 ### En ligne de commande
 
 ```bash
-sudo apt-get update
-sudo apt-get install cicada            # dernière version
-# ou une version précise :  sudo apt-get install cicada=0.1.55
+sudo cicada-update                     # état : versions, conteneurs, dernière mise à jour, sauvegardes
+sudo cicada-update install             # dernière version du dépôt
+sudo cicada-update install 0.1.70      # une version précise
 ```
 
-C'est tout : le paquet fait le reste (version dans `.env`, images, redémarrage). En cas d'échec du téléchargement ou du redémarrage, il affiche les commandes à lancer.
+`sudo apt-get install cicada` (ou `cicada=0.1.70`) fait la même chose.
 
 ### Garder la main sur le moment
 
 Le dépôt CICADA étant une source APT comme les autres, un `sudo apt upgrade` de routine met aussi CICADA à jour. Pour l'éviter : `sudo apt-mark hold cicada`, puis `sudo apt-mark unhold cicada` avant une mise à jour voulue.
 
+### Une mise à jour s'est mal passée {#maj-mal-passee}
+
+Tout se fait **sur le serveur**, sans l'application (qui peut ne plus répondre). Commencez toujours par :
+
+```bash
+sudo cicada-update status
+```
+
+Il dit la version du paquet, la version **en service**, l'état des conteneurs, l'issue de la dernière mise à jour avec sa cause, la sauvegarde prise avant, et le journal du conteneur en échec (`/var/log/cicada/maj-…-cicada_prod_web.log`). Journal complet : `/var/log/cicada/updater.log`.
+
+| La dernière mise à jour… | Situation | Que faire |
+|---|---|---|
+| **annulée** | rien n'a changé, l'application tourne dans sa version | corriger la cause (réseau, espace disque : `sudo docker image prune -a`), puis `sudo cicada-update retry` |
+| **échec — retour à la version précédente effectué** | l'application tourne dans sa version précédente, avec les données d'avant la mise à jour | lire la cause, la signaler (journal du conteneur joint) ; une fois corrigée — souvent par une version suivante — `sudo cicada-update retry` ou `sudo cicada-update install` |
+| **ÉCHEC — application arrêtée** | le retour arrière n'a pas pu aller au bout (base injoignable…) ; la sauvegarde est intacte | corriger la cause, puis `sudo cicada-update rollback` : il reprend le retour arrière là où il s'est arrêté |
+| **en cours ou interrompue** | serveur redémarré, commande coupée | `sudo cicada-update resume` (fait automatiquement au démarrage) |
+
+Après un échec, le paquet installé est plus récent que la version en service : c'est voulu. L'application continue de proposer la mise à jour, et `retry` la relance. Une simple reconfiguration du paquet (`dpkg --configure -a`) ne retente **jamais** d'elle-même une mise à jour qui a échoué.
+
+**Revenir en arrière après une mise à jour réussie** (un problème découvert ensuite) :
+
+```bash
+sudo cicada-update rollback --oui
+```
+
+La version précédente revient avec la base sauvegardée **juste avant** la mise à jour : tout ce qui a été saisi depuis est perdu (la commande le rappelle et attend `--oui`). Pour garder les saisies, préférez attendre une version corrective.
+
+??? note "Première mise à jour vers une version qui apporte ces protections"
+    Elle est lancée par le service de mise à jour de la version précédente. En cas d'échec, le retour arrière se fait quand même ; ce service signale alors l'échec du paquet (« dpkg returned an error code »), et le paquet reste à configurer : `sudo dpkg --configure -a` le termine, sans nouvelle tentative.
+
 ---
 
 ## 7. Sauvegarder et restaurer
 
-Deux choses à sauvegarder : **la base** et **les fichiers déposés** (documents des plans, logos). Le reste (images, configuration générée) se reconstruit à la réinstallation, à l'exception de `/var/lib/cicada/.env`, à garder aussi.
+### Ce qui est sauvegardé, et quand
 
-### Base dans Docker
+Une sauvegarde contient **la base** (celle que l'application utilise réellement, dans Docker ou sur un PostgreSQL existant), **les fichiers déposés** (documents des plans, logos) et **la configuration** (`/var/lib/cicada/.env`). Elle est **vérifiée** : l'archive de la base est relue en entier, chaque fichier a son empreinte, et le nombre de lignes de chaque table est noté.
 
-```bash
-# Sauvegarde
-sudo docker exec cicada_prod_db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' \
-  > cicada_$(date +%F).dump
+Elle est faite **chaque nuit** vers 0 h 45 (`cicada-backup.timer`) et **avant chaque mise à jour**. Les sauvegardes sont dans `/var/backups/cicada/`, un dossier par sauvegarde, lisible par root seulement.
 
-# Restauration (application arrêtée pendant l'opération)
-sudo docker stop cicada_prod_web cicada_prod_celery_worker cicada_prod_celery_beat
-sudo docker exec -i cicada_prod_db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists' \
-  < cicada_AAAA-MM-JJ.dump
-sudo docker start cicada_prod_web cicada_prod_celery_worker cicada_prod_celery_beat
-```
+| Réglage (`/var/lib/cicada/.env`) | Défaut | Rôle |
+|---|---|---|
+| `CICADA_SAUVEGARDES_A_GARDER` | `5` | nombre de sauvegardes conservées (celle de la dernière mise à jour l'est toujours) |
+| `CICADA_SAUVEGARDE_DOSSIER` | `/var/backups/cicada` | dossier des sauvegardes (par ex. un disque monté) |
+| `CICADA_MAJ_ESPACE_MIN_GO` | `5` | espace libre exigé pour les images avant une mise à jour |
+| `CICADA_MAJ_DELAI_DEMARRAGE` | `1800` | secondes laissées à l'application pour démarrer après une mise à jour |
 
-### Base sur un serveur PostgreSQL existant
+!!! warning "Copiez les sauvegardes hors du serveur"
+    Elles protègent d'une mise à jour ratée ou d'une erreur de manipulation, pas de la perte du serveur. Copiez régulièrement `/var/backups/cicada/` ailleurs (rsync, outil de sauvegarde de votre structure).
 
-Sur le **serveur de base** :
+### Commandes
 
 ```bash
-sudo -u postgres pg_dump -Fc cicada > cicada_$(date +%F).dump
-# Restauration (application arrêtée sur le serveur CICADA, comme ci-dessus) :
-sudo -u postgres pg_restore -d cicada --clean --if-exists cicada_AAAA-MM-JJ.dump
+sudo cicada-backup                         # sauvegarde maintenant (base, fichiers, configuration)
+sudo cicada-backup --sans-fichiers         # base et configuration seulement
+sudo cicada-backup --liste                 # sauvegardes disponibles
+sudo cicada-backup --verifier NOM          # relire une sauvegarde (empreintes, archive entière)
+
+sudo cicada-restore NOM                    # explique ce qui sera remplacé
+sudo cicada-restore NOM --oui              # restaure la base, relance l'application
+sudo cicada-restore NOM --fichiers --oui   # la base et les fichiers déposés
 ```
 
-### Fichiers déposés
+La restauration est **tout ou rien** : elle se fait dans une seule transaction, avec le compte de l'application (aucun super-utilisateur, donc aussi sur un PostgreSQL existant), et le nombre de lignes de chaque table est contrôlé avant de valider. Une archive abîmée ou un manque de droits laissent la base telle qu'elle était. L'application est arrêtée pendant l'opération puis relancée.
+
+Une sauvegarde d'une version **plus récente** que celle en service est refusée (l'application ne saurait pas lire cette base) ; une sauvegarde plus ancienne est mise à niveau par les migrations au redémarrage.
+
+### Serveur perdu : repartir d'une sauvegarde
+
+Sur un nouveau serveur : installer CICADA ([§ 2](#2-installer)) **dans la même version** que la sauvegarde, avec une base vide, puis copier le dossier de sauvegarde dans `/var/backups/cicada/` et :
 
 ```bash
-sudo docker run --rm -v cicada_media_files:/media -v "$PWD":/sauvegarde alpine \
-  tar czf /sauvegarde/cicada_media_$(date +%F).tgz -C /media .
+sudo cicada-restore NOM --fichiers --oui
 ```
 
-Planifiez ces commandes (cron) et copiez les fichiers hors du serveur.
+Le fichier `env` de la sauvegarde contient l'ancienne configuration (secrets, adresse du hub, jetons) : reprenez-en ce qui doit l'être dans `/var/lib/cicada/.env`, puis `cicada_compose up -d` ([§ 8](#8-modifier-la-configuration)). Copiez aussi `/etc/cicada/instance_token` de l'ancien serveur si vous l'avez : c'est l'identité de l'instance auprès du serveur de suivi.
 
 ---
 
@@ -474,14 +521,14 @@ sudo apt remove cicada     # arrête et supprime les conteneurs ; garde les donn
 sudo apt purge cicada      # idem, et retire en plus la configuration du paquet
 ```
 
-Ni l'un ni l'autre ne supprime **les données** : volumes Docker (base, fichiers déposés), `/var/lib/cicada/.env` et l'identité de l'instance (`/etc/cicada/instance_token`). Une réinstallation reprend donc l'instance existante — c'est voulu.
+Ni l'un ni l'autre ne supprime **les données** : volumes Docker (base, fichiers déposés), `/var/lib/cicada/.env`, l'identité de l'instance (`/etc/cicada/instance_token`) et les sauvegardes (`/var/backups/cicada`). Une réinstallation reprend donc l'instance existante — c'est voulu.
 
 Pour **tout** effacer, définitivement (après une [sauvegarde](#7-sauvegarder-et-restaurer) si besoin) :
 
 ```bash
 sudo apt purge cicada
 sudo docker volume rm cicada_postgres_data cicada_media_files cicada_static_files cicada_redis_data cicada_traefik_letsencrypt 2>/dev/null
-sudo rm -rf /var/lib/cicada /etc/cicada
+sudo rm -rf /var/lib/cicada /etc/cicada /var/backups/cicada
 ```
 
 ---

@@ -2,11 +2,39 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of } from 'rxjs';
 
+/** Issue d'une mise à jour, écrite par le serveur (#796) */
+export type SystemUpdateOutcome = 'reussie' | 'a_jour' | 'annulee' | 'echec_retour_fait' | 'echec_sans_retour';
+
 export interface SystemUpdateResult {
   success: boolean;
   version?: string;
   error?: string;
   timestamp: string;
+  /** Absent pour une mise à jour faite par un paquet antérieur à #796 */
+  statut?: SystemUpdateOutcome;
+  depart?: string | null;
+  cible?: string;
+  /** Vrai si la version précédente et la base d'avant ont été rétablies */
+  retour_arriere?: boolean;
+  sauvegarde?: string | null;
+  journal?: string | null;
+  /** Commande à lancer sur le serveur quand l'application est restée arrêtée */
+  commande?: string | null;
+  /** Service déjà en échec avant la mise à jour, toujours en échec après */
+  avertissement?: string | null;
+}
+
+/** Sauvegardes de l'instance (#796) : faites chaque nuit et avant chaque mise à jour */
+export interface SystemBackupInfo {
+  nombre: number;
+  dossier: string;
+  derniere: {
+    nom: string;
+    date: string;
+    raison?: string | null;
+    version?: string | null;
+    taille: number;
+  } | null;
 }
 
 export interface SystemVersionInfo {
@@ -22,6 +50,8 @@ export interface SystemVersionInfo {
   update_pending?: boolean;
   /** Dernière mise à jour faite par l'updater (réussie ou non) */
   last_update?: SystemUpdateResult | null;
+  /** Dernière sauvegarde connue (#796) */
+  last_backup?: SystemBackupInfo | null;
 }
 
 export interface TriggerUpdateResponse {

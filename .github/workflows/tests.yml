@@ -76,6 +76,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gdal-bin libgdal-dev
+          # Client PostgreSQL de la version du serveur (17) : tests de cicada-db,
+          # sauvegarde et restauration de la base (#796). Le runner n'a que le 16.
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          echo "/usr/lib/postgresql/17/bin" >> "$GITHUB_PATH"
 
       - name: Install Python dependencies
         working-directory: ./backend

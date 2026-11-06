@@ -1,0 +1,28 @@
+#!/bin/bash
+# Avant que le paquet ne remplace ses fichiers (#796) : copie des fichiers
+# compose de la version installée. Si la mise à jour échoue, le retour à la
+# version précédente relance ses conteneurs avec SES fichiers, pas ceux de la
+# nouvelle version.
+set -e
+
+COMPOSE_DIR="/usr/share/cicada"
+STATE_DIR="/var/lib/cicada/maintenance"
+
+case "$1" in
+    upgrade|install)
+        # install : réinstallation d'un paquet supprimé (configuration gardée)
+        version="$(tr -d '[:space:]' < "$COMPOSE_DIR/VERSION" 2>/dev/null || true)"
+        version="${version:-${2:-}}"
+        if [ -n "$version" ] && [ -f "$COMPOSE_DIR/docker-compose.yml" ]; then
+            mkdir -p "$STATE_DIR/compose/$version"
+            chmod 700 "$STATE_DIR"
+            cp -f "$COMPOSE_DIR"/docker-compose*.yml "$STATE_DIR/compose/$version/" 2>/dev/null || true
+            [ -f "$COMPOSE_DIR/compose-files.sh" ] && cp -f "$COMPOSE_DIR/compose-files.sh" "$STATE_DIR/compose/$version/"
+            # Les 5 copies les plus récentes suffisent
+            ls -1t "$STATE_DIR/compose" 2>/dev/null | tail -n +6 | while read -r ancienne; do
+                rm -rf "${STATE_DIR:?}/compose/$ancienne"
+            done
+        fi
+        ;;
+esac
+exit 0

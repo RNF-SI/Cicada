@@ -23,6 +23,46 @@
           <strong>{{ 'admin.update.currentVersion' | translate }}</strong>
           {{ versionInfo()?.current_version ?? '—' }}
         </p>
+        <p class="last-backup" data-testid="update-last-backup">
+          <strong>{{ 'admin.update.backup.title' | translate }}</strong>
+          @if (versionInfo()?.last_backup?.derniere; as derniere) {
+            {{ 'admin.update.backup.last' | translate:{
+              date: formatDate(derniere.date),
+              taille: formatSize(derniere.taille),
+              nombre: versionInfo()?.last_backup?.nombre
+            } }}
+          } @else {
+            {{ 'admin.update.backup.none' | translate }}
+          }
+        </p>
+        <p class="backup-hint">{{ 'admin.update.backup.hint' | translate }}</p>
+
+        @if (phase() === 'idle') {
+          @if (lastWarning(); as avertissement) {
+            <div class="update-progress" role="status" data-testid="update-last-warning">
+              <i class="fi fi-rr-info"></i>
+              <div class="progress-text">
+                <p class="progress-title">{{ 'admin.update.outcome.avertissement' | translate }}</p>
+                <p class="progress-hint">{{ avertissement }}</p>
+              </div>
+            </div>
+          }
+          @if (lastFailure(); as echec) {
+            <div class="update-progress is-failed" role="status" data-testid="update-last-failure">
+              <i class="fi fi-rr-exclamation"></i>
+              <div class="progress-text">
+                <p class="progress-title">{{ outcomeKey(echec) | translate:{ version: echec.cible, depart: echec.depart } }}</p>
+                @if (echec.error) {
+                  <p class="progress-hint">{{ echec.error }}</p>
+                }
+                @if (echec.commande) {
+                  <p class="progress-hint">{{ 'admin.update.outcome.commande' | translate }} <code>{{ echec.commande }}</code></p>
+                }
+                <p class="progress-hint">{{ 'admin.update.outcome.date' | translate:{ date: formatDate(echec.timestamp) } }}</p>
+              </div>
+            </div>
+          }
+        }
 
         @if (phase() !== 'idle') {
           <div class="update-progress" [class.is-done]="phase() === 'done'" [class.is-failed]="phase() === 'failed'" role="status" aria-live="polite">
@@ -34,12 +74,15 @@
               <i class="fi fi-rr-exclamation"></i>
             }
             <div class="progress-text">
-              <p class="progress-title">{{ phaseKey | translate:{ version: targetVersion() } }}</p>
+              <p class="progress-title">{{ phaseKey | translate:{ version: targetVersion(), depart: failureDepart() } }}</p>
               @if (isInProgress) {
                 <p class="progress-hint">{{ 'admin.update.progress.hint' | translate }}</p>
               }
               @if (phase() === 'failed' && failureMessage()) {
                 <p class="progress-hint">{{ failureMessage() }}</p>
+              }
+              @if (phase() === 'failed' && failureCommande()) {
+                <p class="progress-hint">{{ 'admin.update.outcome.commande' | translate }} <code>{{ failureCommande() }}</code></p>
               }
               @if (phase() === 'failed' || phase() === 'unknown') {
                 <p class="progress-hint">{{ 'admin.update.progress.checkLogs' | translate }}</p>
