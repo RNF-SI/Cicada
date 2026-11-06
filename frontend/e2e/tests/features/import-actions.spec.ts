@@ -204,7 +204,10 @@ async function buildPlan(page: any): Promise<Fixture> {
       code_operation: 'E2E-ORG',
       ventilation_mode: 'by_org',
       declinaison_par_poste: false,
-      declinaison_par_type_cout: true,
+      // #773 — coûts détaillés sans déclinaison par poste : le coût salarial
+      // se saisit et l'enveloppe par organisme n'est plus stockée. Une action
+      // « par organisme » à enveloppes reste le cas représentatif (jeu d'essai).
+      declinaison_par_type_cout: false,
       cout_salarial_auto: true,
       site_ids: [site.id_site],
       operation_annees: [
