@@ -300,7 +300,12 @@
                     } @else { — }
                   </td>
                   <td class="num">
-                    @if (row.budgetPrev == null) { — } @else { {{ row.budgetPrev | number:'1.0-0':'fr-FR' }} € }
+                    @if (row.budgetPrev == null) { — } @else {
+                      <span [class.diverge]="row.budgetPrevPg != null"
+                            [matTooltip]="row.budgetPrevPg != null ? ('plans.suivis.actionGlobal.prevuPg' | translate:{ valeur: (row.budgetPrevPg | number:'1.0-0':'fr-FR') + ' €' }) : ''">
+                        {{ row.budgetPrev | number:'1.0-0':'fr-FR' }} €
+                      </span>
+                    }
                   </td>
                   <td class="num">
                     @if (row.budgetReal == null) {
@@ -308,7 +313,12 @@
                     } @else { {{ row.budgetReal | number:'1.0-0':'fr-FR' }} € }
                   </td>
                   <td class="num">
-                    @if (row.etpPrev == null) { — } @else { {{ row.etpPrev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }} }
+                    @if (row.etpPrev == null) { — } @else {
+                      <span [class.diverge]="row.etpPrevPg != null"
+                            [matTooltip]="row.etpPrevPg != null ? ('plans.suivis.actionGlobal.prevuPg' | translate:{ valeur: (row.etpPrevPg | number:'1.0-1':'fr-FR') + ' j' }) : ''">
+                        {{ row.etpPrev | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
+                      </span>
+                    }
                   </td>
                   <td class="num">
                     @if (row.etpReal == null) {

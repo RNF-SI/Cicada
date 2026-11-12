@@ -385,3 +385,12 @@
     &.col-y { text-align: center; }
   }
 }
+
+// #794 — prévu ajusté qui s'écarte du plan de gestion (valeur du plan au survol).
+.diverge {
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+  cursor: help;
+}

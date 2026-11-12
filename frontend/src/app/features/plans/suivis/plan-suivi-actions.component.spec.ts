@@ -9,6 +9,7 @@ import { of } from 'rxjs';
 import { PlanSuiviActionsComponent } from './plan-suivi-actions.component';
 import { AdminService } from '../../../core/services/admin.service';
 import { EnjeuService } from '../../../core/services/enjeu.service';
+import { PlanificationAnnuelleService } from '../../../core/services/planification-annuelle.service';
 
 /**
  * #540 — Les actions rattachées directement à un indicateur (sans métrique)
@@ -330,9 +331,13 @@ describe('PlanSuiviActionsComponent — agrégation budget / RH (#616)', () => {
 
   it('#749 — gabarit : « / » pour le prévu sans objet, réalisé mis en avant', () => {
     const html = readFileSync(join(__dirname, 'plan-suivi-actions.component.html'), 'utf8');
-    expect((html.match(/@if \(cell\.prevSansObjet\)/g) || []).length).toBe(2);
-    // Le réalisé est la valeur principale de la cellule, le prévu son rappel.
-    expect((html.match(/class="agg-main"/g) || []).length).toBeGreaterThanOrEqual(4);
+    // #794 — un gabarit commun aux onglets Budget et RH (lignes et totaux de
+    // groupe) : prévu du plan, prévu ajusté, réalisé.
+    expect((html.match(/\*ngTemplateOutlet="cellulesAgg/g) || []).length).toBe(4);
+    expect((html.match(/@if \(cell\.prevPgSansObjet\)/g) || []).length).toBe(1);
+    expect((html.match(/@if \(cell\.prevSansObjet\)/g) || []).length).toBe(1);
+    // Le réalisé est la valeur principale de sa cellule.
+    expect((html.match(/class="agg-main"/g) || []).length).toBeGreaterThanOrEqual(1);
     expect(html).not.toMatch(/<div class="agg-prev">\{\{ cell\.previsionnel/);
   });
 
@@ -498,8 +503,9 @@ describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
     }]);
     const g = grid('buildAggregationGrid', 'budget');
     const n = g.entetes.length;
-    // Colonnes : … courant prévu / réalisé, écoulé prévu / réalisé, total prévu / réalisé.
-    expect(g.lignes[0].cellules.slice(n - 6)).toEqual(['/', 800, '/', 800, 5000, 800]);
+    // #794 — par période : prévu du plan, prévu ajusté (ici le plan, rien
+    // n'est ajusté), réalisé — courant, écoulé, total.
+    expect(g.lignes[0].cellules.slice(n - 9)).toEqual(['/', '/', 800, '/', '/', 800, 5000, 5000, 800]);
   });
 
   it('annonce l’onglet et les filtres actifs en tête de classeur', () => {
@@ -523,8 +529,9 @@ describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
 
     // Identification (organisme + 6 colonnes d'action) : aucun format imposé.
     expect(payload.formats.slice(0, 7)).toEqual([null, null, null, null, null, null, null]);
-    // Colonnes chiffrées prévi/réalisé des 3 périodes : toutes en euros.
-    expect(payload.formats.slice(7)).toEqual(Array(6).fill('euro'));
+    // Colonnes chiffrées des 3 périodes (#794 : prévu du plan, prévu ajusté,
+    // réalisé) : toutes en euros.
+    expect(payload.formats.slice(7)).toEqual(Array(9).fill('euro'));
     expect(payload.formats).toHaveLength(payload.entetes.length);
   });
 
@@ -557,5 +564,56 @@ describe('PlanSuiviActionsComponent — export du tableau (#637)', () => {
     component.setTab('rh');
     const payload = (component as any).buildExportPayload();
     expect(payload.formats.every((f: any) => f === null)).toBe(true);
+  });
+});
+
+describe('PlanSuiviActionsComponent — planification annuelle ajustée (#794)', () => {
+  let component: PlanSuiviActionsComponent;
+  const pg: any = {
+    id_operation: 1, libelle: 'Fauche', ventilation_mode: 'none',
+    operation_annees: [
+      { annee: 2026, periodicite: true, periodicite_mensuelle: { '5': true }, budget: '1000.00',
+        rh_lignes: [], organismes: [], realisation: { budget_realise: '600.00' } },
+      { annee: 2027, periodicite: true, periodicite_mensuelle: { '6': true }, budget: '2000.00',
+        rh_lignes: [], organismes: [] },
+    ],
+  };
+  const ajustements = [{
+    id_operation: 1, annee: 2026, statut: 'planifiee', revue: true, budget: '1500.00',
+    periodicite_mensuelle: { '9': true }, organismes: [], rh_lignes: [], financeurs: [],
+  }];
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [PlanSuiviActionsComponent, NoopAnimationsModule, HttpClientTestingModule, TranslateModule.forRoot()],
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: { get: () => null }, queryParamMap: { get: () => null } } } },
+        { provide: Router, useValue: { navigate: jest.fn(), events: of(), createUrlTree: jest.fn(), serializeUrl: jest.fn() } },
+        { provide: AdminService, useValue: { getNomenclaturesByType: () => of([]), getPlanBySlug: () => of(null) } },
+        { provide: EnjeuService, useValue: { getPlanEnjeux: () => of({
+          enjeux: [{ id_enjeu: 1, libelle: 'E', objectifs_long_terme: [{ niveaux_exigence: [{ indicateurs: [
+            { metriques: [{ operations: [pg] }] }] }] }] }], fcr: [] }) } },
+        { provide: PlanificationAnnuelleService, useValue: { ajustements: () => of({ ajustements }) } },
+      ],
+    });
+    component = TestBed.createComponent(PlanSuiviActionsComponent).componentInstance;
+    component.currentYear.set(2026);
+    (component as any).loadData(10);
+  });
+
+  it('charge la programmation ajustée et garde le plan de gestion en regard', () => {
+    const [item] = component.allOperations();
+    expect(item.pg).toBe(pg);
+    expect(item.operation).not.toBe(pg);
+    expect(item.operation.operation_annees![0].periodicite_mensuelle).toEqual({ '9': true });
+  });
+
+  it('Budget : prévu du plan, prévu ajusté et réalisé, l\'écart sur l\'ajusté', () => {
+    const [item] = component.allOperations();
+    const annee = component.aggregateBudget(item, 'current');
+    expect([annee.previsionnelPg, annee.previsionnel, annee.realise]).toEqual([1000, 1500, 600]);
+    expect(annee.diverge).toBe(true);
+    const total = component.aggregateBudget(item, 'total');
+    expect([total.previsionnelPg, total.previsionnel]).toEqual([3000, 3500]);
   });
 });

@@ -3,7 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import {
-  ApercuReport, ContenuAnnuel, DetailAnnuel, ReportDemande, TableauAnnuel,
+  AjustementDuPlan, ApercuReport, ContenuAnnuel, DetailAnnuel, ReportDemande, TableauAnnuel,
 } from '../models/planification-annuelle.model';
 
 /**
@@ -23,6 +23,11 @@ export class PlanificationAnnuelleService {
       params = params.set('annee', String(annee));
     }
     return this.http.get<TableauAnnuel>(`${this.apiUrl}/plan/${planId}/`, { params });
+  }
+
+  /** Toutes les années ajustées des actions du plan (suivi, #794). */
+  ajustements(planId: number): Observable<{ ajustements: AjustementDuPlan[] }> {
+    return this.http.get<{ ajustements: AjustementDuPlan[] }>(`${this.apiUrl}/plan/${planId}/ajustements/`);
   }
 
   detail(operationId: number, annee: number): Observable<DetailAnnuel> {

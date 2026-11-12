@@ -12,6 +12,10 @@ import { PlanSidebarComponent } from '../../shared/plan-sidebar/plan-sidebar.com
 import { AdminService } from '../../../../core/services/admin.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { EnjeuService } from '../../../../core/services/enjeu.service';
+import { PlanificationAnnuelleService } from '../../../../core/services/planification-annuelle.service';
+import {
+  AjustementsParAction, operationAjustee, ranger,
+} from '../../../../shared/utils/planification-effective';
 import { Operation, OperationAnnee, Mesure } from '../../../../core/models/enjeu.model';
 import {
   ActionStatus, ACTION_LEGEND_ITEMS, getActionIcon, getActionStatusForYear, hasSaisieRealisation,
@@ -30,6 +34,9 @@ interface YearRow {
   budgetReal: number | null;
   etpPrev: number | null;
   etpReal: number | null;
+  /** #794 — prévu du plan de gestion, quand il diffère du prévu ajusté. */
+  budgetPrevPg: number | null;
+  etpPrevPg: number | null;
 }
 
 /** Somme des réalisés saisis ; `null` si aucune année n'a de suivi (#699). */
@@ -75,6 +82,7 @@ export class ActionGlobalComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly authService = inject(AuthService);
   private readonly enjeuService = inject(EnjeuService);
+  private readonly planificationService = inject(PlanificationAnnuelleService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly translate = inject(TranslateService);
 
@@ -183,34 +191,56 @@ export class ActionGlobalComponent implements OnInit {
     return score == null ? null : scoreLevelName(score);
   }
 
-  yearRows = computed<YearRow[]>(() => {
+  /** #794 — années ajustées des actions du plan (planification annuelle). */
+  ajustements = signal<AjustementsParAction>(new Map());
+
+  /** #794 — l'action telle que le suivi la lit : programmation ajustée. */
+  operationEffective = computed<Operation | null>(() => {
     const op = this.operation();
-    if (!op) return [];
+    return op ? operationAjustee(op, this.ajustements()) : null;
+  });
+
+  yearRows = computed<YearRow[]>(() => {
+    const op = this.operationEffective();
+    const pg = this.operation();
+    if (!op || !pg) return [];
     const globale = !!op.programmation_globale;
+    const pgParAnnee = new Map((pg.operation_annees || []).map(oa => [oa.annee, oa]));
     return [...(op.operation_annees || [])]
       .sort((a, b) => a.annee - b.annee)
       .map(oa => {
         const saisi = hasSaisieRealisation(oa);
+        const ajustee = !!(oa as { ajustee?: boolean }).ajustee;
+        const pgOa = pgParAnnee.get(oa.annee);
+        // Action globale (#735) : prévu annuel seulement s'il a été ajusté.
+        const budgetPrev = globale && !ajustee ? null : yearBudgetPrev(op, oa).total ?? 0;
+        const etpPrev = globale && !ajustee ? null : yearJoursAgentsPrev(oa, true) ?? 0;
+        const budgetPrevPg = globale ? null : pgOa ? yearBudgetPrev(pg, pgOa).total ?? 0 : 0;
+        const etpPrevPg = globale ? null : pgOa ? yearJoursAgentsPrev(pgOa, true) ?? 0 : 0;
         return {
         annee: oa.annee,
+        // #794 — le statut se lit sur la planification ajustée.
         status: getActionStatusForYear(op, oa.annee),
         // #616 — budget et temps de travail DÉRIVÉS de ce qui est réellement
         // saisi (détail des coûts, lignes RH), sinon les modes « + type de
         // poste » et les suivis n'apparaissaient jamais dans les totaux.
-        budgetPrev: globale ? null : yearBudgetPrev(op, oa).total ?? 0,
+        budgetPrev,
         // #699 — année sans suivi (jamais saisie ou effacée) : « non saisi »,
         // pour ne pas lire un 0 à côté du prévu comme une réalisation.
         budgetReal: saisi ? yearBudgetReal(op, oa).total ?? 0 : null,
-        etpPrev: globale ? null : yearJoursAgentsPrev(oa, true) ?? 0,
+        etpPrev,
         etpReal: saisi ? yearJoursAgentsReal(oa) ?? 0 : null,
+        budgetPrevPg: ajustee && budgetPrevPg !== budgetPrev ? budgetPrevPg : null,
+        etpPrevPg: ajustee && etpPrevPg !== etpPrev ? etpPrevPg : null,
         };
       });
   });
 
   // #735 — le prévu se lit sur les lignes qui le portent (`prevAnnees`) : la
   // ligne globale d'une action programmée sur sa période, sinon ses années.
+  // #794 — années ajustées comprises.
   budgetTotal = computed(() => {
-    const op = this.operation();
+    const op = this.operationEffective();
     const rows = this.yearRows();
     return {
       prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearBudgetPrev(op, oa).total ?? 0), 0) : 0,
@@ -219,7 +249,7 @@ export class ActionGlobalComponent implements OnInit {
   });
 
   etpTotal = computed(() => {
-    const op = this.operation();
+    const op = this.operationEffective();
     const rows = this.yearRows();
     return {
       prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearJoursAgentsPrev(oa, true) ?? 0), 0) : 0,
@@ -236,6 +266,11 @@ export class ActionGlobalComponent implements OnInit {
         next: (plan) => {
           this.planId.set(plan.id_pg);
           this.planReferentIds.set((plan.referents ?? []).map(r => r.id_role));
+          // #794 — prévu de la planification annuelle ajustée.
+          this.planificationService.ajustements(plan.id_pg).subscribe({
+            next: (r) => this.ajustements.set(ranger(r.ajustements)),
+            error: () => this.ajustements.set(new Map()),
+          });
         },
       });
     }

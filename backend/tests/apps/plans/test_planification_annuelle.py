@@ -295,6 +295,29 @@ class TestReportPartiel:
         assert monde.reporter(Y, Y + 1, partiel=True).status_code == 409
 
 
+class TestAjustementsDuPlan:
+    """Tous les ajustements d'un plan, pour que le suivi calcule son prévu sur
+    la planification ajustée (icônes, budget / RH, planification mensuelle)."""
+
+    def test_rend_le_contenu_de_chaque_annee_ajustee(self):
+        pc = construire_plan_complet(statut='valide')
+        reponse = _client(pc.referent).get(f'{BASE}/plan/{pc.plan.pk}/ajustements/')
+        assert reponse.status_code == 200, reponse.content[:300]
+        (aj,) = reponse.json()['ajustements']
+        assert (aj['id_operation'], aj['annee'], aj['statut']) == (pc.action.pk, pc.annee + 1, 'planifiee')
+        assert aj['periodicite_mensuelle'] == {'4': True, '5': True}
+        (rh,) = aj['rh_lignes']
+        assert (rh['id_poste'], Decimal(rh['poste_cout_jour'])) == (pc.poste.pk, Decimal('250'))
+        assert rh['poste_id_organisme'] == pc.org_a.pk
+        assert aj['revue'] is False
+
+    def test_reserve_au_suivi(self, monde):
+        redacteur = RoleFactory(role_level='redacteur')
+        monde.plan.referents.add(redacteur)
+        for user in (redacteur, RoleFactory()):
+            assert _client(user).get(f'{BASE}/plan/{monde.plan.pk}/ajustements/').status_code == 403
+
+
 class TestDroits:
     def test_lecture_pour_un_membre_du_site_saisie_refusee(self, monde):
         membre = RoleFactory(id_organisme=monde.organisme)

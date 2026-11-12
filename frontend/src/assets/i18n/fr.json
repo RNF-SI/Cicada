@@ -2751,7 +2751,12 @@
           "col": {
             "current": "Année en cours",
             "past": "Période écoulée",
-            "total": "Total Plan de gestion"
+            "total": "Total Plan de gestion",
+            "pg": "Prévu PG",
+            "pgTooltip": "Prévu par le plan de gestion (la référence, jamais modifiée).",
+            "ajuste": "Prévu ajusté",
+            "ajusteTooltip": "Prévu de la planification annuelle ajustée ; les années non ajustées reprennent le plan de gestion.",
+            "realise": "Réalisé"
           }
         },
         "filterLabel": "FILTRER",
@@ -2892,7 +2897,9 @@
           "codeOperation": "Code opération",
           "onglet": "Onglet",
           "error": "L'export du tableau a échoué. Réessayez dans un instant.",
-          "totalGroupe": "Total"
+          "totalGroupe": "Total",
+          "previsionnelPg": "Prévu plan de gestion",
+          "previsionnelAjuste": "Prévu ajusté"
         }
       },
       "saisie": {
@@ -3244,7 +3251,8 @@
         "commentLabel": "Commentaire global (optionnel)",
         "commentPlaceholder": "Précisez le contexte de la réalisation globale de l'action…",
         "saveComment": "Enregistrer le commentaire",
-        "commentSaved": "Commentaire enregistré"
+        "commentSaved": "Commentaire enregistré",
+        "prevuPg": "Plan de gestion : {{valeur}}"
       }
     },
     "mindmap": {

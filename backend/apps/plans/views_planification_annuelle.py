@@ -25,7 +25,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .access import assert_suivi_access, user_can_access_suivi
+from .access import assert_suivi_access, plan_operation_ids, user_can_access_suivi
 from .models import PlanGestion
 from .models_operations import Financeur, Operation, OperationAnneeOrganisme
 from .models_planification import AjustementAnnuel, AjustementAnnuelOrganisme
@@ -34,7 +34,8 @@ from .planification_annuelle import (
     ecrire, financeurs_pg,
 )
 from .serializers_planification import (
-    ApercuReportSerializer, ContenuAnnuelSerializer, DetailAnnuelSerializer,
+    AjustementsDuPlanSerializer, ApercuReportSerializer, ContenuAnnuelSerializer,
+    DetailAnnuelSerializer,
     ReportDemandeSerializer, TableauAnnuelSerializer,
 )
 from .services_export_finance import plan_operations, temps_par_poste
@@ -133,6 +134,38 @@ class TableauPlanificationAnnuelleView(APIView):
             'actions': lignes,
         }
         return Response(TableauAnnuelSerializer(donnees).data)
+
+
+class AjustementsDuPlanView(APIView):
+    """Toutes les années ajustées des actions d'un plan, pour le suivi."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        summary="Années ajustées des actions d'un plan (#794)",
+        description="Le suivi (icônes, budget / RH, planification mensuelle) calcule son "
+                    "prévu sur la planification ajustée : une année sans ajustement suit "
+                    "le plan de gestion.",
+        responses=AjustementsDuPlanSerializer,
+    )
+    def get(self, request, plan_id):
+        plan = get_object_or_404(PlanGestion, pk=plan_id)
+        assert_suivi_access(request.user, plan, lecture=True)
+        ajustements = (
+            AjustementAnnuel.objects.filter(id_operation__in=plan_operation_ids(plan))
+            .prefetch_related('organismes', 'financeurs', 'rh_lignes__id_poste')
+            .order_by('id_operation', 'annee'))
+        lignes = []
+        for ajustement in ajustements:
+            contenu = contenu_ajuste(ajustement)
+            postes = {l.id_poste_id: l.id_poste for l in ajustement.rh_lignes.all() if l.id_poste_id}
+            for ligne in contenu['rh_lignes']:
+                poste = postes.get(ligne['id_poste'])
+                ligne['poste_cout_jour'] = getattr(poste, 'cout_jour', None)
+                ligne['poste_id_organisme'] = getattr(poste, 'id_organisme_id', None)
+            lignes.append(dict(
+                contenu, id_operation=ajustement.id_operation_id, annee=ajustement.annee,
+                revue=ajustement.date_revue is not None))
+        return Response(AjustementsDuPlanSerializer({'ajustements': lignes}).data)
 
 
 class _AjustementBase(APIView):

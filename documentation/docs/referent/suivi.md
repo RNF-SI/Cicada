@@ -42,9 +42,15 @@ En cliquant sur la case de l'indicateur de la colonne « Global », vous accéde
 Une grille actions × années pour saisir la réalisation des actions, ainsi que le budget et les ressources humaines consommés est accessible en cliquant sur « Suivi des actions » de la barre latérale. Quatre onglets sont disponibles sur la page : Planification mensuelle, Réalisation, Budget, RH. Ils présentent :
 
 - **Des filtres** : catégorie d'action, enjeu, priorité, organisme, année et réalisation (réalisées / non réalisées), et recherche par nom ou code.
+- **La planification annuelle ajustée** ([§ 4.9.4](#494-lajustement-de-la-planification-annuelle)) fait foi pour le prévu : une action reportée n'est plus prévue l'année d'origine mais l'année du report, une action planifiée hors du plan de gestion apparaît prévue, et la planification mensuelle montre les mois ajustés.
 - **Une légende de réalisation :** action prévue ; prévue et réalisée ; prévue et partiellement réalisée ; prévue non réalisée ; réalisée non prévue ; partiellement réalisée non prévue ; en cours (sablier) ; non commencée.
 - **Une colonne « Global »** qui donne la **réalisation sur toute la période** et ouvre la page globale de l'action.
-- **Onglets Budget et RH :** pour l'année de référence choisie, la période écoulée (du début du plan jusqu'à l'année de référence incluse) et le total du plan, le réalisé, puis en rappel le prévisionnel et l'écart (montant restant en vert, dépassé en rouge). Pour une action programmée globalement sur sa période, le prévisionnel ne se répartit pas par année : il est noté « / » sur l'année et la période écoulée, et ne figure que dans le total du plan. L'onglet RH ne compte que le temps des agents : le temps bénévole ou partenaire n'entre pas dans ces totaux, ni dans ceux de la vue globale d'une action.
+- **Onglets Budget et RH :** pour l'année de référence choisie, la période écoulée (du début du plan jusqu'à l'année de référence incluse) et le total du plan, trois colonnes :
+    - le **prévu du plan de gestion** ;
+    - le **prévu ajusté** par la planification annuelle ([§ 4.9.4](#494-lajustement-de-la-planification-annuelle)), en relief quand il s'écarte du plan ; les années non ajustées reprennent le plan ;
+    - le **réalisé**, avec l'écart au prévu ajusté (montant restant en vert, dépassé en rouge).
+
+    Pour une action programmée globalement sur sa période, le prévu du plan de gestion ne se répartit pas par année : il est noté « / » sur l'année et la période écoulée, et ne figure que dans le total du plan. Son prévu ajusté est celui saisi pour chaque année ajustée. L'onglet RH ne compte que le temps des agents : le temps bénévole ou partenaire n'entre pas dans ces totaux, ni dans ceux de la vue globale d'une action.
 - **Planification mensuelle** : vue Agenda (ce mois-ci, le mois prochain, cette année) ou vue Calendrier (une ligne par action, douze mois).
 - « **Exporter le tableau** » produit un fichier Excel **selon l'onglet et les filtres en cours.** Depuis l'onglet « Réalisation », chaque case d'année y porte le **même pictogramme qu'à l'écran**, et la légende des pictogrammes figure en tête du fichier.
 - **Voir la fiche action,** en cliquant sur l'icône œil.
@@ -76,7 +82,7 @@ Pour une action **programmée globalement sur sa période** (voir [§ 4.8.1](act
 
 Comme à la saisie de l'action, la catégorie de dépense du temps réalisé (fonctionnement, investissement, bénévolat partenariat) n'est demandée que si le mode de ventilation inclut le type de budget. Dans les onglets Budget et RH du suivi des actions, son prévu ne compte que dans la colonne du total du plan.
 
-La page globale d'une action récapitule sa réalisation, son budget et son temps de travail année par année. Le bouton « Ajuster manuellement la réalisation » permet de forcer la réalisation globale et d'ajouter un commentaire global.
+La page globale d'une action récapitule sa réalisation, son budget et son temps de travail année par année. Le prévu y est celui de la planification ajustée : quand il s'écarte du plan de gestion, il est souligné en pointillé et la valeur du plan s'affiche au survol. Le bouton « Ajuster manuellement la réalisation » permet de forcer la réalisation globale et d'ajouter un commentaire global.
 
 <figure markdown="span">
 ![Suivi des actions](../assets/figures/fig51.webp){ loading=lazy }

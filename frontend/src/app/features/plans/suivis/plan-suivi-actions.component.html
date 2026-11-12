@@ -441,8 +441,8 @@
                 <table class="actions-table agg-table">
                   <thead>
                     <tr>
-                      <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
-                      <th class="col-agg">
+                      <th class="col-action" rowspan="2">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
+                      <th class="col-agg col-periode" colspan="3">
                         {{ 'plans.suivis.actions.tabs.col.current' | translate }}
                         <!-- #570 — année de référence sélectionnable -->
                         <button type="button" class="year-selector" [matMenuTriggerFor]="yearSelMenu"
@@ -451,10 +451,18 @@
                           <i class="fi fi-rr-angle-small-down"></i>
                         </button>
                       </th>
-                      <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
-                      <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
-                      <th class="col-global">{{ 'plans.suivis.actions.globalStatus.columnHeader' | translate }}</th>
-                      <th class="col-icons"></th>
+                      <th class="col-agg col-periode" colspan="3">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
+                      <th class="col-agg col-periode" colspan="3">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
+                      <th class="col-global" rowspan="2">{{ 'plans.suivis.actions.globalStatus.columnHeader' | translate }}</th>
+                      <th class="col-icons" rowspan="2"></th>
+                    </tr>
+                    <!-- #794 — prévu du plan de gestion, prévu ajusté, réalisé -->
+                    <tr class="sous-colonnes">
+                      @for (period of ['current', 'past', 'total']; track period) {
+                        <th class="col-sous col-pg" [matTooltip]="'plans.suivis.actions.tabs.col.pgTooltip' | translate">{{ 'plans.suivis.actions.tabs.col.pg' | translate }}</th>
+                        <th class="col-sous col-ajuste" [matTooltip]="'plans.suivis.actions.tabs.col.ajusteTooltip' | translate">{{ 'plans.suivis.actions.tabs.col.ajuste' | translate }}</th>
+                        <th class="col-sous col-realise">{{ 'plans.suivis.actions.tabs.col.realise' | translate }}</th>
+                      }
                     </tr>
                   </thead>
                   <tbody>
@@ -468,30 +476,8 @@
                           <span class="org-total-suffix">— {{ 'plans.suivis.actions.tabs.col.total' | translate }}</span>
                         </td>
                         @for (period of ['current', 'past', 'total']; track period) {
-                          @let gcell = groupAggregate(group.fullOperations, $any(period), 'budget');
-                          <td class="col-agg">
-                            @if (gcell.hasRealise) {
-                              <div class="agg-main">{{ gcell.realise | number:'1.0-0':'fr-FR' }} €</div>
-                            } @else {
-                              <div class="agg-main agg-main-empty">—</div>
-                            }
-                            <!-- #749 — le prévu, en rappel sous le réalisé. -->
-                            <div class="agg-sub">
-                              @if (gcell.prevSansObjet) {
-                                <span class="agg-prev" [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">{{ 'plans.suivis.actions.prevuLabel' | translate }} /</span>
-                              } @else {
-                                <span class="agg-prev">{{ 'plans.suivis.actions.prevuLabel' | translate }} {{ gcell.previsionnel | number:'1.0-0':'fr-FR' }} €</span>
-                                @if (gcell.hasRealise) {
-                                  @let gRestant = gcell.previsionnel - gcell.realise;
-                                  <span class="ecart" [class.positive]="gRestant >= 0" [class.negative]="gRestant < 0"
-                                        [matTooltip]="(gRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
-                                    <i class="fi" [class.fi-rr-arrow-up]="gRestant >= 0" [class.fi-rr-arrow-down]="gRestant < 0"></i>
-                                    {{ (gRestant >= 0 ? gRestant : -gRestant) | number:'1.0-0':'fr-FR' }} €
-                                  </span>
-                                }
-                              }
-                            </div>
-                          </td>
+                          <ng-container *ngTemplateOutlet="cellulesAgg; context: {
+                            $implicit: groupAggregate(group.fullOperations, $any(period), 'budget'), metric: 'budget', lien: null }"></ng-container>
                         }
                         <td colspan="2"></td>
                       </tr>
@@ -506,33 +492,10 @@
                                                 [label]="item.operation.priorite_label"></app-priority-badge>
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
-                            @let cell = aggregateBudget(item.operation, $any(period));
-                            <td class="col-agg"
-                                [class.clickable]="period === 'current'"
-                                [routerLink]="period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null"
-                                [title]="period === 'current' ? ('plans.suivis.actionGlobal.fillBudgetTooltip' | translate) : ''">
-                              @if (cell.hasRealise) {
-                                <div class="agg-main">{{ cell.realise | number:'1.0-0':'fr-FR' }} €</div>
-                              } @else {
-                                <div class="agg-main agg-main-empty">—</div>
-                              }
-                              <!-- #749 — le prévu, en rappel sous le réalisé. -->
-                              <div class="agg-sub">
-                                @if (cell.prevSansObjet) {
-                                  <span class="agg-prev" [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">{{ 'plans.suivis.actions.prevuLabel' | translate }} /</span>
-                                } @else {
-                                  <span class="agg-prev">{{ 'plans.suivis.actions.prevuLabel' | translate }} {{ cell.previsionnel | number:'1.0-0':'fr-FR' }} €</span>
-                                  @if (cell.hasRealise) {
-                                    @let cRestant = cell.previsionnel - cell.realise;
-                                    <span class="ecart" [class.positive]="cRestant >= 0" [class.negative]="cRestant < 0"
-                                          [matTooltip]="(cRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
-                                      <i class="fi" [class.fi-rr-arrow-up]="cRestant >= 0" [class.fi-rr-arrow-down]="cRestant < 0"></i>
-                                      {{ (cRestant >= 0 ? cRestant : -cRestant) | number:'1.0-0':'fr-FR' }} €
-                                    </span>
-                                  }
-                                }
-                              </div>
-                            </td>
+                            <ng-container *ngTemplateOutlet="cellulesAgg; context: {
+                              $implicit: aggregateBudget(item, $any(period)), metric: 'budget',
+                              lien: period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null,
+                              titre: 'plans.suivis.actionGlobal.fillBudgetTooltip' }"></ng-container>
                           }
                           <!-- #356 — colonne Global : icône statistiques → page globale
                                (pas l'icône de réalisation, non pertinente ici) -->
@@ -575,8 +538,8 @@
                 <table class="actions-table agg-table">
                   <thead>
                     <tr>
-                      <th class="col-action">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
-                      <th class="col-agg">
+                      <th class="col-action" rowspan="2">{{ 'plans.suivis.actions.tableHeader' | translate }}</th>
+                      <th class="col-agg col-periode" colspan="3">
                         {{ 'plans.suivis.actions.tabs.col.current' | translate }}
                         <!-- #570 — année de référence sélectionnable -->
                         <button type="button" class="year-selector" [matMenuTriggerFor]="yearSelMenu"
@@ -585,10 +548,18 @@
                           <i class="fi fi-rr-angle-small-down"></i>
                         </button>
                       </th>
-                      <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
-                      <th class="col-agg">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
-                      <th class="col-global">{{ 'plans.suivis.actions.globalStatus.columnHeader' | translate }}</th>
-                      <th class="col-icons"></th>
+                      <th class="col-agg col-periode" colspan="3">{{ 'plans.suivis.actions.tabs.col.past' | translate }}</th>
+                      <th class="col-agg col-periode" colspan="3">{{ 'plans.suivis.actions.tabs.col.total' | translate }}</th>
+                      <th class="col-global" rowspan="2">{{ 'plans.suivis.actions.globalStatus.columnHeader' | translate }}</th>
+                      <th class="col-icons" rowspan="2"></th>
+                    </tr>
+                    <!-- #794 — prévu du plan de gestion, prévu ajusté, réalisé -->
+                    <tr class="sous-colonnes">
+                      @for (period of ['current', 'past', 'total']; track period) {
+                        <th class="col-sous col-pg" [matTooltip]="'plans.suivis.actions.tabs.col.pgTooltip' | translate">{{ 'plans.suivis.actions.tabs.col.pg' | translate }}</th>
+                        <th class="col-sous col-ajuste" [matTooltip]="'plans.suivis.actions.tabs.col.ajusteTooltip' | translate">{{ 'plans.suivis.actions.tabs.col.ajuste' | translate }}</th>
+                        <th class="col-sous col-realise">{{ 'plans.suivis.actions.tabs.col.realise' | translate }}</th>
+                      }
                     </tr>
                   </thead>
                   <tbody>
@@ -602,30 +573,8 @@
                           <span class="org-total-suffix">— {{ 'plans.suivis.actions.tabs.col.total' | translate }}</span>
                         </td>
                         @for (period of ['current', 'past', 'total']; track period) {
-                          @let gcell = groupAggregate(group.fullOperations, $any(period), 'etp');
-                          <td class="col-agg">
-                            @if (gcell.hasRealise) {
-                              <div class="agg-main">{{ gcell.realise | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
-                            } @else {
-                              <div class="agg-main agg-main-empty">—</div>
-                            }
-                            <!-- #749 — le prévu, en rappel sous le réalisé. -->
-                            <div class="agg-sub">
-                              @if (gcell.prevSansObjet) {
-                                <span class="agg-prev" [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">{{ 'plans.suivis.actions.prevuLabel' | translate }} /</span>
-                              } @else {
-                                <span class="agg-prev">{{ 'plans.suivis.actions.prevuLabel' | translate }} {{ gcell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
-                                @if (gcell.hasRealise) {
-                                  @let gRestant = gcell.previsionnel - gcell.realise;
-                                  <span class="ecart" [class.positive]="gRestant >= 0" [class.negative]="gRestant < 0"
-                                        [matTooltip]="(gRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
-                                    <i class="fi" [class.fi-rr-arrow-up]="gRestant >= 0" [class.fi-rr-arrow-down]="gRestant < 0"></i>
-                                    {{ (gRestant >= 0 ? gRestant : -gRestant) | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
-                                  </span>
-                                }
-                              }
-                            </div>
-                          </td>
+                          <ng-container *ngTemplateOutlet="cellulesAgg; context: {
+                            $implicit: groupAggregate(group.fullOperations, $any(period), 'etp'), metric: 'etp', lien: null }"></ng-container>
                         }
                         <td colspan="2"></td>
                       </tr>
@@ -640,33 +589,10 @@
                                                 [label]="item.operation.priorite_label"></app-priority-badge>
                           </td>
                           @for (period of ['current', 'past', 'total']; track period) {
-                            @let cell = aggregateEtp(item.operation, $any(period));
-                            <td class="col-agg"
-                                [class.clickable]="period === 'current'"
-                                [routerLink]="period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null"
-                                [title]="period === 'current' ? ('plans.suivis.actionGlobal.fillRhTooltip' | translate) : ''">
-                              @if (cell.hasRealise) {
-                                <div class="agg-main">{{ cell.realise | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</div>
-                              } @else {
-                                <div class="agg-main agg-main-empty">—</div>
-                              }
-                              <!-- #749 — le prévu, en rappel sous le réalisé. -->
-                              <div class="agg-sub">
-                                @if (cell.prevSansObjet) {
-                                  <span class="agg-prev" [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">{{ 'plans.suivis.actions.prevuLabel' | translate }} /</span>
-                                } @else {
-                                  <span class="agg-prev">{{ 'plans.suivis.actions.prevuLabel' | translate }} {{ cell.previsionnel | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}</span>
-                                  @if (cell.hasRealise) {
-                                    @let cRestant = cell.previsionnel - cell.realise;
-                                    <span class="ecart" [class.positive]="cRestant >= 0" [class.negative]="cRestant < 0"
-                                          [matTooltip]="(cRestant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
-                                      <i class="fi" [class.fi-rr-arrow-up]="cRestant >= 0" [class.fi-rr-arrow-down]="cRestant < 0"></i>
-                                      {{ (cRestant >= 0 ? cRestant : -cRestant) | number:'1.0-1':'fr-FR' }} {{ 'plans.suivis.actions.tabs.jours' | translate }}
-                                    </span>
-                                  }
-                                }
-                              </div>
-                            </td>
+                            <ng-container *ngTemplateOutlet="cellulesAgg; context: {
+                              $implicit: aggregateEtp(item, $any(period)), metric: 'etp',
+                              lien: period === 'current' ? ['/plans', planSlug(), 'suivi-actions', 'saisie', item.operation.id_operation, currentYear()] : null,
+                              titre: 'plans.suivis.actionGlobal.fillRhTooltip' }"></ng-container>
                           }
                           <!-- #356 — colonne Global : icône statistiques → page globale
                                (pas l'icône de réalisation, non pertinente ici) -->
@@ -707,3 +633,40 @@
     }
   </main>
 </div>
+
+<!-- #794 — trois cellules par période : prévu du plan de gestion, prévu ajusté
+     (la planification annuelle), réalisé avec son écart au prévu ajusté. -->
+<ng-template #cellulesAgg let-cell let-metric="metric" let-lien="lien" let-titre="titre">
+  @let unite = metric === 'budget' ? '€' : ('plans.suivis.actions.tabs.jours' | translate);
+  @let format = metric === 'budget' ? '1.0-0' : '1.0-1';
+  <td class="col-agg col-pg">
+    @if (cell.prevPgSansObjet) {
+      <span [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">/</span>
+    } @else {
+      {{ cell.previsionnelPg | number:format:'fr-FR' }} {{ unite }}
+    }
+  </td>
+  <td class="col-agg col-ajuste" [class.diverge]="cell.diverge">
+    @if (cell.prevSansObjet) {
+      <span [matTooltip]="'plans.suivis.actions.prevuGlobalTooltip' | translate">/</span>
+    } @else {
+      {{ cell.previsionnel | number:format:'fr-FR' }} {{ unite }}
+    }
+  </td>
+  <td class="col-agg col-realise" [class.clickable]="!!lien" [routerLink]="lien"
+      [title]="lien && titre ? (titre | translate) : ''">
+    @if (cell.hasRealise) {
+      <div class="agg-main">{{ cell.realise | number:format:'fr-FR' }} {{ unite }}</div>
+      @if (!cell.prevSansObjet) {
+        @let restant = cell.previsionnel - cell.realise;
+        <span class="ecart" [class.positive]="restant >= 0" [class.negative]="restant < 0"
+              [matTooltip]="(restant >= 0 ? 'plans.suivis.actions.restantTooltip' : 'plans.suivis.actions.depasseTooltip') | translate">
+          <i class="fi" [class.fi-rr-arrow-up]="restant >= 0" [class.fi-rr-arrow-down]="restant < 0"></i>
+          {{ (restant >= 0 ? restant : -restant) | number:format:'fr-FR' }} {{ unite }}
+        </span>
+      }
+    } @else {
+      <div class="agg-main agg-main-empty">—</div>
+    }
+  </td>
+</ng-template>

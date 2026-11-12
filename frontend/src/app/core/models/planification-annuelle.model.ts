@@ -188,3 +188,11 @@ export interface ApercuReport {
   deplacements: { de: number; vers: number }[];
   abandonnees: { annee: number; resume: ResumeAnnuel }[];
 }
+
+/** Une année ajustée d'une action, telle que le suivi la lit (#794). */
+export interface AjustementDuPlan extends ContenuAnnuel {
+  id_operation: number;
+  annee: number;
+  revue: boolean;
+  rh_lignes: (RhAjuste & { poste_cout_jour: string | null; poste_id_organisme: number | null })[];
+}

@@ -263,6 +263,37 @@
     min-width: 140px;
   }
 
+  // #794 — trois colonnes par période : prévu du plan de gestion, prévu
+  // ajusté (planification annuelle), réalisé. Filet épais entre les périodes.
+  th.col-agg.col-periode { border-right: 2px solid rgba($white, 0.5); }
+  tr.sous-colonnes th.col-sous {
+    min-width: 92px;
+    padding: $spacing-xxs $spacing-xs;
+    font-size: $font-size-small;
+    font-weight: $font-weight-semibold;
+    border-right: 1px solid rgba($white, 0.18);
+
+    &.col-realise { border-right: 2px solid rgba($white, 0.5); }
+  }
+  td.col-agg.col-pg,
+  td.col-agg.col-ajuste,
+  td.col-agg.col-realise {
+    min-width: 92px;
+    white-space: nowrap;
+  }
+  td.col-agg.col-pg { color: $gray-dark; }
+  td.col-agg.col-ajuste {
+    color: $black;
+
+    // Le prévu ajusté s'écarte du plan : mis en relief.
+    &.diverge { font-weight: $font-weight-bold; color: $primary-color; }
+  }
+  td.col-agg.col-realise {
+    border-right: 2px solid $primary-bg-focus;
+
+    .ecart { display: block; margin-top: 2px; }
+  }
+
   // #379 — gros trait (bleu-vert) après la colonne titre
   th.col-action,
   td.col-action {

@@ -42,6 +42,10 @@ import {
   GridCell, GridColumnFormat, GridExportPayload, GridRow,
 } from '../../../shared/utils/grid-export';
 import { planEndYear } from '../../../shared/utils/plan-periode';
+import { AjustementsParAction, operationAjustee, ranger } from '../../../shared/utils/planification-effective';
+import { PlanificationAnnuelleService } from '../../../core/services/planification-annuelle.service';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 type SuiviTab = 'planification' | 'realisation' | 'budget' | 'rh';
 
@@ -57,16 +61,28 @@ type AggregationPeriod = 'current' | 'past' | 'total';
 
 /** Cellule prévi/réalisé pour le tableau Budget/RH. */
 interface AggregatedCell {
+  /** #794 — prévu de la planification annuelle ajustée (le plan de gestion
+   *  pour les années non ajustées). */
   previsionnel: number;
+  /** #794 — prévu du plan de gestion. */
+  previsionnelPg: number;
   realise: number;
   hasRealise: boolean;
   ecartPct: number | null;
-  /** #749 — action programmée globalement : pas de prévu annuel (affiché « / »). */
+  /** #749 — action programmée globalement : pas de prévu annuel (affiché « / »).
+   *  #794 — côté ajusté, « / » tant qu'aucune année de la période n'est ajustée. */
   prevSansObjet: boolean;
+  prevPgSansObjet: boolean;
+  /** #794 — le prévu ajusté s'écarte de celui du plan de gestion. */
+  diverge: boolean;
 }
 
 interface FlatOperation {
+  /** #794 — l'action telle que le suivi la lit : programmation ajustée. */
   operation: Operation;
+  /** #794 — l'action telle que le plan de gestion la programme (absente :
+   *  `operation`, sans ajustement). */
+  pg?: Operation;
   enjeuLibelle: string;
   enjeuId: number;
 }
@@ -92,6 +108,10 @@ export class PlanSuiviActionsComponent implements OnInit {
   private readonly enjeuService = inject(EnjeuService);
   private readonly translate = inject(TranslateService);
   private readonly snackBar = inject(MatSnackBar);
+  private readonly planificationService = inject(PlanificationAnnuelleService);
+
+  /** #794 — années ajustées des actions du plan (planification annuelle). */
+  private ajustements: AjustementsParAction = new Map();
 
   planId = signal<number | null>(null);
   /** #637 — le classeur est rendu par le serveur : l'export n'est pas instantané. */
@@ -432,21 +452,27 @@ export class PlanSuiviActionsComponent implements OnInit {
     metric: 'budget' | 'etp',
   ): AggregatedCell {
     let previsionnel = 0;
+    let previsionnelPg = 0;
     let realise = 0;
     let hasRealise = false;
     // #749 — groupe composé uniquement d'actions globales : pas de prévu annuel.
     let prevSansObjet = items.length > 0;
+    let prevPgSansObjet = items.length > 0;
+    let diverge = false;
     for (const item of items) {
       const c = metric === 'budget'
-        ? this.aggregateBudget(item.operation, period)
-        : this.aggregateEtp(item.operation, period);
+        ? this.aggregateBudget(item, period)
+        : this.aggregateEtp(item, period);
       previsionnel += c.previsionnel;
+      previsionnelPg += c.previsionnelPg;
       realise += c.realise;
       if (c.hasRealise) hasRealise = true;
       if (!c.prevSansObjet) prevSansObjet = false;
+      if (!c.prevPgSansObjet) prevPgSansObjet = false;
+      if (c.diverge) diverge = true;
     }
     const ecartPct = previsionnel > 0 ? ((realise - previsionnel) / previsionnel) * 100 : null;
-    return { previsionnel, realise, hasRealise, ecartPct, prevSansObjet };
+    return { previsionnel, previsionnelPg, realise, hasRealise, ecartPct, prevSansObjet, prevPgSansObjet, diverge };
   }
 
   priorites = computed(() => {
@@ -563,8 +589,14 @@ export class PlanSuiviActionsComponent implements OnInit {
     // les réalisations annuelles, qui viennent d'être modifiées dans la saisie ;
     // sans forcer, le cache de getPlanEnjeux renverrait l'état d'avant la saisie
     // (il fallait rafraîchir la page pour voir la mise à jour).
-    this.enjeuService.getPlanEnjeux(planId, true).subscribe({
-      next: (response) => {
+    // #794 — la programmation ajustée de chaque année, chargée avec les actions.
+    forkJoin({
+      response: this.enjeuService.getPlanEnjeux(planId, true),
+      ajustements: this.planificationService.ajustements(planId).pipe(
+        catchError(() => of({ ajustements: [] }))),
+    }).subscribe({
+      next: ({ response, ajustements }) => {
+        this.ajustements = ranger(ajustements.ajustements);
         const flatOps: FlatOperation[] = [];
         const seenIds = new Set<number>();
         const allEnjeuxAndFcr = [...response.enjeux, ...response.fcr];
@@ -613,7 +645,8 @@ export class PlanSuiviActionsComponent implements OnInit {
       if (!seenIds.has(op.id_operation)) {
         seenIds.add(op.id_operation);
         result.push({
-          operation: op,
+          operation: operationAjustee(op, this.ajustements),
+          pg: op,
           enjeuLibelle: enjeu.intitule_court || enjeu.libelle,
           enjeuId: enjeu.id_enjeu
         });
@@ -719,23 +752,72 @@ export class PlanSuiviActionsComponent implements OnInit {
    * Calcule le budget prévi+réalisé pour une opération sur une période donnée.
    * Le mode de ventilation est lu sur l'Operation.
    */
-  aggregateBudget(op: Operation, period: AggregationPeriod): AggregatedCell {
-    return this.aggregate(op, period, 'budget');
+  aggregateBudget(item: FlatOperation | Operation, period: AggregationPeriod): AggregatedCell {
+    return this.aggregate(this.ligne(item), period, 'budget');
   }
 
   /** Calcule l'ETP (jours) prévi+réalisé pour une opération sur une période. */
-  aggregateEtp(op: Operation, period: AggregationPeriod): AggregatedCell {
-    return this.aggregate(op, period, 'etp');
+  aggregateEtp(item: FlatOperation | Operation, period: AggregationPeriod): AggregatedCell {
+    return this.aggregate(this.ligne(item), period, 'etp');
   }
 
-  private aggregate(op: Operation, period: AggregationPeriod, metric: 'budget' | 'etp'): AggregatedCell {
+  /** Une action seule vaut une ligne sans ajustement (le plan de gestion). */
+  private ligne(item: FlatOperation | Operation): { operation: Operation; pg: Operation } {
+    if ('operation' in item && (item as FlatOperation).operation) {
+      const flat = item as FlatOperation;
+      return { operation: flat.operation, pg: flat.pg ?? flat.operation };
+    }
+    return { operation: item as Operation, pg: item as Operation };
+  }
+
+  /**
+   * #794 — trois valeurs par période : le prévu du plan de gestion (`item.pg`),
+   * le prévu ajusté (`item.operation`, la planification annuelle) et le
+   * réalisé. L'écart se mesure au prévu ajusté.
+   */
+  private aggregate(
+    item: { operation: Operation; pg: Operation }, period: AggregationPeriod, metric: 'budget' | 'etp',
+  ): AggregatedCell {
+    const pg = this.aggregateOp(item.pg, period, metric);
+    const op = item.operation;
+    if (op === item.pg) {
+      return { ...pg, previsionnelPg: pg.previsionnel, prevPgSansObjet: pg.prevSansObjet, diverge: false };
+    }
+    let previsionnel = 0;
+    let ajustees = 0;
+    for (const oa of this.anneesDeLaPeriode(op, period)) {
+      previsionnel += metric === 'budget'
+        ? yearBudgetPrev(op, oa).total ?? 0
+        : yearJoursAgentsPrev(oa, true) ?? 0;
+      if ((oa as { ajustee?: boolean }).ajustee) ajustees++;
+    }
+    // Action globale (#735) : le plan n'a qu'un montant sur la période, l'ajusté
+    // se saisit par année ; sans année ajustée, rien à afficher côté ajusté.
+    const globale = !!op.programmation_globale;
+    const prevSansObjet = globale && !ajustees;
+    const ecartPct = previsionnel > 0 ? ((pg.realise - previsionnel) / previsionnel) * 100 : null;
+    return {
+      previsionnel, previsionnelPg: pg.previsionnel, realise: pg.realise,
+      hasRealise: pg.hasRealise, ecartPct, prevSansObjet, prevPgSansObjet: pg.prevSansObjet,
+      diverge: Math.abs(previsionnel - pg.previsionnel) > 0.005 && !prevSansObjet && !pg.prevSansObjet,
+    };
+  }
+
+  private anneesDeLaPeriode(op: Operation, period: AggregationPeriod): OperationAnnee[] {
     const cy = this.currentYear();
-    const annees = (op.operation_annees || []).filter(oa => {
+    return (op.operation_annees || []).filter(oa => {
       if (period === 'current') return oa.annee === cy;
       // #749 — la période écoulée comprend l'année en cours.
       if (period === 'past') return oa.annee <= cy;
       return true; // total
     });
+  }
+
+  /** Prévu (plan de gestion) et réalisé d'une action sur une période. */
+  private aggregateOp(
+    op: Operation, period: AggregationPeriod, metric: 'budget' | 'etp',
+  ): Omit<AggregatedCell, 'previsionnelPg' | 'prevPgSansObjet' | 'diverge'> {
+    const annees = this.anneesDeLaPeriode(op, period);
 
     let previsionnel = 0;
     let realise = 0;
@@ -970,13 +1052,16 @@ export class PlanSuiviActionsComponent implements OnInit {
       this.t('plans.suivis.actions.tabs.col.past'),
       this.t('plans.suivis.actions.tabs.col.total'),
     ];
-    const prev = this.t('plans.suivis.actions.export.previsionnel');
+    const prevPg = this.t('plans.suivis.actions.export.previsionnelPg');
+    const prev = this.t('plans.suivis.actions.export.previsionnelAjuste');
     const real = this.t('plans.suivis.actions.export.realise');
 
+    // #794 — trois colonnes par période, comme à l'écran.
     const entetes = [
       this.t('plans.suivis.actions.organisme'),
       ...this.identityHeaders(),
-      ...periodLabels.flatMap(p => [`${p} — ${prev} (${unit})`, `${p} — ${real} (${unit})`]),
+      ...periodLabels.flatMap(p => [
+        `${p} — ${prevPg} (${unit})`, `${p} — ${prev} (${unit})`, `${p} — ${real} (${unit})`]),
     ];
     // Colonnes chiffrées : le tableur suffixe les montants d'un « € » (#644),
     // les jours restent des nombres nus (leur unité est dans l'en-tête).
@@ -991,14 +1076,14 @@ export class PlanSuiviActionsComponent implements OnInit {
 
       for (const item of group.operations) {
         const cells = periods.map(p => metric === 'budget'
-          ? this.aggregateBudget(item.operation, p)
-          : this.aggregateEtp(item.operation, p));
+          ? this.aggregateBudget(item, p)
+          : this.aggregateEtp(item, p));
         lignes.push({
           cellules: [
             orgName,
             ...this.identityCells(item),
             // #749 — prévu sans objet (action globale) : « / », comme à l'écran.
-            ...cells.flatMap(c => [c.prevSansObjet ? '/' : c.previsionnel, c.hasRealise ? c.realise : null]),
+            ...cells.flatMap(c => this.cellulesExport(c)),
           ],
         });
       }
@@ -1011,11 +1096,20 @@ export class PlanSuiviActionsComponent implements OnInit {
         cellules: [
           `${this.t('plans.suivis.actions.export.totalGroupe')} ${orgName}`,
           ...this.emptyIdentityCells(),
-          ...totals.flatMap(c => [c.prevSansObjet ? '/' : c.previsionnel, c.hasRealise ? c.realise : null]),
+          ...totals.flatMap(c => this.cellulesExport(c)),
         ],
       });
     }
     return { entetes, lignes, formats };
+  }
+
+  /** Prévu du plan de gestion, prévu ajusté, réalisé (#794). */
+  private cellulesExport(c: AggregatedCell): GridCell[] {
+    return [
+      c.prevPgSansObjet ? '/' : c.previsionnelPg,
+      c.prevSansObjet ? '/' : c.previsionnel,
+      c.hasRealise ? c.realise : null,
+    ];
   }
 
   /**

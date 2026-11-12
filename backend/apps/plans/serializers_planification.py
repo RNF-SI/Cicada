@@ -52,6 +52,13 @@ class RhAjusteSerializer(serializers.Serializer):
         choices=CategorieDepense.CHOICES, required=False, allow_blank=True, default='')
 
 
+class RhAjusteLuSerializer(RhAjusteSerializer):
+    """Ligne de temps lue, avec le coût jour et l'organisme de son poste : le
+    suivi en calcule le coût salarial comme pour la programmation du plan."""
+    poste_cout_jour = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
+    poste_id_organisme = serializers.IntegerField(allow_null=True)
+
+
 class FinanceurAjusteSerializer(serializers.Serializer):
     id_financeur = serializers.IntegerField()
     montant = _montant()
@@ -242,3 +249,15 @@ class ApercuReportSerializer(serializers.Serializer):
     deplacements = DeplacementSerializer(many=True)
     abandonnees = AbandonSerializer(
         many=True, help_text="Programmation qui tomberait après la fin du plan : abandonnée.")
+
+
+class AjustementDuPlanSerializer(ContenuAnnuelSerializer):
+    """Une année ajustée d'une action, telle que le suivi la lit."""
+    id_operation = serializers.IntegerField()
+    annee = serializers.IntegerField()
+    revue = serializers.BooleanField()
+    rh_lignes = RhAjusteLuSerializer(many=True)
+
+
+class AjustementsDuPlanSerializer(serializers.Serializer):
+    ajustements = AjustementDuPlanSerializer(many=True)

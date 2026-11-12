@@ -44,6 +44,7 @@ La programmation du plan de gestion reste la référence. Chaque année, le gest
 | Endpoint | Rôle |
 |----------|------|
 | `GET /api/plans/planification-annuelle/plan/{plan_id}/?annee=` | Tableau de l'année : pour chaque action, prévu du plan (`pg`, et `pg_global` pour une programmation globale), prévu ajusté (`ajuste`), divergence, reports reçus, réalisé ; `revues` / `total` actions revues |
+| `GET …/plan/{plan_id}/ajustements/` | Toutes les années ajustées des actions du plan (contenu, coût jour et organisme des postes des lignes de temps), pour que le suivi calcule son prévu sur la planification ajustée |
 | `GET/PUT/DELETE …/operation/{operation_id}/{annee}/` | Ajustement d'une action pour une année : `PUT` le remplace (organismes, temps et financeurs compris) et marque l'action revue, même sans changement ; `DELETE` revient au plan de gestion |
 | `POST …/operation/{operation_id}/{annee}/report/` | Report de l'action (`annee_report`), avec `apercu: true` pour l'avant / après sans rien écrire |
 

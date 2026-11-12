@@ -16,6 +16,7 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { Operation } from '../../../../core/models/enjeu.model';
+import { ranger } from '../../../../shared/utils/planification-effective';
 
 function setup(router: { navigate: jest.Mock }): ActionGlobalComponent {
   const route = {
@@ -192,5 +193,29 @@ describe('ActionGlobalComponent — prévu / réalisé non confondus (#699)', ()
     expect(r2026.etpReal).toBe(0);
     expect(r2027.budgetReal).toBeNull();
     expect(c.budgetTotal()).toEqual({ prev: 3000, real: 0 });
+  });
+});
+
+describe('ActionGlobalComponent — planification annuelle ajustée (#794)', () => {
+  const action = {
+    id_operation: 7, libelle: 'Fauche', ventilation_mode: 'none',
+    operation_annees: [
+      { annee: 2026, periodicite: true, budget: '1000.00', periodicite_mensuelle: {}, organismes: [], rh_lignes: [] },
+      { annee: 2027, periodicite: true, budget: '2000.00', periodicite_mensuelle: {}, organismes: [], rh_lignes: [] },
+    ],
+  } as unknown as Operation;
+
+  it('le prévu est l\'ajusté, le plan de gestion reste en rappel', () => {
+    const c = setup({ navigate: jest.fn() });
+    c.operation.set(action);
+    c.ajustements.set(ranger([{
+      id_operation: 7, annee: 2026, statut: 'planifiee', revue: true, budget: '1500.00',
+      periodicite_mensuelle: {}, organismes: [], rh_lignes: [], financeurs: [],
+    } as never]));
+    const [a2026, a2027] = c.yearRows();
+    expect([a2026.budgetPrev, a2026.budgetPrevPg]).toEqual([1500, 1000]);
+    // Année non ajustée : le plan de gestion, sans rappel.
+    expect([a2027.budgetPrev, a2027.budgetPrevPg]).toEqual([2000, null]);
+    expect(c.budgetTotal().prev).toBe(3500);
   });
 });
