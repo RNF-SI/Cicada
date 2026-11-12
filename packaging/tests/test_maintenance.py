@@ -792,7 +792,7 @@ def test_codes_de_sortie_de_cicada_update(instance):
 
 def charger_heartbeat(tmp_path):
     source = (RACINE_PAQUET / 'usr/bin/cicada-heartbeat').read_text()
-    source = source.replace('/var/log/cicada/heartbeat.log', str(tmp_path / 'heartbeat.log'))
+    source = source.replace('/var/log/cicada-maint/heartbeat.log', str(tmp_path / 'heartbeat.log'))
     spec = importlib.util.spec_from_loader('cicada_heartbeat', loader=None)
     module = importlib.util.module_from_spec(spec)
     exec(compile(source, 'cicada-heartbeat', 'exec'), module.__dict__)

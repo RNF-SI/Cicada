@@ -32,7 +32,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Dependances Python
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN pip install --no-cache-dir --upgrade "pip>=26.2" "setuptools>=84.1" "wheel>=0.46.2" \
+    && pip install --no-cache-dir -r requirements.txt \
     && apt-get purge -y --auto-remove build-essential \
     && rm -rf /var/lib/apt/lists/*
 
@@ -51,11 +52,15 @@ RUN chmod +x /entrypoint.sh
 COPY docker/cicada_db.py /usr/local/bin/cicada-db
 RUN chmod 755 /usr/local/bin/cicada-db
 
-# Utilisateur non-root
-RUN groupadd -r cicada && useradd -r -g cicada -d /app -s /sbin/nologin cicada \
-    && chown -R cicada:cicada /app \
+# Utilisateur non-root. Le code (/app) reste à root, en lecture seule pour
+# l'application : elle n'écrit que dans media, static et logs. Un code de
+# l'application qui pouvait réécrire ses propres modules faisait de toute
+# écriture de fichier une exécution de code.
+RUN groupadd -r cicada && useradd -r -g cicada -d /home/cicada -m -s /sbin/nologin cicada \
+    && chown -R cicada:cicada /app/media /app/static /app/logs \
     && apt-get update && apt-get install -y --no-install-recommends gosu \
     && rm -rf /var/lib/apt/lists/*
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # #646 — Version de l'instance, affichée dans l'administration. Injectée au
 # build car le contexte est ./backend : version.txt (racine du dépôt) n'est pas

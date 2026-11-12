@@ -62,6 +62,33 @@ RETOUR_VERSION = 'retour_version'  # origine d'une tentative lancée par cicada-
 
 
 
+#: Journaux écrits par root (mise à jour, heartbeat). Jamais /var/log/cicada :
+#: ce dossier est monté dans les conteneurs, qui en sont propriétaires ; un code
+#: exécuté dans un conteneur y posait un lien vers un fichier système que root
+#: complétait ensuite avec un texte de son choix (requested_by).
+JOURNAUX_ROOT = 'var/log/cicada-maint'
+
+#: Taille maximale d'un fichier d'échange lu par root.
+TAILLE_MAX_ECHANGE = 64 * 1024
+
+_CONTROLE = re.compile(r'[\x00-\x1f\x7f]')
+
+
+def nettoyer(texte, limite=500):
+    """Texte venu du conteneur, rendu sûr pour une ligne de journal : sans
+    caractère de contrôle (retour à la ligne compris) et de longueur bornée."""
+    return _CONTROLE.sub(' ', str(texte))[:limite]
+
+
+def ouvrir_journal(chemin, exclusif=False):
+    """Ouvre un journal root en ajout, sans suivre de lien, dans un dossier 0750."""
+    chemin = Path(chemin)
+    chemin.parent.mkdir(mode=0o750, parents=True, exist_ok=True)
+    drapeaux = os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW | getattr(os, 'O_CLOEXEC', 0)
+    drapeaux |= os.O_EXCL if exclusif else os.O_APPEND
+    return os.fdopen(os.open(chemin, drapeaux, 0o640), 'a' if not exclusif else 'w')
+
+
 def ecrire_echange(chemin, texte, mode=0o644):
     """Écrit un fichier du dossier d'échange avec le conteneur, sans suivre de lien.
 
@@ -77,7 +104,9 @@ def ecrire_echange(chemin, texte, mode=0o644):
     try:
         with os.fdopen(fd, 'w') as f:
             f.write(texte)
-        os.chmod(tmp, mode)
+            # Par le descripteur : un chmod par chemin suivrait un lien posé
+            # entre-temps à la place du fichier temporaire.
+            os.fchmod(f.fileno(), mode)
         os.replace(tmp, chemin)
     except BaseException:
         Path(tmp).unlink(missing_ok=True)
@@ -85,10 +114,18 @@ def ecrire_echange(chemin, texte, mode=0o644):
 
 
 def lire_echange(chemin):
-    """Lit un fichier du dossier d'échange, en refusant un lien symbolique."""
-    fd = os.open(chemin, os.O_RDONLY | os.O_NOFOLLOW)
-    with os.fdopen(fd) as f:
-        return f.read()
+    """Lit un fichier du dossier d'échange, en refusant un lien symbolique, tout
+    ce qui n'est pas un fichier ordinaire (un FIFO bloquait root sans fin) et
+    un contenu démesuré."""
+    import stat
+    fd = os.open(chemin, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as f:
+        if not stat.S_ISREG(os.fstat(f.fileno()).st_mode):
+            raise OSError(f"{chemin} n'est pas un fichier ordinaire")
+        donnees = f.read(TAILLE_MAX_ECHANGE + 1)
+    if len(donnees) > TAILLE_MAX_ECHANGE:
+        raise OSError(f"{chemin} dépasse {TAILLE_MAX_ECHANGE} octets")
+    return donnees.decode('utf-8', errors='replace')
 
 class ErreurMaintenance(Exception):
     """Échec expliqué, affiché tel quel à l'administrateur."""
@@ -102,7 +139,7 @@ class Chemins:
         self.version = r / 'usr/share/cicada/VERSION'
         self.etat = r / 'var/lib/cicada/maintenance'
         self.echanges = r / 'var/lib/cicada/updates'
-        self.journaux = r / 'var/log/cicada'
+        self.journaux = r / JOURNAUX_ROOT
         self.sauvegardes_defaut = r / 'var/backups/cicada'
 
 
@@ -138,9 +175,8 @@ class Instance:
     def dire(self, message):
         print(message, file=self.sortie, flush=True)
         try:
-            self.c.journaux.mkdir(parents=True, exist_ok=True)
-            with open(self.c.journaux / 'updater.log', 'a') as f:
-                f.write(f"{horodatage()} {message}\n")
+            with ouvrir_journal(self.c.journaux / 'updater.log') as f:
+                f.write(f"{horodatage()} {nettoyer(message, 4000)}\n")
         except OSError:
             pass
 
@@ -343,7 +379,7 @@ class Instance:
         except BlockingIOError:
             f.close()
             raise ErreurMaintenance("Une mise à jour, une sauvegarde ou une restauration est déjà en cours "
-                                    "(journal : /var/log/cicada/updater.log)")
+                                    "(journal : /var/log/cicada-maint/updater.log)")
         return f
 
     # ------------------------------------------------------------------
@@ -358,8 +394,12 @@ class Instance:
             if r.returncode != 0:
                 raise ErreurMaintenance(f"Image de l'outil de sauvegarde ({image}) indisponible : {self.resume(r, 300)}")
         self.run(['docker', 'rm', '-f', OUTILS])
+        # Lecture seule hors sauvegarde : le conteneur (son image) ne doit pas
+        # pouvoir réécrire une sauvegarde existante — ses fichiers compose sont
+        # ensuite exécutés par root (cicada-restore --avec-sa-version).
+        montage = f'{dossier}:/sauvegarde' + ('' if action == 'sauvegarder' else ':ro')
         args = ['run', '--rm', '--no-deps', '-T', '--name', OUTILS, '-l', 'traefik.enable=false',
-                '-v', f'{dossier}:/sauvegarde', '--entrypoint', 'cicada-db', 'web', action, '/sauvegarde']
+                '-v', montage, '--entrypoint', 'cicada-db', 'web', action, '/sauvegarde']
         if fichiers:
             args += ['--fichiers', '/app/media']
         r = self.compose(*args, version=version, timeout=4 * 3600)
@@ -456,16 +496,38 @@ class Instance:
         return chemin
 
     def elaguer(self):
-        """Garde les N plus récentes (CICADA_SAUVEGARDES_A_GARDER, défaut 5)
-        et toujours celle de la dernière mise à jour."""
-        garder = max(1, self.reglage('CICADA_SAUVEGARDES_A_GARDER', 5))
+        """Garde les N plus récentes (CICADA_SAUVEGARDES_A_GARDER, défaut 7),
+        la plus récente de chacune des 4 dernières semaines et des 6 derniers
+        mois, et toujours celle de la dernière mise à jour.
+
+        Avec les seules N dernières, quelques relances d'une mise à jour ratée
+        (une sauvegarde chacune) suffisaient à remplacer tout l'historique.
+        """
+        garder = max(1, self.reglage('CICADA_SAUVEGARDES_A_GARDER', 7))
         t = self.tentative() or {}
         protegee = Path(t['sauvegarde']).name if t.get('sauvegarde') else None
-        for m in self.sauvegardes()[garder:]:
-            if m['nom'] != protegee:
+        liste = self.sauvegardes()
+        gardees = {m['nom'] for m in liste[:garder]}
+        semaines, mois = {}, {}
+        for m in liste:  # la plus récente d'abord
+            jour = self._jour_sauvegarde(m)
+            if jour is None:
+                continue
+            semaines.setdefault(jour.isocalendar()[:2], m['nom'])
+            mois.setdefault((jour.year, jour.month), m['nom'])
+        gardees |= set(list(semaines.values())[:4]) | set(list(mois.values())[:6])
+        for m in liste:
+            if m['nom'] not in gardees and m['nom'] != protegee:
                 shutil.rmtree(m['chemin'], ignore_errors=True)
                 self.dire(f"  sauvegarde ancienne supprimée : {m['nom']}")
         self.publier_sauvegardes()
+
+    @staticmethod
+    def _jour_sauvegarde(m):
+        try:
+            return datetime.strptime(m['nom'][:8], '%Y%m%d').date()
+        except (KeyError, ValueError):
+            return None
 
     def publier_sauvegardes(self):
         """Résumé lu par l'application (aucun secret, aucun chemin de fichier
@@ -499,7 +561,8 @@ class Instance:
         r = self.run(['docker', 'logs', '--tail', '400', conteneur])
         nom = f"maj-{datetime.now().strftime('%Y%m%d-%H%M%S')}-{conteneur}.log"
         try:
-            (self.c.journaux / nom).write_text((r.stdout or '') + (r.stderr or ''))
+            with ouvrir_journal(self.c.journaux / nom, exclusif=True) as f:
+                f.write((r.stdout or '') + (r.stderr or ''))
         except OSError:
             return None
         chemin = str(self.c.journaux / nom)

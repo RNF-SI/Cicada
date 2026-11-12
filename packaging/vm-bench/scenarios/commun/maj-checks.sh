@@ -210,7 +210,7 @@ print('ok')" >/dev/null 2>&1
         test "$(app_sql "select count(*) from utilisateurs.django_migrations where name like '999%banc_796%'")" = 0
     check "Témoin conservé (connexion)" test "$(login_code "$TEMOIN_EMAIL" "$TEMOIN_PASSWORD")" = 200
     check "Journal du conteneur en échec conservé" bash -c \
-        "grep -l 'migration du banc en échec' /var/log/cicada/maj-*-cicada_prod_web.log"
+        "grep -l 'migration du banc en échec' /var/log/cicada-maint/maj-*-cicada_prod_web.log /var/log/cicada/maj-*-cicada_prod_web.log 2>/dev/null"
     check "Sauvegarde d'avant la mise à jour gardée" test -f "$(tentative sauvegarde)/sauvegarde.json"
     check "Sauvegardes réservées à root" test "$(stat -c %a /var/backups/cicada)" = 700
     record INFO "État du paquet" "$(dpkg-query -W -f '${Status} ${Version}' cicada)"

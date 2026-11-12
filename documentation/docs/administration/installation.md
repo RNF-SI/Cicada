@@ -349,7 +349,7 @@ Tout se fait **sur le serveur**, sans l'application (qui peut ne plus répondre)
 sudo cicada-update status
 ```
 
-Il dit la version du paquet, la version **en service**, l'état des conteneurs, l'issue de la dernière mise à jour avec sa cause, la sauvegarde prise avant, et le journal du conteneur en échec (`/var/log/cicada/maj-…-cicada_prod_web.log`). Journal complet : `/var/log/cicada/updater.log`.
+Il dit la version du paquet, la version **en service**, l'état des conteneurs, l'issue de la dernière mise à jour avec sa cause, la sauvegarde prise avant, et le journal du conteneur en échec (`/var/log/cicada-maint/maj-…-cicada_prod_web.log`). Journal complet : `/var/log/cicada-maint/updater.log` (root seul ; avant la version qui l'a introduit : `/var/log/cicada/`).
 
 | La dernière mise à jour… | Situation | Que faire |
 |---|---|---|
@@ -385,13 +385,15 @@ Elle est faite **chaque nuit** vers 0 h 45 (`cicada-backup.timer`) et **avant ch
 
 | Réglage (`/var/lib/cicada/.env`) | Défaut | Rôle |
 |---|---|---|
-| `CICADA_SAUVEGARDES_A_GARDER` | `5` | nombre de sauvegardes conservées (celle de la dernière mise à jour l'est toujours) |
+| `CICADA_SAUVEGARDES_A_GARDER` | `7` | nombre de sauvegardes récentes conservées ; s'y ajoutent la plus récente de chacune des 4 dernières semaines et des 6 derniers mois (celle de la dernière mise à jour l'est toujours) |
 | `CICADA_SAUVEGARDE_DOSSIER` | `/var/backups/cicada` | dossier des sauvegardes (par ex. un disque monté) |
 | `CICADA_MAJ_ESPACE_MIN_GO` | `5` | espace libre exigé pour les images avant une mise à jour |
 | `CICADA_MAJ_DELAI_DEMARRAGE` | `1800` | secondes laissées à l'application pour démarrer après une mise à jour |
 
-!!! warning "Copiez les sauvegardes hors du serveur"
-    Elles protègent d'une mise à jour ratée ou d'une erreur de manipulation, pas de la perte du serveur. Copiez régulièrement `/var/backups/cicada/` ailleurs (rsync, outil de sauvegarde de votre structure).
+!!! warning "Copiez les sauvegardes hors du serveur, chiffrées"
+    Elles protègent d'une mise à jour ratée ou d'une erreur de manipulation, pas de la perte du serveur. Copiez régulièrement `/var/backups/cicada/` ailleurs (rsync, outil de sauvegarde de votre structure), de préférence vers un stockage où le serveur **ne peut pas effacer** (mode « ajout seul » de restic ou borg, partage sans droit de suppression).
+
+    Chaque sauvegarde contient la configuration, donc des **secrets** : `SECRET_KEY` (qui suffit à se faire passer pour n'importe quel compte de l'instance), mots de passe de la base, du serveur de courriel, de UsersHub, jetons du hub. Hors du serveur, chiffrez-les (age, gpg) avec une clé gardée ailleurs. Rangez aussi dans votre coffre `/etc/cicada/instance_token` : il n'est pas dans les sauvegardes, et il identifie l'instance auprès du serveur de suivi.
 
 ### Commandes
 

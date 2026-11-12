@@ -14,6 +14,9 @@ COMPOSE_DIR="/usr/share/cicada"
 
 # --- Création des répertoires ---
 mkdir -p "$CICADA_DIR/data" "$CONFIG_DIR" "/var/log/cicada"
+# Journaux écrits par root (mise à jour, heartbeat) : jamais dans
+# /var/log/cicada, monté dans les conteneurs qui en sont propriétaires.
+install -d -o root -g root -m 0750 /var/log/cicada-maint
 # #796 — état des mises à jour (copies des fichiers compose, tentative en
 # cours) et sauvegardes : root seul (la configuration y est copiée).
 install -d -m 0700 "$CICADA_DIR/maintenance" /var/backups/cicada

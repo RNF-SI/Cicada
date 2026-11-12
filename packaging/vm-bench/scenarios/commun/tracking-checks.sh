@@ -65,12 +65,12 @@ tracking_maj_checks() {
 
     if wait_for 900 test -f /var/lib/cicada/updates/update_result.json; then
         if [ "$(json_field /var/lib/cicada/updates/update_result.json success)" = True ]; then
-            record PASS "Updater : mise à jour terminée" "$(tail -1 /var/log/cicada/updater.log)"
+            record PASS "Updater : mise à jour terminée" "$(tail -1 /var/log/cicada-maint/updater.log 2>/dev/null || tail -1 /var/log/cicada/updater.log)"
         else
             record FAIL "Updater : mise à jour terminée" "$(json_field /var/lib/cicada/updates/update_result.json error)"
         fi
     else
-        record FAIL "Updater : mise à jour terminée" "pas de résultat ; $(tail -2 /var/log/cicada/updater.log 2>/dev/null)"
+        record FAIL "Updater : mise à jour terminée" "pas de résultat ; $(tail -2 /var/log/cicada-maint/updater.log 2>/dev/null || tail -2 /var/log/cicada/updater.log 2>/dev/null)"
     fi
     check "Paquet cicada $to installé" test "$(dpkg-query -W -f '${Version}' cicada)" = "$to"
     local c tag

@@ -20,7 +20,9 @@ UPDATE_FILE = "/var/lib/cicada/updates/update_available.json"
 # Déposé par le bouton « Vérifier les mises à jour » ; cicada-heartbeat-check.path
 # nous lance tant qu'il existe, d'où sa suppression dès le démarrage.
 CHECK_TRIGGER_FILE = "/var/lib/cicada/updates/check_trigger.json"
-LOG_FILE = "/var/log/cicada/heartbeat.log"
+# Journal root, hors de /var/log/cicada (monté dans les conteneurs) : voir
+# cicada_maintenance.JOURNAUX_ROOT.
+LOG_FILE = "/var/log/cicada-maint/heartbeat.log"
 
 def get_tracking_api_url():
     """URL de l'API de suivi : variable d'environnement TRACKING_API_URL
@@ -36,6 +38,7 @@ def get_tracking_api_url():
         return config.get('CICADA', 'TRACKING_API_URL')
     return 'https://tracking.cicada.reserves-naturelles.org/api'
 
+Path(LOG_FILE).parent.mkdir(mode=0o750, parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',

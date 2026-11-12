@@ -65,7 +65,7 @@ $(echo -e "${GREEN}=== Labo CICADA ===${NC}")
 
   Entrer dans une VM   multipass shell $CICADA | ccd-db-$OS | $HUB | $TRACKING
   Journaux CICADA      sudo docker logs -f cicada_prod_web   (dans $CICADA)
-  Updater / heartbeat  sudo tail -f /var/log/cicada/updater.log /var/log/cicada/heartbeat.log
+  Updater / heartbeat  sudo tail -f /var/log/cicada-maint/updater.log /var/log/cicada-maint/heartbeat.log
 
 EOF
 }
@@ -150,7 +150,7 @@ publier() {
 heartbeat() {
     need_state
     vx "$CICADA" systemctl start cicada-heartbeat.service
-    vx "$CICADA" tail -3 /var/log/cicada/heartbeat.log
+    vx "$CICADA" tail -3 /var/log/cicada-maint/heartbeat.log
     echo "  Annoncé à l'application : $(vx "$CICADA" cat /var/lib/cicada/updates/update_available.json)"
 }
 

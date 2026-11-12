@@ -75,6 +75,35 @@ def get_hub_url():
     return DEFAULT_HUB_URL
 
 
+
+#: Création du super admin, dans le conteneur web. Les valeurs arrivent en JSON
+#: sur l'entrée standard (jamais dans le code), le mot de passe passe les mêmes
+#: validateurs que l'application.
+SCRIPT_SUPER_ADMIN = """
+import json, sys
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
+from apps.users.models import Role
+d = json.loads(sys.stdin.read())
+try:
+    validate_password(d['password'])
+except ValidationError as e:
+    print('ERREUR mot de passe : ' + ' '.join(e.messages))
+    raise SystemExit(1)
+user = Role.objects.filter(email__iexact=d['email']).first()
+if user is None:
+    user = Role.objects.create_superuser(
+        email=d['email'], password=d['password'],
+        nom_role=d['nom'], prenom_role=d['prenom'], active=True)
+else:
+    user.set_password(d['password'])
+    user.role_level = 'super_admin'
+    user.is_superuser = user.is_staff = user.active = True
+    user.nom_role, user.prenom_role = d['nom'], d['prenom']
+    user.save()
+print('Superuser créé avec succès: ' + user.email)
+"""
+
 class InstallService:
     def __init__(self):
         self.status_file = Path("/var/lib/cicada/install_status.json")
@@ -219,6 +248,9 @@ class InstallService:
         for field in required:
             if not data.get(field):
                 errors.append(f"Le champ {field} est requis")
+        if data.get('admin_password') and len(data['admin_password']) < 10:
+            # Même règle que l'application (validateurs Django, 10 caractères).
+            errors.append("Le mot de passe du super administrateur doit compter au moins 10 caractères.")
         if data.get('use_traefik'):
             if not data.get('acme_email'):
                 errors.append("L'email Let's Encrypt (ACME) est requis lorsque Traefik est activé.")
@@ -1104,41 +1136,21 @@ class InstallService:
             )
             raise Exception(error_msg)
         
-        # Échapper les apostrophes et guillemets dans les données pour éviter les erreurs de shell
-        admin_email = data['admin_email'].replace("'", "\\'").replace('"', '\\"')
-        admin_nom = data['admin_nom'].replace("'", "\\'").replace('"', '\\"')
-        admin_prenom = data['admin_prenom'].replace("'", "\\'").replace('"', '\\"')
-        admin_password = data['admin_password'].replace("'", "\\'").replace('"', '\\"')
-        
-        # Utiliser create_superuser avec les bons noms de champs (nom_role, prenom_role)
-        python_script = f"""
-from apps.users.models import Role
-try:
-    # Vérifier si l'utilisateur existe déjà
-    existing = Role.objects.filter(email='{admin_email}').first()
-    if existing:
-        print(f'Utilisateur {{existing.email}} existe déjà')
-        existing.delete()
-    
-    # Créer le superutilisateur avec create_superuser
-    user = Role.objects.create_superuser(
-        email='{admin_email}',
-        password='{admin_password}',
-        nom_role='{admin_nom}',
-        prenom_role='{admin_prenom}',
-        active=True
-    )
-    print(f'Superuser créé avec succès: {{user.email}}')
-except Exception as e:
-    import traceback
-    print(f'ERREUR lors de la création du superuser: {{e}}')
-    traceback.print_exc()
-    raise
-"""
-        
+        # Les valeurs saisies voyagent en JSON sur l'entrée standard d'un script
+        # FIXE : jamais insérées dans du code Python (un « \\ » cassait
+        # l'installation, une valeur construite exécutait du code). Un compte de
+        # même e-mail est promu, pas supprimé (sa suppression emportait ses
+        # liens et ce qu'il avait saisi).
+        python_script = SCRIPT_SUPER_ADMIN
+        donnees = json.dumps({
+            'email': data['admin_email'], 'password': data['admin_password'],
+            'nom': data['admin_nom'], 'prenom': data['admin_prenom'],
+        })
+
         result = subprocess.run(
             [docker_cmd, 'compose'] + compose_f_args + ['--env-file', env_file,
              'exec', '-T', 'web', 'python', 'manage.py', 'shell', '-c', python_script],
+            input=donnees,
             capture_output=True,
             text=True,
             timeout=60
