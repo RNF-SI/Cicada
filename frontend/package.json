@@ -32,7 +32,7 @@
     "leaflet-draw": "^1.0.4",
     "rxjs": "~7.8.0",
     "shpjs": "^6.2.0",
-    "tslib": "^2.3.0",
+    "tslib": "^2.9.1",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
