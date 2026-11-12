@@ -588,11 +588,11 @@ class TestPlanGestionChangeStatus:
         parent.refresh_from_db()
         assert parent.statut == 'valide'
 
-    def test_validation_cascades_to_draft_parent(self, api_client):
-        """Règle 3 — valider un brouillon valide aussi son parent en draft."""
+    def test_validation_refusee_tant_qu_un_parent_est_en_brouillon(self, api_client):
+        """Plus de validation en cascade : valider un brouillon dont un plan plus
+        ancien de la chaîne est en brouillon est refusé (la cascade validait le
+        plan d'un autre, sans son circuit CSRPN)."""
         admin = SuperAdminFactory()
-        # Setup direct via ORM (bypasse les règles à la création) :
-        # parent en draft, enfant en draft.
         parent = PlanGestionFactory(statut='draft')
         child = PlanGestionFactory(statut='draft', plan_parent=parent)
         api_client.force_authenticate(user=admin)
@@ -600,10 +600,10 @@ class TestPlanGestionChangeStatus:
             self.URL_TEMPLATE.format(child.id_pg),
             {'new_status': 'valide'},
         )
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         parent.refresh_from_db()
-        # Le parent en draft est automatiquement validé
-        assert parent.statut == 'valide'
+        child.refresh_from_db()
+        assert (parent.statut, child.statut) == ('draft', 'draft')
 
     def test_valide_to_archive(self, api_client):
         """Transition valide → archive succeeds."""
@@ -829,8 +829,9 @@ class TestPlanGestionChangeStatus:
         child.refresh_from_db()
         assert child.statut == 'valide'
 
-    def test_draft_with_draft_parent_becomes_valide(self, api_client):
-        """Un parent encore en `draft` (jamais validé) → enfant reste `valide`."""
+    def test_draft_with_draft_parent_is_refused(self, api_client):
+        """Un parent encore en `draft` (jamais validé) → validation refusée :
+        le parent se valide d'abord (plus de validation en cascade)."""
         admin = SuperAdminFactory()
         parent = PlanGestionFactory(nom='Parent', statut='draft')
         child = PlanGestionFactory(nom='Child', statut='draft', plan_parent=parent)
@@ -839,9 +840,9 @@ class TestPlanGestionChangeStatus:
             self.URL_TEMPLATE.format(child.id_pg),
             {'new_status': 'valide'},
         )
-        assert response.status_code == status.HTTP_200_OK
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
         child.refresh_from_db()
-        assert child.statut == 'valide'
+        assert child.statut == 'draft'
 
     def test_modifie_to_draft_reversible(self, api_client):
         """Un plan `modifie` peut repasser en brouillon comme un `valide`."""

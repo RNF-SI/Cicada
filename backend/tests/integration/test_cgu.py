@@ -108,7 +108,8 @@ class TestAcceptation:
         c = APIClient()
         c.credentials(HTTP_AUTHORIZATION=f'Bearer {jeton}')
         reponse = c.post(ACCEPTER, {'version': version()}, format='json')
-        assert reponse.status_code == 403
+        # 401 : un jeton d'impersonation sans session ouverte est refusé d'emblée.
+        assert reponse.status_code in (401, 403)
         user.refresh_from_db()
         assert user.cgu_acceptees_le is None
 

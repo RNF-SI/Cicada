@@ -1301,6 +1301,11 @@ class ValidationService:
         if user.is_super_admin():
             return True
 
+        # Jamais sa propre demande : un référent de site validateur des accès
+        # aux plans de son site s'accordait sinon lui-même l'accès en saisie.
+        if validation_request.requester_id and validation_request.requester_id == user.pk:
+            return False
+
         validators = ValidationService.get_validators_for_request(validation_request)
         return user in validators
 

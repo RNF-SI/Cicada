@@ -532,8 +532,17 @@ def actualiser(ref: Referentiel, obj, code: str, user, *, attendu: str) -> Passa
 def peut_actualiser(user, obj) -> bool:
     from ..referentiel_actions import peut_actualiser as peut
     if obj.plan_id is None:
-        # Responsabilités de site : pas de référent de plan.
-        return bool(user.is_super_admin() or user.is_admin_organisme())
+        # Responsabilités de site : qui gère le site de la responsabilité
+        # (un admin d'organisme ne touche pas aux sites des autres).
+        if user.is_super_admin() or user.is_redacteur_principal():
+            return True
+        cible = CIBLES.get(obj.cible)
+        modele = getattr(cible, '_modele', None)
+        if modele is None:
+            return False
+        ligne = modele().objects.select_related('id_responsabilite__id_site').filter(pk=obj.objet_id).first()
+        site = getattr(getattr(ligne, 'id_responsabilite', None), 'id_site', None)
+        return site is not None and user.can_manage_site(site)
     return peut(user, obj.plan)
 
 

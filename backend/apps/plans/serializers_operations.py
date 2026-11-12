@@ -560,6 +560,26 @@ def _porte_un_suivi(annee_obj):
         return False
 
 
+def _pk(valeur):
+    return getattr(valeur, 'pk', valeur)
+
+
+def verifier_postes_du_plan(operation, lignes, champ='operation_annees'):
+    """Chaque poste cité par une ligne de temps est un poste du plan de l'action.
+
+    Un identifiant de poste d'un autre plan (séquence de l'instance) était
+    accepté : la fiche révélait alors le libellé, l'organisme et le coût jour
+    du poste de l'autre plan, et son plan ne pouvait plus le supprimer.
+    """
+    ids = {_pk(l.get('id_poste')) for l in lignes or [] if l.get('id_poste') not in (None, '')}
+    if not ids:
+        return
+    plan = operation.get_plan_de_gestion() if operation is not None else None
+    if plan is None or Poste.objects.filter(pk__in=ids, id_pg=plan).count() != len(ids):
+        raise serializers.ValidationError({champ: [_(
+            "Ce poste n'appartient pas à ce plan de gestion.")]})
+
+
 class OperationAnneeRHSerializer(serializers.ModelSerializer):
     """Ligne RH prévisionnelle d'une année d'opération (lecture)."""
     poste_libelle = serializers.CharField(source='id_poste.libelle', read_only=True)
@@ -769,6 +789,13 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
         return attrs
 
     def _set_rh_lignes(self, instance, rh_data):
+        operation = instance.id_operation_annee.id_operation
+        verifier_postes_du_plan(operation, rh_data, champ='rh_lignes')
+        for rh in rh_data:
+            prevue = rh.get('id_operation_annee_rh')
+            if prevue is not None and prevue.id_operation_annee.id_operation_id != operation.pk:
+                raise serializers.ValidationError({'rh_lignes': [_(
+                    "Cette ligne de temps prévue n'appartient pas à cette action.")]})
         RealisationOperationAnneeRH.objects.filter(
             id_realisation_operation_annee=instance
         ).delete()
@@ -830,6 +857,13 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
 
     @staticmethod
     def _set_financeurs(instance, fin_data):
+        # Contrôlé ici aussi : `validate_financeurs` ne voit pas le plan à la
+        # création (pas encore d'instance), où un financeur d'un autre plan passait.
+        plan = instance.id_operation_annee.id_operation.get_plan_de_gestion()
+        for ligne in fin_data:
+            if plan is None or ligne['id_financeur'].id_pg_id != plan.pk:
+                raise serializers.ValidationError({'financeurs': [_(
+                    "Ce financeur n'appartient pas à ce plan de gestion.")]})
         RealisationFinanceur.objects.filter(id_realisation_operation_annee=instance).delete()
         RealisationFinanceur.objects.bulk_create([
             RealisationFinanceur(id_realisation_operation_annee=instance,
@@ -1813,6 +1847,27 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
             'id_indicateur': {'required': False, 'allow_null': True},
         }
 
+    def validate_id_suivi(self, value):
+        """Un suivi existant ne se relie que s'il est visible (périmètre de
+        ``SuiviInventaireViewSet``) et, s'il appartient à un plan, modifiable :
+        relier le suivi autonome d'un autre organisme permettait ensuite de le
+        renommer depuis sa propre action."""
+        if value is None or (self.instance is not None and self.instance.id_suivi_id == value.pk):
+            return value
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user is None or not user.is_authenticated:
+            return value
+        from django.db.models import Q
+        from .access import scope_by_plan, user_can_write_plan
+        extra = Q(id_utilisateur_ajout=user)
+        if user.is_admin_organisme() and user.id_organisme_id:
+            extra |= Q(id_utilisateur_ajout__id_organisme=user.id_organisme)
+        visible = scope_by_plan(SuiviInventaire.objects.filter(pk=value.pk), user, 'id_pg', extra=extra).exists()
+        if not visible or (value.id_pg_id and not user_can_write_plan(user, value.id_pg)):
+            raise serializers.ValidationError(_("Ce suivi n'est pas accessible."))
+        return value
+
     def to_representation(self, instance):
         """Use the read serializer for the response."""
         return OperationSerializer(instance, context=self.context).data
@@ -1853,6 +1908,7 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
                 ])
             # #560 — lignes RH prévisionnelles (poste/organisme × jours × financé)
             if rh_lignes_data:
+                verifier_postes_du_plan(operation, rh_lignes_data)
                 OperationAnneeRH.objects.bulk_create([
                     OperationAnneeRH(
                         id_operation_annee=annee_obj,
@@ -1941,6 +1997,7 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
 
         Le temps réalisé garde ainsi son lien vers la ligne prévue qu'il réalise.
         """
+        verifier_postes_du_plan(annee_obj.id_operation, rh_lignes_data)
         restantes = list(annee_obj.rh_lignes.all())
         for rh in rh_lignes_data or []:
             cle = (rh.get('id_poste'), rh.get('id_organisme'))

@@ -74,6 +74,7 @@ from apps.users.permissions import (
 )
 from apps.users.pagination import StandardPagination
 from .permissions import CanCreatePlan, CanModifyOnlyDraftPlan, PeutEcrireLePlan
+from .access import user_can_access_plan, user_can_write_plan
 from .exploration import LectureExplorationMixin
 
 
@@ -188,13 +189,22 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         from .access import user_can_export_plan
         return user_can_export_plan(user, plan)
 
-    def _get_plan_for_export(self):
-        """Retourne le plan courant après contrôle du droit d'export (403 sinon)."""
+    def _get_plan_for_export(self, suivi=False):
+        """Retourne le plan courant après contrôle du droit d'export (403 sinon).
+
+        ``suivi=True`` pour les exports qui contiennent le suivi (réalisé,
+        planification ajustée) : il faut en plus le droit de lire le suivi —
+        sans quoi le rédacteur externe, référent du plan, le lisait par l'export
+        alors que l'application le lui cache (#700).
+        """
+        from .access import assert_suivi_access
         plan = self.get_object()
         if not self._can_export_plan(self.request.user, plan):
             raise PermissionDenied(
                 "Vous devez être référent de ce plan pour exporter son contenu."
             )
+        if suivi:
+            assert_suivi_access(self.request.user, plan, lecture=True)
         return plan
 
     def _can_delete_plan(self, user, plan):
@@ -409,7 +419,8 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         parent_id = self.request.data.get('plan_parent_id')
         if parent_id and not plan.plan_parent_id:
             parent = PlanGestion.objects.filter(pk=parent_id).first()
-            if parent and self._is_valid_rang_parent(parent, plan):
+            if parent and self._is_valid_rang_parent(parent, plan) \
+                    and user_can_write_plan(user, parent):
                 plan.plan_parent = parent
                 plan.save(update_fields=['plan_parent'])
 
@@ -451,8 +462,11 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 plan.save(update_fields=['plan_parent'])
             return
 
+        # Se rattacher à un plan, c'est agir sur lui (sa chaîne, son retour en
+        # brouillon) : il faut le droit d'écrire dans ce plan aussi.
         parent = PlanGestion.objects.filter(pk=parent_id).first()
         if parent and self._is_valid_rang_parent(parent, plan) \
+                and user_can_write_plan(self.request.user, parent) \
                 and not self._would_create_cycle(parent, plan):
             if plan.plan_parent_id != parent.pk:
                 plan.plan_parent = parent
@@ -1708,7 +1722,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         """
         from .services_export_fiche_suivi import build_fiche_suivi_workbook
 
-        plan = self._get_plan_for_export()
+        plan = self._get_plan_for_export(suivi=True)
         annee = request.query_params.get('annee')
         if not (annee or '').isdigit():
             return Response({'annee': ["Indiquez l'année du suivi à exporter."]},
@@ -1741,7 +1755,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         """
         from .services_export_planification_annuelle import build_planification_annuelle_workbook
 
-        plan = self._get_plan_for_export()
+        plan = self._get_plan_for_export(suivi=True)
         annee = request.query_params.get('annee')
         if not (annee or '').isdigit() or int(annee) not in plan.annees_plan():
             return Response({'annee': ["Indiquez une année du plan de gestion."]},
@@ -1812,7 +1826,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         que l'export est exactement le tableau vu à l'écran, au lieu de rejouer
         filtres et calcul de score une seconde fois côté serveur.
         """
-        plan = self._get_plan_for_export()
+        plan = self._get_plan_for_export(suivi=True)
         payload = request.data if isinstance(request.data, dict) else {}
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
@@ -1830,7 +1844,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         qu'il affiche (Réalisation, Budget, RH, Planification), filtres compris,
         et le serveur ne fait que la mise en forme.
         """
-        plan = self._get_plan_for_export()
+        plan = self._get_plan_for_export(suivi=True)
         payload = request.data if isinstance(request.data, dict) else {}
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
@@ -1840,7 +1854,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export-rh-suivi-xlsx')
     def export_rh_suivi_xlsx(self, request, pk=None):
         """Exporter le suivi RH (jours prévus / réalisés) par organisme."""
-        plan = self._get_plan_for_export()
+        plan = self._get_plan_for_export(suivi=True)
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
             build_rh_suivi_workbook(plan), f'rh-suivi-{suffix}.xlsx')
@@ -1858,7 +1872,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     @action(detail=True, methods=['get'], url_path='export-budget-suivi-xlsx')
     def export_budget_suivi_xlsx(self, request, pk=None):
         """Exporter le suivi budgétaire (prévu / réalisé) par organisme."""
-        plan = self._get_plan_for_export()
+        plan = self._get_plan_for_export(suivi=True)
         suffix = plan.slug or f'plan-{plan.pk}'
         return self._xlsx_response(
             build_budget_suivi_workbook(plan), f'budget-suivi-{suffix}.xlsx')
@@ -2027,7 +2041,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     @extend_schema(summary='Lire un classeur Excel quelconque', description="Renvoie les onglets, en-têtes et lignes bruts d'un classeur, pour le mapping de colonnes.", request=FICHIER_XLSX_REQUEST, responses={200: inline_serializer(name='ClasseurLu', fields={'sheets': drf_serializers.ListField(child=inline_serializer(name='OngletLu', fields={'name': drf_serializers.CharField(), 'headers': drf_serializers.ListField(child=drf_serializers.CharField()), 'rows': drf_serializers.ListField(child=drf_serializers.ListField())}))}), 400: REPONSE_400})
     @action(detail=False, methods=['post'], url_path='read-xlsx',
             parser_classes=[MultiPartParser, FormParser],
-            permission_classes=[permissions.IsAuthenticated])
+            permission_classes=[permissions.IsAuthenticated, IsReferent])
     def read_xlsx(self, request):
         """
         Lire un classeur Excel quelconque (mapping #10).
@@ -2224,6 +2238,27 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Un plan ne se valide pas tant qu'un plan plus ancien de sa chaîne est
+        # en brouillon : on refuse, au lieu de valider ce brouillon en cascade.
+        # La cascade validait le plan de quelqu'un d'autre (rattaché par
+        # `plan_parent_id`), sans son circuit CSRPN et sans droit sur lui.
+        if new_status == 'valide' and current == 'draft':
+            ancetre, vus = plan.plan_parent, set()
+            while ancetre is not None and ancetre.pk not in vus:
+                vus.add(ancetre.pk)
+                if ancetre.statut == 'draft':
+                    return Response(
+                        {'error': (
+                            f"Le plan « {ancetre.nom} », plus ancien dans la chaîne de versions, "
+                            "est encore en brouillon : validez-le d'abord, ou détachez ce plan de sa chaîne."
+                        ) if user_can_access_plan(request.user, ancetre) else (
+                            "Un plan plus ancien de la chaîne de versions est encore en brouillon : "
+                            "il doit être validé d'abord, ou ce plan détaché de sa chaîne."
+                        )},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                ancetre = ancetre.plan_parent
+
         # #275 / #276 — Routage du `valide` cible selon la position dans la
         # chaîne plan_parent et le flag `is_mi_parcours`. Depuis #276 (refonte) :
         # `mi_parcours` n'est plus un statut, c'est un attribut bool
@@ -2267,38 +2302,6 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # statut plateforme et conservées telles quelles.
 
         plan.save(update_fields=update_fields)
-
-        # Règle « cascade de validation vers l'amont » : valider un brouillon
-        # implique que son parent soit lui-même validé. Sous la Règle 2
-        # (toDraft bloqué si descendants), ce filet ne devrait jamais
-        # déclencher en pratique — c'est une sécurité pour la cohérence
-        # des chaînes au cas où un parent serait en brouillon.
-        if new_status in ('valide', 'modifie') and plan.plan_parent_id:
-            ancestor = plan.plan_parent
-            cascaded = []
-            while ancestor is not None and ancestor.statut == 'draft':
-                ancestor.statut = 'valide'
-                ancestor.id_utilisateur_maj = request.user
-                ancestor.save(update_fields=['statut', 'id_utilisateur_maj', 'date_maj'])
-                cascaded.append(ancestor.nom)
-                ancestor = ancestor.plan_parent
-            if cascaded:
-                try:
-                    from apps.core.services import ActivityService
-                    for nom in cascaded:
-                        ActivityService.log(
-                            user=request.user,
-                            action='status_change',
-                            entity_type='plan',
-                            entity_id=plan.id_pg,
-                            entity_name=nom,
-                            description=(
-                                f"Validation en cascade : '{nom}' "
-                                f"automatiquement validé lors de la validation de '{plan.nom}'"
-                            ),
-                        )
-                except Exception:
-                    pass
 
         # Log activity
         try:
@@ -3441,30 +3444,11 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
                 status=404
             )
 
-        # Type et ouverture déduits de l'extension enregistrée au dépôt.
-        from apps.core.documents_http import s_ouvre_en_ligne, securiser, type_du_document
-        content_type = type_du_document(fichier.extension)
-
-        # Servir le fichier
-        try:
-            with open(chemin, 'rb') as f:
-                file_content = f.read()
-
-            response = HttpResponse(file_content, content_type=content_type)
-
-            # En ligne pour les PDF et les images matricielles, téléchargé sinon
-            disposition = 'inline' if s_ouvre_en_ligne(fichier.extension) else 'attachment'
-            response['Content-Disposition'] = f'{disposition}; filename="{fichier.nom_fichier}"'
-            response['Content-Length'] = len(file_content)
-
-            return securiser(response, fichier.extension)
-
-        except Exception as e:
-            return HttpResponse(
-                f'Erreur lors du téléchargement: {str(e)}'.encode(),
-                content_type='text/plain',
-                status=500
-            )
+        # Servi en flux (un document peut peser 1 Go), en-tête Content-Disposition
+        # construit par Django (un « " » ou un « — » dans le nom le cassaient),
+        # type et ouverture déduits de l'extension enregistrée au dépôt.
+        from apps.search.documents import servir
+        return servir(fichier.nom_fichier, chemin, fichier.extension)
 
 
 # Vues fonctionnelles pour actions spécifiques

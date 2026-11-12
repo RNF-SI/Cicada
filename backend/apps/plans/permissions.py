@@ -319,3 +319,36 @@ class DraftPlanRequiredMixin:
         if instance is not None:
             return CanModifyOnlyDraftPlan._resolve_plan_from_object(instance)
         return None
+
+
+class PeutGererLeSite(BasePermission):
+    """Écriture d'un objet rattaché à un **site** (responsabilités) : réservée à
+    qui gère ce site (``Role.can_manage_site`` ; le rédacteur principal a un
+    accès global aux sites) — celui de l'objet et celui désigné par ``id_site``.
+    Être référent d'autre chose ne suffit pas."""
+
+    message = "Seuls les référents de ce site et ses gestionnaires peuvent le modifier."
+
+    @staticmethod
+    def _gere(user, site):
+        return site is not None and (user.is_redacteur_principal() or user.can_manage_site(site))
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        site_id = request.data.get('id_site') if hasattr(request.data, 'get') else None
+        if site_id in (None, ''):
+            return True
+        from apps.users.models import Site
+        try:
+            site = Site.objects.filter(pk=int(site_id)).first()
+        except (TypeError, ValueError):
+            return False
+        return self._gere(request.user, site)
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in SAFE_METHODS:
+            return True
+        return self._gere(request.user, getattr(obj, 'id_site', None))

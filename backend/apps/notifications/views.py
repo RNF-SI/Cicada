@@ -62,6 +62,12 @@ class NotificationViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'delete', 'post']
 
+    def create(self, request, *args, **kwargs):
+        """Les notifications sont créées par l'application, jamais par l'API
+        (le POST ne sert qu'aux actions ``mark_read`` / ``mark_all_read``)."""
+        from rest_framework.exceptions import MethodNotAllowed
+        raise MethodNotAllowed('POST')
+
     def get_serializer_class(self):
         if self.action == 'list':
             return NotificationListSerializer
@@ -177,6 +183,13 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
     queryset = ValidationRequest.objects.none()
     permission_classes = [IsAuthenticated]
     http_method_names = ['get', 'post']
+
+    def create(self, request, *args, **kwargs):
+        """Une demande se crée par sa route dédiée (``request_plan_access``…),
+        qui en vérifie le sens ; une demande « nue » créée ici était vide mais
+        approuvable."""
+        from rest_framework.exceptions import MethodNotAllowed
+        raise MethodNotAllowed('POST')
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -388,6 +401,18 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                         override_referent=approve_as_referent
                     )
                 elif validation_request.request_type == 'plan_access':
+                    # « Référent du plan » = droit d'écrire dans ce plan : seul
+                    # qui l'a déjà peut l'accorder (un référent de site valide
+                    # l'accès en lecture, pas en saisie).
+                    from apps.plans.access import user_can_write_plan
+                    en_saisie = (approve_as_referent if approve_as_referent is not None
+                                 else validation_request.request_as_referent)
+                    if en_saisie and not user_can_write_plan(request.user, validation_request.target_plan):
+                        return Response(
+                            {'error': "Seuls les référents de ce plan et ses gestionnaires peuvent "
+                                      "accorder l'accès en saisie. Vous pouvez approuver l'accès en lecture."},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
                     ValidationService.approve_plan_access(
                         validation_request,
                         request.user,

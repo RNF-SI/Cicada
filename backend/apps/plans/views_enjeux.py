@@ -36,7 +36,7 @@ from .serializers_enjeux import (
     CorEnjeuTaxonSerializer, CorEnjeuHabitatSerializer, CorEnjeuFichierSerializer
 )
 from apps.users.permissions import IsReferent, IsSuperAdmin, IsAdminOrganisme
-from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly, PeutEcrireLePlan
+from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly, PeutEcrireLePlan, PeutGererLeSite
 from .access import assert_plan_access, plan_scope_q, scope_by_plan
 from .exploration import LectureExplorationMixin
 from .filters_enjeux import EnjeuFilter, ResponsabiliteFilter
@@ -530,8 +530,9 @@ class ResponsabiliteViewSet(viewsets.ModelViewSet):
         'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('taxons', 'habitats', 'geologies', 'enjeux_lies')
 
-    # Responsabilité est rattachée à un Site, pas à un Plan : pas de check draft.
-    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
+    # Responsabilité est rattachée à un Site, pas à un Plan : pas de check draft,
+    # mais le droit de gérer CE site (et, pour les enjeux liés, leur plan).
+    permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly, PeutGererLeSite]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = ResponsabiliteFilter
     search_fields = ['description', 'id_site__nom_site']
@@ -1013,6 +1014,13 @@ class PressionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # Garde : même plan que la source
         source_plan = pression.get_plan_de_gestion()
         target_plan = new_facteur.get_plan_de_gestion()
+        # La cible doit être dans un plan où l'on écrit (cf. OperationViewSet.move).
+        from .access import user_can_write_plan
+        if target_plan is None or not user_can_write_plan(request.user, target_plan):
+            return Response(
+                {"detail": "Seuls les référents de ce plan et ses gestionnaires peuvent le modifier."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if source_plan and target_plan and source_plan.pk != target_plan.pk:
             return Response(
                 {"detail": "Déplacement entre plans interdit."},
@@ -1802,11 +1810,6 @@ class CorEnjeuFichierViewSet(viewsets.ModelViewSet):
             return HttpResponse('Fichier non disponible sur le serveur',
                                 content_type='text/plain; charset=utf-8', status=404)
 
-        from apps.core.documents_http import s_ouvre_en_ligne, securiser, type_du_document
-        with open(chemin, 'rb') as f:
-            content = f.read()
-        response = HttpResponse(content, content_type=type_du_document(fichier.extension))
-        disposition = 'inline' if s_ouvre_en_ligne(fichier.extension) else 'attachment'
-        response['Content-Disposition'] = f'{disposition}; filename="{fichier.nom_fichier}"'
-        response['Content-Length'] = len(content)
-        return securiser(response, fichier.extension)
+        # En flux, en-tête construit par Django (cf. CorPgFichierViewSet.download).
+        from apps.search.documents import servir
+        return servir(fichier.nom_fichier, chemin, fichier.extension)

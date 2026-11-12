@@ -98,6 +98,14 @@ def do_reorder(viewset, request, *, parent_filter, parent_id=None, ordre_writer=
                 {"detail": CanModifyOnlyDraftPlan.message},
                 status=drf_status.HTTP_403_FORBIDDEN,
             )
+        # Réordonner, c'est écrire dans le plan : `get_queryset()` donne la
+        # lecture, pas ce droit (un simple lecteur réordonnait un brouillon).
+        from .access import user_can_write_plan
+        if plan is not None and not user_can_write_plan(request.user, plan):
+            return Response(
+                {"detail": "Seuls les référents de ce plan et ses gestionnaires peuvent le modifier."},
+                status=drf_status.HTTP_403_FORBIDDEN,
+            )
 
     # Update en batch dans une transaction. On passe par le manager du
     # modèle sous-jacent pour bypass les éventuels `distinct()` du queryset

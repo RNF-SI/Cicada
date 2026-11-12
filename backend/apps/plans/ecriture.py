@@ -28,6 +28,12 @@ LISTES_D_IDENTIFIANTS = {
     'ra_ids': 'plans.ResultatAttendu',
     # Actions qui relient l'objet à une cible désignée par son identifiant.
     'metrique_id': 'plans.Metrique',
+    # Déplacements (glisser-déposer) : la cible est dans le plan d'arrivée.
+    'new_indicateur_id': 'plans.Indicateur',
+    'from_indicateur_id': 'plans.Indicateur',
+    'new_facteur_id': 'plans.FacteurInfluence',
+    # Saisie du suivi par action et par année.
+    'id_operation': 'plans.Operation',
 }
 
 

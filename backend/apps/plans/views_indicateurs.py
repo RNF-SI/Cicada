@@ -117,8 +117,13 @@ class IndicateurViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         comptent. Lecture seule (GET), accès aligné sur le tableau de bord.
         """
         from collections import defaultdict
+        from .access import assert_suivi_access
 
         ind = self.get_object()
+        plan_ind = ind.get_plan_de_gestion()
+        if plan_ind is not None:
+            # Les scores viennent des mesures : du suivi (#740, jamais #700).
+            assert_suivi_access(request.user, plan_ind, lecture=True)
 
         def _trend(scores_by_year):
             """Tendance : comparaison premier ↔ dernier score renseigné."""
@@ -288,6 +293,14 @@ class IndicateurViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # Garde : même plan que la source
         source_plan = indicateur.get_plan_de_gestion()
         target_plan = new_parent.get_plan_de_gestion()
+        # La cible doit être dans un plan où l'on écrit : un objet sans plan
+        # (action créée sans métrique…) passait sinon dans le plan d'un autre.
+        from .access import user_can_write_plan
+        if target_plan is None or not user_can_write_plan(request.user, target_plan):
+            return Response(
+                {"detail": "Seuls les référents de ce plan et ses gestionnaires peuvent le modifier."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if source_plan and target_plan and source_plan.pk != target_plan.pk:
             return Response(
                 {"detail": "Déplacement entre plans interdit."},
@@ -744,7 +757,10 @@ class MesureViewSet(viewsets.ModelViewSet):
     _PG_PATHS = prefix_paths('id_metrique__id_indicateur', INDICATEUR_TO_PG_PATHS)
 
     def get_queryset(self):
-        return scope_by_plan(self.queryset, self.request.user, self._PG_PATHS)
+        # Les mesures sont du suivi (#610) : lues dans le périmètre de lecture
+        # des suivis (#740), jamais par le rédacteur externe (#700).
+        from .access import scope_suivi_by_plan
+        return scope_suivi_by_plan(self.queryset, self.request.user, self._PG_PATHS, lecture=True)
 
     def perform_create(self, serializer):
         serializer.save(id_utilisateur_ajout=self.request.user)

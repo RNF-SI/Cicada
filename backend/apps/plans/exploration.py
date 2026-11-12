@@ -140,8 +140,38 @@ class LectureExplorationMixin:
             self.ancrer(objet)
         return objet
 
+    def _elaguer_liste_du_suivi(self, request, response):
+        """Une liste couvre plusieurs plans : on retire les clés du suivi des
+        éléments dont le plan n'ouvre pas ses suivis au lecteur (rédacteur
+        externe, membre de l'organisme non rattaché). Sans cela, la liste des
+        actions donnait leur niveau de réalisation à qui ne lit pas le suivi."""
+        from .access import has_global_plan_access, scope_suivi_by_plan
+        chemins = getattr(self, '_PG_PATHS', None)
+        if (chemins is None or request.method not in SAFE_METHODS
+                or getattr(self, 'action', None) != 'list'
+                or not 200 <= response.status_code < 300 or response.data is None
+                or has_global_plan_access(request.user)):
+            return response
+        elements = response.data.get('results') if isinstance(response.data, dict) else response.data
+        if not isinstance(elements, list) or not elements:
+            return response
+        modele = self.get_queryset().model
+        cle = modele._meta.pk.attname
+        pks = [e.get(cle) for e in elements if isinstance(e, dict) and e.get(cle) is not None]
+        permis = set(scope_suivi_by_plan(
+            modele.objects.filter(pk__in=pks), request.user, chemins, lecture=True,
+        ).values_list('pk', flat=True))
+        elagues = [e if not isinstance(e, dict) or e.get(cle) in permis else elaguer(e, CLES_DU_SUIVI)
+                   for e in elements]
+        if isinstance(response.data, dict):
+            response.data['results'] = elagues
+        else:
+            response.data = elagues
+        return response
+
     def finalize_response(self, request, response, *args, **kwargs):
         response = super().finalize_response(request, response, *args, **kwargs)
+        response = self._elaguer_liste_du_suivi(request, response)
         plan = getattr(self, '_plan_ancre', None)
         if (
             plan is None

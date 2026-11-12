@@ -1009,6 +1009,14 @@ class SiteViewSet(viewsets.ModelViewSet):
         Un seul organisme peut être principal par site.
         """
         site = self.get_object()
+        # Le gestionnaire principal décide de qui administre les plans du site
+        # (#714) : super admin seulement, comme annoncé — la vue ne le
+        # vérifiait pas, tout lecteur du site pouvait le changer.
+        if not request.user.is_super_admin():
+            return Response(
+                {'error': "Seul un super administrateur peut changer l'organisme principal d'un site."},
+                status=status.HTTP_403_FORBIDDEN
+            )
         organisme_id = request.data.get('organisme_id')
 
         if not organisme_id:

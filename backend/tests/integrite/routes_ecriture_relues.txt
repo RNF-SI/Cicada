@@ -1,0 +1,87 @@
+# Routes d'écriture sans permission DRF « objet » reconnue (test_routes_ecriture.py),
+# relues : chacune dit où se fait son contrôle. Une route nouvelle n'entre ici
+# qu'après relecture — sinon, lui donner une garde reconnue.
+
+# --- Authentification : publiques par nature, limitées par adresse et par compte
+POST CustomTokenObtainPairView            # public ; echecs.py + AuthRateThrottle
+POST ConnexionGeoNatureView               # public ; idem, UsersHub vérifie
+POST CustomTokenRefreshView               # le jeton fait foi ; sessions.RafraichissementSerializer
+POST PasswordResetRequestView             # public ; réponse identique, 3 envois / h par compte
+POST PasswordResetConfirmView             # jeton signé à usage unique (1 h)
+POST public_registration_view             # public ; InscriptionLocaleOuverte, aucun texte saisi dans le courriel
+POST logout_view                          # ne révoque que ses propres jetons
+POST start_impersonation_view             # vue : is_super_admin(), jamais un super admin
+POST stop_impersonation_view              # vue : jeton d'impersonation ouvert, auteur super admin actif
+POST accepter_cgu_view                    # son propre compte seulement
+FONCTION config.urls.health_check         # lecture seule
+FONCTION apps.core.csp.rapport_csp         # rapports CSP du navigateur : anonyme, borné (8 Ko, 120/min), journal seulement
+
+# --- Son propre compte
+POST RoleViewSet.request_deletion         # request.user seulement
+POST RoleViewSet.cancel_deletion          # request.user seulement
+POST RoleViewSet.set_identifiant          # request.user, identifiant vide seulement, pas l'e-mail d'un autre
+
+# --- Comptes, sites, organismes : contrôle dans la vue
+POST RoleViewSet.create                   # perform_create : rôle élevé réservé au super admin, son organisme seulement
+DELETE RoleViewSet.destroy                # perform_destroy : Role.peut_administrer_compte
+POST RoleViewSet.assign_site              # vue : can_manage_site(site)
+DELETE RoleViewSet.unassign_site          # vue : can_manage_site(site)
+POST SiteViewSet.create                   # site créé inactif + demande de validation (auto-validée si validateur)
+PUT SiteViewSet.update                    # get_object : can_manage_site, ou créateur d'une demande en attente (#440)
+PATCH SiteViewSet.partial_update          # idem
+DELETE SiteViewSet.destroy                # get_object : can_manage_site
+POST SiteViewSet.assign_user              # vue : can_manage_site(site)
+DELETE SiteViewSet.unassign_user          # vue : can_manage_site(site)
+POST SiteViewSet.set_principal_organisme  # vue : super admin seulement
+POST SiteViewSet.invite_organisme         # vue : super admin ou référent du site
+POST SiteViewSet.invite_user              # vue : super admin ou référent du site
+POST SiteViewSet.request_access           # crée une demande, validée par les validateurs
+POST SiteViewSet.request_org_link         # crée une demande, validée par les validateurs
+POST SiteViewSet.request_referent         # crée une demande, validée par les validateurs
+POST SiteViewSet.bulk_import_validate     # IsAdminOrganisme ; rien n'est écrit (validation du fichier)
+POST SiteViewSet.bulk_import_execute      # IsAdminOrganisme ; BulkSiteImportService.import_sites (sites + demandes de validation)
+POST OrganismeViewSet.create              # perform_create : un admin d'organisme ne crée que des enfants du sien
+PUT OrganismeViewSet.update               # get_object : son organisme ou un enfant (super admin : tous)
+PATCH OrganismeViewSet.partial_update     # idem
+POST OrganismeViewSet.assign_site         # vue : super admin, ou admin de cet organisme et can_manage_site
+POST OrganismeViewSet.unassign_site       # vue : can_manage_site(site)
+DELETE OrganismeViewSet.unassign_site     # idem
+POST OrganismeViewSet.bulk_assign_sites   # vue : super admin, ou admin de cet organisme
+POST bulk_assign_sites                    # (plans) vue : can_manage_site de chaque site, user_can_write_plan de chaque plan
+
+# --- Demandes de validation : créées par leur route dédiée, traitées par leurs validateurs
+POST ValidationRequestViewSet.create      # refusée (405) : jamais de demande « nue »
+POST ValidationRequestViewSet.approve     # can_be_validated_by (jamais sa propre demande) ; saisie d'un plan : user_can_write_plan
+POST ValidationRequestViewSet.reject      # can_be_validated_by
+POST ValidationRequestViewSet.cancel      # le demandeur seulement
+POST ValidationRequestViewSet.request_plan_access        # crée une demande
+POST ValidationRequestViewSet.request_plan_site_link     # crée une demande ; lien direct selon les droits (CLAUDE.md)
+POST ValidationRequestViewSet.request_module_access      # crée une demande
+POST ValidationRequestViewSet.request_admin_promotion    # crée une demande, validée par un super admin
+POST ValidationRequestViewSet.request_admin_demotion     # idem
+POST ValidationRequestViewSet.request_admin_deactivation # idem
+POST ValidationRequestViewSet.grant_module_access        # vue : super admin
+POST ValidationRequestViewSet.revoke_module_access       # vue : super admin
+
+# --- Notifications : les siennes (get_queryset borné au destinataire)
+POST NotificationViewSet.create           # refusée (405)
+POST NotificationViewSet.mark_read        # get_queryset : recipient = request.user
+POST NotificationViewSet.mark_all_read    # idem
+DELETE NotificationViewSet.destroy        # idem
+
+# --- Référentiels : POST de lecture, rien n'est écrit
+POST TaxrefViewSet.validate_bulk          # lecture
+POST HabrefViewSet.validate_bulk          # lecture
+POST InpgViewSet.validate_bulk            # lecture
+
+# --- Plans : contrôle dans la vue
+POST FonctionViewSet.create               # _assert_can_write : user_can_write_plan (socle : super admin / RP)
+PUT FonctionViewSet.update                # idem, plan figé
+PATCH FonctionViewSet.partial_update      # idem
+DELETE FonctionViewSet.destroy            # idem
+PUT AjustementAnnuelView                  # #794 : assert_suivi_access (saisie), plan validé
+DELETE AjustementAnnuelView               # idem
+POST ReportAnnuelView                     # idem
+POST ActualiserElementView                # referentiels.moteur.peut_actualiser (plan : référent ; site : can_manage_site)
+POST AccepterPropositionsReferentielView  # plans_q_pour(user) borne les objets
+POST AccepterPropositionsView             # idem (types d'action)

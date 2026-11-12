@@ -320,7 +320,7 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         GET /api/plans/operations/suivi-defaults/{plan_id}/
         """
         plan = get_object_or_404(PlanGestion, id_pg=plan_id)
-        assert_plan_access(request.user, plan)
+        assert_suivi_access(request.user, plan, lecture=True)  # #740, jamais #700
         premier = (
             RealisationOperationAnnee.objects
             .filter(id_operation_annee__id_operation__in=self._operations_of_plan(plan))
@@ -401,10 +401,10 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             request,
             lambda plan, operation_ids: build_fiche_suivi_workbook(plan, int(annee), operation_ids),
             'xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            prefixe='fiche-suivi', suffixe=f'-{annee}')
+            prefixe='fiche-suivi', suffixe=f'-{annee}', suivi=True)
 
     def _export_fiche(self, request, build, extension, content_type,
-                      prefixe='fiche-action', suffixe=''):
+                      prefixe='fiche-action', suffixe='', suivi=False):
         """Fiche d'une seule action, au format que produit `build`."""
         from rest_framework.exceptions import PermissionDenied
         from urllib.parse import quote as _url_quote
@@ -418,11 +418,15 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 {'detail': "Cette action n'est rattachée à aucun plan de gestion."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if not (request.user.can_manage_plan_lifecycle()
-                or plan.referents.filter(pk=request.user.pk).exists()):
+        # Règle unique des exports (`user_can_export_plan`) : « admin
+        # d'organisme » quelque part ne suffit pas, il faut gérer CE plan.
+        from .access import assert_suivi_access, user_can_export_plan
+        if not user_can_export_plan(request.user, plan):
             raise PermissionDenied(
                 "Vous devez être référent de ce plan pour exporter cette fiche action."
             )
+        if suivi:
+            assert_suivi_access(request.user, plan, lecture=True)
 
         content = build(plan, operation_ids=[operation.pk])
 
@@ -545,6 +549,14 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
 
         source_plan = operation.get_plan_de_gestion()
         target_plan = target.get_plan_de_gestion()
+        # La cible doit être dans un plan où l'on écrit : un objet sans plan
+        # (action créée sans métrique…) passait sinon dans le plan d'un autre.
+        from .access import user_can_write_plan
+        if target_plan is None or not user_can_write_plan(request.user, target_plan):
+            return Response(
+                {"detail": "Seuls les référents de ce plan et ses gestionnaires peuvent le modifier."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         if source_plan and target_plan and source_plan.pk != target_plan.pk:
             return Response(
                 {"detail": "Déplacement entre plans interdit."},
@@ -858,16 +870,17 @@ def _scope_realisation_queryset(queryset, user, op_path, lecture=False):
     Ex: 'id_operation_annee__id_operation' pour RealisationOperationAnnee.
 
     #610 — les réalisations relèvent du SUIVI : périmètre réservé aux référents
-    et gestionnaires (le créateur d'une réalisation garde la sienne).
+    et gestionnaires.
 
     ⚠️ Coûteux : `OperationViewSet._PG_PATHS` compte 7 chemins ORM profonds,
     OR-és puis dédoublonnés — soit ~60 jointures. À réserver aux vues dont le
     périmètre n'est pas déjà borné à UN plan : voir `_plan_realisations()`.
     """
+    # Pas d'exception « créateur de l'action » : le rédacteur externe crée des
+    # actions et n'accède jamais au suivi (#700).
     return scope_suivi_by_plan(
         queryset, user,
         tuple(f'{op_path}__{path}' for path in OperationViewSet._PG_PATHS),
-        extra=Q(**{f'{op_path}__id_utilisateur_ajout': user}),
         lecture=lecture,
     )
 
@@ -2237,6 +2250,12 @@ class FonctionViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         self._assert_can_write(serializer.instance.id_pg)
+        # Une fonction ne change pas de plan : la déplacer (`id_pg`) l'écrivait
+        # dans un plan où l'on n'a aucun droit, validé compris.
+        if 'id_pg' in serializer.validated_data and \
+                serializer.validated_data['id_pg'] != serializer.instance.id_pg:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({'id_pg': ["Une fonction ne change pas de plan de gestion."]})
         serializer.save()
 
     def destroy(self, request, *args, **kwargs):
