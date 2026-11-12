@@ -327,6 +327,13 @@ class UsersSeeder(BaseSeeder):
 
         users_data = self._get_users_data(organismes, sites)
 
+        # #746 — La configuration de l'instance doit exister avant de dater les
+        # acceptations : créée plus tard (première requête, sur une base neuve
+        # comme en CI), elle daterait ses CGU d'après le jeu d'essai, et la
+        # fenêtre d'acceptation couvrirait chaque page de chaque compte.
+        from apps.core.models import SiteConfiguration
+        version_cgu = SiteConfiguration.get_instance().cgu_version
+
         users = []
         for user_data in users_data:
             user_groups = user_data.pop('groups')
@@ -338,7 +345,8 @@ class UsersSeeder(BaseSeeder):
             # #746 — Les comptes de test ont accepté les CGU (sinon la modale
             # bloquerait chaque parcours, E2E compris), sauf celui qui sert à
             # la recette de l'acceptation.
-            cgu_acceptees_le = None if user_data.pop('cgu_non_acceptees', False) else timezone.now()
+            cgu_acceptees_le = (None if user_data.pop('cgu_non_acceptees', False)
+                                else max(timezone.now(), version_cgu))
 
             # Calculer la date de demande de suppression
             deletion_requested_at = None

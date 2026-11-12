@@ -22,6 +22,7 @@ Donnees creees:
 """
 from django.conf import settings
 from django.contrib.auth.models import Group
+from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
 
@@ -203,6 +204,12 @@ class Command(BaseCommand):
                 dry_run=self.dry_run
             )
             seeder.seed()
+
+        if any(s.name == 'plans' for s in seeders_to_run):
+            # Signaux coupés pendant le seed : aucun plan validé n'a été indexé.
+            # Sans cela, l'exploration d'une base neuve (CI) ne trouve rien —
+            # au démarrage, `rebuild_search_index --if-stale` a vu une base vide.
+            call_command('rebuild_search_index', stdout=self.stdout)
 
         self._print_summary()
 

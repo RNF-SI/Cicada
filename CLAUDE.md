@@ -691,6 +691,8 @@ modules, groups, organismes (indépendants)
 docker compose exec web python manage.py seed_testdata --only=users,plans
 ```
 
+**Base neuve (CI)** : les signaux étant coupés, `seed_testdata` reconstruit lui-même l'index de recherche dès que `plans` est seedé (sinon l'exploration ne trouve rien), et crée la configuration de l'instance **avant** de dater l'acceptation des CGU des comptes de test (créée après, elle daterait ses CGU d'après eux et la fenêtre d'acceptation couvrirait chaque page E2E). Verrouillé par `tests/apps/core/test_seed_cgu.py`.
+
 **Ajouter un nouveau seeder :**
 1. Créer `seeders/mon_seeder.py` héritant de `BaseSeeder`
 2. Définir `name` et `dependencies`
