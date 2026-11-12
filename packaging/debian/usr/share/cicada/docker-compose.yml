@@ -251,7 +251,8 @@ services:
         condition: service_healthy
     networks:
       - cicada_network
-    command: ["celery", "-A", "config", "beat", "-l", "info"]
+    # Fichier d'état dans les journaux : /app n'est pas inscriptible (image).
+    command: ["celery", "-A", "config", "beat", "-l", "info", "--schedule=/app/logs/celerybeat-schedule"]
     restart: unless-stopped
 
 volumes:
