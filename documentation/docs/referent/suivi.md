@@ -160,4 +160,4 @@ Sans ajustement, l'année reprend la programmation du plan de gestion. Les règl
 - **Une action faite plus tôt que prévu** est simplement planifiée l'année où elle est faite : les autres années ne bougent pas, à vous de les ajuster.
 - **Une action absente du plan de gestion** ne s'ajoute pas ici : créez une nouvelle version du plan de gestion.
 
-Comme le reste du suivi, la page est consultable par les utilisateurs liés au plan et l'ajustement est réservé aux référents du plan et aux gestionnaires, une fois le plan validé.
+Comme le reste du suivi, la page est consultable par les utilisateurs liés au plan et l'ajustement est réservé aux référents du plan et aux gestionnaires, une fois le plan validé. Le bouton « **Exporter l'année (Excel)** » télécharge la planification annuelle de l'année affichée : plan de gestion, ajusté et écart, financeurs et calendrier ([§ 4.12](exports.md)).
