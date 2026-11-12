@@ -352,11 +352,18 @@ def ajouter_couts_annee_prevu(c, op, oa, manual_salary):
     c.autre_invest += invest + _d(oa.autre_cout_invest)
 
 
-def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
+def build_action_finance(op, org_names, poste_jours, ajustements=None) -> ActionFinance:
     """Construit l'``ActionFinance`` d'une opération et alimente les synthèses.
 
     ``org_names`` (dict) et ``poste_jours`` (dict) sont mutés en place pour
     agréger au niveau du plan.
+
+    #794 — ``ajustements`` ({(id_operation, année): AjustementAnnuel}, cf.
+    ``planification_annuelle.ajustements_par_annee``) : le prévu des années
+    ajustées est celui de la planification annuelle (rien pour une année non
+    prévue ou reportée) ; le réalisé ne change pas. Une action programmée
+    globalement dont une année est planifiée par l'ajustement perd son prévu
+    « sur la période » : ses années ajustées le remplacent.
     """
     from .models_operations import (
         OperationAnnee, OperationAnneeOrganisme, OperationAnneeRH,
@@ -382,6 +389,14 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     def cell(oid, year):
         return af.cells[(oid, year)]
 
+    # #794 — années dont le prévu vient de la planification ajustée.
+    ajustees = {
+        annee: aj for (op_id, annee), aj in (ajustements or {}).items() if op_id == op.pk}
+    sans_periode = af.is_global and any(aj.statut == "planifiee" for aj in ajustees.values())
+
+    def prevu_remplace(year):
+        return year in ajustees or (year is None and sans_periode)
+
     # --- RH prévisionnel : jours + salarial ---
     rh = (
         OperationAnneeRH.objects
@@ -390,8 +405,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
                         "id_organisme")
         .prefetch_related(_poste_fonctions_prefetch())
     )
-    for line in rh:
-        year = line.id_operation_annee.annee
+    def ajouter_ligne_temps(line, year):
         org = _org_of_rh_line(op, line)
         oid = _org_key(org, org_names)
         poste = line.id_poste
@@ -401,6 +415,15 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         if cout_jour and "cout_jour" not in pj:
             pj["cout_jour"] = cout_jour
         ajouter_temps_prevu(cell(oid, year), line, cout_jour, auto_salary, pj)
+
+    for line in rh:
+        year = line.id_operation_annee.annee
+        if not prevu_remplace(year):
+            ajouter_ligne_temps(line, year)
+    for year, aj in ajustees.items():
+        if aj.statut == "planifiee":
+            for line in aj.rh_lignes.all():
+                ajouter_ligne_temps(line, year)
 
     # --- RH réalisé : jours + salarial ---
     rrh = (
@@ -454,7 +477,8 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         year = line.id_operation_annee.annee
         oid = _org_key(line.id_organisme, org_names)
         c = cell(oid, year)
-        ajouter_couts_organisme_prevu(c, line, manual_salary)
+        if not prevu_remplace(year):
+            ajouter_couts_organisme_prevu(c, line, manual_salary)
         real = getattr(line, "realisation", None)
         if real:
             if manual_salary_real:
@@ -473,7 +497,8 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         annees = OperationAnnee.tous.filter(id_operation=op).select_related("realisation")
         for oa in annees:
             c = cell(0, oa.annee)
-            ajouter_couts_annee_prevu(c, op, oa, manual_salary)
+            if not prevu_remplace(oa.annee):
+                ajouter_couts_annee_prevu(c, op, oa, manual_salary)
             if (c.prest_fonct or c.prest_invest or c.autre_fonct or c.autre_invest
                     or c.sal_fonct or c.sal_invest):
                 org_names.setdefault(0, "Non ventilé")
@@ -494,6 +519,22 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
                 c.rautre_fonct += rf + _d(real.autre_cout_realise) + _d(real.cout_stage_realise)
                 c.rstage_fonct += _d(real.cout_stage_realise)
                 c.rautre_invest += _d(real.budget_investissement_realise) + _d(real.autre_cout_invest_realise)
+
+    # #794 — coûts prévus des années ajustées (par organisme s'il en a, sinon
+    # sur l'année — mêmes règles que le plan de gestion).
+    for year, aj in ajustees.items():
+        if aj.statut != "planifiee":
+            continue
+        organismes = list(aj.organismes.all())
+        if organismes:
+            for line in organismes:
+                ajouter_couts_organisme_prevu(
+                    cell(_org_key(line.id_organisme, org_names), year), line, manual_salary)
+        else:
+            c = cell(0, year)
+            ajouter_couts_annee_prevu(c, op, aj, manual_salary)
+            if c.tot:
+                org_names.setdefault(0, "Non ventilé")
 
     return af
 

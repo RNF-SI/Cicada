@@ -792,9 +792,14 @@ export class PlanSuiviActionsComponent implements OnInit {
       if ((oa as { ajustee?: boolean }).ajustee) ajustees++;
     }
     // Action globale (#735) : le plan n'a qu'un montant sur la période, l'ajusté
-    // se saisit par année ; sans année ajustée, rien à afficher côté ajusté.
+    // se saisit par année. Sans année ajustée, le total reprend le prévu du plan
+    // sur la période (comme le Bilan et les exports) et l'année reste « / ».
     const globale = !!op.programmation_globale;
-    const prevSansObjet = globale && !ajustees;
+    const ajusteeQuelquePart = (op.operation_annees || []).some(oa => (oa as { ajustee?: boolean }).ajustee);
+    if (globale && !ajusteeQuelquePart && period === 'total') {
+      previsionnel = pg.previsionnel;
+    }
+    const prevSansObjet = globale && !ajustees && !(period === 'total' && !ajusteeQuelquePart);
     const ecartPct = previsionnel > 0 ? ((pg.realise - previsionnel) / previsionnel) * 100 : null;
     return {
       previsionnel, previsionnelPg: pg.previsionnel, realise: pg.realise,

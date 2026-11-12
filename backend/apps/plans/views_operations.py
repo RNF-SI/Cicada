@@ -1302,8 +1302,10 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
     @staticmethod
     def _prev_budget(op, oa):
         """Budget (fonct, invest) et jours (financés, non financés) prévus d'une ligne."""
+        from .models_planification import AjustementAnnuel
         fonct = invest = Decimal('0')
-        if op.programmation_globale and oa.annee is not None:
+        # #794 — l'ajustement d'une action globale, lui, a un prévu annuel.
+        if op.programmation_globale and oa.annee is not None and not isinstance(oa, AjustementAnnuel):
             return fonct, invest, Decimal('0'), Decimal('0')
         mode = op.ventilation_mode
         if mode == 'none':
@@ -1519,6 +1521,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         if y1 is not None:
             realisations_qs = realisations_qs.filter(id_operation_annee__annee__lte=y1)
 
+        # #794 — prévu et années planifiées : planification annuelle ajustée.
+        from .access import plan_operation_ids as _ops_du_plan
+        from .planification_annuelle import ajustements_par_annee, est_planifiee, prevu_de
+        ajust = ajustements_par_annee(_ops_du_plan(plan))
+
         # Helper : initialise un compteur par niveau de réalisation
         def _empty_counts():
             return {
@@ -1577,7 +1584,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     if r.id_niveau_realisation else None
                 )
                 key = niveau_map.get(mnemonique, 'inconnu')
-                skey = self._statut_key(bool(oa.periodicite), mnemonique)
+                skey = self._statut_key(est_planifiee(oa, ajust), mnemonique)
 
                 # #753 — grand type d'action (CS, IP…), sous-types cumulés.
                 cat_code, cat_label = _grand_type_action(op, libelles_cat)
@@ -1609,7 +1616,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             # (ligne globale) est ajouté une fois, après la boucle.
             if oa.id_operation_annee not in seen_op_annees:
                 seen_op_annees.add(oa.id_operation_annee)
-                fonct, invest, j_fin, j_non = self._prev_budget(op, oa)
+                # #794 — prévu de la planification ajustée (rien si reportée).
+                cible = prevu_de(oa, ajust)
+                fonct, invest, j_fin, j_non = (
+                    self._prev_budget(op, cible) if cible is not None
+                    else (Decimal('0'),) * 4)
                 budget_previsionnel_fonct += fonct
                 budget_previsionnel_invest += invest
                 rh_prev_finance += j_fin
@@ -1638,8 +1649,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # #735 — prévu des actions programmées globalement : il porte sur toute
         # leur période, il ne compte donc que hors de la vue annuelle.
         if is_global_view and seen_op_ids:
+            # #794 — une action globale ajustée a ses prévus annuels : son prévu
+            # « sur la période » ne compte plus.
+            ajustees = {op_id for (op_id, _a), aj in ajust.items() if aj.statut == 'planifiee'}
             globales = OperationAnnee.tous.filter(
-                id_operation__in=seen_op_ids, annee__isnull=True,
+                id_operation__in=seen_op_ids - ajustees, annee__isnull=True,
                 id_operation__programmation_globale=True,
             ).select_related('id_operation').prefetch_related('organismes', 'rh_lignes')
             for oa in globales:
@@ -1681,13 +1695,16 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
                     # durée du plan : elle ne peut pas décrire une demi-période.
                     # Sur une période, on recalcule donc à partir des seules
                     # années concernées.
-                    mnemonique = op.compute_niveau_realisation_global(annees)
+                    mnemonique = op.compute_niveau_realisation_global(annees, ajustements=ajust)
                 else:
                     mnemonique = op.get_niveau_realisation_global()
                 key = niveau_map.get(mnemonique, 'inconnu')
                 # Au global, l'action est « planifiée » dès qu'une de ses années
                 # l'était — le croisé se lit sur la période, pas année par année.
-                planifiee = any(oa.periodicite for oa in annees)
+                # #794 — sur la planification ajustée.
+                planifiee = any(est_planifiee(oa, ajust) for oa in annees) or any(
+                    aj.statut == 'planifiee' for (op_id, a), aj in ajust.items()
+                    if op_id == op.pk and (not has_periode or self._in_periode(a, y0, y1)))
                 skey = self._statut_key(planifiee, mnemonique)
 
                 cat_code, cat_label = _grand_type_action(op, libelles_cat)
@@ -1726,7 +1743,7 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # part, lus dans les cellules des exports budget / RH.
         if organisme_ids:
             part = bf.budget_rh_organismes(
-                annees_suivies, organisme_ids, avec_globale=is_global_view)
+                annees_suivies, organisme_ids, avec_globale=is_global_view, ajustements=ajust)
             budget_previsionnel_fonct, budget_previsionnel_invest = part['prev_fonct'], part['prev_invest']
             budget_realise_fonct, budget_realise_invest = part['real_fonct'], part['real_invest']
             rh_prev_finance, rh_prev_non_finance = part['prev_fin'], part['prev_non_fin']
@@ -1876,6 +1893,11 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
             realisations_qs = realisations_qs.filter(
                 id_operation_annee__id_operation__in=retenues).distinct()
 
+        # #794 — prévu et années planifiées : planification annuelle ajustée.
+        from .access import plan_operation_ids as _ops_du_plan
+        from .planification_annuelle import ajustements_par_annee, est_planifiee, prevu_de
+        ajust = ajustements_par_annee(_ops_du_plan(plan))
+
         niveau_map = {
             'NON_DEMARRE': 'non_demarre', 'EN_COURS': 'en_cours',
             'PARTIEL': 'partiel', 'TERMINE': 'termine',
@@ -1898,20 +1920,22 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
 
             mnem = r.id_niveau_realisation.mnemonique if r.id_niveau_realisation else None
             actions_by_year[niveau_map.get(mnem, 'inconnu')][i] += 1
-            skey = self._statut_key(bool(oa.periodicite), mnem)
+            skey = self._statut_key(est_planifiee(oa, ajust), mnem)
             if skey:
                 statuts_by_year[skey][i] += 1
 
             if oa.id_operation_annee not in seen_oa:
                 seen_oa.add(oa.id_operation_annee)
-                for rh in oa.rh_lignes.all():
+                # #794 — temps prévu de la planification ajustée.
+                cible = prevu_de(oa, ajust)
+                for rh in (cible.rh_lignes.all() if cible is not None else []):
                     rh_prev[i] += float(rh.jours or 0)
             for rh in r.rh_lignes.all():
                 rh_real[i] += float(rh.jours or 0)
 
         # #753 — filtre organismes : temps de travail de leur seule part.
         if organisme_ids:
-            par_annee = bf.rh_organismes_par_annee(annees_suivies, organisme_ids)
+            par_annee = bf.rh_organismes_par_annee(annees_suivies, organisme_ids, ajustements=ajust)
             rh_prev = [float(par_annee[y][0]) if y in par_annee else 0.0 for y in years]
             rh_real = [float(par_annee[y][1]) if y in par_annee else 0.0 for y in years]
 

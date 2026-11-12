@@ -210,7 +210,7 @@ def operations_retenues(plan, enjeu_ids=(), organisme_ids=()) -> set[int] | None
     return op_ids
 
 
-def budget_rh_organismes(annees_suivies, organisme_ids, *, avec_globale):
+def budget_rh_organismes(annees_suivies, organisme_ids, *, avec_globale, ajustements=None):
     """Budget et temps de travail de la seule part des organismes choisis.
 
     Mêmes cellules que les exports budget / RH (`build_action_finance`).
@@ -219,7 +219,8 @@ def budget_rh_organismes(annees_suivies, organisme_ids, *, avec_globale):
     `avec_globale` ajoute la programmation globale de ces actions (#735, hors
     vue annuelle). Retourne un dict de Decimal :
     prev_fonct, prev_invest, real_fonct, real_invest, prev_fin, prev_non_fin,
-    real_fin, real_non_fin.
+    real_fin, real_non_fin. #794 — ``ajustements`` : prévu de la planification
+    annuelle ajustée (cf. ``build_action_finance``).
     """
     from collections import defaultdict
     from decimal import Decimal
@@ -233,7 +234,7 @@ def budget_rh_organismes(annees_suivies, organisme_ids, *, avec_globale):
     wanted = set(organisme_ids)
     op_ids = {op_id for op_id, _a in annees_suivies}
     for op in Operation.objects.filter(pk__in=op_ids):
-        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory), ajustements=ajustements)
         for (org_id, annee), c in af.cells.items():
             if org_id not in wanted:
                 continue
@@ -253,7 +254,7 @@ def budget_rh_organismes(annees_suivies, organisme_ids, *, avec_globale):
     return tot
 
 
-def rh_organismes_par_annee(annees_suivies, organisme_ids) -> dict:
+def rh_organismes_par_annee(annees_suivies, organisme_ids, ajustements=None) -> dict:
     """{année: (jours prévus, jours réalisés)} de la part des organismes choisis,
     sur les {(id_operation, année)} suivies (programmation globale exclue :
     elle n'a pas d'année)."""
@@ -267,7 +268,7 @@ def rh_organismes_par_annee(annees_suivies, organisme_ids) -> dict:
     wanted = set(organisme_ids)
     op_ids = {op_id for op_id, _a in annees_suivies}
     for op in Operation.objects.filter(pk__in=op_ids):
-        af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
+        af = build_action_finance(op, {}, defaultdict(poste_entry_factory), ajustements=ajustements)
         for (org_id, annee), c in af.cells.items():
             if org_id in wanted and (op.pk, annee) in annees_suivies:
                 out[annee][0] += c.jours + c.j_benevole

@@ -830,7 +830,7 @@ class Operation(models.Model):
         'NON_REALISE': 'Non réalisée',  # #379
     }
 
-    def compute_niveau_realisation_global(self, annees=None):
+    def compute_niveau_realisation_global(self, annees=None, ajustements=None):
         """
         #355 — Calcule le niveau de réalisation GLOBAL d'une action sur la période,
         à partir des réalisations annuelles de ses années *programmées*.
@@ -850,10 +850,27 @@ class Operation(models.Model):
 
         Renvoie le mnémonique (str) ou None. Mapping volontairement conservateur :
         une action récurrente réalisée 1 an sur 10 reste « En cours », pas « Terminé ».
+
+        #794 — « programmée » se lit sur la planification annuelle ajustée
+        (``ajustements`` : {(id_operation, année): AjustementAnnuel}, lus sur
+        l'action à défaut) : une année reportée ne compte plus, une année
+        planifiée par l'ajustement compte — sur toute la période, même sans
+        ligne au plan (rien de réalisé).
         """
+        from .planification_annuelle import PLANIFIEE, est_planifiee
+
+        sur_la_periode = annees is None
         annees = list(self.operation_annees.all() if annees is None else annees)
-        programmed = [oa for oa in annees if oa.periodicite] or annees
-        if not programmed:
+        if ajustements is None:
+            ajustements = {(self.pk, aj.annee): aj for aj in self.ajustements_annuels.all()}
+        programmed = [oa for oa in annees if est_planifiee(oa, ajustements)]
+        vues = {oa.annee for oa in annees}
+        sans_ligne = [] if not sur_la_periode else [
+            annee for (op_id, annee), aj in ajustements.items()
+            if op_id == self.pk and annee not in vues and aj.statut == PLANIFIEE]
+        if not programmed and not sans_ligne:
+            programmed = annees
+        if not programmed and not sans_ligne:
             return None
 
         mnems = []
@@ -863,6 +880,7 @@ class Operation(models.Model):
                 mnems.append(real.id_niveau_realisation.mnemonique)
             else:
                 mnems.append(None)
+        mnems.extend(None for _ in sans_ligne)
 
         filled = [m for m in mnems if m]
         if not filled:

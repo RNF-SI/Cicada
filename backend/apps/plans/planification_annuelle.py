@@ -64,6 +64,40 @@ class ReportImpossible(Exception):
 
 
 # ---------------------------------------------------------------------------
+# Lecture par les vues de suivi et les exports
+# ---------------------------------------------------------------------------
+
+def ajustements_par_annee(operation_ids):
+    """{(id_operation, année): AjustementAnnuel} des actions données, avec
+    organismes et lignes de temps (prêts pour ``build_action_finance`` et le
+    Bilan)."""
+    return {
+        (aj.id_operation_id, aj.annee): aj for aj in
+        AjustementAnnuel.objects.filter(id_operation__in=list(operation_ids))
+        .prefetch_related('organismes__id_organisme', 'rh_lignes__id_poste__id_organisme',
+                          'rh_lignes__id_organisme')
+    }
+
+
+def est_planifiee(oa, ajustements):
+    """Année ``oa`` (du plan) planifiée selon la planification ajustée."""
+    ajustement = ajustements.get((oa.id_operation_id, oa.annee))
+    if ajustement is not None:
+        return ajustement.statut == PLANIFIEE
+    return bool(oa.periodicite)
+
+
+def prevu_de(oa, ajustements):
+    """Ce qui porte le prévu de l'année : l'ajustement planifié, l'année du
+    plan sans ajustement, ``None`` pour une année ajustée non prévue ou
+    reportée. L'ajustement a les mêmes champs qu'une année du plan."""
+    ajustement = ajustements.get((oa.id_operation_id, oa.annee))
+    if ajustement is None:
+        return oa
+    return ajustement if ajustement.statut == PLANIFIEE else None
+
+
+# ---------------------------------------------------------------------------
 # Contenus
 # ---------------------------------------------------------------------------
 

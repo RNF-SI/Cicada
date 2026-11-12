@@ -243,7 +243,7 @@ export class ActionGlobalComponent implements OnInit {
     const op = this.operationEffective();
     const rows = this.yearRows();
     return {
-      prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearBudgetPrev(op, oa).total ?? 0), 0) : 0,
+      prev: op ? this.anneesDuPrevu(op).reduce((s, oa) => s + (yearBudgetPrev(op, oa).total ?? 0), 0) : 0,
       real: sumSaisis(rows.map(r => r.budgetReal)),
     };
   });
@@ -252,10 +252,17 @@ export class ActionGlobalComponent implements OnInit {
     const op = this.operationEffective();
     const rows = this.yearRows();
     return {
-      prev: op ? prevAnnees(op).reduce((s, oa) => s + (yearJoursAgentsPrev(oa, true) ?? 0), 0) : 0,
+      prev: op ? this.anneesDuPrevu(op).reduce((s, oa) => s + (yearJoursAgentsPrev(oa, true) ?? 0), 0) : 0,
       real: sumSaisis(rows.map(r => r.etpReal)),
     };
   });
+
+  /** #794 — action globale ajustée : ses années ajustées remplacent le prévu
+   *  « sur la période » (comme le Bilan et les exports). */
+  private anneesDuPrevu(op: Operation): OperationAnnee[] {
+    const ajustees = (op.operation_annees || []).filter(oa => (oa as { ajustee?: boolean }).ajustee);
+    return op.programmation_globale && ajustees.length ? ajustees : prevAnnees(op);
+  }
 
   ngOnInit(): void {
     const slug = this.route.snapshot.paramMap.get('slug');

@@ -104,6 +104,8 @@ Le « **Bilan de la gestion** » **synthétise les résultats du suivi du plan d
 - **Organismes** (onglet Actions) : les actions ventilées à ces organismes, avec le budget et le temps de travail de leur seule part ;
 - **Type d'indicateur** (onglet Indicateurs) : indicateurs d'état, de pression, ou les deux (par défaut).
 
+Le prévu du Bilan (budget, jours, actions prévues ou non) est celui de la **planification annuelle ajustée** ([§ 4.9.4](#494-lajustement-de-la-planification-annuelle)) : une année reportée n'y compte plus comme prévue, et le réalisé se compare au prévu ajusté. Le niveau de réalisation global d'une action se calcule de même sur ses années planifiées après ajustement.
+
 Dans les graphiques, les enjeux sont désignés par leur numéro (« Enjeu 1 », « FCR 1 »…), comme dans l'arborescence ; le nom complet s'affiche au survol. Les différents graphiques ou chiffres clefs sont générés automatiquement en fonction des éléments de suivi saisis (suivi des indicateurs via le tableau de bord et suivi des actions de gestion).
 
 - **Onglet Indicateurs** (indicateurs d'état et de pression) : évaluation des indicateurs (répartition des scores), taux de réalisation (indicateurs évalués ou non), évolution de la moyenne (avec minimum, maximum et écart-type) et graphique radar par enjeu / FCR.

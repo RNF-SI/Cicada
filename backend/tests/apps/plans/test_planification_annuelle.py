@@ -353,6 +353,53 @@ class TestRealiseParOrganismeSansLigneAuPlan:
         assert (OperationAnnee.tous.count(), OperationAnneeOrganisme.objects.count()) == avant
 
 
+class TestBilanEtNiveauGlobal:
+    """Le Bilan, le niveau global d'une action et le calcul des exports lisent
+    la planification ajustée."""
+
+    def test_le_bilan_compare_le_realise_au_prevu_ajuste(self, monde):
+        monde.realiser(Y, budget_realise=Decimal('600'))
+        url = f'/api/plans/realisations/bilan/{monde.plan.pk}/'
+        avant = monde.client.get(url, {'annee': Y}).json()['budget']['total']['previsionnel']
+        assert avant == 1000
+        monde.client.put(monde.url(Y), {'statut': 'planifiee', 'budget': '1500.00',
+                                        'rh_lignes': [{'jours': '7'}]}, format='json')
+        bilan = monde.client.get(url, {'annee': Y}).json()
+        assert bilan['budget']['total']['previsionnel'] == 1500
+        assert bilan['rh']['previsionnel'] == 7
+
+    def test_une_annee_reportee_n_est_plus_prevue_au_bilan(self, monde):
+        monde.realiser(Y, niveau='REPORTE')
+        url = f'/api/plans/realisations/bilan/{monde.plan.pk}/'
+        avant = monde.client.get(url, {'annee': Y}).json()['taux_realisation']
+        assert avant.get('planifiee_non_realisee') == 1
+        assert monde.reporter(Y, Y + 1).status_code == 200
+        apres = monde.client.get(url, {'annee': Y}).json()['taux_realisation']
+        assert not apres.get('planifiee_non_realisee')
+
+    def test_le_niveau_global_se_calcule_sur_les_annees_planifiees(self, monde):
+        monde.realiser(Y, niveau='REPORTE')
+        monde.action.refresh_from_db()
+        assert monde.action.compute_niveau_realisation_global() == 'REPORTE'
+        monde.reporter(Y, Y + 1)
+        action = type(monde.action).objects.get(pk=monde.action.pk)
+        # 2026 n'est plus planifiée ; 2027 et la suite (décalée) restent à faire.
+        assert action.compute_niveau_realisation_global() == 'NON_DEMARRE'
+
+    def test_le_calcul_des_exports_lit_l_ajustement(self):
+        from collections import defaultdict
+        from apps.plans.planification_annuelle import ajustements_par_annee
+        pc = construire_plan_complet(statut='valide')
+        ajust = ajustements_par_annee([pc.action.pk])
+        af = build_action_finance(pc.action, {}, defaultdict(poste_entry_factory), ajustements=ajust)
+        assert af.year_total(pc.annee + 1).tot == Decimal('8000')
+        pg = build_action_finance(pc.action, {}, defaultdict(poste_entry_factory))
+        # Les années non ajustées et le réalisé ne bougent pas.
+        for annee in (pc.annee - 1, pc.annee):
+            assert af.year_total(annee).tot == pg.year_total(annee).tot
+            assert af.year_total(annee).rtot == pg.year_total(annee).rtot
+
+
 class TestDroits:
     def test_lecture_pour_un_membre_du_site_saisie_refusee(self, monde):
         membre = RoleFactory(id_organisme=monde.organisme)
