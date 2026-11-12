@@ -184,7 +184,9 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
         // Popup avec le nom si disponible
         const name = feature.properties?.nom_site || feature.properties?.name || feature.properties?.nom;
         if (name) {
-          layer.bindPopup(`<strong>${name}</strong>`);
+          // Un nœud DOM, jamais une chaîne : Leaflet insère une chaîne comme du
+          // HTML, et le nom d'un site est saisi par n'importe quel compte.
+          layer.bindPopup(popupTexte(String(name)));
         }
 
         // Événement au clic
@@ -288,4 +290,11 @@ export class LeafletMapComponent implements OnInit, AfterViewInit, OnChanges, On
       this.userHasMoved.set(true);
     }
   }
+}
+
+/** Contenu de popup en texte seul (le nom est échappé, jamais interprété). */
+export function popupTexte(texte: string): HTMLElement {
+  const strong = document.createElement('strong');
+  strong.textContent = texte;
+  return strong;
 }

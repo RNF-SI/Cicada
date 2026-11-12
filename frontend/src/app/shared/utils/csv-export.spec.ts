@@ -24,6 +24,13 @@ describe('csv-export (#637/#638/#639)', () => {
     it('laisse les valeurs simples intactes', () => {
       expect(escapeCsvCell('CS1')).toBe('CS1');
     });
+
+    it('garde en texte ce qu’un tableur lirait comme une formule', () => {
+      expect(escapeCsvCell('=HYPERLINK("http://x")')).toBe(`"'=HYPERLINK(""http://x"")"`);
+      expect(escapeCsvCell('+33 1 23')).toBe("'+33 1 23");
+      expect(escapeCsvCell('@SUM(A1)')).toBe("'@SUM(A1)");
+      expect(escapeCsvCell(-3.5)).toBe('-3,5');
+    });
   });
 
   describe('toCsv', () => {

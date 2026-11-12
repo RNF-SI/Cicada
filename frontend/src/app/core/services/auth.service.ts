@@ -315,6 +315,13 @@ export class AuthService {
       }),
       map(response => response.access),
       catchError(error => {
+        // Un autre onglet a renouvelé la session entre-temps : il a stocké un
+        // nouveau jeton et révoqué celui-ci (liste de révocation). Ce n'est pas
+        // une déconnexion : on reprend la session qu'il a ouverte.
+        const actuels = this.getStoredTokens();
+        if (actuels?.refresh && actuels.refresh !== tokens.refresh && actuels.access) {
+          return of(actuels.access);
+        }
         this.clearAuthData();
         return throwError(() => error);
       }),

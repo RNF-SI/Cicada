@@ -29,8 +29,15 @@ export function escapeCsvCell(value: CsvCell): string {
   const raw = typeof value === 'number'
     // Virgule décimale (Excel FR). Les entiers ne sont pas modifiés.
     ? String(value).replace('.', ',')
-    : String(value);
+    // Un texte saisi qui commence par = + - @ deviendrait une formule active à
+    // l'ouverture dans Excel (« =HYPERLINK(…) ») : l'apostrophe le garde en texte.
+    : neutraliserFormule(String(value));
   return /["\r\n;]/.test(raw) ? `"${raw.replace(/"/g, '""')}"` : raw;
+}
+
+/** Préfixe d'une apostrophe un texte qu'un tableur lirait comme une formule. */
+export function neutraliserFormule(texte: string): string {
+  return /^[=+\-@\t\r]/.test(texte) ? `'${texte}` : texte;
 }
 
 /** Sérialise un tableau de lignes en texte CSV (sans BOM). */

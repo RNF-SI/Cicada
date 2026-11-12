@@ -14,7 +14,10 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
   const publicUrls = ['/api/auth/login/', '/api/auth/refresh/', '/api/auth/health/'];
   const isPublicUrl = publicUrls.some(url => req.url.includes(url));
 
-  if (isPublicUrl) {
+  // Le jeton ne part que vers l'API de cette instance (URL relative ou même
+  // origine) : un appel futur vers un service tiers (tuiles, Matomo, hub…) ne
+  // doit jamais l'emporter.
+  if (isPublicUrl || !versCetteInstance(req.url)) {
     return next(req);
   }
 
@@ -55,4 +58,16 @@ function addTokenToRequest(req: HttpRequest<unknown>, token: string): HttpReques
       Authorization: `Bearer ${token}`
     }
   });
+}
+
+/** Vrai pour une URL relative ou de la même origine que l'application. */
+export function versCetteInstance(url: string): boolean {
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(url) && !url.startsWith('//')) {
+    return true;
+  }
+  try {
+    return new URL(url, window.location.href).origin === window.location.origin;
+  } catch {
+    return false;
+  }
 }

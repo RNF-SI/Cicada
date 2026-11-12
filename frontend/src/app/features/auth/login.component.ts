@@ -72,7 +72,9 @@ export class LoginComponent {
     this.authService.login({ username, password }, this.mode()).subscribe({
       next: () => {
         // Redirect to return URL or home
-        const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/accueil';
+        // Chemin interne seulement (« /plans/… ») : jamais « //domaine » ni une URL.
+        const demande = this.route.snapshot.queryParams['returnUrl'];
+        const returnUrl = typeof demande === 'string' && /^\/(?!\/)/.test(demande) ? demande : '/accueil';
         this.router.navigateByUrl(returnUrl);
       },
       error: (error: Error) => {

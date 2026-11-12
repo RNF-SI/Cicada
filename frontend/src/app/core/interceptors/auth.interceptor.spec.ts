@@ -51,6 +51,16 @@ describe('AuthInterceptor', () => {
       req.flush({});
     });
 
+    it('never sends the token to another origin', () => {
+      mockAuthService.getAccessToken.mockReturnValue(mockAccessToken);
+
+      httpClient.get('https://tiers.example.org/tuile.png').subscribe();
+
+      const req = httpMock.expectOne('https://tiers.example.org/tuile.png');
+      expect(req.request.headers.has('Authorization')).toBe(false);
+      req.flush({});
+    });
+
     it('should not add Authorization header when no token', () => {
       mockAuthService.getAccessToken.mockReturnValue(null);
 

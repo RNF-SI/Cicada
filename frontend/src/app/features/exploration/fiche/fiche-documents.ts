@@ -31,7 +31,8 @@ export function documentLocal(plan: FichePlan, document: FicheDocument): boolean
 }
 
 /** Formats affichés par le navigateur ; les autres se téléchargent (comme côté serveur). */
-const EXTENSIONS_EN_LIGNE = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'];
+// SVG exclu : il peut porter du script, il se télécharge (cf. backend apps/core/documents_http.py).
+const EXTENSIONS_EN_LIGNE = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 
 export function documentEnLigne(document: FicheDocument): boolean {
   return EXTENSIONS_EN_LIGNE.includes((document.extension ?? '').replace(/^\./, '').toLowerCase());

@@ -214,6 +214,20 @@ describe('AuthService', () => {
       expect(service.isAuthenticated()).toBe(false);
     }));
 
+    it('reprend la session renouvelée par un autre onglet au lieu de déconnecter', fakeAsync(() => {
+      let jeton: string | undefined;
+      service.refreshToken().subscribe({ next: (t) => { jeton = t; } });
+
+      // Pendant l'appel, un autre onglet a renouvelé (et révoqué l'ancien jeton).
+      localStorage.setItem('auth_tokens', JSON.stringify({ access: 'acces-autre-onglet', refresh: 'refresh-autre-onglet' }));
+      const req = httpMock.expectOne('/api/auth/refresh/');
+      req.flush({}, { status: 401, statusText: 'Unauthorized' });
+      tick();
+
+      expect(jeton).toBe('acces-autre-onglet');
+      expect(service.getAccessToken()).toBe('acces-autre-onglet');
+    }));
+
     it('should throw error if no refresh token available', fakeAsync(() => {
       localStorage.clear();
 

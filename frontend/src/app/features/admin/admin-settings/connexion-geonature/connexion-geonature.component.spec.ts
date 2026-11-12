@@ -26,7 +26,7 @@ function etatFactice(surcharge: Partial<EtatConnexionGeoNature> = {}): EtatConne
     configuree: true,
     base_sur_ce_serveur: false,
     valeurs: {
-      libelle: 'RNF', organismes_exclus: '', code_application: 'CICADA', db_host: '10.0.30.12',
+      libelle: 'RNF', organismes_exclus: '', code_application: 'CICADA', db_host: '192.0.2.12',
       db_port: 5432, db_name: 'geonature_global', db_user: 'cicada_usershub', db_sslmode: 'require',
     },
     mot_de_passe_defini: true,
@@ -146,8 +146,8 @@ describe('commandeCompteLecture', () => {
   });
 
   it('base distante : téléchargement du script et --client', () => {
-    const commande = commandeCompteLecture('geonature_global', 'CICADA', false, '10.0.20.13');
+    const commande = commandeCompteLecture('geonature_global', 'CICADA', false, '192.0.2.13');
     expect(commande).toContain('curl -fsSL https://raw.githubusercontent.com/');
-    expect(commande).toContain('--db geonature_global --client 10.0.20.13/32 --code CICADA');
+    expect(commande).toContain('--db geonature_global --client 192.0.2.13/32 --code CICADA');
   });
 });

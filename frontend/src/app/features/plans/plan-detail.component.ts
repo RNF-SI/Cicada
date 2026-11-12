@@ -1384,8 +1384,10 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
 
         const url = window.URL.createObjectURL(blob);
         const ext = fichier.extension?.toLowerCase().replace('.', '');
-        // Open PDFs and images in a new tab, download others
-        if (ext === 'pdf' || fichier.is_image) {
+        // PDF et images matricielles ouverts dans un onglet, le reste téléchargé.
+        // Jamais un SVG : ouvert depuis une URL blob, il s'exécuterait sur
+        // l'origine de l'application (script compris).
+        if (['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext ?? '')) {
           window.open(url, '_blank');
         } else {
           const a = document.createElement('a');

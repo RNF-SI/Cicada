@@ -445,17 +445,21 @@
                   <app-tag variant="neutral" [label]="'plans.settings.miParcoursBadge' | translate" size="sm"></app-tag>
                 }
               </div>
-              <button
-                class="btn-lifecycle-danger"
-                [disabled]="deleting()"
-                (click)="confirmDeleteCurrent()">
-                @if (deleting()) {
-                  <mat-spinner diameter="16"></mat-spinner>
-                } @else {
-                  <i class="fi fi-rr-trash"></i>
-                }
-                <span>{{ 'plans.settings.deleteVersion' | translate }}</span>
-              </button>
+              @if (canDeleteVersion()) {
+                <button
+                  class="btn-lifecycle-danger"
+                  [disabled]="deleting()"
+                  (click)="confirmDeleteCurrent()">
+                  @if (deleting()) {
+                    <mat-spinner diameter="16"></mat-spinner>
+                  } @else {
+                    <i class="fi fi-rr-trash"></i>
+                  }
+                  <span>{{ 'plans.settings.deleteVersion' | translate }}</span>
+                </button>
+              } @else {
+                <p class="text-mention">{{ 'plans.settings.deleteVersionNonBrouillon' | translate }}</p>
+              }
             </div>
           </section>
 

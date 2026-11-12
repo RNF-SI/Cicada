@@ -103,6 +103,14 @@ export class PlanSettingsComponent {
     return p.referents?.some(r => r.id_role === currentUser.id) || false;
   });
 
+  /**
+   * Une version validée ou archivée est l'historique du plan : elle s'archive,
+   * elle ne se supprime pas (seul un super admin garde la main, pour réparer
+   * une erreur). Même règle que le serveur (409 `version_non_brouillon`).
+   */
+  readonly canDeleteVersion = computed<boolean>(() =>
+    this.plan()?.statut === 'draft' || this.authService.isSuperAdmin());
+
   constructor() {
     this.loadPlan();
   }

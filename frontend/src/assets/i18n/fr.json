@@ -172,8 +172,8 @@
         "info": "Une demande de création d'organisme sera envoyée à l'administrateur, en plus de votre demande de compte. Les deux seront validées séparément."
       },
       "password": "Mot de passe",
-      "passwordHint": "Au moins 8 caractères.",
-      "passwordPlaceholder": "Minimum 8 caractères",
+      "passwordHint": "Au moins 10 caractères.",
+      "passwordPlaceholder": "Minimum 10 caractères",
       "confirmPassword": "Confirmer le mot de passe",
       "confirmPasswordPlaceholder": "Retapez votre mot de passe",
       "justification": "Justification (optionnel)",
@@ -194,7 +194,7 @@
         "organismeRequired": "L'organisme est requis",
         "organismeNotSelected": "Veuillez sélectionner un organisme dans la liste déroulante",
         "passwordRequired": "Le mot de passe est requis",
-        "passwordMinLength": "Minimum 8 caractères",
+        "passwordMinLength": "Minimum 10 caractères",
         "confirmPasswordRequired": "Veuillez confirmer le mot de passe",
         "passwordMismatch": "Les mots de passe ne correspondent pas",
         "maxLength": "{{max}} caractères maximum",
@@ -226,7 +226,7 @@
       "title": "Nouveau mot de passe",
       "subtitle": "Choisissez un nouveau mot de passe pour votre compte.",
       "newPassword": "Nouveau mot de passe",
-      "newPasswordPlaceholder": "Au moins 8 caractères",
+      "newPasswordPlaceholder": "Au moins 10 caractères",
       "confirmPassword": "Confirmer le mot de passe",
       "confirmPasswordPlaceholder": "Ressaisissez le mot de passe",
       "submit": "Réinitialiser le mot de passe",
@@ -238,7 +238,7 @@
       "backToLogin": "Retour à la connexion",
       "errors": {
         "passwordRequired": "Le mot de passe est requis",
-        "passwordMinLength": "Le mot de passe doit contenir au moins 8 caractères",
+        "passwordMinLength": "Le mot de passe doit contenir au moins 10 caractères",
         "confirmRequired": "Veuillez confirmer le mot de passe",
         "mismatch": "Les mots de passe ne correspondent pas"
       }
@@ -3222,6 +3222,7 @@
       "miParcoursBadge": "Évaluation mi-parcours",
       "versionLabel": "Version",
       "deleteVersion": "Supprimer cette version",
+      "deleteVersionNonBrouillon": "Une version validée ou archivée ne se supprime pas : archivez-la depuis le cycle de vie.",
       "deleteVersionConfirmTitle": "Supprimer définitivement cette version ?",
       "deleteVersionConfirmMessage": "La version « {{name}} » (v{{version}}) et tout son contenu seront supprimés définitivement. Ses liens avec les sites, utilisateurs et organismes seront retirés, et les versions restantes seront renumérotées. Cette action est irréversible.",
       "deleteSuccess": "La version a été supprimée.",

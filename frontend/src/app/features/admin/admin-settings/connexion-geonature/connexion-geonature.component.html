@@ -46,7 +46,7 @@
       <app-form-field [label]="'admin.settings.connexion.champs.db_host' | translate" [required]="true"
         [helpText]="(verrouille('db_host') ? 'admin.settings.connexion.valeurEnvironnement' : 'admin.settings.connexion.aide.db_host') | translate">
         <input type="text" name="db_host" data-testid="champ-db_host" spellcheck="false"
-               placeholder="10.0.30.12" [disabled]="verrouille('db_host')" [(ngModel)]="saisie.db_host" />
+               placeholder="192.0.2.12" [disabled]="verrouille('db_host')" [(ngModel)]="saisie.db_host" />
       </app-form-field>
 
       <app-form-field [label]="'admin.settings.connexion.champs.db_port' | translate"
@@ -110,7 +110,7 @@
     @if (!surCeServeur()) {
       <app-form-field [label]="'admin.settings.connexion.etape3.adresse' | translate"
                       [helpText]="'admin.settings.connexion.etape3.adresseAide' | translate">
-        <input type="text" name="adresse_cicada" data-testid="champ-adresse-cicada" placeholder="10.0.20.13"
+        <input type="text" name="adresse_cicada" data-testid="champ-adresse-cicada" placeholder="192.0.2.13"
                [(ngModel)]="adresseCicada" />
       </app-form-field>
     }
