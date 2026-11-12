@@ -367,7 +367,7 @@ def _paste_basemap(img, left, top, zoom):
             if not raw:
                 continue
             try:
-                tile = PILImage.open(io.BytesIO(raw)).convert("RGB")
+                tile = PILImage.open(io.BytesIO(raw), formats=("PNG", "JPEG", "WEBP")).convert("RGB")
             except Exception:
                 continue
             img.paste(tile, (int(tx * _TILE_SIZE - left), int(ty * _TILE_SIZE - top)))
