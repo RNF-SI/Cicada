@@ -2425,6 +2425,7 @@
         "bilans": "Bilans",
         "bilan": "Bilan",
         "suiviActions": "Suivi des actions",
+        "planificationAnnuelle": "Ajustement planification annuelle",
         "tableauDeBord": "Tableau de bord",
         "mindmap": "Tableau d'arborescence",
         "exports": "Exports"
@@ -2472,6 +2473,55 @@
           "allMonths": "Tous les mois",
           "noMonth": "Aucune action avec une réponse à ce mois."
         }
+      },
+      "planificationAnnuelle": {
+        "title": "Ajustement planification annuelle",
+        "intro": "Chaque année, revoyez la programmation de chaque action : moyens, mois de réalisation, report. Le plan de gestion reste la référence : il n'est jamais modifié.",
+        "filAriane": "Fil d'Ariane",
+        "choisirAnnee": "Choisir l'année",
+        "anneePrecedente": "Année précédente",
+        "anneeSuivante": "Année suivante",
+        "revues": "{{revues}} / {{total}} actions revues pour {{annee}}",
+        "recherche": "Rechercher une action (code ou intitulé)",
+        "filtrer": "Filtrer les actions",
+        "filtres": {
+          "tous": "Toutes",
+          "planifiee": "Planifiées",
+          "reportee": "Reportées",
+          "non_prevue": "Non prévues",
+          "a_revoir": "À revoir",
+          "diverge": "Divergent du plan"
+        },
+        "colonnes": {
+          "action": "Action",
+          "statut": "Statut de l'année",
+          "mois": "Mois prévus",
+          "pg": "Plan de gestion",
+          "ajuste": "Ajusté pour {{annee}}",
+          "budget": "Budget",
+          "jours": "Temps",
+          "revue": "Revue"
+        },
+        "statut": {
+          "planifiee": "Planifiée",
+          "non_prevue": "Non prévue",
+          "reportee": "Reportée en {{annee}}",
+          "reportee_partiel": "Reste reporté en {{annee}}"
+        },
+        "reporteeDe": "Reportée de {{annee}}",
+        "resteDe": "Reste de {{annee}}",
+        "rappelPg": "Plan de gestion : {{valeur}}",
+        "surLaPeriode": "{{budget}} € · {{jours}} j sur la période",
+        "periodeTooltip": "Action programmée globalement : le plan de gestion prévoit ses moyens sur toute la période, sans montant par année.",
+        "revue": "Revue",
+        "revueLe": "Revue le {{date}}",
+        "aRevoir": "À revoir",
+        "aucuneAction": "Aucune action ne correspond à cette sélection.",
+        "total": "Total",
+        "totalGlobales": "(plan de gestion hors {{n}} action(s) programmée(s) sur la période)",
+        "totalGlobalesTooltip": "Les actions programmées globalement n'ont pas de montant annuel dans le plan de gestion : elles ne comptent que dans le total ajusté.",
+        "accesRefuse": "La planification annuelle de ce plan est réservée aux utilisateurs liés au plan.",
+        "erreurChargement": "La planification annuelle n'a pas pu être chargée."
       },
       "bilan": {
         "title": "Bilan de la gestion",

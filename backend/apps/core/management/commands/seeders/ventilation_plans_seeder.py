@@ -616,6 +616,8 @@ class VentilationPlansSeeder(BaseSeeder):
         for op in Operation.objects.filter(code_operation__startswith=VENTILATION_OP_CODE_PREFIX):
             self._financer(op)
 
+        self._ajuster_planification(plans, admin, current_year)
+
         self.log_summary(len(plans), 'plans « Ventilation » créés (brouillons + validés)')
         self.log_summary(nb_ops, 'actions programmées (budget + RH + suivi)')
         self.context.set('ventilation_plans', plans)
@@ -1470,6 +1472,51 @@ class VentilationPlansSeeder(BaseSeeder):
                 total[_FONCT] += par_cat[_FONCT]
                 total[_INVEST] += par_cat[_INVEST]
             RealisationOperationAnnee.objects.filter(pk=realisation.pk).update(**champs(total))
+
+    @staticmethod
+    def _ajuster_planification(plans, admin, current_year) -> None:
+        """
+        #794 — Planification annuelle ajustée de l'année en cours, sur les plans
+        « Ventilation validée — … » (même scénario dans les 6 modes) :
+
+        - CS1 revue : coûts et temps réévalués de +10 %, mois décalés à l'automne ;
+        - IP1 reportée en année + 1 : la suite de sa programmation est décalée ;
+        - PA1 pas encore revue (« 2 / 3 actions revues »).
+
+        Le plan de gestion n'est pas touché. Relancer le seed repart de zéro.
+        """
+        from apps.plans.access import plan_operation_ids
+        from apps.plans.models_planification import (
+            CHAMPS_COUTS_ANNEE, CHAMPS_COUTS_ORGANISME, AjustementAnnuel,
+        )
+        from apps.plans.planification_annuelle import Planification, ecrire
+
+        def _majorer(valeur):
+            return None if valeur is None else _q(_dec(valeur) * Decimal('1.10'))
+
+        for plan in plans:
+            if not plan.nom.startswith(_PLAN_PREFIX_VALIDE):
+                continue
+            operations = list(Operation.objects.filter(pk__in=plan_operation_ids(plan)))
+            AjustementAnnuel.objects.filter(id_operation__in=operations).delete()
+            par_suffixe = {op.code_operation.rsplit('-', 1)[-1]: op for op in operations}
+            cs, ip = par_suffixe.get('CS1'), par_suffixe.get('IP1')
+            if cs is not None:
+                contenu = Planification(plan, operations).effectif(cs.pk, current_year)
+                for champ in CHAMPS_COUTS_ANNEE:
+                    contenu[champ] = _majorer(contenu[champ])
+                for org in contenu['organismes']:
+                    for champ in CHAMPS_COUTS_ORGANISME:
+                        org[champ] = _majorer(org[champ])
+                for ligne in contenu['rh_lignes']:
+                    ligne['jours'] = _majorer(ligne['jours'])
+                contenu['periodicite_mensuelle'] = {'9': True, '10': True}
+                contenu['commentaire'] = (
+                    "Coûts réévalués (+10 %) ; relevés décalés à l'automne (crue printanière).")
+                ecrire(cs, current_year, contenu, admin)
+            if ip is not None:
+                Planification(plan, operations).reporter(
+                    ip.pk, current_year, current_year + 1, admin)
 
     # ------------------------------------------------------------------ reset
 

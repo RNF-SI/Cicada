@@ -1,0 +1,241 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="planification-annuelle"></app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    <section class="hero-section">
+      <div class="hero-background"><div class="hero-pattern"></div></div>
+      <div class="hero-content">
+        <nav class="breadcrumb" [attr.aria-label]="'plans.suivis.planificationAnnuelle.filAriane' | translate">
+          <a routerLink="/accueil" class="breadcrumb-home" [title]="'common.actions.home' | translate">
+            <i class="fi fi-rr-home"></i>
+          </a>
+          <div class="breadcrumb-lines"></div>
+          <div class="breadcrumb-text">
+            <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+            <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">{{ planNom() }}</a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+            <span class="breadcrumb-current">{{ 'plans.suivis.planificationAnnuelle.title' | translate }}</span>
+          </div>
+        </nav>
+        <div class="plan-header">
+          <div class="plan-subtitle">
+            <i class="fi fi-rr-document"></i>
+            <span>{{ 'plans.detail.sidebar.title' | translate | uppercase }}</span>
+          </div>
+          <h1 class="plan-title">{{ 'plans.suivis.planificationAnnuelle.title' | translate }}</h1>
+          <p class="plan-intro">{{ 'plans.suivis.planificationAnnuelle.intro' | translate }}</p>
+        </div>
+      </div>
+    </section>
+
+    @if (planNonValide()) {
+      <div class="lock-banner" role="status">
+        <i class="fi fi-rr-info"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-title">{{ 'plans.suivis.notValidatedBanner.title' | translate }}</span>
+          <span class="lock-banner-text">{{ 'plans.suivis.notValidatedBanner.text' | translate }}</span>
+        </div>
+      </div>
+    } @else if (lectureSeule()) {
+      <div class="lock-banner" role="status" data-testid="planification-lecture-seule">
+        <i class="fi fi-rr-eye"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-title">{{ 'plans.suivis.readOnlyBanner.title' | translate }}</span>
+          <span class="lock-banner-text">{{ 'plans.suivis.readOnlyBanner.text' | translate }}</span>
+        </div>
+      </div>
+    }
+
+    <section class="content-section">
+      @if (isLoading() && !tableau()) {
+        <div class="loading-container">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>{{ 'common.loading' | translate }}</p>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="error-container">
+          <i class="fi fi-rr-exclamation"></i>
+          <p>{{ errorMessage() }}</p>
+        </div>
+      } @else if (tableau(); as t) {
+        <!-- Année et avancement de la revue -->
+        <div class="annee-bar">
+          <div class="annee-nav">
+            <button type="button" class="icon-btn-flat" [disabled]="!anneePrecedente()"
+                    (click)="choisirAnnee(anneePrecedente()!)"
+                    [attr.aria-label]="'plans.suivis.planificationAnnuelle.anneePrecedente' | translate">
+              <i class="fi fi-rr-angle-small-left"></i>
+            </button>
+            <button type="button" class="year-selector" [matMenuTriggerFor]="anneesMenu"
+                    data-testid="planification-annee"
+                    [matTooltip]="'plans.suivis.planificationAnnuelle.choisirAnnee' | translate">
+              {{ t.annee }}
+              <i class="fi fi-rr-angle-small-down"></i>
+            </button>
+            <mat-menu #anneesMenu="matMenu">
+              @for (a of annees(); track a) {
+                <button mat-menu-item (click)="choisirAnnee(a)" [class.annee-courante]="a === t.annee">{{ a }}</button>
+              }
+            </mat-menu>
+            <button type="button" class="icon-btn-flat" [disabled]="!anneeSuivante()"
+                    (click)="choisirAnnee(anneeSuivante()!)"
+                    [attr.aria-label]="'plans.suivis.planificationAnnuelle.anneeSuivante' | translate">
+              <i class="fi fi-rr-angle-small-right"></i>
+            </button>
+          </div>
+
+          <div class="revue" data-testid="planification-revue">
+            <span class="revue-texte">
+              {{ 'plans.suivis.planificationAnnuelle.revues' | translate:{ revues: t.revues, total: t.total, annee: t.annee } }}
+            </span>
+            <div class="revue-jauge" role="progressbar" [attr.aria-valuenow]="progression()"
+                 aria-valuemin="0" aria-valuemax="100">
+              <div class="revue-jauge-remplie" [style.width.%]="progression()"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filtres-bar">
+          <app-search-bar
+            [value]="recherche()"
+            (valueChange)="recherche.set($event)"
+            [placeholder]="'plans.suivis.planificationAnnuelle.recherche' | translate"
+            [ariaLabel]="'plans.suivis.planificationAnnuelle.recherche' | translate">
+          </app-search-bar>
+          <div class="segmented-control" role="group"
+               [attr.aria-label]="'plans.suivis.planificationAnnuelle.filtrer' | translate">
+            @for (f of filtres; track f) {
+              <button type="button" class="segmented-control-option" [class.active]="filtre() === f"
+                      [attr.aria-pressed]="filtre() === f" (click)="filtre.set(f)">
+                {{ filtreLabel(f) }} <span class="filtre-compte">({{ compte(f) }})</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="actions-table annuel-table" data-testid="planification-tableau">
+            <thead>
+              <tr>
+                <th rowspan="2" class="col-action">{{ 'plans.suivis.planificationAnnuelle.colonnes.action' | translate }}</th>
+                <th rowspan="2" class="col-statut">{{ 'plans.suivis.planificationAnnuelle.colonnes.statut' | translate }}</th>
+                <th rowspan="2" class="col-mois">{{ 'plans.suivis.planificationAnnuelle.colonnes.mois' | translate }}</th>
+                <th colspan="2" class="groupe groupe-pg">{{ 'plans.suivis.planificationAnnuelle.colonnes.pg' | translate }}</th>
+                <th colspan="2" class="groupe groupe-ajuste">
+                  {{ 'plans.suivis.planificationAnnuelle.colonnes.ajuste' | translate:{ annee: t.annee } }}
+                </th>
+                <th rowspan="2" class="col-revue">{{ 'plans.suivis.planificationAnnuelle.colonnes.revue' | translate }}</th>
+              </tr>
+              <tr>
+                <th class="col-num groupe-pg">{{ 'plans.suivis.planificationAnnuelle.colonnes.budget' | translate }}</th>
+                <th class="col-num groupe-pg">{{ 'plans.suivis.planificationAnnuelle.colonnes.jours' | translate }}</th>
+                <th class="col-num groupe-ajuste">{{ 'plans.suivis.planificationAnnuelle.colonnes.budget' | translate }}</th>
+                <th class="col-num groupe-ajuste">{{ 'plans.suivis.planificationAnnuelle.colonnes.jours' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ligne of lignes(); track ligne.id_operation; let idx = $index) {
+                <tr [class.row-alt]="idx % 2 === 1" [class.diverge]="ligne.diverge"
+                    [attr.data-testid]="'planification-ligne-' + ligne.id_operation">
+                  <td class="col-action">
+                    @if (ligne.code) {
+                      <span class="action-code">{{ ligne.code }}</span>
+                    }
+                    <div class="action-name">{{ ligne.libelle }}</div>
+                  </td>
+                  <td class="col-statut">
+                    @let apparence = tag(ligne.ajuste);
+                    <app-tag size="sm" [variant]="apparence.variant" [icon]="apparence.icon"
+                             [label]="statutLabel(ligne.ajuste)"></app-tag>
+                    @for (r of ligne.reports_entrants; track r.annee) {
+                      <div class="mention">
+                        {{ (r.partiel ? 'plans.suivis.planificationAnnuelle.resteDe' : 'plans.suivis.planificationAnnuelle.reporteeDe') | translate:{ annee: r.annee } }}
+                      </div>
+                    }
+                    @if (rappelPg(ligne); as rappel) {
+                      <div class="mention mention-pg">{{ rappel }}</div>
+                    }
+                  </td>
+                  <td class="col-mois">{{ moisLabel(ligne.ajuste.mois) }}</td>
+
+                  <!-- Plan de gestion : la référence -->
+                  @if (ligne.programmation_globale && ligne.pg_global) {
+                    <td colspan="2" class="col-num groupe-pg col-periode"
+                        [matTooltip]="'plans.suivis.planificationAnnuelle.periodeTooltip' | translate">
+                      {{ 'plans.suivis.planificationAnnuelle.surLaPeriode' | translate:{
+                        budget: (num(ligne.pg_global.budget) | number:'1.0-0':'fr-FR'),
+                        jours: (num(ligne.pg_global.jours) | number:'1.0-1':'fr-FR') } }}
+                    </td>
+                  } @else {
+                    <td class="col-num groupe-pg">{{ num(ligne.pg.budget) | number:'1.0-0':'fr-FR' }} €</td>
+                    <td class="col-num groupe-pg">{{ num(ligne.pg.jours) | number:'1.0-1':'fr-FR' }} j</td>
+                  }
+
+                  <!-- Ajusté pour l'année -->
+                  <td class="col-num groupe-ajuste">
+                    <div class="valeur">{{ num(ligne.ajuste.budget) | number:'1.0-0':'fr-FR' }} €</div>
+                    @if (ecart(ligne, 'budget'); as e) {
+                      <div class="ecart" [class.hausse]="e > 0" [class.baisse]="e < 0">
+                        {{ e > 0 ? '+' : '−' }}{{ (e > 0 ? e : -e) | number:'1.0-0':'fr-FR' }} €
+                      </div>
+                    }
+                  </td>
+                  <td class="col-num groupe-ajuste">
+                    <div class="valeur">{{ num(ligne.ajuste.jours) | number:'1.0-1':'fr-FR' }} j</div>
+                    @if (ecart(ligne, 'jours'); as e) {
+                      <div class="ecart" [class.hausse]="e > 0" [class.baisse]="e < 0">
+                        {{ e > 0 ? '+' : '−' }}{{ (e > 0 ? e : -e) | number:'1.0-1':'fr-FR' }} j
+                      </div>
+                    }
+                  </td>
+
+                  <td class="col-revue">
+                    @if (ligne.revue) {
+                      <i class="fi fi-rr-check-circle revue-ok"
+                         [matTooltip]="'plans.suivis.planificationAnnuelle.revueLe' | translate:{ date: (ligne.date_revue | date:'dd/MM/yyyy') }"
+                         [attr.aria-label]="'plans.suivis.planificationAnnuelle.revue' | translate"></i>
+                    } @else {
+                      <span class="a-revoir">{{ 'plans.suivis.planificationAnnuelle.aRevoir' | translate }}</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="8" class="vide">{{ 'plans.suivis.planificationAnnuelle.aucuneAction' | translate }}</td>
+                </tr>
+              }
+            </tbody>
+            @if (lignes().length) {
+              <tfoot>
+                @let tot = totaux();
+                <tr class="total-row">
+                  <td class="col-action" colspan="3">
+                    {{ 'plans.suivis.planificationAnnuelle.total' | translate }}
+                    @if (tot.globales) {
+                      <span class="mention"
+                            [matTooltip]="'plans.suivis.planificationAnnuelle.totalGlobalesTooltip' | translate">
+                        {{ 'plans.suivis.planificationAnnuelle.totalGlobales' | translate:{ n: tot.globales } }}
+                      </span>
+                    }
+                  </td>
+                  <td class="col-num groupe-pg">{{ tot.pgBudget | number:'1.0-0':'fr-FR' }} €</td>
+                  <td class="col-num groupe-pg">{{ tot.pgJours | number:'1.0-1':'fr-FR' }} j</td>
+                  <td class="col-num groupe-ajuste">{{ tot.ajBudget | number:'1.0-0':'fr-FR' }} €</td>
+                  <td class="col-num groupe-ajuste">{{ tot.ajJours | number:'1.0-1':'fr-FR' }} j</td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            }
+          </table>
+        </div>
+      }
+    </section>
+  </main>
+</div>

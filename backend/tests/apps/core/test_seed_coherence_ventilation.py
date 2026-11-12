@@ -19,6 +19,7 @@ passe chaque action au crible des règles de la programmation et du suivi :
 Il vérifie aussi que les plans composites couvrent les combinaisons attendues.
 """
 from datetime import date
+from decimal import Decimal
 
 import pytest
 from django.core.management import call_command
@@ -213,3 +214,27 @@ def test_jeu_d_essai_coherent_et_idempotent():
     }
     assert any(saisies[y] and saisies[y] == programmees[y] for y in saisies)
     assert any(saisies[y] and saisies[y] < programmees[y] for y in saisies)
+
+    # #794 — planification annuelle ajustée de l'année en cours, même scénario
+    # dans les 6 plans validés (rejouer le seed ne la double pas) : CS1 revue
+    # à +10 %, IP1 reportée en année + 1 (suite décalée), PA1 à revoir.
+    from apps.plans.models_planification import AjustementAnnuel
+    from apps.plans.planification_annuelle import Planification
+    from apps.plans.services_export_finance import plan_operations
+    valides = PlanGestion.objects.filter(nom__startswith='Ventilation validée — ')
+    assert valides.count() == 6
+    resumes = set()
+    for plan in valides:
+        operations = plan_operations(plan)
+        planif = Planification(plan, operations)
+        par = {o.code_operation.rsplit('-', 1)[-1]: o.pk for o in operations}
+        assert AjustementAnnuel.objects.filter(
+            id_operation__in=operations, annee=annee).count() == 2
+        cs = planif.resume(par['CS1'], planif.effectif(par['CS1'], annee))
+        cs_pg = planif.resume(par['CS1'], planif.pg(par['CS1'], annee))
+        assert cs['budget'] == (cs_pg['budget'] * Decimal('1.10')).quantize(Decimal('0.01'))
+        assert planif.effectif(par['IP1'], annee)['statut'] == 'reportee'
+        assert planif.reports_entrants(par['IP1'], annee + 1) == [{'annee': annee, 'partiel': False}]
+        assert planif.ajustement(par['PA1'], annee) is None
+        resumes.add((cs['budget'], cs['jours']))
+    assert len(resumes) == 1

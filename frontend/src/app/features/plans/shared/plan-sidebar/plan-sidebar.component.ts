@@ -23,7 +23,7 @@ export class PlanSidebarComponent implements OnInit {
 
   planId = input.required<number>();
   planSlug = input.required<string>();
-  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'tableau-de-bord' | 'mindmap' | 'settings' | 'postes' | 'exports'>('overview');
+  activePage = input<'overview' | 'enjeux' | 'bilan' | 'suivi-actions' | 'planification-annuelle' | 'tableau-de-bord' | 'mindmap' | 'settings' | 'postes' | 'exports'>('overview');
   selectedEnjeuSlug = input<string | null>(null);
   /** #348 — Affiche l'entrée « Paramètres » (gestion avancée des versions),
    *  réservée au référent du plan, admin organisme et super admin.
@@ -91,7 +91,8 @@ export class PlanSidebarComponent implements OnInit {
 
   isSuivisActive = computed(() => {
     const page = this.activePage();
-    return page === 'bilan' || page === 'suivi-actions' || page === 'tableau-de-bord';
+    return page === 'bilan' || page === 'suivi-actions' || page === 'planification-annuelle'
+      || page === 'tableau-de-bord';
   });
 
   /** #610 / #740 — La section « Suivis » (Bilan, Suivi des actions, Tableau de
@@ -194,6 +195,11 @@ export class PlanSidebarComponent implements OnInit {
 
   navigateToSuiviActions(): void {
     this.router.navigate(['/plans', this.planSlug(), 'suivi-actions']);
+  }
+
+  /** #794 — Ajustement de la planification annuelle. */
+  navigateToPlanificationAnnuelle(): void {
+    this.router.navigate(['/plans', this.planSlug(), 'planification-annuelle']);
   }
 
   navigateToTableauDeBord(): void {

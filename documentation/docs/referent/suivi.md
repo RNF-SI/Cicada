@@ -1,6 +1,6 @@
 # 4.9. Le suivi du plan de gestion
 
-Le menu « Suivis » propose trois vues complémentaires : « Tableau de bord », « Suivi des actions » et « Bilan ». Les référents du plan, les rédacteurs généraux et les administrateurs les saisissent. Les membres du plan et les utilisateurs rattachés à l'un de ses sites les consultent en lecture seule (un bandeau « Consultation seule » le rappelle), sans boutons d'export ; le rédacteur externe n'y a pas accès. **La saisie du suivi n'est possible que lorsque le plan est validé (ou modifié).**
+Le menu « Suivis » propose quatre vues complémentaires : « Tableau de bord », « Suivi des actions », « Bilan » et « Ajustement planification annuelle ». Les référents du plan, les rédacteurs généraux et les administrateurs les saisissent. Les membres du plan et les utilisateurs rattachés à l'un de ses sites les consultent en lecture seule (un bandeau « Consultation seule » le rappelle), sans boutons d'export ; le rédacteur externe n'y a pas accès. **La saisie du suivi n'est possible que lorsque le plan est validé (ou modifié).**
 
 ## 4.9.1. Le tableau de bord et le suivi des indicateurs état et pression
 
@@ -106,3 +106,25 @@ Dans les graphiques, les enjeux sont désignés par leur numéro (« Enjeu 1 »,
 ![Bilan de la gestion](../assets/figures/fig53.webp){ loading=lazy }
 <figcaption>Figure 53 : Bilan de la gestion</figcaption>
 </figure>
+
+## 4.9.4. L'ajustement de la planification annuelle
+
+Le plan de gestion programme les actions sur toute sa durée : c'est la **référence**, et elle ne change plus une fois le plan validé. Chaque année, pourtant, chaque action est revue : ses coûts évoluent, ses moyens humains aussi, et elle peut être reportée ou faite plus tôt que prévu. La page « **Ajustement planification annuelle** » du menu « Suivis » présente, pour une année, la programmation de chaque action **telle que prévue au plan de gestion** et **telle qu'ajustée pour l'année**. Ajuster une année ne modifie jamais la fiche action ni le plan de gestion.
+
+- **L'année** se choisit en tête de page (flèches ou liste des années du plan, prolongation comprise). À côté, « **X / Y actions revues pour l'année** » et une jauge montrent l'avancement de la revue : une action est revue dès que son ajustement de l'année a été enregistré, même sans rien changer.
+- **Les filtres** : recherche par code ou intitulé, et statut — planifiées, reportées, non prévues, à revoir, ou qui divergent du plan de gestion.
+- **Le tableau**, une ligne par action :
+    - le **statut de l'année** : « Planifiée », « Non prévue », « Reportée en … » ou « Reste reporté en … » (action entamée cette année et finalisée plus tard). En dessous, les reports reçus d'une année précédente (« Reportée de … », « Reste de … ») et, en italique, ce que prévoyait le plan de gestion quand le statut ou les mois diffèrent ;
+    - les **mois de réalisation** prévus pour l'année ;
+    - le **budget et le temps de travail du plan de gestion**, puis ceux **ajustés pour l'année**, avec l'écart. Une action programmée globalement sur sa période affiche, côté plan de gestion, ses moyens « sur la période » : elle n'a pas de montant par année et ne compte pas dans le total du plan de gestion ;
+    - la **revue** : une coche (date de la revue au survol) ou « À revoir ».
+- **Le total** des actions affichées, plan de gestion et ajusté.
+
+Sans ajustement, l'année reprend la programmation du plan de gestion. Les règles de l'ajustement :
+
+- **Reporter une action** décale toute la suite de sa programmation d'autant, avec ses moyens et ses mois, que les années suivantes aient déjà été ajustées ou non. Une année où du réalisé a déjà été saisi ne bouge pas. Rien n'est programmé au-delà de la fin du plan de gestion (prolongation comprise) : ce qui tomberait après est abandonné. Un aperçu avant / après précède toujours le report.
+- **Une action entamée une année et finalisée l'année suivante** reste planifiée la première année ; l'année suivante reçoit le reste à faire (prévu moins réalisé), en plus de ce qu'elle prévoyait déjà.
+- **Une action faite plus tôt que prévu** est simplement planifiée l'année où elle est faite : les autres années ne bougent pas, à vous de les ajuster.
+- **Une action absente du plan de gestion** ne s'ajoute pas ici : créez une nouvelle version du plan de gestion.
+
+Comme le reste du suivi, la page est consultable par les utilisateurs liés au plan et l'ajustement est réservé aux référents du plan et aux gestionnaires, une fois le plan validé.

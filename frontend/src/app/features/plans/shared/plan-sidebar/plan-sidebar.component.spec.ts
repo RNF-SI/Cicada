@@ -226,6 +226,14 @@ describe('PlanSidebarComponent', () => {
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux']);
   });
 
+  // #794 — Ajustement de la planification annuelle, dans la section Suivis.
+  it('should navigate to the annual planning and keep Suivis active', () => {
+    component.navigateToPlanificationAnnuelle();
+    expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'planification-annuelle']);
+    componentRef.setInput('activePage', 'planification-annuelle');
+    expect(component.isSuivisActive()).toBe(true);
+  });
+
   it('should navigate to enjeu detail on selectEnjeu', () => {
     component.selectEnjeu(mockEnjeu);
     expect(mockRouter.navigate).toHaveBeenCalledWith(['/plans', 'plan-test', 'enjeux', 'protection-zones-humides']);

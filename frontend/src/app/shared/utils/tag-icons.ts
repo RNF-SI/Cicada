@@ -74,6 +74,18 @@ export const LOG_LEVEL_TAG: Record<string, TagAppearance> = {
 /** Repli neutre : tag saumon sans icône. */
 export const NEUTRAL_TAG: TagAppearance = { variant: 'neutral' };
 
+/**
+ * #794 — Statut de programmation d'une action pour une année (planification
+ * annuelle ajustée). `reportee_partiel` : l'année reste planifiée, le reste à
+ * faire est reporté sur une année suivante.
+ */
+export const PLANIFICATION_STATUT_TAG: Record<string, TagAppearance> = {
+  planifiee: { variant: 'success', icon: 'fi-rr-check' },
+  reportee: { variant: 'warning', icon: 'fi-rr-time-forward' },
+  reportee_partiel: { variant: 'info', icon: 'fi-rr-time-forward' },
+  non_prevue: { variant: 'muted' },
+};
+
 /** Niveau de priorité d'une action de gestion (1 = plus prioritaire). */
 export type PrioriteLevel = 1 | 2 | 3;
 

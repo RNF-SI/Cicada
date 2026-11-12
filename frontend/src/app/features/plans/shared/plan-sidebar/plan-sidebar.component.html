@@ -130,6 +130,13 @@
           </button>
           <button
             class="submenu-item"
+            data-testid="sidebar-planification-annuelle"
+            [class.active-sub]="activePage() === 'planification-annuelle'"
+            (click)="navigateToPlanificationAnnuelle()">
+            {{ 'plans.detail.sidebar.planificationAnnuelle' | translate }}
+          </button>
+          <button
+            class="submenu-item"
             [class.active-sub]="activePage() === 'tableau-de-bord'"
             (click)="navigateToTableauDeBord()">
             {{ 'plans.detail.sidebar.tableauDeBord' | translate }}
