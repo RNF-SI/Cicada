@@ -55,6 +55,12 @@ from .models_operations import (
     OperationAnneeRH,
     RealisationOperationAnneeRH,
 )
+from .models_planification import (  # noqa: F401 — #794
+    AjustementAnnuel,
+    AjustementAnnuelFinanceur,
+    AjustementAnnuelOrganisme,
+    AjustementAnnuelRH,
+)
 from .models_referentiel import (  # noqa: F401 — #751
     VersionReferentielActions,
     PassageReferentielActions,

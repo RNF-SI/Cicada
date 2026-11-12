@@ -391,6 +391,8 @@ SPECTACULAR_SETTINGS = {
         'PlanStatutEnum': 'apps.plans.models.PlanGestion.STATUT_CHOICES',
         'PlanValidationStepEnum': 'apps.plans.models.PlanGestion.VALIDATION_STEP_CHOICES',
         'OperationStatutEnum': 'apps.plans.models_operations.Operation.STATUT_CHOICES',
+        # #794 — statut de programmation d'une action pour une année.
+        'StatutAnnuelEnum': 'apps.plans.models_planification.StatutAnnuel.CHOICES',
         'ValidationRequestStatusEnum': 'apps.notifications.models.ValidationRequest.STATUS_CHOICES',
         # Enveloppes GeoJSON documentaires (config/spectacular.py) : champ `type` constant.
         'GeoJSONFeatureTypeEnum': 'config.spectacular.GEOJSON_FEATURE_TYPE_CHOICES',

@@ -37,6 +37,27 @@ Une action peut être enregistrée sans validation des champs obligatoires (`sta
 
 Le suivi n'est saisissable que sur un plan `valide` ou `modifie`, par ses référents et les gestionnaires. Les membres du plan et les utilisateurs rattachés à l'un de ses sites le consultent en lecture seule (méthodes `GET`). Le détail du plan l'indique avec `peut_voir_suivis`, `peut_saisir_suivis` et `peut_exporter`. Un rédacteur externe n'y accède jamais.
 
+### Planification annuelle ajustée
+
+La programmation du plan de gestion reste la référence. Chaque année, le gestionnaire revoit chaque action et ajuste sa programmation de l'année sans modifier le plan : statut (`planifiee`, `non_prevue`, `reportee`), moyens, mois de réalisation, montants par financeur. Sans ajustement, l'année suit le plan de gestion.
+
+| Endpoint | Rôle |
+|----------|------|
+| `GET /api/plans/planification-annuelle/plan/{plan_id}/?annee=` | Tableau de l'année : pour chaque action, prévu du plan (`pg`, et `pg_global` pour une programmation globale), prévu ajusté (`ajuste`), divergence, reports reçus, réalisé ; `revues` / `total` actions revues |
+| `GET/PUT/DELETE …/operation/{operation_id}/{annee}/` | Ajustement d'une action pour une année : `PUT` le remplace (organismes, temps et financeurs compris) et marque l'action revue, même sans changement ; `DELETE` revient au plan de gestion |
+| `POST …/operation/{operation_id}/{annee}/report/` | Report de l'action (`annee_report`), avec `apercu: true` pour l'avant / après sans rien écrire |
+
+Le contenu d'une année a la forme de la programmation du plan : mêmes champs que l'année d'une action (`budget`, `budget_fonctionnement`, `cout_salarial`…), `organismes`, `rh_lignes`, plus `statut`, `periodicite_mensuelle` et `financeurs`. Les totaux (`budget`, `jours`) sont calculés par les règles des exports.
+
+Les règles du report :
+
+- **Report total** : l'année passe « reportée » et toute la suite de la programmation est décalée d'autant, avec ses moyens et ses mois, qu'elle ait été ajustée ou non.
+    - Une année où du réalisé est saisi (hors niveau « Reporté ») ne bouge pas et ne reçoit rien.
+    - Ce qui tomberait après la fin du plan, prolongation comprise, est rendu dans `abandonnees` et abandonné.
+- **Report partiel** (`partiel: true`) : l'année reste planifiée et l'année cible reçoit, en plus de son propre prévu, le reste à faire (prévu − réalisé). La suite ne bouge pas.
+
+Ces routes suivent les droits du suivi. L'ajustement n'est possible que sur un plan validé : un brouillon reçoit `409 plan_non_valide`. Ces données ne sortent jamais vers l'exploration ni vers le hub, et ne sont pas reprises dans une nouvelle version du plan.
+
 ## Inventaires et suivis scientifiques
 
 | Endpoint | Rôle |

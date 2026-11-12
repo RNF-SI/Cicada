@@ -20,6 +20,9 @@ from apps.plans.models_operations import (
     RealisationFinanceur, RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
     RealisationOperationAnneeRH,
 )
+from apps.plans.models_planification import (
+    AjustementAnnuel, AjustementAnnuelFinanceur, AjustementAnnuelOrganisme, AjustementAnnuelRH,
+)
 from tests.factories.users import RoleFactory
 from tests.integrite.socle import construire_plan_complet
 
@@ -48,6 +51,12 @@ def _semer(pc):
         budget_fonctionnement_realise=MONTANT, etp_realise=JOURS)
     RealisationOperationAnneeRH.objects.update(jours=JOURS)
     RealisationFinanceur.objects.update(montant=MONTANT)
+    # #794 — planification annuelle ajustée.
+    AjustementAnnuel.objects.update(
+        budget=MONTANT, budget_fonctionnement=MONTANT, commentaire='Canari ajustement')
+    AjustementAnnuelOrganisme.objects.update(cout_stage=MONTANT, etp=JOURS)
+    AjustementAnnuelRH.objects.update(jours=JOURS)
+    AjustementAnnuelFinanceur.objects.update(montant=MONTANT)
     pc.poste.nom_local, pc.poste.cout_jour = 'Canari poste', MONTANT
     pc.poste.save()
     pc.financeur.nom = 'Canari financeur'

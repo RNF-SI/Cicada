@@ -276,6 +276,82 @@ def _poste_type_label(poste):
     return _txt(f.libelle) or "Sans poste"
 
 
+def regles_salaire_prevu(op):
+    """``(auto_salary, manual_salary)`` du prévisionnel d'une action.
+
+    #600 — le coût salarial n'entre dans le budget que si l'action détaille
+    ses types de coût ; il est calculé (jours × coût jour) en saisie
+    automatique, sinon lu sur les montants saisis. Sans détail des coûts,
+    l'enveloppe fonctionnement / investissement saisie contient déjà tout.
+    #735 — la case vaut pour tous les modes (« aucune » et « par organisme »
+    compris). Le coût salarial ne se calcule que sur un temps décliné par
+    poste ; sans poste, il est saisi.
+    """
+    has_cost_detail = getattr(op, "declinaison_par_type_cout", True)
+    auto_salary = bool(has_cost_detail and temps_par_poste(op)
+                       and getattr(op, "cout_salarial_auto", True))
+    return auto_salary, bool(has_cost_detail and not auto_salary)
+
+
+def ajouter_temps_prevu(c, line, cout_jour, auto_salary, pj=None):
+    """Ajoute une ligne de temps prévue (plan de gestion ou ajustement annuel,
+    #794) à la cellule ``c`` et, si fournie, à l'entrée de synthèse ``pj``."""
+    pj = pj if pj is not None else poste_entry_factory()
+    jours = _d(line.jours)
+    cat = getattr(line, "categorie_depense", None) or "fonctionnement"
+    if cat == "benevolat_partenariat":
+        c.j_benevole += jours
+        pj["prev"] += jours
+        return
+    if cat == "investissement":
+        c.j_invest += jours
+        if auto_salary:
+            c.sal_invest += jours * cout_jour
+        pj["sali_prev"] += jours * cout_jour
+    else:
+        c.j_fonct += jours
+        if auto_salary:
+            c.sal_fonct += jours * cout_jour
+        pj["salf_prev"] += jours * cout_jour
+    pj["prev"] += jours
+
+
+def ajouter_couts_organisme_prevu(c, line, manual_salary):
+    """Coûts prévus d'un organisme pour une année (plan ou ajustement, #794)."""
+    if manual_salary:
+        c.sal_fonct += _d(line.cout_salarial)
+        c.sal_invest += _d(line.cout_salarial_invest)
+    c.prest_fonct += _d(line.cout_prestataire)
+    c.prest_invest += _d(line.cout_prestataire_invest)
+    c.autre_fonct += _d(line.autre_cout) + _d(line.cout_stage) + _d(line.budget_fonctionnement)
+    c.stage_fonct += _d(line.cout_stage)
+    c.autre_invest += _d(line.autre_cout_invest) + _d(line.budget_investissement)
+
+
+def ajouter_couts_annee_prevu(c, op, oa, manual_salary):
+    """Coûts prévus portés par l'année (modes sans ventilation par organisme),
+    plan de gestion ou ajustement (#794)."""
+    # Mode « aucune » : `budget` est le total saisi. Avec le détail des
+    # coûts (#735), il en est la somme : ne pas le compter deux fois.
+    total_direct = (
+        op.ventilation_mode == "none"
+        and not any(_d(v) for v in (
+            oa.cout_salarial, oa.cout_stage, oa.cout_prestataire, oa.autre_cout))
+    )
+    fonct = _d(oa.budget_fonctionnement) or (_d(oa.budget) if total_direct else _ZERO)
+    invest = _d(oa.budget_investissement)
+    # #624 — le mode « by_type_poste » détaille les coûts au niveau de
+    # l'année (mêmes composants que par organisme, sans organisme).
+    if manual_salary:
+        c.sal_fonct += _d(oa.cout_salarial)
+        c.sal_invest += _d(oa.cout_salarial_invest)
+    c.prest_fonct += _d(oa.cout_prestataire)
+    c.prest_invest += _d(oa.cout_prestataire_invest)
+    c.autre_fonct += fonct + _d(oa.autre_cout) + _d(oa.cout_stage)
+    c.stage_fonct += _d(oa.cout_stage)
+    c.autre_invest += invest + _d(oa.autre_cout_invest)
+
+
 def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     """Construit l'``ActionFinance`` d'une opération et alimente les synthèses.
 
@@ -295,18 +371,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     af.par_poste_realise = op.get_declinaison_par_poste_realise()
     af.is_global = bool(getattr(op, "programmation_globale", False))
 
-    # #600 — le coût salarial n'entre dans le budget que si l'action détaille
-    # ses types de coût ; il est calculé (jours × coût jour) en saisie
-    # automatique, sinon lu sur les montants saisis. Sans détail des coûts,
-    # l'enveloppe fonctionnement / investissement saisie contient déjà tout.
-    # #735 — la case vaut désormais pour tous les modes (« aucune » et « par
-    # organisme » compris).
-    has_cost_detail = getattr(op, "declinaison_par_type_cout", True)
-    # Le coût salarial ne se calcule (jours × coût jour) que sur un temps
-    # décliné par poste ; sans poste, il est saisi.
-    auto_salary = (has_cost_detail and temps_par_poste(op)
-                   and getattr(op, "cout_salarial_auto", True))
-    manual_salary = has_cost_detail and not auto_salary
+    auto_salary, manual_salary = regles_salaire_prevu(op)
     # #741 — le suivi a ses propres réglages : réalisé détaillé même si le prévu
     # ne l'est pas, coût salarial réalisé calculé ou saisi indépendamment.
     real_detail = op.get_declinaison_par_type_cout_realise()
@@ -329,30 +394,13 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         year = line.id_operation_annee.annee
         org = _org_of_rh_line(op, line)
         oid = _org_key(org, org_names)
-        jours = _d(line.jours)
         poste = line.id_poste
         cout_jour = _d(getattr(poste, "cout_jour", None)) if poste else _ZERO
-        cat = line.categorie_depense or "fonctionnement"
         label = _poste_type_label(poste)
         pj = poste_jours[(oid, label, year)]
         if cout_jour and "cout_jour" not in pj:
             pj["cout_jour"] = cout_jour
-        c = cell(oid, year)
-        if cat == "benevolat_partenariat":
-            c.j_benevole += jours
-            pj["prev"] += jours
-            continue
-        if cat == "investissement":
-            c.j_invest += jours
-            if auto_salary:
-                c.sal_invest += jours * cout_jour
-            pj["sali_prev"] += jours * cout_jour
-        else:
-            c.j_fonct += jours
-            if auto_salary:
-                c.sal_fonct += jours * cout_jour
-            pj["salf_prev"] += jours * cout_jour
-        pj["prev"] += jours
+        ajouter_temps_prevu(cell(oid, year), line, cout_jour, auto_salary, pj)
 
     # --- RH réalisé : jours + salarial ---
     rrh = (
@@ -406,14 +454,7 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
         year = line.id_operation_annee.annee
         oid = _org_key(line.id_organisme, org_names)
         c = cell(oid, year)
-        if manual_salary:
-            c.sal_fonct += _d(line.cout_salarial)
-            c.sal_invest += _d(line.cout_salarial_invest)
-        c.prest_fonct += _d(line.cout_prestataire)
-        c.prest_invest += _d(line.cout_prestataire_invest)
-        c.autre_fonct += _d(line.autre_cout) + _d(line.cout_stage) + _d(line.budget_fonctionnement)
-        c.stage_fonct += _d(line.cout_stage)
-        c.autre_invest += _d(line.autre_cout_invest) + _d(line.budget_investissement)
+        ajouter_couts_organisme_prevu(c, line, manual_salary)
         real = getattr(line, "realisation", None)
         if real:
             if manual_salary_real:
@@ -431,27 +472,8 @@ def build_action_finance(op, org_names, poste_jours) -> ActionFinance:
     if not has_org_lines:
         annees = OperationAnnee.tous.filter(id_operation=op).select_related("realisation")
         for oa in annees:
-            # Mode « aucune » : `budget` est le total saisi. Avec le détail des
-            # coûts (#735), il en est la somme : ne pas le compter deux fois.
-            total_direct = (
-                op.ventilation_mode == "none"
-                and not any(_d(v) for v in (
-                    oa.cout_salarial, oa.cout_stage, oa.cout_prestataire, oa.autre_cout))
-            )
-            fonct = _d(oa.budget_fonctionnement) or (_d(oa.budget) if total_direct else _ZERO)
-            invest = _d(oa.budget_investissement)
             c = cell(0, oa.annee)
-            # #624 — le mode « by_type_poste » détaille les coûts au niveau de
-            # l'année (mêmes composants que par organisme, sans organisme) :
-            # on les agrège comme le fait la branche par organisme ci-dessus.
-            if manual_salary:
-                c.sal_fonct += _d(oa.cout_salarial)
-                c.sal_invest += _d(oa.cout_salarial_invest)
-            c.prest_fonct += _d(oa.cout_prestataire)
-            c.prest_invest += _d(oa.cout_prestataire_invest)
-            c.autre_fonct += fonct + _d(oa.autre_cout) + _d(oa.cout_stage)
-            c.stage_fonct += _d(oa.cout_stage)
-            c.autre_invest += invest + _d(oa.autre_cout_invest)
+            ajouter_couts_annee_prevu(c, op, oa, manual_salary)
             if (c.prest_fonct or c.prest_invest or c.autre_fonct or c.autre_invest
                     or c.sal_fonct or c.sal_invest):
                 org_names.setdefault(0, "Non ventilé")

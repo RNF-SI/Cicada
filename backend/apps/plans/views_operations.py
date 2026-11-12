@@ -2049,7 +2049,9 @@ class FinanceurViewSet(viewsets.ModelViewSet):
         refus = _suppression_refusee(
             financeur.id_pg,
             prevu=financeur.financements.exists(),
-            realise=financeur.realisations.exists(),
+            # #794 — un montant de la planification annuelle est du suivi aussi.
+            realise=(financeur.realisations.exists()
+                     or financeur.ajustements_annuels.exists()),
             objet=f"Le financeur « {financeur.nom} »",
         )
         return refus or super().destroy(request, *args, **kwargs)
@@ -2066,7 +2068,8 @@ def _suppression_refusee(plan, prevu, realise, objet):
     programmation d'un plan qui n'est plus en brouillon ; ``None`` sinon."""
     if realise:
         return Response({
-            'detail': f"{objet} porte du suivi saisi (montants ou temps réalisés) : "
+            'detail': f"{objet} porte du suivi saisi (montants ou temps réalisés, "
+                      "planification annuelle) : "
                       "il ne peut pas être supprimé.",
             'code': 'utilise_par_le_suivi',
         }, status=status.HTTP_409_CONFLICT)
@@ -2239,7 +2242,7 @@ class PosteViewSet(viewsets.ModelViewSet):
         refus = _suppression_refusee(
             poste.id_pg,
             prevu=poste.rh_lignes_prev.exists(),
-            realise=poste.rh_lignes_reel.exists(),
+            realise=poste.rh_lignes_reel.exists() or poste.rh_lignes_ajustees.exists(),
             objet=f"Le poste « {poste} »",
         )
         return refus or super().destroy(request, *args, **kwargs)

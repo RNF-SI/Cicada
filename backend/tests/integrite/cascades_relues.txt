@@ -30,6 +30,15 @@ notifications.ValidationRequest.target_plan -> plans.PlanGestion : CASCADE
 notifications.ValidationRequest.target_site -> users.Site : CASCADE
 notifications.ValidationRequest.target_user -> users.Role : CASCADE
 notifications.ValidationRequest.validator -> users.Role : SET_NULL
+plans.AjustementAnnuel.id_operation -> plans.Operation : CASCADE  # comme les années et le suivi : une action ne se supprime qu'en brouillon
+plans.AjustementAnnuel.id_utilisateur_maj -> users.Role : SET_NULL
+plans.AjustementAnnuel.id_utilisateur_revue -> users.Role : SET_NULL
+plans.AjustementAnnuelFinanceur.id_ajustement_annuel -> plans.AjustementAnnuel : CASCADE
+plans.AjustementAnnuelFinanceur.id_financeur -> plans.Financeur : CASCADE  # suppression du financeur refusée (409) dès qu'il porte un ajustement
+plans.AjustementAnnuelOrganisme.id_ajustement_annuel -> plans.AjustementAnnuel : CASCADE
+plans.AjustementAnnuelRH.id_ajustement_annuel -> plans.AjustementAnnuel : CASCADE
+plans.AjustementAnnuelRH.id_organisme -> users.BibOrganismes : SET_NULL
+plans.AjustementAnnuelRH.id_poste -> plans.Poste : SET_NULL  # poste portant un ajustement : suppression refusée (409)
 plans.CorEnjeuFichier.id_enjeu -> plans.Enjeu : CASCADE
 plans.CorEnjeuGeologie.id_enjeu -> plans.Enjeu : CASCADE
 plans.CorEnjeuHabitat.id_enjeu -> plans.Enjeu : CASCADE

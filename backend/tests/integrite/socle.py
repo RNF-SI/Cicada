@@ -3,7 +3,8 @@
 ``construire_plan_complet()`` crée un plan qui contient **un exemplaire de chaque
 donnée saisie** : programmation annuelle et globale ventilée par organisme et
 par poste, suivi saisi sur deux années (organismes, temps, financeurs,
-commentaires), financeurs, mesures, suivi-inventaire et protocoles, document.
+commentaires), planification annuelle ajustée (#794), financeurs, mesures,
+suivi-inventaire et protocoles, document.
 
 ``inventaire()`` photographie toutes les lignes des applications métier. Deux
 inventaires égaux garantissent qu'aucune ligne n'a disparu et qu'aucune valeur
@@ -22,6 +23,9 @@ from apps.plans.models_operations import (
     Financeur, FinanceOperation, OperationAnnee, OperationAnneeOrganisme, OperationAnneeRH,
     Poste, RealisationFinanceur, RealisationOperationAnnee, RealisationOperationAnneeOrganisme,
     RealisationOperationAnneeRH,
+)
+from apps.plans.models_planification import (
+    AjustementAnnuel, AjustementAnnuelFinanceur, AjustementAnnuelOrganisme, AjustementAnnuelRH,
 )
 from tests.factories.enjeux import (
     EnjeuFactory, IndicateurFactory, MesureFactory, MetriqueFactory, NiveauExigenceFactory,
@@ -167,9 +171,22 @@ def construire_plan_complet(statut='draft'):
 
     action = _action('PC-01')
     action_globale = _action('PC-02', globale=True)
+    # #794 — planification annuelle ajustée : l'année qui suit, sans suivi.
+    ajustement = AjustementAnnuel.objects.create(
+        id_operation=action, annee=annee + 1, statut='planifiee',
+        periodicite_mensuelle={'4': True, '5': True}, budget=Decimal('11000.00'),
+        commentaire='Coûts réévalués')
+    AjustementAnnuelOrganisme.objects.create(
+        id_ajustement_annuel=ajustement, id_organisme=org_a, cout_stage=Decimal('4500.00'),
+        autre_cout_commentaire='Frais de déplacement')
+    AjustementAnnuelRH.objects.create(
+        id_ajustement_annuel=ajustement, id_poste=poste, jours=Decimal('14.00'))
+    AjustementAnnuelFinanceur.objects.create(
+        id_ajustement_annuel=ajustement, id_financeur=financeur, montant=Decimal('2500.00'))
     document = CorPgFichierFactory(plan_de_gestion=plan)
     return SimpleNamespace(
         plan=plan, site=site, referent=referent, org_a=org_a, org_b=org_b, poste=poste,
         financeur=financeur, metrique=metrique, suivi=suivi, action=action,
-        action_globale=action_globale, document=document, admin=SuperAdminFactory(),
+        action_globale=action_globale, ajustement=ajustement, document=document,
+        admin=SuperAdminFactory(),
         annee=annee)
