@@ -17,7 +17,12 @@ permissions:
   contents: read
 
 jobs:
+  # Les images d'un tag ne partent que si les tests passent sur ce commit.
+  tests:
+    uses: ./.github/workflows/tests.yml
+
   build-and-push:
+    needs: tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,9 +38,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Le nom du tag n'est jamais inséré dans un script : lu par variable
+      # d'environnement, et refusé s'il n'est pas un numéro de version.
       - name: Extract version from tag
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag invalide : $GITHUB_REF_NAME"; exit 1; }
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3
@@ -52,8 +61,8 @@ jobs:
           tags: |
             ${{ env.BACKEND_IMAGE }}:${{ steps.version.outputs.version }}
             ${{ env.BACKEND_IMAGE }}:latest
-          cache-from: type=gha,scope=backend
-          cache-to: type=gha,mode=max,scope=backend
+          # Image de release construite sans cache partagé (empoisonnement).
+          no-cache: true
 
       # Frontend : contexte = racine du dépôt, parce que l'image embarque aussi
       # la documentation (documentation/ → /aide/). Les exclusions sont dans
@@ -67,8 +76,8 @@ jobs:
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ steps.version.outputs.version }}
             ${{ env.FRONTEND_IMAGE }}:latest
-          cache-from: type=gha,scope=frontend
-          cache-to: type=gha,mode=max,scope=frontend
+          # Image de release construite sans cache partagé (empoisonnement).
+          no-cache: true
 
       # Hub d'exploration fédérée (#636). Contexte = racine du dépôt, et non
       # ./hub : l'image embarque les référentiels nationaux versionnés dans
@@ -86,5 +95,5 @@ jobs:
           tags: |
             ${{ env.HUB_IMAGE }}:${{ steps.version.outputs.version }}
             ${{ env.HUB_IMAGE }}:latest
-          cache-from: type=gha,scope=hub
-          cache-to: type=gha,mode=max,scope=hub
+          # Image de release construite sans cache partagé (empoisonnement).
+          no-cache: true

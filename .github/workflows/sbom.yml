@@ -16,6 +16,9 @@ permissions:
 
 jobs:
   sbom:
+    # Les secrets Dependency-Track ne servent qu'à un tag : lancé à la main
+    # depuis une branche, un script modifié sur cette branche les lirait.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4

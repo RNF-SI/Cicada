@@ -19,18 +19,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
 
+      # Le nom du tag n'est jamais inséré dans un script (variable
+      # d'environnement), et refusé s'il n'est pas un numéro de version.
       - name: Extract version from tag
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Tag invalide : $GITHUB_REF_NAME"; exit 1; }
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: Build .deb
         run: |
           cd packaging
-          VERSION="${{ steps.version.outputs.version }}" \
+          VERSION="$VERSION" \
           TRACKING_API_URL="${TRACKING_API_URL:-https://tracking.cicada.reserves-naturelles.org/api}" \
           HUB_URL="${HUB_URL:-https://hub.cicada.reserves-naturelles.org}" \
           ./build-deb.sh
         env:
+          VERSION: ${{ steps.version.outputs.version }}
           TRACKING_API_URL: "https://tracking.cicada.reserves-naturelles.org/api"
           HUB_URL: "https://hub.cicada.reserves-naturelles.org"
 

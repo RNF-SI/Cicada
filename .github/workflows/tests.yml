@@ -2,12 +2,12 @@ name: Tests
 
 # Triggers réduits pour économiser les minutes GitHub Actions :
 # - Les push sur main/develop sont déjà testés via la PR avant merge
-# - Les tags v* lancent un retest avant la production release
+# - Les tags v* : appelé par docker-publish.yml (workflow_call), dont la
+#   publication des images attend le succès — sans lui, un tag publiait même
+#   si les tests échouaient
 # - Le manual dispatch permet de relancer en cas de besoin (tests email, etc.)
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_call:
   pull_request:
     branches: [main, develop]
     # Skip si seuls les fichiers documentation / configuration éditoriale changent
