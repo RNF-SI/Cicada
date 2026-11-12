@@ -29,7 +29,7 @@ services:
       - hub_postgres_data:/var/lib/postgresql/data
       - ./hub/docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
-      - "${POSTGRES_EXTERNAL_PORT:-5434}:5432"
+      - "127.0.0.1:${POSTGRES_EXTERNAL_PORT:-5434}:5432"
     networks:
       - hub_network
     healthcheck:

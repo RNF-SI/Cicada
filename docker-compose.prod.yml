@@ -50,7 +50,7 @@ services:
       dockerfile: Dockerfile.prod
     container_name: cicada_prod_web
     ports:
-      - "${DJANGO_PORT:-8000}:8000"
+      - "127.0.0.1:${DJANGO_PORT:-8000}:8000"  # Django derrière le frontend, jamais exposé
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}

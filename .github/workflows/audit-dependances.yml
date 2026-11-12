@@ -1,0 +1,43 @@
+# Audit des dépendances connues comme vulnérables, à chaque PR et chaque lundi.
+# Informatif (ne bloque pas la PR) : les alertes se qualifient une par une —
+# beaucoup ne concernent pas l'usage qu'en fait CICADA. Le suivi de fond reste
+# Dependency-Track (SBOM envoyés au tag).
+name: Audit des dépendances
+
+on:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    strategy:
+      matrix:
+        projet: [backend, hub, tracking-api]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
+        with:
+          python-version: '3.11'
+      - name: pip-audit
+        run: |
+          pip install --quiet pip-audit
+          pip-audit -r ${{ matrix.projet }}/requirements.txt --progress-spinner off
+
+  npm:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4
+        with:
+          node-version: '22'
+      - name: npm audit (dépendances de production)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
