@@ -274,7 +274,9 @@ class Planification:
         self.plan = plan
         self.operations = {op.id_operation: op for op in operations}
         ids = list(self.operations)
-        self.postes = {p.id_poste: p for p in Poste.objects.filter(id_pg=plan)}
+        self.postes = {
+            p.id_poste: p for p in Poste.objects.filter(id_pg=plan)
+            .select_related('id_organisme').prefetch_related('fonctions__id_fonction')}
         self._pg = {}
         for oa in (OperationAnnee.objects.filter(id_operation__in=ids)
                    .prefetch_related('organismes__realisation', 'rh_lignes')):

@@ -197,8 +197,26 @@ def _detail(request, planif, operation, plan, annee):
         'realise': _realise(planif, op_id, annee),
         'fixe': planif.annee_fixee(op_id, annee),
         'peut_saisir': _peut_saisir(request.user, plan),
+        'choix': _choix(plan, operation, planif),
     }
     return DetailAnnuelSerializer(donnees).data
+
+
+def _choix(plan, operation, planif):
+    """Organismes, postes et financeurs que le formulaire peut proposer."""
+    from apps.users.models import BibOrganismes
+    organismes = BibOrganismes.objects.filter(
+        pk__in=_organismes_admis(plan, operation, planif)).order_by('nom_organisme')
+    return {
+        'organismes': [{'id_organisme': o.pk, 'nom': o.nom_organisme or ''} for o in organismes],
+        'postes': [
+            {'id_poste': p.pk, 'libelle': p.libelle or str(p), 'id_organisme': p.id_organisme_id,
+             'cout_jour': p.cout_jour, 'finance_par_defaut': p.is_finance_par_defaut()}
+            for p in sorted(planif.postes.values(), key=lambda p: (p.libelle or '', p.pk))],
+        'financeurs': [
+            {'id_financeur': f.pk, 'nom': f.nom}
+            for f in Financeur.objects.filter(id_pg=plan).order_by('nom', 'pk')],
+    }
 
 
 def _organismes_admis(plan, operation, planif):

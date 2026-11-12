@@ -1,0 +1,482 @@
+@import 'variables';
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background-color: $beige;
+}
+
+.suivis-layout {
+  display: flex;
+  min-height: calc(100vh - 58px);
+  gap: $spacing-lg; // Écart entre sidebar et contenu (aligné Figma node 50:11287)
+}
+
+.plan-main {
+  flex: 1;
+  min-width: 0;
+  padding-right: $spacing-lg; // Marge droite (cohérent Figma)
+}
+
+// Loading / Error
+.loading-container,
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
+  width: 100%;
+  padding: $spacing-xl;
+  text-align: center;
+
+  p {
+    margin-top: $spacing-md;
+    color: $gray-dark;
+    font-size: $font-size-base;
+  }
+}
+
+.error-container i {
+  font-size: $font-size-h1;
+  color: $error-color;
+}
+
+// ============================================
+// HERO SECTION
+// ============================================
+
+// HERO SECTION — variante orange (maquette Figma Suivi des actions)
+.hero-section {
+  @include plan-page-hero-suivi(280px);
+}
+
+.hero-background {
+  @include plan-page-hero-background;
+}
+
+.hero-pattern {
+  // Vagues blanches visibles à droite, comme les pages site / plan de gestion (#383)
+  @include plan-page-hero-pattern;
+}
+
+.hero-content {
+  @include plan-page-hero-content;
+}
+
+.breadcrumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-bottom: $spacing-xl;
+  height: 48px;
+  background-color: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+.breadcrumb-home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background-color: $primary-color;
+  border-radius: 50%;
+  color: $white;
+  text-decoration: none;
+  flex-shrink: 0;
+  z-index: 2;
+  padding: 12px;
+
+  i { font-size: 20px; }
+  &:hover { transform: scale(1.05); }
+}
+
+.breadcrumb-lines {
+  position: absolute;
+  left: 24px;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 0;
+
+  &::before,
+  &::after {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 1px;
+    background-color: $primary-color;
+  }
+}
+
+.breadcrumb-text {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+}
+
+.breadcrumb-link {
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.breadcrumb-chevron {
+  color: $primary-color;
+  font-size: $font-size-base;
+}
+
+.breadcrumb-current {
+  color: $primary-color;
+  font-family: $font-family;
+  font-size: $font-size-base;
+}
+
+.plan-header {
+  margin-top: $spacing-md;
+}
+
+.plan-subtitle {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  color: $primary-color;
+  font-size: $font-size-base;
+  font-weight: $font-weight-bold;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: $spacing-sm;
+
+  i { font-size: 15px; }
+}
+
+.plan-title {
+  color: $primary-color;
+  font-size: 48px;
+  font-weight: $font-weight-bold;
+  font-family: $font-family;
+  line-height: 72px;
+  margin: 0 0 $spacing-lg 0;
+}
+
+.plan-intro {
+  max-width: 760px;
+  margin: 0;
+  color: $primary-color;
+  font-size: $font-size-base;
+  line-height: 1.5;
+}
+
+
+.plan-title .code {
+  margin-right: $spacing-sm;
+  color: $gray-dark;
+}
+
+// ============================================
+// CONTENU
+// ============================================
+
+.content-section {
+  padding: $spacing-xl;
+  max-width: 1200px;
+}
+
+.nav-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+
+  i { margin: 0 $spacing-xxs; }
+}
+
+.nav-voisines {
+  display: flex;
+  gap: $spacing-xs;
+}
+
+// Synthèse plan de gestion / ajusté
+.synthese {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: $spacing-md;
+  margin-bottom: $spacing-lg;
+
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+
+.synthese-statut {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-xxs;
+}
+
+.synthese-bloc {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-sm;
+  background: $white;
+  border: 1px solid $gray-light;
+}
+
+.synthese-ajuste { border: 2px solid $primary-color; }
+
+.synthese-titre {
+  font-size: $font-size-small;
+  font-weight: $font-weight-bold;
+  color: $gray-dark;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.synthese-valeur {
+  font-size: $font-size-h4;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+}
+
+.synthese-pg .synthese-valeur { color: $gray-dark; }
+
+.mention {
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+.revue-ok {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xxs;
+  font-size: $font-size-small;
+  color: $black;
+
+  i { color: $success-color; }
+}
+
+// Formulaire
+.ajustement-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.bloc {
+  background: $white;
+  border-radius: $border-radius-sm;
+  border: 1px solid $gray-light;
+  padding: $spacing-md $spacing-lg;
+}
+
+.bloc-titre {
+  margin: 0 0 $spacing-sm;
+  font-size: $font-size-h4;
+  color: $primary-color;
+}
+
+.aide {
+  margin: 0 0 $spacing-sm;
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+.statuts {
+  display: flex;
+  gap: $spacing-lg;
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  cursor: pointer;
+  font-weight: $font-weight-semibold;
+  color: $black;
+
+  input { accent-color: $primary-color; }
+}
+
+.info-block {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+}
+
+// Mois : boutons à bascule ; le plan de gestion est souligné en pointillé.
+.mois {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.mois-btn {
+  min-width: 56px;
+  padding: $spacing-xxs $spacing-sm;
+  border: 1px solid $gray;
+  border-radius: $border-radius-pill;
+  background: $white;
+  color: $black;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  cursor: pointer;
+
+  &.pg { border-style: dashed; border-color: $primary-color; }
+
+  &.actif {
+    background: $primary-color;
+    border-color: $primary-color;
+    border-style: solid;
+    color: $white;
+  }
+
+  &:disabled { cursor: default; }
+}
+
+// Tableaux de saisie
+.table-scroll { overflow-x: auto; }
+
+.saisie-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: $font-family;
+
+  th {
+    padding: $spacing-xs $spacing-sm;
+    background: $primary-color;
+    color: $white;
+    font-weight: $font-weight-bold;
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: $spacing-xs $spacing-sm;
+    border-bottom: 1px solid $gray-light;
+    color: $black;
+    vertical-align: middle;
+  }
+
+  .col-libelle { min-width: 200px; }
+  .col-pg { white-space: nowrap; }
+  td.col-pg { color: $gray-dark; }
+  .col-org { min-width: 160px; }
+  .col-actions { width: 48px; text-align: right; }
+
+  .col-saisie {
+    input[type='number'] { width: 130px; }
+    .commentaire { margin-left: $spacing-xs; width: 220px; }
+  }
+
+  .sous-titre td {
+    background: $gray-lighter;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+  }
+
+  .sous {
+    display: block;
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+
+  .pg {
+    display: block;
+    margin-top: 2px;
+    font-size: $font-size-small;
+    color: $gray-dark;
+  }
+
+  .calcule {
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+  }
+}
+
+input[type='number'],
+input[type='text'],
+select,
+textarea {
+  padding: $spacing-xxs $spacing-xs;
+  border: 1px solid $gray;
+  border-radius: $border-radius-sm;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $black;
+  background: $white;
+
+  &:focus {
+    outline: none;
+    border-color: $primary-color;
+    box-shadow: 0 0 0 3px $primary-bg-focus;
+  }
+
+  &:disabled { background: $gray-lighter; color: $gray-dark; }
+}
+
+textarea { width: 100%; resize: vertical; }
+
+.ajout {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-top: $spacing-sm;
+  font-size: $font-size-small;
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+}
+
+.icon-btn-flat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: $border-radius-sm;
+  color: $primary-color;
+  cursor: pointer;
+
+  &:hover { background: $primary-bg-subtle; }
+}
+
+.barre-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-md;
+  background: $white;
+  border-top: 2px solid $primary-color;
+  box-shadow: 0 -2px 8px rgba($black, 0.06);
+  z-index: 2;
+
+  i { margin-right: $spacing-xxs; }
+}
+
+.barre-gauche,
+.barre-droite {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+}

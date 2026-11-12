@@ -416,7 +416,12 @@
 }
 
 .action-name {
+  display: block;
   font-weight: $font-weight-semibold;
   color: $primary-color;
   line-height: 1.3;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover { text-decoration-thickness: 2px; }
 }

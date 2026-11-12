@@ -1,0 +1,110 @@
+@import 'variables';
+
+.action {
+  margin: 0 0 $spacing-md;
+  color: $primary-color;
+  font-weight: $font-weight-bold;
+}
+
+.choix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-lg;
+  margin-bottom: $spacing-md;
+}
+
+.champ {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xxs;
+
+  select {
+    min-width: 140px;
+    padding: $spacing-xs $spacing-sm;
+    border: 1px solid $gray;
+    border-radius: $border-radius-sm;
+    font-family: $font-family;
+    font-size: $font-size-base;
+    color: $black;
+    background: $white;
+  }
+}
+
+.champ-label {
+  font-weight: $font-weight-bold;
+  color: $black;
+}
+
+.type-report {
+  flex: 1 1 360px;
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.radio {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  cursor: pointer;
+
+  input { margin-top: 4px; accent-color: $primary-color; }
+
+  > span {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.aide {
+  font-size: $font-size-small;
+  color: $gray-dark;
+}
+
+.apercu-titre {
+  margin: $spacing-md 0 $spacing-sm;
+  color: $primary-color;
+  font-size: $font-size-h4;
+}
+
+.table-wrapper {
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  overflow-x: auto;
+}
+
+.apercu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: $font-family;
+
+  th {
+    background: $primary-color;
+    color: $white;
+    text-align: left;
+    padding: $spacing-xs $spacing-sm;
+  }
+
+  td {
+    padding: $spacing-xs $spacing-sm;
+    border-top: 1px solid $gray-light;
+    color: $black;
+  }
+
+  tr.modifiee td { background: rgba($secondary-yellow, 0.25); font-weight: $font-weight-bold; }
+  tr.fixe td { color: $gray-dark; }
+
+  .annee { white-space: nowrap; }
+  .montant { color: $gray-dark; font-weight: $font-weight-regular; }
+  .mention { display: block; font-size: $font-size-small; color: $gray-dark; font-weight: $font-weight-regular; }
+}
+
+.info-block {
+  margin-top: $spacing-md;
+  display: flex;
+  gap: $spacing-xs;
+  align-items: flex-start;
+}

@@ -1,0 +1,100 @@
+<h2 mat-dialog-title>
+  {{ 'plans.suivis.planificationAnnuelle.report.titre' | translate:{ annee: data.annee } }}
+</h2>
+<mat-dialog-content>
+  <p class="action">{{ data.libelle }}</p>
+
+  <div class="choix">
+    <label class="champ">
+      <span class="champ-label">{{ 'plans.suivis.planificationAnnuelle.report.anneeCible' | translate }}</span>
+      <select [(ngModel)]="anneeReport" (ngModelChange)="choixModifie()" data-testid="report-annee">
+        @for (a of data.annees; track a) {
+          <option [ngValue]="a">{{ a }}</option>
+        }
+      </select>
+    </label>
+
+    <fieldset class="type-report">
+      <legend class="champ-label">{{ 'plans.suivis.planificationAnnuelle.report.type' | translate }}</legend>
+      <label class="radio">
+        <input type="radio" name="type-report" [value]="false" [(ngModel)]="partiel" (ngModelChange)="choixModifie()">
+        <span>
+          <strong>{{ 'plans.suivis.planificationAnnuelle.report.total' | translate }}</strong>
+          <span class="aide">{{ 'plans.suivis.planificationAnnuelle.report.totalAide' | translate }}</span>
+        </span>
+      </label>
+      <label class="radio">
+        <input type="radio" name="type-report" [value]="true" [(ngModel)]="partiel" (ngModelChange)="choixModifie()"
+               data-testid="report-partiel">
+        <span>
+          <strong>{{ 'plans.suivis.planificationAnnuelle.report.partiel' | translate }}</strong>
+          <span class="aide">{{ 'plans.suivis.planificationAnnuelle.report.partielAide' | translate }}</span>
+        </span>
+      </label>
+    </fieldset>
+  </div>
+
+  @if (erreur()) {
+    <div class="info-block info-block-error" role="alert">{{ erreur() }}</div>
+  }
+
+  @if (apercu(); as a) {
+    <h3 class="apercu-titre">{{ 'plans.suivis.planificationAnnuelle.report.apercu' | translate }}</h3>
+    <div class="table-wrapper">
+      <table class="apercu-table" data-testid="report-apercu">
+        <thead>
+          <tr>
+            <th>{{ 'plans.suivis.planificationAnnuelle.report.annee' | translate }}</th>
+            <th>{{ 'plans.suivis.planificationAnnuelle.report.avant' | translate }}</th>
+            <th>{{ 'plans.suivis.planificationAnnuelle.report.apres' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (ligne of a.annees; track ligne.annee) {
+            <tr [class.modifiee]="ligne.modifiee" [class.fixe]="ligne.fixe">
+              <td class="annee">
+                {{ ligne.annee }}
+                @if (ligne.fixe) {
+                  <span class="mention">{{ 'plans.suivis.planificationAnnuelle.report.fixe' | translate }}</span>
+                }
+              </td>
+              <td>
+                {{ statut(ligne.avant) }}
+                @if (ligne.avant.statut === 'planifiee') {
+                  <span class="montant">· {{ num(ligne.avant.budget) | number:'1.0-0':'fr-FR' }} € · {{ num(ligne.avant.jours) | number:'1.0-1':'fr-FR' }} j</span>
+                }
+              </td>
+              <td>
+                {{ statut(ligne.apres) }}
+                @if (ligne.apres.statut === 'planifiee') {
+                  <span class="montant">· {{ num(ligne.apres.budget) | number:'1.0-0':'fr-FR' }} € · {{ num(ligne.apres.jours) | number:'1.0-1':'fr-FR' }} j</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    @if (a.abandonnees.length) {
+      <div class="info-block info-block-warning" data-testid="report-abandon">
+        <i class="fi fi-rr-exclamation"></i>
+        {{ 'plans.suivis.planificationAnnuelle.report.abandon' | translate:{
+          annees: anneesAbandonnees(a) } }}
+      </div>
+    }
+  }
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>{{ 'common.actions.cancel' | translate }}</button>
+  @if (!apercu()) {
+    <button mat-stroked-button [disabled]="enCours() || anneeReport == null" (click)="voirApercu()"
+            data-testid="report-voir-apercu">
+      {{ 'plans.suivis.planificationAnnuelle.report.voirApercu' | translate }}
+    </button>
+  } @else {
+    <button mat-flat-button color="primary" [disabled]="enCours()" (click)="confirmer()"
+            data-testid="report-confirmer">
+      {{ 'plans.suivis.planificationAnnuelle.report.confirmer' | translate }}
+    </button>
+  }
+</mat-dialog-actions>

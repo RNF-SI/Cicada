@@ -130,6 +130,17 @@ export interface ReglagesAction {
   temps_par_poste: boolean;
 }
 
+/** Ce que le formulaire d'ajustement peut proposer (organismes, postes,
+ *  financeurs du plan). */
+export interface ChoixAjustement {
+  organismes: { id_organisme: number; nom: string }[];
+  postes: {
+    id_poste: number; libelle: string; id_organisme: number | null;
+    cout_jour: string | null; finance_par_defaut: boolean;
+  }[];
+  financeurs: { id_financeur: number; nom: string }[];
+}
+
 export interface DetailAnnuel {
   id_operation: number;
   code: string;
@@ -151,6 +162,7 @@ export interface DetailAnnuel {
   /** Du réalisé est saisi : l'année ne se déplace pas lors d'un report. */
   fixe: boolean;
   peut_saisir: boolean;
+  choix: ChoixAjustement;
 }
 
 export interface ReportDemande {

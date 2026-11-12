@@ -1,0 +1,472 @@
+<app-header></app-header>
+
+<div class="suivis-layout">
+  @if (planSlug(); as slug) {
+    @if (planId(); as id) {
+      <app-plan-sidebar [planId]="id" [planSlug]="slug" activePage="planification-annuelle"></app-plan-sidebar>
+    }
+  }
+
+  <main class="plan-main">
+    <section class="hero-section">
+      <div class="hero-background"><div class="hero-pattern"></div></div>
+      <div class="hero-content">
+        <nav class="breadcrumb" [attr.aria-label]="'plans.suivis.planificationAnnuelle.filAriane' | translate">
+          <a routerLink="/accueil" class="breadcrumb-home" [title]="'common.actions.home' | translate">
+            <i class="fi fi-rr-home"></i>
+          </a>
+          <div class="breadcrumb-lines"></div>
+          <div class="breadcrumb-text">
+            <a routerLink="/plans" class="breadcrumb-link">{{ 'plans.title' | translate }}</a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+            <a [routerLink]="['/plans', planSlug()]" class="breadcrumb-link">{{ planNom() }}</a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+            <a [routerLink]="['/plans', planSlug(), 'planification-annuelle']" [queryParams]="{ annee: annee() }"
+               class="breadcrumb-link">{{ 'plans.suivis.planificationAnnuelle.title' | translate }}</a>
+            <i class="fi fi-rr-angle-small-right breadcrumb-chevron"></i>
+            <span class="breadcrumb-current">{{ detail()?.code }} — {{ annee() }}</span>
+          </div>
+        </nav>
+        <div class="plan-header">
+          <div class="plan-subtitle">
+            <i class="fi fi-rr-calendar"></i>
+            <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.surtitre' | translate:{ annee: annee() } | uppercase }}</span>
+          </div>
+          @if (detail(); as d) {
+            <h1 class="plan-title">
+              @if (d.code) { <span class="code">{{ d.code }}</span> }
+              {{ d.libelle }}
+            </h1>
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (planNonValide()) {
+      <div class="lock-banner" role="status">
+        <i class="fi fi-rr-info"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-title">{{ 'plans.suivis.notValidatedBanner.title' | translate }}</span>
+          <span class="lock-banner-text">{{ 'plans.suivis.notValidatedBanner.text' | translate }}</span>
+        </div>
+      </div>
+    } @else if (detail() && lectureSeule()) {
+      <div class="lock-banner" role="status" data-testid="ajustement-lecture-seule">
+        <i class="fi fi-rr-eye"></i>
+        <div class="lock-banner-content">
+          <span class="lock-banner-title">{{ 'plans.suivis.readOnlyBanner.title' | translate }}</span>
+          <span class="lock-banner-text">{{ 'plans.suivis.readOnlyBanner.text' | translate }}</span>
+        </div>
+      </div>
+    }
+
+    <section class="content-section">
+      @if (isLoading() && !detail()) {
+        <div class="loading-container">
+          <mat-spinner diameter="50"></mat-spinner>
+          <p>{{ 'common.loading' | translate }}</p>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="error-container">
+          <i class="fi fi-rr-exclamation"></i>
+          <p>{{ errorMessage() }}</p>
+        </div>
+      } @else if (detail(); as d) {
+        @let disp = disposition()!;
+
+        <!-- Navigation entre les actions de l'année -->
+        <div class="nav-actions">
+          <button mat-button type="button" (click)="retourTableau()">
+            <i class="fi fi-rr-arrow-small-left"></i>
+            {{ 'plans.suivis.planificationAnnuelle.ajustement.retourTableau' | translate }}
+          </button>
+          <div class="nav-voisines">
+            <button mat-button type="button" [disabled]="!precedente()" (click)="allerA(precedente()!)">
+              <i class="fi fi-rr-angle-small-left"></i>
+              {{ 'plans.suivis.planificationAnnuelle.ajustement.precedente' | translate }}
+            </button>
+            <button mat-button type="button" [disabled]="!suivante()" (click)="allerA(suivante()!)">
+              {{ 'plans.suivis.planificationAnnuelle.ajustement.suivante' | translate }}
+              <i class="fi fi-rr-angle-small-right"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Synthèse : plan de gestion / ajusté -->
+        <div class="synthese" data-testid="ajustement-synthese">
+          <div class="synthese-statut">
+            @let apparence = tag();
+            <app-tag [variant]="apparence.variant" [icon]="apparence.icon" [label]="statutLabel()"></app-tag>
+            @for (r of d.reports_entrants; track r.annee) {
+              <span class="mention">
+                {{ (r.partiel ? 'plans.suivis.planificationAnnuelle.resteDe' : 'plans.suivis.planificationAnnuelle.reporteeDe') | translate:{ annee: r.annee } }}
+              </span>
+            }
+            @if (d.ajustement?.date_revue) {
+              <span class="revue-ok">
+                <i class="fi fi-rr-check-circle"></i>
+                {{ 'plans.suivis.planificationAnnuelle.ajustement.revuePar' | translate:{
+                  date: (d.ajustement!.date_revue | date:'dd/MM/yyyy'), nom: d.ajustement!.revue_par || '—' } }}
+              </span>
+            } @else {
+              <span class="mention">{{ 'plans.suivis.planificationAnnuelle.aRevoir' | translate }}</span>
+            }
+            @if (d.realise.saisi) {
+              <span class="mention">{{ 'plans.suivis.planificationAnnuelle.ajustement.realiseSaisi' | translate }}</span>
+            }
+          </div>
+          <div class="synthese-bloc synthese-pg">
+            <span class="synthese-titre">{{ 'plans.suivis.planificationAnnuelle.colonnes.pg' | translate }}</span>
+            @if (d.pg_global_resume; as g) {
+              <span class="synthese-valeur">
+                {{ 'plans.suivis.planificationAnnuelle.surLaPeriode' | translate:{
+                  budget: (num(g.budget) | number:'1.0-0':'fr-FR'), jours: (num(g.jours) | number:'1.0-1':'fr-FR') } }}
+              </span>
+            } @else {
+              <span class="synthese-valeur">{{ num(d.pg_resume.budget) | number:'1.0-0':'fr-FR' }} € · {{ num(d.pg_resume.jours) | number:'1.0-1':'fr-FR' }} j</span>
+            }
+          </div>
+          <div class="synthese-bloc synthese-ajuste">
+            <span class="synthese-titre">{{ 'plans.suivis.planificationAnnuelle.colonnes.ajuste' | translate:{ annee: annee() } }}</span>
+            @let tot = totaux();
+            <span class="synthese-valeur" data-testid="ajustement-total">
+              {{ tot.budget | number:'1.0-0':'fr-FR' }} € · {{ tot.jours | number:'1.0-1':'fr-FR' }} j
+            </span>
+          </div>
+        </div>
+
+        <form class="ajustement-form" (ngSubmit)="enregistrer()">
+          <!-- Statut de l'année -->
+          <section class="bloc">
+            <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.ajustement.statutTitre' | translate }}</h2>
+            @if (reportee()) {
+              <div class="info-block info-block-warning">
+                <i class="fi fi-rr-time-forward"></i>
+                <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.estReportee' | translate:{ annee: contenu.annee_report } }}</span>
+              </div>
+            }
+            <div class="statuts" role="radiogroup">
+              <label class="radio">
+                <input type="radio" name="statut" [checked]="planifiee()" [disabled]="lectureSeule()"
+                       (change)="choisirStatut('planifiee')" data-testid="statut-planifiee">
+                <span>{{ 'plans.suivis.planificationAnnuelle.statut.planifiee' | translate }}</span>
+              </label>
+              <label class="radio">
+                <input type="radio" name="statut" [checked]="contenu.statut === 'non_prevue'" [disabled]="lectureSeule()"
+                       (change)="choisirStatut('non_prevue')" data-testid="statut-non-prevue">
+                <span>{{ 'plans.suivis.planificationAnnuelle.statut.non_prevue' | translate }}</span>
+              </label>
+            </div>
+            @if (reportee() && !lectureSeule()) {
+              <p class="aide">{{ 'plans.suivis.planificationAnnuelle.ajustement.annulerReportAide' | translate }}</p>
+            }
+          </section>
+
+          @if (planifiee()) {
+            <!-- Mois de réalisation -->
+            <section class="bloc">
+              <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.colonnes.mois' | translate }}</h2>
+              <p class="aide">{{ 'plans.suivis.planificationAnnuelle.ajustement.moisAide' | translate }}</p>
+              <div class="mois" data-testid="ajustement-mois">
+                @for (m of mois; track m) {
+                  <button type="button" class="mois-btn" [class.actif]="moisActif(m)" [class.pg]="moisPg(m)"
+                          [disabled]="lectureSeule()" [attr.aria-pressed]="moisActif(m)"
+                          (click)="basculerMois(m)">
+                    {{ moisCourt(m) }}
+                  </button>
+                }
+              </div>
+            </section>
+
+            @if (d.reglages.programmation_globale) {
+              <div class="info-block info-block-warning">
+                <i class="fi fi-rr-info"></i>
+                <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.globaleAide' | translate }}</span>
+              </div>
+            }
+
+            <!-- Temps de travail -->
+            <section class="bloc">
+              <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.ajustement.tempsTitre' | translate }}</h2>
+              <table class="saisie-table" data-testid="ajustement-temps">
+                <thead>
+                  <tr>
+                    <th class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.' + (disp.rhMode === 'postes' ? 'poste' : disp.rhMode === 'organismes' ? 'organisme' : 'temps') | translate }}</th>
+                    <th class="col-pg">{{ 'plans.suivis.planificationAnnuelle.colonnes.pg' | translate }}</th>
+                    <th class="col-saisie">{{ 'plans.suivis.planificationAnnuelle.ajustement.ajusteJours' | translate }}</th>
+                    @if (disp.categorieTemps) {
+                      <th>{{ 'plans.suivis.planificationAnnuelle.ajustement.categorie' | translate }}</th>
+                    }
+                    <th class="col-actions"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @switch (disp.rhMode) {
+                    @case ('postes') {
+                      @for (ligne of lignesPostes(); track $index) {
+                        <ng-container *ngTemplateOutlet="ligneTemps; context: { $implicit: ligne,
+                          libelle: libellePoste(ligne.id_poste), sous: organismeDuPoste(ligne), retirable: true }"></ng-container>
+                      }
+                    }
+                    @case ('organismes') {
+                      @for (ligne of lignesParOrganisme(); track $index) {
+                        <ng-container *ngTemplateOutlet="ligneTemps; context: { $implicit: ligne,
+                          libelle: nomOrganisme(ligne.id_organisme), sous: '', retirable: false }"></ng-container>
+                      }
+                    }
+                    @default {
+                      @for (ligne of lignesGlobales(); track $index) {
+                        <ng-container *ngTemplateOutlet="ligneTemps; context: { $implicit: ligne,
+                          libelle: ('plans.suivis.planificationAnnuelle.ajustement.tempsTotal' | translate), sous: '', retirable: false }"></ng-container>
+                      }
+                    }
+                  }
+                </tbody>
+              </table>
+              @if (disp.rhMode === 'postes' && !lectureSeule() && postesDisponibles().length) {
+                <label class="ajout">
+                  <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.ajouterPoste' | translate }}</span>
+                  <select #choixPoste (change)="ajouterPoste(choixPoste.value); choixPoste.value = ''">
+                    <option value="">—</option>
+                    @for (p of postesDisponibles(); track p.id_poste) {
+                      <option [value]="p.id_poste">{{ p.libelle }}</option>
+                    }
+                  </select>
+                </label>
+              }
+            </section>
+
+            <!-- Budget -->
+            <section class="bloc">
+              <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.ajustement.budgetTitre' | translate }}</h2>
+              @if (disp.parOrganisme) {
+                @if (!lectureSeule() && organismesDisponibles().length) {
+                  <label class="ajout">
+                    <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.ajouterOrganisme' | translate }}</span>
+                    <select #choixOrg (change)="ajouterOrganisme(choixOrg.value); choixOrg.value = ''">
+                      <option value="">—</option>
+                      @for (o of organismesDisponibles(); track o.id_organisme) {
+                        <option [value]="o.id_organisme">{{ o.nom }}</option>
+                      }
+                    </select>
+                  </label>
+                }
+                <div class="table-scroll">
+                  <table class="saisie-table" data-testid="ajustement-budget">
+                    <thead>
+                      <tr>
+                        <th class="col-libelle"></th>
+                        @for (org of contenu.organismes; track org.id_organisme) {
+                          <th class="col-org">
+                            {{ nomOrganisme(org.id_organisme) }}
+                            @if (!lectureSeule()) {
+                              <button type="button" class="icon-btn-flat" (click)="retirerOrganisme(org)"
+                                      [attr.aria-label]="'plans.suivis.planificationAnnuelle.ajustement.retirer' | translate">
+                                <i class="fi fi-rr-cross-small"></i>
+                              </button>
+                            }
+                          </th>
+                        }
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (ligne of disp.lignes; track ligne.champ) {
+                        @if (disp.typeBudget && (ligne === lignesFonct()[0] || ligne === lignesInvest()[0])) {
+                          <tr class="sous-titre"><td [attr.colspan]="(contenu.organismes?.length ?? 0) + 1">
+                            {{ 'plans.suivis.planificationAnnuelle.ajustement.budget.' + (ligne.invest ? 'blocInvest' : 'blocFonct') | translate }}
+                          </td></tr>
+                        }
+                        <tr>
+                          <td class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.budget.' + ligne.libelle | translate }}</td>
+                          @for (org of contenu.organismes; track org.id_organisme) {
+                            <td class="col-saisie">
+                              @if (ligne.calcule) {
+                                <span class="calcule">{{ salaire(ligne, org.id_organisme) | number:'1.0-0':'fr-FR' }} €</span>
+                                <span class="pg">{{ 'plans.suivis.planificationAnnuelle.ajustement.pgCourt' | translate }} {{ salairePg(ligne, org.id_organisme) | number:'1.0-0':'fr-FR' }} €</span>
+                              } @else {
+                                <input type="number" min="0" step="0.01" [name]="ligne.champ + '-' + org.id_organisme"
+                                       [(ngModel)]="$any(org)[ligne.champ]" [disabled]="lectureSeule()">
+                                <span class="pg">{{ 'plans.suivis.planificationAnnuelle.ajustement.pgCourt' | translate }}
+                                  {{ (valeurPg(ligne.champ, org.id_organisme) ?? 0) | number:'1.0-0':'fr-FR' }} €</span>
+                              }
+                            </td>
+                          }
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <table class="saisie-table" data-testid="ajustement-budget">
+                  <thead>
+                    <tr>
+                      <th class="col-libelle"></th>
+                      <th class="col-pg">{{ 'plans.suivis.planificationAnnuelle.colonnes.pg' | translate }}</th>
+                      <th class="col-saisie">{{ 'plans.suivis.planificationAnnuelle.ajustement.ajusteEuros' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (ligne of disp.lignes; track ligne.champ) {
+                      @if (disp.typeBudget && disp.detail && (ligne === lignesFonct()[0] || ligne === lignesInvest()[0])) {
+                        <tr class="sous-titre"><td colspan="3">
+                          {{ 'plans.suivis.planificationAnnuelle.ajustement.budget.' + (ligne.invest ? 'blocInvest' : 'blocFonct') | translate }}
+                        </td></tr>
+                      }
+                      <tr>
+                        <td class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.budget.' + ligne.libelle | translate }}</td>
+                        <td class="col-pg">
+                          {{ (ligne.calcule ? salairePg(ligne) : (valeurPg(ligne.champ) ?? 0)) | number:'1.0-0':'fr-FR' }} €
+                        </td>
+                        <td class="col-saisie">
+                          @if (ligne.calcule) {
+                            <span class="calcule" [matTooltip]="'plans.suivis.planificationAnnuelle.ajustement.salaireCalcule' | translate">
+                              {{ salaire(ligne) | number:'1.0-0':'fr-FR' }} €
+                            </span>
+                          } @else {
+                            <input type="number" min="0" step="0.01" [name]="ligne.champ"
+                                   [(ngModel)]="$any(contenu)[ligne.champ]" [disabled]="lectureSeule()"
+                                   [attr.data-testid]="'champ-' + ligne.champ">
+                          }
+                          @if (ligne.commentaire) {
+                            <input type="text" class="commentaire" maxlength="255" [name]="ligne.commentaire"
+                                   [(ngModel)]="$any(contenu)[ligne.commentaire]" [disabled]="lectureSeule()"
+                                   [placeholder]="'plans.suivis.planificationAnnuelle.ajustement.precisez' | translate">
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </section>
+
+            <!-- Financeurs -->
+            <section class="bloc">
+              <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.ajustement.financeursTitre' | translate }}</h2>
+              <p class="aide">{{ 'plans.suivis.planificationAnnuelle.ajustement.financeursAide' | translate }}</p>
+              @if (contenu.financeurs?.length) {
+                <table class="saisie-table" data-testid="ajustement-financeurs">
+                  <thead>
+                    <tr>
+                      <th class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.financeur' | translate }}</th>
+                      <th class="col-pg">{{ 'plans.suivis.planificationAnnuelle.ajustement.pgSurAction' | translate }}</th>
+                      <th class="col-saisie">{{ 'plans.suivis.planificationAnnuelle.ajustement.montantAnnee' | translate:{ annee: annee() } }}</th>
+                      <th class="col-actions"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (f of contenu.financeurs; track f.id_financeur) {
+                      <tr>
+                        <td class="col-libelle">{{ nomFinanceur(f.id_financeur) }}</td>
+                        <td class="col-pg">
+                          @if (montantPgFinanceur(f.id_financeur); as m) { {{ num(m) | number:'1.0-0':'fr-FR' }} € } @else { — }
+                        </td>
+                        <td class="col-saisie">
+                          <input type="number" min="0" step="0.01" [name]="'financeur-' + f.id_financeur"
+                                 [(ngModel)]="f.montant" [disabled]="lectureSeule()">
+                        </td>
+                        <td class="col-actions">
+                          @if (!lectureSeule()) {
+                            <button type="button" class="icon-btn-flat" (click)="retirerFinanceur(f.id_financeur)"
+                                    [attr.aria-label]="'plans.suivis.planificationAnnuelle.ajustement.retirer' | translate">
+                              <i class="fi fi-rr-trash"></i>
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+              @if (!lectureSeule() && financeursDisponibles().length) {
+                <label class="ajout">
+                  <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.ajouterFinanceur' | translate }}</span>
+                  <select #choixFin (change)="ajouterFinanceur(choixFin.value); choixFin.value = ''">
+                    <option value="">—</option>
+                    @for (f of financeursDisponibles(); track f.id_financeur) {
+                      <option [value]="f.id_financeur">{{ f.nom }}</option>
+                    }
+                  </select>
+                </label>
+              }
+            </section>
+          }
+
+          <!-- Commentaire -->
+          <section class="bloc">
+            <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.ajustement.commentaire' | translate }}</h2>
+            <textarea name="commentaire" rows="3" [(ngModel)]="contenu.commentaire" [disabled]="lectureSeule()"
+                      [placeholder]="'plans.suivis.planificationAnnuelle.ajustement.commentairePlaceholder' | translate"></textarea>
+          </section>
+
+          @if (!lectureSeule()) {
+            <div class="barre-actions">
+              <div class="barre-gauche">
+                @if (d.ajustement) {
+                  <button mat-button type="button" (click)="revenirAuPlan()" data-testid="ajustement-revenir">
+                    <i class="fi fi-rr-undo"></i>
+                    {{ 'plans.suivis.planificationAnnuelle.ajustement.revenir' | translate }}
+                  </button>
+                }
+                @if (planifiee() && anneesReport().length) {
+                  <button mat-stroked-button type="button" (click)="reporter()" [disabled]="modifie()"
+                          [matTooltip]="modifie() ? ('plans.suivis.planificationAnnuelle.ajustement.enregistrerAvantReport' | translate) : ''"
+                          data-testid="ajustement-reporter">
+                    <i class="fi fi-rr-time-forward"></i>
+                    {{ 'plans.suivis.planificationAnnuelle.ajustement.reporter' | translate }}
+                  </button>
+                }
+              </div>
+              <div class="barre-droite">
+                @if (suivante()) {
+                  <button mat-stroked-button type="button" [disabled]="enregistrement()" (click)="enregistrer(true)"
+                          data-testid="ajustement-enregistrer-suivante">
+                    {{ 'plans.suivis.planificationAnnuelle.ajustement.enregistrerSuivante' | translate }}
+                  </button>
+                }
+                <button mat-flat-button color="primary" type="submit" [disabled]="enregistrement()"
+                        data-testid="ajustement-enregistrer">
+                  {{ 'plans.suivis.planificationAnnuelle.ajustement.enregistrer' | translate }}
+                </button>
+              </div>
+            </div>
+          }
+        </form>
+
+        <ng-template #ligneTemps let-ligne let-libelle="libelle" let-sous="sous" let-retirable="retirable">
+          <tr>
+            <td class="col-libelle">
+              {{ libelle }}
+              @if (sous) { <span class="sous">{{ sous }}</span> }
+            </td>
+            <td class="col-pg">
+              @if (joursPg(ligne); as j) { {{ j | number:'1.0-1':'fr-FR' }} j } @else { — }
+            </td>
+            <td class="col-saisie">
+              <input type="number" min="0" step="0.5" [(ngModel)]="ligne.jours"
+                     [ngModelOptions]="{ standalone: true }" [disabled]="lectureSeule()">
+            </td>
+            @if (disposition()?.categorieTemps) {
+              <td>
+                <select [(ngModel)]="ligne.categorie_depense" [ngModelOptions]="{ standalone: true }"
+                        [disabled]="lectureSeule()">
+                  <option value="fonctionnement">{{ 'plans.suivis.planificationAnnuelle.ajustement.categories.fonctionnement' | translate }}</option>
+                  <option value="investissement">{{ 'plans.suivis.planificationAnnuelle.ajustement.categories.investissement' | translate }}</option>
+                  <option value="benevolat_partenariat">{{ 'plans.suivis.planificationAnnuelle.ajustement.categories.benevolat_partenariat' | translate }}</option>
+                </select>
+              </td>
+            }
+            <td class="col-actions">
+              @if (retirable && !lectureSeule()) {
+                <button type="button" class="icon-btn-flat" (click)="retirerLigne(ligne)"
+                        [attr.aria-label]="'plans.suivis.planificationAnnuelle.ajustement.retirer' | translate">
+                  <i class="fi fi-rr-trash"></i>
+                </button>
+              }
+            </td>
+          </tr>
+        </ng-template>
+      }
+    </section>
+  </main>
+</div>

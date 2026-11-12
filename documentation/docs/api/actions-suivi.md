@@ -47,6 +47,8 @@ La programmation du plan de gestion reste la référence. Chaque année, le gest
 | `GET/PUT/DELETE …/operation/{operation_id}/{annee}/` | Ajustement d'une action pour une année : `PUT` le remplace (organismes, temps et financeurs compris) et marque l'action revue, même sans changement ; `DELETE` revient au plan de gestion |
 | `POST …/operation/{operation_id}/{annee}/report/` | Report de l'action (`annee_report`), avec `apercu: true` pour l'avant / après sans rien écrire |
 
+Le détail d'une action pour une année porte aussi `choix` : les organismes (gestionnaires du plan et organismes de l'action), les postes (avec leur coût jour) et les financeurs du plan, nommés, que le formulaire d'ajustement peut proposer.
+
 Le contenu d'une année a la forme de la programmation du plan : mêmes champs que l'année d'une action (`budget`, `budget_fonctionnement`, `cout_salarial`…), `organismes`, `rh_lignes`, plus `statut`, `periodicite_mensuelle` et `financeurs`. Les totaux (`budget`, `jours`) sont calculés par les règles des exports.
 
 Les règles du report :

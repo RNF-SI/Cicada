@@ -157,6 +157,32 @@ class AjustementLuSerializer(ContenuAnnuelSerializer):
     date_maj = serializers.DateTimeField()
 
 
+class OrganismeChoixSerializer(serializers.Serializer):
+    id_organisme = serializers.IntegerField()
+    nom = serializers.CharField(allow_blank=True)
+
+
+class PosteChoixSerializer(serializers.Serializer):
+    id_poste = serializers.IntegerField()
+    libelle = serializers.CharField(allow_blank=True)
+    id_organisme = serializers.IntegerField(allow_null=True)
+    cout_jour = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True)
+    finance_par_defaut = serializers.BooleanField()
+
+
+class FinanceurChoixSerializer(serializers.Serializer):
+    id_financeur = serializers.IntegerField()
+    nom = serializers.CharField(allow_blank=True)
+
+
+class ChoixAjustementSerializer(serializers.Serializer):
+    """Ce que le formulaire d'ajustement peut proposer : organismes de
+    l'action et gestionnaires du plan, postes et financeurs du plan."""
+    organismes = OrganismeChoixSerializer(many=True)
+    postes = PosteChoixSerializer(many=True)
+    financeurs = FinanceurChoixSerializer(many=True)
+
+
 class DetailAnnuelSerializer(serializers.Serializer):
     id_operation = serializers.IntegerField()
     code = serializers.CharField(allow_blank=True)
@@ -177,6 +203,7 @@ class DetailAnnuelSerializer(serializers.Serializer):
     realise = RealiseAnnuelSerializer()
     fixe = serializers.BooleanField(help_text="Du réalisé est saisi : l'année ne se déplace pas.")
     peut_saisir = serializers.BooleanField()
+    choix = ChoixAjustementSerializer()
 
 
 class ReportDemandeSerializer(serializers.Serializer):

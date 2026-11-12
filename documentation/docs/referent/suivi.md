@@ -120,6 +120,29 @@ Le plan de gestion programme les actions sur toute sa durée : c'est la **réfé
     - la **revue** : une coche (date de la revue au survol) ou « À revoir ».
 - **Le total** des actions affichées, plan de gestion et ajusté.
 
+### Ajuster une action pour l'année
+
+Cliquer sur le nom d'une action ouvre son ajustement pour l'année. En tête, son statut, sa revue et deux encadrés : la programmation du **plan de gestion** et la programmation **ajustée** pour l'année, recalculée à chaque saisie. On y ajuste :
+
+- **Le statut** : « Planifiée » ou « Non prévue ». Une année non prévue n'a ni mois ni moyens. Repasser en « Planifiée » une année non prévue reprend la programmation du plan de gestion comme point de départ.
+- **Les mois de réalisation** : les mois du plan de gestion sont encadrés en pointillé.
+- **Le temps de travail** et **le budget**, présentés comme dans la fiche action, selon le mode de ventilation de l'action et ses réglages (déclinaison par poste, par type de coût, coût salarial calculé ou saisi). La valeur du plan de gestion est rappelée à côté de chaque champ. Le coût salarial calculé (jours × coût jour des postes) se met à jour avec le temps saisi. Un poste ou un organisme peut être ajouté ou retiré pour l'année.
+- **Les financeurs** : un montant prévu pour l'année par financeur (facultatif), en regard du montant prévu par le plan de gestion sur toute l'action.
+- **Un commentaire**, pour garder la raison de l'ajustement.
+
+« **Enregistrer (action revue)** » enregistre l'ajustement et marque l'action revue pour l'année, même si rien n'a changé. « **Enregistrer et passer à la suivante** » enchaîne la revue action par action. « **Revenir au plan de gestion** » supprime l'ajustement de l'année : l'action reprend la programmation du plan et redevient à revoir. Pour une action programmée globalement sur sa période, le plan de gestion n'a pas de montant annuel : les moyens de l'année se saisissent ici.
+
+### Reporter une action
+
+« **Reporter…** » (une fois les modifications enregistrées) ouvre le choix de l'année cible et du type de report :
+
+- **Report total** : l'action n'est pas faite cette année ; elle passe sur l'année choisie et toute la suite de sa programmation est décalée d'autant ;
+- **Report du reste à faire** : l'action est entamée cette année ; elle reste planifiée, et l'année choisie reçoit le reste à faire (prévu moins réalisé) en plus de sa propre programmation.
+
+« **Voir l'aperçu** » affiche, année par année, la programmation avant et après le report. Les années modifiées sont surlignées, et ce qui serait abandonné au-delà de la fin du plan est signalé. Rien n'est enregistré avant « **Confirmer le report** ». Une année reportée peut repasser en « Planifiée » ou « Non prévue » : le report est annulé, mais les années suivantes déjà décalées ne bougent pas.
+
+### Les règles de l'ajustement
+
 Sans ajustement, l'année reprend la programmation du plan de gestion. Les règles de l'ajustement :
 
 - **Reporter une action** décale toute la suite de sa programmation d'autant, avec ses moyens et ses mois, que les années suivantes aient déjà été ajustées ou non. Une année où du réalisé a déjà été saisi ne bouge pas. Rien n'est programmé au-delà de la fin du plan de gestion (prolongation comprise) : ce qui tomberait après est abandonné. Un aperçu avant / après précède toujours le report.

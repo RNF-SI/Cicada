@@ -48,6 +48,13 @@ export const PLANS_ROUTES: Routes = [
     canActivate: [authGuard]
   },
   {
+    // #794 — Ajustement d'une action pour une année
+    path: ':slug/planification-annuelle/:operation_id/:annee',
+    loadComponent: () => import('./suivis/planification-annuelle/ajustement/ajustement-annuel.component')
+      .then(m => m.AjustementAnnuelComponent),
+    canActivate: [authGuard]
+  },
+  {
     // #379 — Page globale d'une action (statut, budget, RH, récap annuel)
     path: ':slug/suivi-actions/action/:operation_id',
     loadComponent: () => import('./suivis/action-global/action-global.component').then(m => m.ActionGlobalComponent),

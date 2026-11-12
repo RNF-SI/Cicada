@@ -148,7 +148,11 @@
                     @if (ligne.code) {
                       <span class="action-code">{{ ligne.code }}</span>
                     }
-                    <div class="action-name">{{ ligne.libelle }}</div>
+                    <a class="action-name" data-testid="planification-ajuster"
+                       [routerLink]="['/plans', planSlug(), 'planification-annuelle', ligne.id_operation, t.annee]"
+                       [matTooltip]="(t.peut_saisir ? 'plans.suivis.planificationAnnuelle.ajuster' : 'plans.suivis.planificationAnnuelle.consulter') | translate">
+                      {{ ligne.libelle }}
+                    </a>
                   </td>
                   <td class="col-statut">
                     @let apparence = tag(ligne.ajuste);

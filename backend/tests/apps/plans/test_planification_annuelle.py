@@ -188,6 +188,19 @@ class TestAjustement:
         assert AjustementAnnuel.objects.filter(id_operation=monde.action).count() == 1
         assert monde.ligne(Y + 1)['ajustee'] is False
 
+    def test_le_detail_porte_les_choix_du_formulaire(self):
+        """Organismes, postes (coût jour) et financeurs du plan, nommés : le
+        formulaire d'ajustement n'a rien d'autre à charger."""
+        pc = construire_plan_complet(statut='valide')
+        detail = _client(pc.referent).get(
+            f'{BASE}/operation/{pc.action.pk}/{pc.annee}/').json()
+        choix = detail['choix']
+        assert {o['nom'] for o in choix['organismes']} == {'Organisme A', 'Organisme B'}
+        poste = next(p for p in choix['postes'] if p['id_poste'] == pc.poste.pk)
+        assert (poste['libelle'], Decimal(poste['cout_jour'])) == ('Garde technicien', Decimal('250'))
+        assert poste['id_organisme'] == pc.org_a.pk
+        assert choix['financeurs'] == [{'id_financeur': pc.financeur.pk, 'nom': 'Agence de l’eau'}]
+
     def test_supprimer_revient_au_plan(self, monde):
         monde.client.put(monde.url(Y), {'statut': 'non_prevue'}, format='json')
         assert monde.client.delete(monde.url(Y)).status_code == 204
