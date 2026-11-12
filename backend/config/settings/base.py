@@ -140,6 +140,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'drf_spectacular',
     'rest_framework_simplejwt',
+    # Révocation des jetons de rafraîchissement : déconnexion, rotation.
+    'rest_framework_simplejwt.token_blacklist',
     # 'rest_framework_gis',  # Sera réactivé après build container
     'django_filters',
     'corsheaders',
@@ -207,7 +209,11 @@ DATABASES = {
         'HOST': os.environ.get('POSTGRES_HOST', 'db'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         'OPTIONS': {
-            'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,ccd_search,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
+            'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,ccd_search,taxonomie,ref_habitats,ref_inpg,ref_campanule,public',
+            # Base sur un autre serveur : « require » (écrit par l'installateur)
+            # refuse une connexion en clair. Vide : défaut libpq (« prefer »).
+            **({'sslmode': os.environ['POSTGRES_SSLMODE']}
+               if os.environ.get('POSTGRES_SSLMODE') else {}),
         },
     }
 }
@@ -262,8 +268,13 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
+    # Jeton d'accès court : l'interface le renouvelle seule sur un 401
+    # (auth.interceptor.ts), personne n'est déconnecté pour autant (#161). Un
+    # jeton volé ou un compte désactivé ne vaut plus une semaine d'accès.
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    # Changer son mot de passe ferme les sessions ouvertes ailleurs.
+    'CHECK_REVOKE_TOKEN': True,
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': True,
@@ -278,7 +289,9 @@ SIMPLE_JWT = {
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
     'USER_ID_FIELD': 'id_role',
     'USER_ID_CLAIM': 'user_id',
-    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+    # `active` (CICADA) en plus de `is_active` (Django) : c'est `active` que
+    # la désactivation d'un compte écrit.
+    'USER_AUTHENTICATION_RULE': 'apps.authentication.regles.compte_autorise',
     
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
@@ -319,7 +332,26 @@ REST_FRAMEWORK = {
         'user': '5000/hour',
         'auth': '5/minute',
     },
+    # Proxys devant Django : l'adresse du client est lue à cette position dans
+    # X-Forwarded-For, en partant de la droite. Sans ce réglage, DRF prend
+    # l'en-tête entier, que le client écrit lui-même : la limite des essais de
+    # connexion sautait en le changeant à chaque requête. 2 = Apache d'entrée
+    # + Apache du conteneur frontend (déploiement par défaut) ; 1 = Traefik.
+    'NUM_PROXIES': int(os.environ.get('NUM_PROXIES', '2')),
 }
+
+# Impersonation en lecture seule côté serveur (voir activite.py) ; le
+# développement la lève, comme l'interface (environment.ts).
+IMPERSONATION_ECRITURE = os.environ.get('IMPERSONATION_ECRITURE', 'False').lower() == 'true'
+
+# Mots de passe des comptes locaux (mode `local`, super administrateur local).
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+     'OPTIONS': {'min_length': 10}},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
 
 # drf-spectacular — schéma OpenAPI 3 de l'API.
 # Le schéma décrit l'API d'une instance ; la documentation statique (/aide/)
@@ -348,6 +380,11 @@ SPECTACULAR_SETTINGS = {
     'SCHEMA_PATH_PREFIX': r'/api/',
     'SCHEMA_PATH_PREFIX_TRIM': False,
     'SWAGGER_UI_SETTINGS': {'docExpansion': 'list', 'filter': True, 'persistAuthorization': True},
+    # Version figée de Swagger UI : « @latest » exécutait sur l'origine de
+    # l'application la dernière version publiée sur npm, quelle qu'elle soit.
+    'SWAGGER_UI_DIST': 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14',
+    'SWAGGER_UI_FAVICON_HREF': 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.17.14/favicon-32x32.png',
+    'REDOC_DIST': 'https://cdn.jsdelivr.net/npm/redoc@2.1.5',
     # Plusieurs modèles ont un champ `statut` avec des choix différents : sans
     # nom explicite, drf-spectacular génère `Statut9e9Enum` / `Statut35dEnum`.
     'ENUM_NAME_OVERRIDES': {
@@ -399,6 +436,11 @@ from config.creneau import creneau_publication
 _CRENEAU_PUBLICATION = creneau_publication(CICADA_INSTANCE_ID)
 
 CELERY_BEAT_SCHEDULE = {
+    # Jetons de rafraîchissement expirés (liste de révocation) : purge nocturne.
+    'purger-jetons-expires': {
+        'task': 'authentication.purger_jetons_expires',
+        'schedule': crontab(hour=3, minute=40),
+    },
     # Nettoyage des anciens logs d'erreur - tous les jours a 3h du matin
     'cleanup-old-error-logs': {
         'task': 'core.cleanup_old_error_logs',

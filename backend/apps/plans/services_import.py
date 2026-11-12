@@ -1643,6 +1643,8 @@ def _render_workbook(
         )
 
     buffer = io.BytesIO()
+    from .export_theme import neutraliser_formules
+    neutraliser_formules(wb)
     wb.save(buffer)
     return buffer.getvalue()
 

@@ -24,6 +24,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from . import echecs
 from .throttles import AuthRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
@@ -96,14 +97,20 @@ class CustomTokenObtainPairView(APIView):
         },
     )
     def post(self, request):
+        identifiant = str(request.data.get('username') or request.data.get('email') or '')
+        if echecs.bloque(identifiant):
+            return Response({'detail': echecs.MESSAGE_BLOQUE},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
         serializer = CustomTokenObtainPairSerializer(data=request.data)
 
         if serializer.is_valid():
+            echecs.effacer(identifiant)
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
         # Reformater les erreurs pour un message plus clair
         errors = serializer.errors
         if 'non_field_errors' in errors:
+            echecs.noter_echec(identifiant)
             return Response(
                 {'detail': errors['non_field_errors'][0]},
                 status=status.HTTP_401_UNAUTHORIZED
@@ -205,12 +212,18 @@ class ConnexionGeoNatureView(APIView):
             return Response({'detail': "L'identifiant et le mot de passe sont requis."},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        if echecs.bloque(login):
+            return Response({'detail': echecs.MESSAGE_BLOQUE},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
         try:
             identite = usershub.verifier(login, password)
             compte = usershub.compte_pour(identite)
         except usershub.UsersHubErreur as exc:
+            if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+                echecs.noter_echec(login)
             return Response({'detail': str(exc.message)}, status=exc.status_code)
 
+        echecs.effacer(login)
         return Response(reponse_connexion(compte), status=status.HTTP_200_OK)
 
 
@@ -236,8 +249,15 @@ class CustomTokenRefreshView(TokenRefreshView):
         },
     )
     def post(self, request, *args, **kwargs):
-        # Appeler d'abord la methode parent pour valider le token
-        response = super().post(request, *args, **kwargs)
+        # Appeler d'abord la methode parent pour valider le token. Un compte
+        # désactivé y est déjà refusé (USER_AUTHENTICATION_RULE) : message clair.
+        from rest_framework.exceptions import AuthenticationFailed as CompteRefuse
+        try:
+            response = super().post(request, *args, **kwargs)
+        except CompteRefuse as exc:
+            if exc.get_codes() == 'no_active_account':
+                raise InvalidToken({'detail': 'Ce compte a ete desactive. Veuillez contacter un administrateur.'})
+            raise
 
         # Si le refresh a reussi, verifier que l'utilisateur est actif
         if response.status_code == 200:
@@ -413,6 +433,9 @@ def logout_view(request):
         refresh_token = request.data.get('refresh')
         if refresh_token:
             token = RefreshToken(refresh_token)
+            # Un jeton d'un autre compte ne se révoque pas d'ici.
+            if str(token.get('user_id')) != str(request.user.pk):
+                return Response({'error': 'Token invalide'}, status=status.HTTP_400_BAD_REQUEST)
             token.blacklist()
 
         return Response(

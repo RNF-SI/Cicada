@@ -27,7 +27,8 @@ pytestmark = [pytest.mark.django_db, pytest.mark.integration]
 
 MONTANT = Decimal('987654.32')
 JOURS = Decimal('7777.00')
-REPERES = ('987654', '7777', 'canari')
+# Assez distinctifs pour ne jamais apparaître par hasard (coordonnées, identifiants).
+REPERES = ('987654.32', '7777.00', 'canari')
 
 
 def _semer(pc):
@@ -51,7 +52,7 @@ def _semer(pc):
     pc.poste.save()
     pc.financeur.nom = 'Canari financeur'
     pc.financeur.save()
-    pc.metrique.mesures.update(valeur='987654', commentaire='Canari mesure')
+    pc.metrique.mesures.update(valeur='987654.32', commentaire='Canari mesure')
     pc.suivi.protocoles.update(nb_etp_cycle=JOURS)
     pc.referent.nom_role, pc.referent.email = 'Canari-Personne', 'canari@personne.fr'
     pc.referent.save()

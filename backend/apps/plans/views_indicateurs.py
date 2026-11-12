@@ -17,7 +17,7 @@ from .models_indicateurs import (
     CorIndicateurGeologie, CorIndicateurNe, CorIndicateurRa,
 )
 from .models_enjeux import NiveauExigence, ResultatAttendu
-from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
+from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly, PeutEcrireLePlan
 from .access import (
     INDICATEUR_TO_PG_PATHS, prefix_paths, scope_by_plan,
 )
@@ -708,6 +708,8 @@ class MesureViewSet(viewsets.ModelViewSet):
     # Le verrou « brouillon uniquement » (#248) bloquait à tort cette saisie sur
     # un plan validé (403 à l'enregistrement d'un indicateur de réponse).
     permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
+    # Données de suivi : périmètre de saisie des suivis, pas l'écriture du contenu.
+    ecriture_de_suivi = True
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MesureFilter
     search_fields = ['valeur', 'commentaire']
@@ -1114,6 +1116,19 @@ def _can_manage_indicateur_global(user, indicateur):
     return plan.referents.filter(pk=user.pk).exists()
 
 
+
+def _indicateur_du_suivi(request, id_indicateur, lecture):
+    """Indicateur désigné par son identifiant, dans le périmètre des suivis.
+
+    Scores, surcharges et évaluations sont des données de suivi : sans ce
+    contrôle, tout compte qui connaissait (ou devinait) l'identifiant les
+    lisait et les écrivait, quel que soit le plan.
+    """
+    from .access import assert_suivi_access
+    indicateur = get_object_or_404(Indicateur, pk=id_indicateur)
+    assert_suivi_access(request.user, indicateur.get_plan_de_gestion(), lecture=lecture)
+    return indicateur
+
 class IndicateurMesureViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la saisie annuelle au niveau Indicateur (override manuel).
@@ -1137,6 +1152,8 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
     )
     serializer_class = IndicateurMesureSerializer
     permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
+    # Données de suivi : périmètre de saisie des suivis, pas l'écriture du contenu.
+    ecriture_de_suivi = True
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = {
         'id_indicateur': ['exact'],
@@ -1173,7 +1190,7 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
         except (TypeError, ValueError):
             return Response({'detail': 'annee invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        indicateur = get_object_or_404(Indicateur, pk=id_ind)
+        indicateur = _indicateur_du_suivi(request, id_ind, lecture=False)
         instance, _ = IndicateurMesure.objects.get_or_create(
             id_indicateur=indicateur, annee=annee,
         )
@@ -1196,7 +1213,7 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
             annee = int(annee)
         except (TypeError, ValueError):
             return Response({'detail': 'annee invalide.'}, status=status.HTTP_400_BAD_REQUEST)
-        indicateur = get_object_or_404(Indicateur, pk=id_ind)
+        indicateur = _indicateur_du_suivi(request, id_ind, lecture=True)
         result = _compute_indicator_auto_score(indicateur, annee)
         return Response({
             'id_indicateur': indicateur.id_indicateur,
@@ -1221,7 +1238,7 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
             annee = int(annee)
         except (TypeError, ValueError):
             return Response({'detail': 'annee invalide.'}, status=status.HTTP_400_BAD_REQUEST)
-        indicateur = get_object_or_404(Indicateur, pk=id_ind)
+        indicateur = _indicateur_du_suivi(request, id_ind, lecture=True)
         auto = _compute_indicator_auto_score(indicateur, annee)
         override = IndicateurMesure.objects.filter(
             id_indicateur=indicateur, annee=annee, score_override__isnull=False,
@@ -1268,7 +1285,7 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
         Écritures réservées aux gestionnaires du plan. Non verrouillé brouillon
         (donnée de suivi, éditable après validation).
         """
-        indicateur = get_object_or_404(Indicateur, pk=indicateur_id)
+        indicateur = _indicateur_du_suivi(request, indicateur_id, lecture=True)
 
         if request.method == 'GET':
             return Response(self._global_eval_payload(indicateur))

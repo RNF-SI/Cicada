@@ -150,6 +150,10 @@ Ces tests repèrent une perte de données **sans connaître le bug d'avance**. I
 | `test_aller_retour.py` | `GET` puis `PATCH` / `PUT` du même corps, pour chaque ressource du plan : l'inventaire ne bouge pas |
 | `test_garde_fous.py` | une année ou un organisme qui porte un suivi ne quitte pas la programmation ; une erreur en fin d'enregistrement ne laisse rien à moitié supprimé ; `seed_testdata` refusé en production |
 | `test_canari.py` | des valeurs repères dans chaque champ sensible (budget, temps, financeurs, mesures, commentaires, personnes) ; aucune n'apparaît, où que ce soit, dans la lecture d'exploration d'un autre organisme, les écrans publiés, la fiche publique ni la charge envoyée au hub |
+| `test_droits_ecriture.py` | matrice « qui peut écrire où » : profils × gestes (contenu, import « remplacer », postes, financeurs, documents, suppression) ; plan d'arrivée d'un objet déplacé ; champs de cycle de vie ; sites d'un autre organisme |
+| `test_suppressions.py` | version validée, financeur / poste portant du suivi, organisme portant du budget, site lié ou partagé : refus 409, inventaire intact |
+| `test_comptes.py` | compte désactivé coupé dès la requête suivante, déconnexion et changement de mot de passe qui révoquent, limites d'essais (adresse forgée, par compte), impersonation en lecture seule, adoption UsersHub d'un compte à droits élevés |
+| `test_exports_formules.py` | un libellé « =… » reste du texte dans les exports Excel |
 | `test_cascades.py` + `cascades_relues.txt` | toute suppression en cascade (`CASCADE` / `SET_NULL`) a été relue ; un chemin nouveau fait échouer le test |
 | `test_migrations.py` + `migrations_irreversibles.txt` | toute migration qui supprime ou transforme sans retour a été relue |
 

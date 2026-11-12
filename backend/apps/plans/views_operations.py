@@ -25,11 +25,11 @@ from .models_indicateurs import Indicateur, Metrique
 from .models import PlanGestion
 from apps.core.models import Nomenclature
 from apps.users.permissions import IsReferent
-from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
+from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly, PeutEcrireLePlan
 from .access import (
     INDICATEUR_TO_PG_PATHS, OPERATION_TO_PG_PATHS, assert_plan_access,
     assert_suivi_access, plan_operation_ids, prefix_paths, scope_by_plan, scope_suivi_by_plan,
-    user_can_access_plan,
+    user_can_write_plan,
 )
 from .exploration import LectureExplorationMixin
 from .views_referentiel import ACTUALISER_TYPE_SCHEMA, ActualiserTypeSerializer
@@ -912,6 +912,8 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
     serializer_class = RealisationOperationAnneeSerializer
     # Pas de CanModifyOnlyDraftPlan : les suivis sont éditables après validation du plan.
     permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
+    # Données de suivi : périmètre de saisie des suivis, pas l'écriture du contenu.
+    ecriture_de_suivi = True
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     ordering_fields = ['id_operation_annee__annee', 'date_maj']
     ordering = ['id_operation_annee__annee']
@@ -1078,6 +1080,9 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         (donnée de suivi, éditable après validation).
         """
         operation = get_object_or_404(Operation, pk=operation_id)
+        # Donnée de suivi : lue par qui voit les suivis du plan, pas par
+        # n'importe quel compte qui connaît l'identifiant de l'action.
+        assert_suivi_access(request.user, operation.get_plan_de_gestion(), lecture=True)
 
         if request.method == 'GET':
             return Response(self._global_payload(operation))
@@ -1947,6 +1952,8 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
     )
     serializer_class = RealisationOperationAnneeOrganismeSerializer
     permission_classes = [permissions.IsAuthenticated, IsReferentOrReadOnly]
+    # Données de suivi : périmètre de saisie des suivis, pas l'écriture du contenu.
+    ecriture_de_suivi = True
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = {
         'id_operation_annee_organisme': ['exact'],
@@ -2031,11 +2038,45 @@ class FinanceurViewSet(viewsets.ModelViewSet):
             raise PermissionDenied("Vous n'avez pas accès à ce plan de gestion.")
         serializer.save()
 
+    def destroy(self, request, *args, **kwargs):
+        """Un financeur qui porte des montants ne se supprime pas en silence.
+
+        Ses lignes prévues et réalisées partent avec lui (CASCADE) : réécrire
+        ainsi le budget d'un plan validé, ou effacer un suivi saisi, n'est pas
+        un geste de paramétrage.
+        """
+        financeur = self.get_object()
+        refus = _suppression_refusee(
+            financeur.id_pg,
+            prevu=financeur.financements.exists(),
+            realise=financeur.realisations.exists(),
+            objet=f"Le financeur « {financeur.nom} »",
+        )
+        return refus or super().destroy(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
     def by_plan(self, request, plan_id=None):
         qs = self.get_queryset().filter(id_pg=plan_id)
         return Response(FinanceurSerializer(qs, many=True, context={'request': request}).data)
 
+
+
+def _suppression_refusee(plan, prevu, realise, objet):
+    """Réponse 409 si supprimer cet objet effaçait du suivi saisi, ou la
+    programmation d'un plan qui n'est plus en brouillon ; ``None`` sinon."""
+    if realise:
+        return Response({
+            'detail': f"{objet} porte du suivi saisi (montants ou temps réalisés) : "
+                      "il ne peut pas être supprimé.",
+            'code': 'utilise_par_le_suivi',
+        }, status=status.HTTP_409_CONFLICT)
+    if prevu and plan is not None and plan.statut != 'draft':
+        return Response({
+            'detail': f"{objet} est utilisé par la programmation d'un plan qui n'est plus "
+                      "en brouillon : il ne peut pas être supprimé.",
+            'code': 'utilise_par_un_plan_valide',
+        }, status=status.HTTP_409_CONFLICT)
+    return None
 
 def _scope_poste_queryset(queryset, user):
     """Scope les postes selon les plans accessibles à l'utilisateur."""
@@ -2043,8 +2084,9 @@ def _scope_poste_queryset(queryset, user):
 
 
 def _user_can_access_plan(user, plan):
-    """Vrai si l'utilisateur peut gérer les postes du plan donné (#560)."""
-    return user_can_access_plan(user, plan)
+    """Vrai si l'utilisateur peut gérer les postes et financeurs du plan (#560, #790) :
+    référent de ce plan ou gestionnaire — lire le plan ne suffit pas."""
+    return user_can_write_plan(user, plan)
 
 
 class FonctionViewSet(viewsets.ModelViewSet):
@@ -2108,8 +2150,9 @@ class FonctionViewSet(viewsets.ModelViewSet):
                     "créez plutôt une fonction propre à votre plan de gestion."
                 )
             return
-        if not user_can_access_plan(self.request.user, plan):
-            raise PermissionDenied("Vous n'avez pas accès à ce plan de gestion.")
+        if not user_can_write_plan(self.request.user, plan):
+            raise PermissionDenied(
+                "Seuls les référents de ce plan et ses gestionnaires peuvent le modifier.")
 
     def perform_create(self, serializer):
         plan = serializer.validated_data.get('id_pg')
@@ -2188,6 +2231,18 @@ class PosteViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Vous n'avez pas accès à ce plan de gestion.")
         serializer.save()
+
+    def destroy(self, request, *args, **kwargs):
+        """Un poste qui porte du temps ne se supprime pas en silence : les lignes
+        de temps perdraient leur poste, et le coût salarial calculé avec."""
+        poste = self.get_object()
+        refus = _suppression_refusee(
+            poste.id_pg,
+            prevu=poste.rh_lignes_prev.exists(),
+            realise=poste.rh_lignes_reel.exists(),
+            objet=f"Le poste « {poste} »",
+        )
+        return refus or super().destroy(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'], url_path=r'by-plan/(?P<plan_id>\d+)')
     def by_plan(self, request, plan_id=None):

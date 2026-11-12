@@ -1303,9 +1303,10 @@ OPTIONS = {
 - **Création d'un plan** (`CanCreatePlan`, `apps/plans/permissions.py`) : admin organisme et au-dessus (RP, super admin) sur n'importe quel site ; tout autre utilisateur **rattaché à un site** (`CorRoleSite`, référent ou simple membre) sur ce(s) site(s) uniquement — tous les sites du plan doivent être les siens. Être référent d'un plan n'ouvre pas d'autre site (le créateur devient référent de son plan — **sauf super admin et rédacteur principal**, qui ont déjà tous les droits, #736 ; `id_utilisateur_ajout` et `id_utilisateur_maj` gardent la trace du créateur). Rédacteur externe : jamais.
 - **Permissions cycle de vie des plans** : Les actions de changement de statut et création d'évaluation sont réservées aux **référents du plan spécifique** (vérifié via `plan.referents.filter(pk=user.pk)`), aux admin_og, super_admin **et au rédacteur principal** (#346 — `can_manage_plan_lifecycle()` retourne `True` pour le RP). Permission DRF `IsReferent` + vérification objet dans la vue.
 - **Permission Model**: Role-based with hierarchical access and Django groups
-- **JWT Implementation**: djangorestframework-simplejwt with 60min access + 7-day refresh tokens
+- **JWT Implementation**: djangorestframework-simplejwt, jeton d'accès **30 min** (renouvelé seul par `auth.interceptor.ts` sur un 401) + rafraîchissement 30 jours avec rotation et **liste de révocation** (`token_blacklist` : la déconnexion révoque, `CHECK_REVOKE_TOKEN` : changer son mot de passe ferme les autres sessions). Un compte désactivé (`Role.active = False`) est refusé dès la requête suivante (`apps/authentication/regles.py`, `JWTAuthentificationActivite.get_user`). Limite des essais de connexion par adresse (`NUM_PROXIES` pour la lire derrière les proxys) **et par compte** (`apps/authentication/echecs.py`, 10 échecs / 15 min). Impersonation en lecture seule côté serveur (`IMPERSONATION_ECRITURE`, levée en développement). Mots de passe locaux : 10 caractères et validateurs Django
 - **Security Middleware**: 3 custom middleware for headers, permissions, and audit
 - **API Protection**: All endpoints protected by default except `/api/auth/`
+- **Écrire dans un plan = droit sur CE plan** (`user_can_write_plan`, `apps/plans/access.py`) : référents du plan, admin d'un organisme gestionnaire, RP, super admin — jamais « référent de quelque chose ». Appliqué par `IsReferentOrReadOnly` / `PeutEcrireLePlan` à l'objet modifié **et** au plan de chaque clé reçue (`apps/plans/ecriture.py` : `id_pg`, `id_olt`, `pression_ids`, `metrique_id`…), plus le verrou brouillon sur le plan d'arrivée ; données de suivi (mesures, réalisations, vues `ecriture_de_suivi`) : périmètre de saisie des suivis. Champs de cycle de vie du plan en lecture seule (`statut`, `validation_step`…). Matrice de tests : `tests/integrite/test_droits_ecriture.py`
 - **Permission check methods**: `user.is_super_admin()`, `user.is_redacteur_principal()`, `user.can_manage_plan_lifecycle()`, `user.is_referent()`, `user.can_manage_site(site)`
 - **DRF classes**: `IsSuperAdmin`, `IsAdminOrganisme`, `IsReferent`
 - **Decorators**: `@require_super_admin`, `@require_admin_organisme`
@@ -1322,7 +1323,7 @@ OPTIONS = {
 
 - Management plans can span multiple protected areas
 - Users belong to organizations with scoped permissions
-- Soft delete for critical data (plans, sites)
+- Suppression logique pour les comptes seulement ; plans, sites et organismes se suppriment physiquement — d'où les garde-fous : version validée non supprimable (sauf super admin), site lié à un plan validé ou partagé non supprimable, organisme portant du budget protégé (`PROTECT`), financeur / poste portant du suivi non supprimables (409)
 - Audit trail for all plan modifications
 
 ## Critical Implementation Notes

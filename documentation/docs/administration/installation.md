@@ -60,7 +60,7 @@ Un serveur à part reste plus confortable (les deux applications ne se disputent
 curl -fsSL https://apt.cicada.reserves-naturelles.org/install.sh | sudo bash
 ```
 
-Elle configure le dépôt Docker (s'il ne l'est pas déjà) et celui de CICADA avec sa clé de signature, installe le paquet `cicada`, puis affiche l'adresse du formulaire d'installation : **`http://votre-serveur:4567`**.
+Elle configure le dépôt Docker (s'il ne l'est pas déjà) et celui de CICADA avec sa clé de signature, installe le paquet `cicada`, puis affiche l'adresse du formulaire d'installation, avec son **jeton** : **`http://votre-serveur:4567/?jeton=…`**.
 
 - Elle peut être relancée sans risque.
 - Version précise : `… | sudo bash -s -- --version 0.1.55`.
@@ -97,7 +97,9 @@ Sans accès au dépôt CICADA, le paquet se télécharge depuis la [page des ver
 
 ### Ouvrir le formulaire
 
-Dans un navigateur : **`http://votre-serveur:4567`**. Si la page ne répond pas : `sudo systemctl status cicada-installer` (et `sudo systemctl restart cicada-installer` s'il est arrêté).
+Dans un navigateur, ouvrez **le lien affiché à la fin de l'installation du paquet** (`http://votre-serveur:4567/?jeton=…`). Le jeton est personnel : sans lui, l'installateur refuse tout (403) — il écoute sur le réseau, et quiconque l'atteindrait installerait sinon l'instance avec son propre compte administrateur. Lien perdu : `sudo cat /etc/cicada/installer_token`. Si la page ne répond pas : `sudo systemctl status cicada-installer` (et `sudo systemctl restart cicada-installer` s'il est arrêté).
+
+Une fois l'instance installée, l'installateur s'arrête de lui-même (deux minutes après la fin) et n'est plus relancé par les mises à jour.
 
 Remplissez le formulaire ([§ 3](#3-le-formulaire-section-par-section)), puis cliquez sur **« Installer »**. Comptez **10 à 20 minutes** : l'installation vérifie la base, génère les secrets, télécharge les images, démarre les conteneurs, applique les migrations, importe les référentiels (nomenclatures, TaxRef, HabRef, INPG, CAMPanule, découpage administratif), crée le compte administrateur, enregistre l'instance auprès de l'API de suivi, puis redirige vers l'application.
 
@@ -151,7 +153,7 @@ Le champ **« Port backend »** peut être laissé à `8000` : l'application n'e
    Ce script, fourni par l'installateur (donc de la même version) :
    - crée le compte `cicada_user` (mot de passe généré et **affiché à la fin**) et la base `cicada` ;
    - active PostGIS et crée les schémas de CICADA ;
-   - ajoute **une seule ligne** à `pg_hba.conf`, limitée à cette base, ce compte et l'adresse du serveur CICADA ;
+   - ajoute **une seule ligne** à `pg_hba.conf`, limitée à cette base, ce compte et l'adresse du serveur CICADA, en **`hostssl`** : PostgreSQL refuse alors toute connexion en clair (il doit avoir `ssl = on`, le script le vérifie et dit quoi changer ; réseau privé sûr seulement : `--sans-ssl`). L'installateur écrit en face `POSTGRES_SSLMODE=require` ;
    - **recharge** PostgreSQL sans le redémarrer : aucune coupure, aucune autre base touchée.
 
    Il peut être relancé sans risque ; le mot de passe d'un compte existant n'est alors **pas** changé (`--password` pour le redéfinir). Si vous avez changé port, nom de base ou utilisateur, la commande affichée en tient déjà compte. Aide : `bash prepare-db.sh --help`.
@@ -259,6 +261,14 @@ sudo certbot --apache -d cicada.mon-organisme.org
 ```
 
 Certbot crée le virtual host HTTPS (`cicada-le-ssl.conf`) en recopiant le précédent, et redirige HTTP vers HTTPS. Relisez-le : on ne doit y trouver que les deux lignes `ProxyPass /` et `ProxyPassReverse /`, plus les lignes de certificat.
+
+Ajoutez-y une ligne, pour que le navigateur ne revienne jamais en clair (et n'y envoie jamais la session) — module `headers` (`sudo a2enmod headers`) :
+
+```apache
+Header always set Strict-Transport-Security "max-age=31536000"
+```
+
+Si l'Apache d'entrée est sur ce même serveur, mettez aussi `FRONTEND_BIND=127.0.0.1` dans `/var/lib/cicada/.env` ([§ 8](#8-modifier-la-configuration)) : le port du frontend ne sera plus joignable depuis le réseau en contournant le HTTPS.
 
 **5. Vérifier** :
 
@@ -469,6 +479,14 @@ cicada_compose logs -f web      # journaux de l'application (Ctrl+C pour quitter
 
 La plupart des réglages fonctionnels (textes d'accueil, logo, mesure d'audience, exploration fédérée, raccordement au hub) ne sont **pas** dans ce fichier mais dans *Administration > Paramètres*, sans redémarrage.
 
+Trois réglages de sécurité y figurent, à vérifier sur une instance installée avant leur arrivée :
+
+| Variable | Rôle | Valeur |
+|---|---|---|
+| `NUM_PROXIES` | nombre de proxys devant Django, pour lire l'adresse réelle du client (limite des essais de connexion). Faux, la limite saute ou s'applique à tout le monde à la fois | `2` derrière Apache / Nginx (défaut), `1` avec Traefik seul |
+| `POSTGRES_SSLMODE` | chiffrement de la connexion à la base | `require` pour une base sur un autre serveur ; vide pour la base Docker |
+| `FRONTEND_BIND` | interface où le port du frontend est publié | `127.0.0.1` si l'Apache / Nginx d'entrée est sur ce serveur : le port ne contourne plus le proxy (ni son HTTPS) depuis le réseau |
+
 `/etc/cicada/cicada.conf` porte l'adresse de l'API de suivi et du hub utilisées par le paquet (heartbeat, installateur). Vous n'avez normalement pas à y toucher.
 
 ---
@@ -486,7 +504,9 @@ Après une installation réussie, le formulaire répond « Installation déjà e
 
 ### Relancer le formulaire après un échec
 
-Il suffit de rouvrir `http://votre-serveur:4567` : rien n'est verrouillé tant que l'installation n'a pas réussi.
+Il suffit de rouvrir le lien de l'installateur (avec son jeton, `sudo cat /etc/cicada/installer_token`) : rien n'est verrouillé tant que l'installation n'a pas réussi.
+
+Si le fichier `/var/lib/cicada/.env` a disparu alors qu'une base Docker existe encore, l'installateur **refuse** de recommencer : il tirerait un nouveau mot de passe, qui ne correspond plus à la base, et une nouvelle `SECRET_KEY`, qui rend illisibles les secrets chiffrés en base. Restaurez le `.env` depuis sa copie (§ 7).
 
 Avec une **base dans Docker**, la base a pu être créée lors de la première tentative, avec le mot de passe saisi alors. Réutilisez **le même mot de passe**. Si vous l'avez perdu et que la base ne contient encore rien, supprimez-la avant de relancer :
 

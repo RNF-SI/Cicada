@@ -158,6 +158,9 @@ def parametres():
         'PGAPPNAME': 'cicada-db',
         'PGCONNECT_TIMEOUT': '15',
     })
+    # Même chiffrement que l'application (pg_dump / pg_restore le lisent aussi).
+    if os.environ.get('POSTGRES_SSLMODE'):
+        env['PGSSLMODE'] = os.environ['POSTGRES_SSLMODE']
     return env
 
 

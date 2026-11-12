@@ -271,6 +271,8 @@ def build_grille_workbook(payload: dict) -> bytes:
                 _poser_icone(ws, entete_ligne + 1 + i, col, statut)
 
     flux = io.BytesIO()
+    from .export_theme import neutraliser_formules
+    neutraliser_formules(wb)
     wb.save(flux)
     return flux.getvalue()
 

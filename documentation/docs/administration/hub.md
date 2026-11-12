@@ -123,7 +123,8 @@ dépendance du hub envers lui :
 
 ```bash
 cd /opt/cicada-hub
-# Seulement si une base locale a déjà été créée et ne contient rien à garder :
+# Seulement si une base locale a déjà été créée et ne contient RIEN à garder
+# (aucune instance enrôlée) : `down -v` efface le registre sans retour.
 sudo docker compose -f docker-compose.hub.prod.yml --env-file .env.hub.prod down -v
 # Dans .env.hub.prod : POSTGRES_HOST=<IP-serveur-bases>, POSTGRES_PORT=5432,
 # POSTGRES_DB / POSTGRES_USER / POSTGRES_PASSWORD = ceux passés à prepare-db
@@ -137,6 +138,22 @@ hub up -d && hub logs -f hub # « Attente de PostgreSQL (<IP>:5432) », migratio
 conteneur de base vide, et le hub repart sans registre ni index. La sauvegarde
 de la base relève alors du serveur de bases ; le registre des instances (les
 empreintes des jetons) n'existe que là.
+
+### Sauvegarder le hub
+
+L'index se reconstruit : chaque instance republie son état complet chaque nuit.
+**Le registre, non** : perdre la base, c'est ré-enrôler chaque structure et lui
+renvoyer de nouveaux jetons ; la restaurer ancienne réactive des jetons révoqués
+depuis. La base du hub doit donc entrer dans la sauvegarde quotidienne du
+serveur de bases, avec une copie hors de ce serveur :
+
+```bash
+# Sur le serveur de bases (cron quotidien), puis copie hors serveur
+sudo -u postgres pg_dump -Fc cicada_hub > /var/backups/cicada_hub_$(date +%F).dump
+```
+
+Après une restauration, revérifier le registre (`enroler_instance --lister`) et
+désactiver toute instance révoquée depuis la date de la sauvegarde.
 
 ## Apache
 

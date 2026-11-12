@@ -316,6 +316,9 @@ def user_can_access_suivi(user, plan, lecture=False) -> bool:
     """Vrai si ``user`` peut saisir les suivis du plan (#610) — ou les lire (#740)."""
     if has_global_plan_access(user):
         return True
+    if plan is None:
+        # Objet rattaché à aucun plan : personne d'autre n'en a la charge.
+        return False
     return PlanGestion.objects.filter(pk=plan.pk).filter(suivi_scope_q(user, lecture)).exists()
 
 
@@ -340,3 +343,28 @@ def user_can_export_plan(user, plan) -> bool:
     if user.can_manage_plan_lifecycle():
         return True
     return plan.referents.filter(pk=user.pk).exists()
+
+
+def user_can_write_plan(user, plan) -> bool:
+    """Droit d'écrire dans **ce** plan : son contenu, ses documents, ses réglages.
+
+    Super admin, rédacteur principal, admin d'un organisme gestionnaire d'un de
+    ses sites, ou référent de ce plan (rédacteur externe compris). Être
+    référent d'un autre plan ou d'un site ne suffit pas : c'est ce critère
+    global (``Role.is_referent()``) qui ouvrait l'écriture à un simple lecteur
+    ayant créé un plan ailleurs. Même règle que ``canEditPlan`` côté
+    interface ; le statut (brouillon, #248) est contrôlé à part.
+    """
+    if plan is None or user is None or not user.is_authenticated:
+        return False
+    if user_manages_plan(user, plan):
+        return True
+    return plan.referents.filter(pk=user.pk).exists()
+
+
+def assert_plan_write(user, plan):
+    """Lève une 403 si ``user`` ne peut pas écrire dans ``plan``."""
+    if not user_can_write_plan(user, plan):
+        raise PermissionDenied(
+            "Seuls les référents de ce plan et ses gestionnaires peuvent le modifier.")
+

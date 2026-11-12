@@ -210,8 +210,8 @@ Avant d'activer la connexion, réaligner les 4 organismes créés à la main dan
 | Réglage | Valeur |
 |---|---|
 | `GEONATURE_AUTH_CODE_APPLICATION` | `CICADA` (application n° 18 ; jusqu'à la release, profil donné au seul `Grp_cicada` ; à la release, à `grp_all`) |
-| `USERSHUB_DB_HOST` / `USERSHUB_DB_NAME` | `10.0.30.12` / `geonature_global` (serveur de bases du GeoNature global, GeoNature 2.17.5) |
-| `USERSHUB_DB_SSLMODE` | `require` (ligne `hostssl` pour `10.0.20.13`, le serveur CICADA) |
+| `USERSHUB_DB_HOST` / `USERSHUB_DB_NAME` | `192.0.2.12` / `geonature_global` (serveur de bases du GeoNature global, GeoNature 2.17.5) |
+| `USERSHUB_DB_SSLMODE` | `require` (ligne `hostssl` pour `192.0.2.13`, le serveur CICADA) |
 | `GEONATURE_AUTH_LIBELLE` | `RNF` |
 
 ## Code

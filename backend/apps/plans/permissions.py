@@ -27,12 +27,82 @@ class IsReferentOrReadOnly(BasePermission):
     Généralisation du correctif #372 appliqué à `CorPgFichierViewSet`.
     """
 
+    message = "Seuls les référents de ce plan et ses gestionnaires peuvent le modifier."
+
     def has_permission(self, request, view):
         if not (request.user and request.user.is_authenticated):
             return False
         if request.method in SAFE_METHODS:
             return True
-        return request.user.is_referent()
+        if not request.user.is_referent():
+            return False
+        return _peut_ecrire_les_plans_vises(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        return _peut_ecrire_l_objet(request, view, obj)
+
+
+def _predicat(view):
+    """Contenu du plan : ``user_can_write_plan``. Données de suivi (mesures,
+    réalisations — vues marquées ``ecriture_de_suivi``) : périmètre de saisie
+    des suivis, qui inclut les référents validés d'un site (#610, #740)."""
+    from .access import user_can_access_suivi, user_can_write_plan
+
+    if getattr(view, 'ecriture_de_suivi', False):
+        return user_can_access_suivi
+    return user_can_write_plan
+
+
+def _peut_ecrire_les_plans_vises(request, view):
+    """Chaque plan désigné par les données reçues doit être modifiable par l'utilisateur."""
+    from .ecriture import modele_de_la_vue, plans_vises
+
+    predicat = _predicat(view)
+    return all(
+        predicat(request.user, plan)
+        for plan in plans_vises(modele_de_la_vue(view), request.data)
+    )
+
+
+def _peut_ecrire_l_objet(request, view, obj):
+    """Le plan de l'objet modifié doit être modifiable par l'utilisateur."""
+    from .ecriture import plan_de
+
+    if request.method in SAFE_METHODS:
+        return True
+    if getattr(view, 'action', None) in PeutEcrireLePlan.ACTIONS_SANS_ECRITURE:
+        return True
+    plan = plan_de(obj)
+    return plan is None or _predicat(view)(request.user, plan)
+
+
+class PeutEcrireLePlan(BasePermission):
+    """
+    Écriture réservée à qui peut écrire dans **ce** plan (``user_can_write_plan``) :
+    celui de l'objet modifié et ceux que désignent les données reçues.
+
+    Pour les vues qui ne passent pas par :class:`IsReferentOrReadOnly` (plan,
+    suivis-inventaires, documents, fonctions) — celle-ci n'exige en plus aucun
+    rôle global : la création d'un plan reste régie par :class:`CanCreatePlan`.
+    """
+
+    message = IsReferentOrReadOnly.message
+
+    #: Actions en POST qui n'écrivent rien sur le plan (le client transmet le
+    #: tableau à mettre en forme, #638) et portent leur propre contrôle.
+    ACTIONS_SANS_ECRITURE = frozenset({
+        'export_tableau_de_bord_xlsx', 'export_suivi_actions_xlsx',
+    })
+
+    def has_permission(self, request, view):
+        if not (request.user and request.user.is_authenticated):
+            return False
+        if request.method in SAFE_METHODS:
+            return True
+        return _peut_ecrire_les_plans_vises(request, view)
+
+    def has_object_permission(self, request, view, obj):
+        return _peut_ecrire_l_objet(request, view, obj)
 
 
 class CanModifyOnlyDraftPlan(BasePermission):
@@ -113,7 +183,13 @@ class CanModifyOnlyDraftPlan(BasePermission):
             plan = self._resolve_plan_from_payload(request, view)
             if plan is not None and plan.statut not in self.EDITABLE_STATUSES:
                 return False
-        return True
+        # Le plan d'arrivée aussi : déplacer un objet (``id_pg``, ``id_olt``…)
+        # ou le relier (``pression_ids``…) vers un plan validé le modifierait.
+        from .ecriture import modele_de_la_vue, plans_vises
+        return all(
+            plan.statut in self.EDITABLE_STATUSES
+            for plan in plans_vises(modele_de_la_vue(view), request.data)
+        )
 
     def has_object_permission(self, request, view, obj):
         if request.method in SAFE_METHODS:

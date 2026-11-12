@@ -1367,6 +1367,9 @@ def public_registration_view(request):
 )
 @api_view(['GET'])
 @permission_classes([AllowAny])
+# Sans connexion, elle dit si une adresse a un compte : même limite que la
+# connexion, pour qu'elle ne serve pas à dresser la liste des comptes.
+@throttle_classes([AuthRateThrottle])
 def check_registration_status_view(request):
     """
     GET /api/auth/registration-status/?email=xxx

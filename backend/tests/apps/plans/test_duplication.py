@@ -1054,11 +1054,9 @@ class TestDuplicateAPIEndpoint:
         assert new_plan.referents.count() == 1
 
     def test_duplicate_as_referent(self, api_client, source_plan):
-        """Test that a referent can duplicate a plan they have access to."""
+        """Le référent du plan le duplique (nouvelle version)."""
         referent = ReferentFactory()
-        site = SiteFactory()
-        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
-        CorSitePgFactory(plan_de_gestion=source_plan, site=site)
+        source_plan.referents.add(referent)
 
         api_client.force_authenticate(user=referent)
 
@@ -1068,6 +1066,21 @@ class TestDuplicateAPIEndpoint:
             format='json',
         )
         assert response.status_code == status.HTTP_201_CREATED
+
+    def test_un_referent_du_site_seulement_ne_duplique_pas(self, api_client, source_plan):
+        """Dupliquer copie tout le contenu : réservé à qui peut l'exporter, sans
+        quoi la copie contournerait la règle des exports (le duplicateur
+        devient référent de la copie)."""
+        referent = ReferentFactory()
+        site = SiteFactory()
+        CorRoleSiteFactory(id_role=referent, id_site=site, referent=True, referent_valid=True)
+        CorSitePgFactory(plan_de_gestion=source_plan, site=site)
+
+        api_client.force_authenticate(user=referent)
+
+        response = api_client.post(
+            f'/api/plans/plans/{source_plan.id_pg}/duplicate/', data={}, format='json')
+        assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_duplicate_non_valide_plan_rejected(self, api_client):
         """Only plans with statut='valide' can be duplicated via API."""

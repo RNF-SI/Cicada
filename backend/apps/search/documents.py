@@ -19,7 +19,6 @@ Trois règles en découlent :
 - un brouillon n'est pas explorable : ses documents ne sortent pas.
 """
 
-import mimetypes
 import os
 
 from django.conf import settings
@@ -31,8 +30,11 @@ from apps.plans.models_enjeux import CorEnjeuFichier
 
 from .indexing import INDEXED_STATUSES
 
-#: Ouverts dans le navigateur plutôt que téléchargés.
-EXTENSIONS_EN_LIGNE = {'pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'}
+#: Ouverts dans le navigateur plutôt que téléchargés (SVG exclu : il peut
+#: porter du script — cf. apps/core/documents_http.py).
+from apps.core.documents_http import (  # noqa: E402
+    EXTENSIONS_EN_LIGNE, s_ouvre_en_ligne, securiser, type_du_document,
+)
 
 
 def chemin_document(uuid_public):
@@ -92,11 +94,9 @@ def servir(nom_fichier, chemin, extension):
         chemin = os.path.join(settings.MEDIA_ROOT, chemin)
     if not os.path.exists(chemin):
         raise Http404
-    content_type = mimetypes.guess_type(nom_fichier)[0] or 'application/octet-stream'
-    en_ligne = (extension or '').lower().lstrip('.') in EXTENSIONS_EN_LIGNE
-    return FileResponse(
+    return securiser(FileResponse(
         open(chemin, 'rb'),
-        content_type=content_type,
-        as_attachment=not en_ligne,
+        content_type=type_du_document(extension),
+        as_attachment=not s_ouvre_en_ligne(extension),
         filename=nom_fichier,
-    )
+    ), extension)

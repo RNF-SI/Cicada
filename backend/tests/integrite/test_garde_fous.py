@@ -93,3 +93,20 @@ class TestCommandesDangereuses:
     @override_settings(SETTINGS_MODULE='config.settings.production')
     def test_seed_testdata_simulation_permise_en_production(self):
         call_command('seed_testdata', '--reset', '--dry-run', verbosity=0)
+
+
+class TestJeuDEssai:
+    def test_le_jeu_d_essai_se_supprime_puis_se_recree(self):
+        """`--reset` (lancé par l'E2E avant chaque série) doit passer les
+        protections de suppression : organismes protégés tant qu'ils portent du
+        budget (PROTECT), donc supprimés après les plans."""
+        from apps.plans.models import PlanGestion
+        from apps.users.models import BibOrganismes
+        call_command('import_nomenclatures', verbosity=0)
+        call_command('seed_testdata', '--only=ventilation_plans', verbosity=0)
+        assert PlanGestion.objects.exists()
+        call_command('seed_testdata', '--reset', verbosity=0)
+        assert not PlanGestion.objects.exists()
+        assert not BibOrganismes.objects.filter(nom_organisme='Réserves Naturelles de France').exists()
+        call_command('seed_testdata', '--only=ventilation_plans', verbosity=0)
+        assert PlanGestion.objects.exists()

@@ -143,6 +143,42 @@ def organisme_pour(identite):
     return organisme
 
 
+def _verifier_adoption(compte, organisme, identite):
+    """Un compte local n'est relié à UsersHub par son seul email que s'il n'ouvre
+    pas plus de droits que ce qu'UsersHub atteste.
+
+    Quiconque peut créer dans UsersHub un compte portant l'adresse d'un
+    administrateur CICADA (et lui donner le profil CICADA) entrerait sinon avec
+    ses droits. Super administrateur et rédacteur principal : jamais par
+    l'email — sauf celui qui a activé la connexion GeoNature ; les autres se
+    connectent d'abord, puis sont promus. Administrateur d'organisme :
+    seulement si UsersHub le rattache au même organisme.
+    """
+    # Le super administrateur qui a activé la connexion GeoNature a vérifié
+    # lui-même que ce compte UsersHub est le sien (garde-fou « enfermement ») :
+    # c'est le rapprochement attendu, pas une usurpation.
+    if compte.pk == getattr(reglages.ligne().modifie_par, 'pk', None):
+        return
+    if compte.is_superuser or compte.role_level in ('super_admin', 'redacteur_principal'):
+        refus = True
+    elif compte.role_level == 'admin_og':
+        # Comparer les objets : la clé de Role.id_organisme n'est pas forcément la clé primaire.
+        refus = organisme is None or compte.id_organisme is None or organisme.pk != compte.id_organisme.pk
+    else:
+        refus = False
+    if refus:
+        logger.warning(
+            "Connexion GeoNature : rapprochement refusé entre le compte UsersHub %s et un "
+            "compte CICADA à droits d'administration (%s)", identite.id_role, compte.role_level,
+        )
+        raise UsersHubErreur(
+            _("Cette adresse est celle d'un compte CICADA à droits d'administration : il ne "
+              "peut pas être relié automatiquement à un compte UsersHub. Contactez un "
+              "super administrateur."),
+            status_code=409,
+        )
+
+
 def compte_pour(identite):
     """
     Compte CICADA de la personne : retrouvé par id UsersHub, sinon par email,
@@ -173,6 +209,9 @@ def compte_pour(identite):
             )
 
         organisme = organisme_pour(identite)
+
+        if compte is not None and compte.usershub_id_role is None:
+            _verifier_adoption(compte, organisme, identite)
 
         if compte is None:
             compte = Role(

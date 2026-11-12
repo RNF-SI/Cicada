@@ -494,8 +494,8 @@ class PublicRegistrationSerializer(serializers.Serializer):
     )
     password = serializers.CharField(
         write_only=True,
-        min_length=8,
-        help_text=_("Mot de passe (minimum 8 caractères)")
+        min_length=10,
+        help_text=_("Mot de passe (minimum 10 caractères)")
     )
     password_confirm = serializers.CharField(
         write_only=True,
@@ -577,6 +577,12 @@ class PublicRegistrationSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 'password_confirm': _("Les mots de passe ne correspondent pas.")
             })
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            validate_password(data['password'])
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({'password': list(exc.messages)})
 
         # L'utilisateur doit soit choisir un organisme existant, soit en demander
         # la création (new_organisme). Les deux sont exclusifs.

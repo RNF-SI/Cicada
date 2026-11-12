@@ -4,6 +4,7 @@ Serializers pour l'authentification.
 import logging
 
 from django.contrib.auth import authenticate
+from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import update_last_login
 from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
@@ -49,7 +50,10 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
             # Verifier si c'est un utilisateur en attente d'inscription
             from apps.notifications.models import PendingUser
             pending = PendingUser.objects.filter(email__iexact=username).first()
-            if pending:
+            # L'état d'une demande (et l'organisme qui la valide) ne se dit qu'à
+            # qui connaît son mot de passe : sinon la page de connexion apprend
+            # à n'importe qui qui a demandé un compte, et où.
+            if pending and pending.password_hash and check_password(password, pending.password_hash):
                 # Determiner qui doit valider
                 if pending.requested_organisme:
                     validator_info = f"un administrateur de {pending.requested_organisme.nom_organisme}"
@@ -157,9 +161,9 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     token = serializers.CharField(help_text=_("Jeton de réinitialisation reçu dans le lien"))
     new_password = serializers.CharField(
         write_only=True,
-        min_length=8,
+        min_length=10,
         style={'input_type': 'password'},
-        help_text=_("Nouveau mot de passe (minimum 8 caractères)"),
+        help_text=_("Nouveau mot de passe (minimum 10 caractères)"),
     )
 
     def validate_new_password(self, value):

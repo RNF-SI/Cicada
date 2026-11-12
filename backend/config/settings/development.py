@@ -86,3 +86,7 @@ REST_FRAMEWORK = {
         'auth': None,
     },
 }
+
+# Comme l'interface en développement (allowImpersonationModifications) : les
+# écritures restent permises sous impersonation pour tester.
+IMPERSONATION_ECRITURE = os.environ.get('IMPERSONATION_ECRITURE', 'True').lower() == 'true'

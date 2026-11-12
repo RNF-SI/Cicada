@@ -36,7 +36,7 @@ from .serializers_enjeux import (
     CorEnjeuTaxonSerializer, CorEnjeuHabitatSerializer, CorEnjeuFichierSerializer
 )
 from apps.users.permissions import IsReferent, IsSuperAdmin, IsAdminOrganisme
-from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly
+from .permissions import CanModifyOnlyDraftPlan, IsReferentOrReadOnly, PeutEcrireLePlan
 from .access import assert_plan_access, plan_scope_q, scope_by_plan
 from .exploration import LectureExplorationMixin
 from .filters_enjeux import EnjeuFilter, ResponsabiliteFilter
@@ -1750,7 +1750,7 @@ class CorEnjeuFichierViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ('list', 'retrieve', 'download'):
             return [permissions.IsAuthenticated()]
-        return [permissions.IsAuthenticated(), IsReferent(), CanModifyOnlyDraftPlan()]
+        return [permissions.IsAuthenticated(), IsReferent(), PeutEcrireLePlan(), CanModifyOnlyDraftPlan()]
 
     def _accessible_enjeu_ids(self):
         """IDs des enjeux accessibles via le scope de l'EnjeuViewSet."""
@@ -1802,13 +1802,11 @@ class CorEnjeuFichierViewSet(viewsets.ModelViewSet):
             return HttpResponse('Fichier non disponible sur le serveur',
                                 content_type='text/plain; charset=utf-8', status=404)
 
-        content_type, _ = mimetypes.guess_type(fichier.nom_fichier)
-        content_type = content_type or 'application/octet-stream'
+        from apps.core.documents_http import s_ouvre_en_ligne, securiser, type_du_document
         with open(chemin, 'rb') as f:
             content = f.read()
-        response = HttpResponse(content, content_type=content_type)
-        ext = (fichier.extension or '').lower().lstrip('.')
-        disposition = 'inline' if ext in ('pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp') else 'attachment'
+        response = HttpResponse(content, content_type=type_du_document(fichier.extension))
+        disposition = 'inline' if s_ouvre_en_ligne(fichier.extension) else 'attachment'
         response['Content-Disposition'] = f'{disposition}; filename="{fichier.nom_fichier}"'
         response['Content-Length'] = len(content)
-        return response
+        return securiser(response, fichier.extension)

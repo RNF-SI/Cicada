@@ -1009,5 +1009,7 @@ def _rh_detail_sheet(wb, pf, used):
 
 def _save(wb) -> bytes:
     buf = io.BytesIO()
+    from .export_theme import neutraliser_formules
+    neutraliser_formules(wb)
     wb.save(buf)
     return buf.getvalue()

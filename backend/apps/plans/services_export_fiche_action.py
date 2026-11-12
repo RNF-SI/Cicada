@@ -1331,5 +1331,7 @@ def build_fiche_action_workbook(plan, operation_ids=None) -> bytes:
         _render_action(ws, op, years, is_cs=is_cs, code_local=code_local)
 
     buf = io.BytesIO()
+    from .export_theme import neutraliser_formules
+    neutraliser_formules(wb)
     wb.save(buf)
     return buf.getvalue()

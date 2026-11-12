@@ -56,6 +56,45 @@ _ORGANISME_DETAIL_ACTIONS = [
 ]
 
 
+SITE_D_UN_AUTRE_ORGANISME = (
+    "Ce site est déjà géré par un autre organisme : demandez le lien depuis la "
+    "fiche du site, il sera validé par ses gestionnaires."
+)
+
+
+def _suppression_du_site_refusee(user, site):
+    """Raison de refuser la suppression d'un site, ou ``None``.
+
+    Supprimer un site efface en cascade ses responsabilités et ses liens avec
+    les plans, y compris les plans validés et ceux des autres organismes qui le
+    partagent. Hors super administrateur : seulement un site qui n'est relié à
+    aucun plan validé et qu'aucun autre organisme ne gère.
+    """
+    from apps.plans.models import CorSitePg, PlanGestion
+
+    if user.is_super_admin():
+        return None
+    if CorSitePg.objects.filter(
+            site=site, plan_de_gestion__statut__in=PlanGestion.VALIDATED_STATUSES | {'archive'}).exists():
+        return ("Ce site porte des plans validés ou archivés : il ne peut pas être supprimé. "
+                "Désactivez-le, ou demandez à un super administrateur.")
+    autres = CorOgSite.objects.filter(id_site=site).exclude(uuid_og=user.id_organisme_id)
+    if autres.exists():
+        return ("Ce site est aussi géré par un autre organisme : il ne peut pas être supprimé "
+                "d'ici. Demandez à un super administrateur.")
+    return None
+
+
+def _peut_rattacher_le_site(user, site):
+    """Un admin d'organisme rattache à son organisme un site sans gestionnaire,
+    ou un site qu'il gère déjà. Super admin et rédacteur principal : tout site."""
+    if user.is_super_admin() or user.is_redacteur_principal():
+        return True
+    if not CorOgSite.objects.filter(id_site=site).exists():
+        return True
+    return user.can_manage_site(site)
+
+
 @extend_schema_view(**{a: extend_schema(parameters=[PARAM_ID_ORGANISME]) for a in _ORGANISME_DETAIL_ACTIONS})
 class OrganismeViewSet(viewsets.ModelViewSet):
     """
@@ -83,6 +122,21 @@ class OrganismeViewSet(viewsets.ModelViewSet):
         else:
             return OrganismeDetailSerializer
     
+    def destroy(self, request, *args, **kwargs):
+        """Un organisme qui porte des montants ou du temps dans des plans ne se
+        supprime pas : sa ventilation budgétaire, prévue et réalisée, partirait
+        de tous les plans, validés compris."""
+        from apps.plans.models_operations import OperationAnneeOrganisme
+        organisme = self.get_object()
+        lignes = OperationAnneeOrganisme.objects.filter(id_organisme=organisme).count()
+        if lignes:
+            return Response({
+                'detail': f"{organisme.nom_organisme} porte {lignes} ligne(s) de budget ou de temps "
+                          "dans des plans de gestion : il ne peut pas être supprimé.",
+                'code': 'organisme_utilise',
+            }, status=status.HTTP_409_CONFLICT)
+        return super().destroy(request, *args, **kwargs)
+
     def get_permissions(self):
         """Permissions selon l'action."""
         if self.action in ['public']:
@@ -216,6 +270,14 @@ class OrganismeViewSet(viewsets.ModelViewSet):
                             {'error': 'Seul un super administrateur peut définir un organisme comme gestionnaire principal.'},
                             status=status.HTTP_403_FORBIDDEN
                         )
+                    # Le site d'un autre organisme ne se prend pas : il ouvrirait
+                    # ses plans (lecture, suivis, exports, cycle de vie). Le lien
+                    # passe alors par la demande validée côté site.
+                    if not _peut_rattacher_le_site(request.user, site):
+                        return Response(
+                            {'error': SITE_D_UN_AUTRE_ORGANISME, 'code': 'site_d_un_autre_organisme'},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
                 else:
                     # Pour les autres rôles, vérifier can_manage_site
                     if not request.user.can_manage_site(site):
@@ -273,6 +335,13 @@ class OrganismeViewSet(viewsets.ModelViewSet):
 
             with transaction.atomic():
                 for site in sites:
+                    if not _peut_rattacher_le_site(request.user, site):
+                        results['forbidden'].append({
+                            'id_site': site.id_site,
+                            'nom_site': site.nom_site,
+                            'raison': SITE_D_UN_AUTRE_ORGANISME,
+                        })
+                        continue
                     # Créer la relation
                     cor_og_site, created = CorOgSite.objects.get_or_create(
                         uuid_og=organisme,
@@ -664,6 +733,10 @@ class SiteViewSet(viewsets.ModelViewSet):
                 {'detail': "Le rédacteur principal ne peut pas supprimer un site."},
                 status=status.HTTP_403_FORBIDDEN,
             )
+
+        refus = _suppression_du_site_refusee(request.user, site)
+        if refus:
+            return Response({'detail': refus, 'code': 'site_utilise'}, status=status.HTTP_409_CONFLICT)
 
         site_name = site.nom_site
         site_id = site.id_site

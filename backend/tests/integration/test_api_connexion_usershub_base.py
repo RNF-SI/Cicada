@@ -454,7 +454,12 @@ class TestReglagesDepuisLesParametres:
     def test_modifier_en_service_est_teste_d_abord(self, settings):
         config_en_base(settings, mode='geonature')
         ajouter_compte(146, 'cdupont', groupes=[900])
-        _, client = super_admin()
+        admin, client = super_admin()
+        # Instance déjà en service : le super admin s'est déjà connecté par
+        # UsersHub, son compte y est relié (un super admin n'est jamais relié
+        # par son seul email, sauf celui qui active la connexion).
+        admin.usershub_id_role = 146
+        admin.save()
         res = client.patch(REGLAGES, {'db_password': 'faute-de-frappe'}, format='json')
         assert res.status_code == 400 and res.json()['code'] == 'test_echoue'
         # Rien n'a changé : la connexion marche toujours.

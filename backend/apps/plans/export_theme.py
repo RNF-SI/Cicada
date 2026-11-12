@@ -52,3 +52,19 @@ def rgb(couleur: str | None = None) -> tuple[int, int, int]:
     """``#RRGGBB`` → ``(r, g, b)`` (notation python-docx)."""
     couleur = (couleur or couleur_instance()).lstrip('#')
     return tuple(int(couleur[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def neutraliser_formules(classeur):
+    """Aucune cellule d'un export n'est une formule.
+
+    openpyxl range en formule toute chaîne qui commence par « = » : un libellé
+    saisi par un utilisateur (« =HYPERLINK(…) », « =cmd|… ») devenait une
+    formule active à l'ouverture de l'export par un autre. Les exports de CICADA
+    n'écrivent aucune formule volontaire : chaque cellule repasse en texte.
+    """
+    for feuille in classeur.worksheets:
+        for ligne in feuille.iter_rows():
+            for cellule in ligne:
+                if cellule.data_type == 'f':
+                    cellule.data_type = 's'
+    return classeur

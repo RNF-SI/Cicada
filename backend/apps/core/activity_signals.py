@@ -22,6 +22,14 @@ from .services import ActivityService
 logger = logging.getLogger(__name__)
 
 
+def _acteur(instance):
+    """Auteur d'une écriture : posé sur l'objet par la vue, sinon l'utilisateur
+    authentifié de la requête en cours (suppression comprise)."""
+    from apps.core.middleware.logging import utilisateur_courant
+    return getattr(instance, '_current_user', None) or utilisateur_courant()
+
+
+
 # =============================================================================
 # UTILITAIRES POUR TRACKING DES CHANGEMENTS
 # =============================================================================
@@ -95,7 +103,7 @@ def log_site_activity_on_save(sender, instance, created, **kwargs):
     """
     try:
         # Recuperer l'acteur depuis le contexte de la requete
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
 
         if created:
             ActivityService.log_site_activity(
@@ -124,7 +132,7 @@ def log_site_activity_on_delete(sender, instance, **kwargs):
     Enregistre l'activite lors de la suppression d'un site.
     """
     try:
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
         ActivityService.log_site_activity(
             site=instance,
             action='delete',
@@ -171,7 +179,7 @@ def log_plan_activity_on_save(sender, instance, created, **kwargs):
         return
 
     try:
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
 
         if created:
             ActivityService.log_plan_activity(
@@ -211,7 +219,7 @@ def log_plan_activity_on_delete(sender, instance, **kwargs):
     Enregistre l'activite lors de la suppression d'un plan.
     """
     try:
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
         ActivityService.log_plan_activity(
             plan=instance,
             action='delete',
@@ -250,7 +258,7 @@ def log_member_activity_on_save(sender, instance, created, **kwargs):
     Enregistre l'activite lors de l'ajout ou modification d'un membre de site.
     """
     try:
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
 
         if created:
             if instance.referent and instance.referent_valid:
@@ -307,7 +315,7 @@ def log_member_activity_on_delete(sender, instance, **kwargs):
         return
 
     try:
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
         was_referent = instance.referent and instance.referent_valid
 
         ActivityService.log_member_change(
@@ -336,7 +344,7 @@ def log_plan_referent_activity(sender, instance, action, pk_set, **kwargs):
     try:
         from apps.users.models import Role
 
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
         log_action = 'add_referent' if action == 'post_add' else 'remove_referent'
 
         for user_id in pk_set:
@@ -387,7 +395,7 @@ def log_user_activity_on_save(sender, instance, created, **kwargs):
     Enregistre l'activite lors de la creation ou modification d'un utilisateur.
     """
     try:
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
 
         if created and not instance.pending_validation:
             ActivityService.log_user_activity(
@@ -492,7 +500,7 @@ def log_organisme_activity_on_save(sender, instance, created, **kwargs):
     Enregistre l'activite lors de la creation ou modification d'un organisme.
     """
     try:
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
 
         if created:
             ActivityService.log_organisme_activity(
@@ -523,7 +531,7 @@ def log_organisme_activity_on_delete(sender, instance, **kwargs):
     Enregistre l'activite lors de la suppression d'un organisme.
     """
     try:
-        actor = getattr(instance, '_current_user', None)
+        actor = _acteur(instance)
         ActivityService.log_organisme_activity(
             organisme=instance,
             action='delete',

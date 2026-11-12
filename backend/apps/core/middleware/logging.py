@@ -18,6 +18,22 @@ from django.utils.deprecation import MiddlewareMixin
 
 # Thread-local storage pour le correlation_id
 _correlation_id = threading.local()
+#: Utilisateur authentifié de la requête en cours (posé par l'authentification
+#: JWT de l'API) : les signaux du journal d'activité y lisent l'auteur d'une
+#: suppression, que rien d'autre ne leur transmet.
+_utilisateur = threading.local()
+
+
+def set_utilisateur_courant(user):
+    _utilisateur.value = user
+
+
+def utilisateur_courant():
+    return getattr(_utilisateur, 'value', None)
+
+
+def clear_utilisateur_courant():
+    _utilisateur.value = None
 
 
 def get_correlation_id() -> Optional[str]:
@@ -190,6 +206,7 @@ class RequestLoggingMiddleware(MiddlewareMixin):
         finally:
             # Nettoyer le thread local
             clear_correlation_id()
+            clear_utilisateur_courant()
 
         return response
 

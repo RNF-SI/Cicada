@@ -736,5 +736,7 @@ def build_presentation_workbook(plan) -> bytes:
             _render_enjeu_sheet(ws, enjeu, is_fcr=is_fcr, codes=codes)
 
     buf = io.BytesIO()
+    from .export_theme import neutraliser_formules
+    neutraliser_formules(wb)
     wb.save(buf)
     return buf.getvalue()

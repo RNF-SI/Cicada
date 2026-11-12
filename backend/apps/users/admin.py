@@ -290,6 +290,15 @@ class RoleAdmin(BaseUserAdmin):
     def has_delete_permission(self, request, obj=None):
         """Désactive le bouton 'Supprimer' standard de Django."""
         return False
+
+    def get_readonly_fields(self, request, obj=None):
+        """Les droits d'administration (super utilisateur, staff, permissions,
+        rôle) ne se modifient que par un super utilisateur : un compte staff
+        d'un autre groupe ne doit pas pouvoir s'en attribuer."""
+        champs = list(super().get_readonly_fields(request, obj))
+        if not request.user.is_superuser:
+            champs += ['is_superuser', 'is_staff', 'user_permissions', 'groups', 'role_level']
+        return champs
     
     list_display = (
         'email', 'nom_complet', 'role_display', 'organisme_display', 

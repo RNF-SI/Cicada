@@ -11,7 +11,7 @@ from .models_operations import SuiviInventaire
 from .models import PlanGestion
 from apps.users.permissions import IsReferent
 from apps.users.pagination import UsersPagination
-from .permissions import CanModifyOnlyDraftPlan
+from .permissions import CanModifyOnlyDraftPlan, PeutEcrireLePlan
 from .access import scope_by_plan
 from .exploration import LectureExplorationMixin
 from .serializers_suivis import (
@@ -39,7 +39,7 @@ class SuiviInventaireViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         'id_pg', 'id_utilisateur_ajout', 'id_utilisateur_maj'
     ).prefetch_related('operations', 'protocoles')
 
-    permission_classes = [permissions.IsAuthenticated, CanModifyOnlyDraftPlan]
+    permission_classes = [permissions.IsAuthenticated, PeutEcrireLePlan, CanModifyOnlyDraftPlan]
     pagination_class = UsersPagination
 
     def get_plan_for_payload(self, data):

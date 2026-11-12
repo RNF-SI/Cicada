@@ -197,6 +197,14 @@ class Command(BaseCommand):
             ))
             return
 
+        if not partage_active():
+            # Décoché pendant le dépôt : basculer republierait des plans que la
+            # structure vient de retirer (le retrait est déjà parti au hub).
+            self._abandonner(lot)
+            raise CommandError(
+                "Le partage a été désactivé pendant la publication : le lot est "
+                "abandonné, rien n'est republié."
+            )
         resultat = self._basculer(lot)
         self._historiser(
             PublicationHub.RESULTAT_REUSSIE,
@@ -313,6 +321,10 @@ class Command(BaseCommand):
         if self.dry_run:
             self.stdout.write(f"    [dry-run] page de {len(page)} plan(s)")
             return len(page)
+        # Relu à chaque page : une publication dure (jusqu'à deux heures), et
+        # le consentement peut être retiré entre-temps.
+        if not partage_active():
+            raise CommandError("Le partage a été désactivé pendant la publication.")
 
         corps = self._appel(
             'POST', f'/api/federation/lots/{lot}/plans/', {'plans': page}

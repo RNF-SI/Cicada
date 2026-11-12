@@ -1174,6 +1174,10 @@ class OperationAnnee(models.Model):
     def __str__(self):
         return f"Opération {self.id_operation_id} - {self.annee or 'global'}"
 
+    def get_plan_de_gestion(self):
+        """Plan de rattachement (contrôle du droit d'écrire, apps/plans/ecriture.py)."""
+        return self.id_operation.get_plan_de_gestion() if self.id_operation_id else None
+
 
 class OperationAnneeOrganisme(models.Model):
     """
@@ -1190,7 +1194,7 @@ class OperationAnneeOrganisme(models.Model):
     )
     id_organisme = models.ForeignKey(
         'users.BibOrganismes',
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,  # supprimer l'organisme effacerait sa ventilation (budget, réalisé)
         db_column='id_organisme',
         verbose_name=_("Organisme")
     )
@@ -1270,6 +1274,10 @@ class OperationAnneeOrganisme(models.Model):
     def __str__(self):
         return f"OpAnnée {self.id_operation_annee_id} - Org {self.id_organisme_id}"
 
+    def get_plan_de_gestion(self):
+        """Plan de rattachement (contrôle du droit d'écrire, apps/plans/ecriture.py)."""
+        return self.id_operation_annee.get_plan_de_gestion() if self.id_operation_annee_id else None
+
 
 class Financeur(models.Model):
     """
@@ -1331,6 +1339,10 @@ class Financeur(models.Model):
         return existant or cls.objects.create(
             id_pg=plan, nom=nom, id_categorie_id=cat_id, categorie_libre=libre)
 
+    def get_plan_de_gestion(self):
+        """Plan de rattachement (contrôle du droit d'écrire, apps/plans/ecriture.py)."""
+        return self.id_pg
+
 
 class FinanceOperation(models.Model):
     """
@@ -1378,6 +1390,10 @@ class FinanceOperation(models.Model):
 
     def __str__(self):
         return f"{self.libelle} (Opération {self.id_operation_id})"
+
+    def get_plan_de_gestion(self):
+        """Plan de rattachement (contrôle du droit d'écrire, apps/plans/ecriture.py)."""
+        return self.id_operation.get_plan_de_gestion() if self.id_operation_id else None
 
 
 class RealisationOperationAnnee(models.Model):
@@ -1567,6 +1583,10 @@ class RealisationFinanceur(models.Model):
             fields=['id_realisation_operation_annee', 'id_financeur'],
             name='uniq_realisation_financeur')]
         ordering = ['id_realisation_financeur']
+
+    def get_plan_de_gestion(self):
+        """Plan de rattachement (contrôle du droit d'écrire, apps/plans/ecriture.py)."""
+        return self.id_financeur.id_pg if self.id_financeur_id else None
 
 
 class RealisationOperationAnneeOrganisme(models.Model):
@@ -1917,6 +1937,10 @@ class Fonction(models.Model):
     def cout_jour_defaut(self):
         """Coût jour proposé par défaut : 0 pour un bénévole, sinon rien."""
         return 0 if self.type_poste == self.TYPE_BENEVOLE else None
+
+    def get_plan_de_gestion(self):
+        """Plan de rattachement (contrôle du droit d'écrire, apps/plans/ecriture.py)."""
+        return self.id_pg  # None pour une fonction du socle
 
 
 class Poste(models.Model):

@@ -20,6 +20,10 @@ def test_page_swagger_ouverte_sans_connexion():
     assert b'swagger-ui' in reponse.content
     # Le jeton saisi dans « Authorize » survit au rechargement de la page.
     assert b'"persistAuthorization": true' in reponse.content
+    # Swagger UI est chargé à une version figée, jamais « @latest » : il
+    # s'exécute sur l'origine de l'application.
+    assert b'swagger-ui-dist@5.17.14' in reponse.content
+    assert b'@latest' not in reponse.content
 
 
 def test_schema_ouvert_sans_connexion_et_annonce_le_jeton():

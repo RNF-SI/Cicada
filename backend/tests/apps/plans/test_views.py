@@ -248,8 +248,9 @@ class TestPlanGestionViewSetUpdate:
             'statut': 'valide'
         })
 
+        # Le statut ne change que par change-status (règles et droits du cycle de vie).
         assert response.status_code == status.HTTP_200_OK
-        assert response.data['statut'] == 'valide'
+        assert response.data['statut'] == 'draft'
 
 
 @pytest.mark.django_db

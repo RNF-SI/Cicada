@@ -106,7 +106,15 @@ class SiteConfigurationSerializer(serializers.ModelSerializer):
         return self._api_image_url(obj.homepage_image, 'homepage-image')
 
     def get_updated_by_name(self, obj) -> str | None:
-        """Retourne le nom de l'utilisateur qui a fait la derniere modification."""
+        """Nom du dernier super administrateur à avoir modifié les paramètres.
+
+        Réservé aux super administrateurs (seuls à voir l'écran qui l'affiche) :
+        la réponse est publique et nommait sinon un compte d'administration.
+        """
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user is None or not user.is_authenticated or not user.is_super_admin():
+            return None
         if obj.updated_by:
             return obj.updated_by.get_full_name() or obj.updated_by.email
         return None

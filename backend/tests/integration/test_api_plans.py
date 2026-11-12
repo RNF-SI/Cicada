@@ -506,7 +506,8 @@ class TestPlansUpdateEndpoint:
         assert plan.commentaire == 'Updated via API'
 
     def test_update_plan_status(self, api_client):
-        """Test updating plan status."""
+        """Le statut ne change que par le cycle de vie (change-status et ses
+        règles) : un PATCH du plan l'ignore, même d'un super admin."""
         admin = SuperAdminFactory()
         plan = PlanGestionFactory(statut='draft')
 
@@ -517,7 +518,7 @@ class TestPlansUpdateEndpoint:
 
         assert response.status_code == status.HTTP_200_OK
         plan.refresh_from_db()
-        assert plan.statut == 'valide'
+        assert plan.statut == 'draft'
 
     def test_update_plan_sets_modifier(self, api_client):
         """Test update sets modifier."""

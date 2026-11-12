@@ -611,6 +611,12 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'is_in_revision', 'is_mid_term',
             'has_draft_child', 'can_create_modification',
             'next_rang_plan_id', 'next_rang_plan_nom', 'next_rang_plan_slug',
+            # Cycle de vie : il ne change que par ses actions dédiées
+            # (change-status, csrpn-step, extend-duration, start-revision…), qui
+            # en vérifient les règles et les droits. Un PATCH du plan validait
+            # sinon un brouillon sans circuit de validation.
+            'statut', 'validation_step', 'is_mi_parcours', 'en_revision',
+            'annees_extension', 'version',
         ]
     
     def validate(self, data):
@@ -676,6 +682,31 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
 
         return plan
 
+    def _verifier_nouveaux_sites(self, plan, sites_ids):
+        """Un site ajouté au plan doit être l'un des siens, comme à la création.
+
+        Même règle que ``CanCreatePlan`` : admin d'organisme et au-dessus, tout
+        site ; sinon, les sites auxquels on est rattaché. Rattacher un site fait
+        entrer ses responsabilités dans le périmètre du plan, et l'ajout direct
+        court-circuitait la demande de lien plan-site.
+        """
+        from apps.users.models import CorRoleSite
+
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if user is None or not user.is_authenticated or user.is_admin_organisme():
+            return
+        actuels = set(plan.sites.values_list('site_id', flat=True))
+        nouveaux = set(sites_ids) - actuels
+        if not nouveaux:
+            return
+        siens = set(CorRoleSite.objects.filter(
+            id_role=user, id_site__in=nouveaux).values_list('id_site', flat=True))
+        if user.is_redacteur() or nouveaux - siens:
+            raise serializers.ValidationError({'sites_ids': [_(
+                "Vous ne pouvez ajouter au plan qu'un site auquel vous êtes rattaché. "
+                "Pour un autre site, demandez le lien depuis la page du plan.")]})
+
     @transaction.atomic
     def update(self, instance, validated_data):
         """Mettre à jour un plan avec ses relations."""
@@ -684,6 +715,9 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
         organismes_redacteurs_ids = validated_data.pop('organismes_redacteurs_ids', None)
         principal_fourni = 'organisme_redacteur_principal_id' in validated_data
         principal_id = validated_data.pop('organisme_redacteur_principal_id', None)
+
+        if sites_ids is not None:
+            self._verifier_nouveaux_sites(instance, sites_ids)
 
         plan = super().update(instance, validated_data)
 

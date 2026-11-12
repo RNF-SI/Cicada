@@ -73,7 +73,7 @@ from apps.users.permissions import (
     IsReferent, IsSuperAdmin, IsAdminOrganisme
 )
 from apps.users.pagination import StandardPagination
-from .permissions import CanCreatePlan, CanModifyOnlyDraftPlan
+from .permissions import CanCreatePlan, CanModifyOnlyDraftPlan, PeutEcrireLePlan
 from .exploration import LectureExplorationMixin
 
 
@@ -149,9 +149,25 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         #714 — l'appartenance à un organisme rédacteur ne suffit plus : le
         collègue d'un rédacteur externe n'a aucun droit sur le plan.
         """
-        if user.is_admin_organisme():
-            return True
-        return plan.referents.filter(pk=user.pk).exists()
+        from .access import user_can_write_plan
+        return user_can_write_plan(user, plan)
+
+    @staticmethod
+    def _lien_direct_refuse(user, site):
+        """Lien plan ↔ site sans validation : seulement pour qui gère aussi le site.
+
+        Règle du lien plan-site : super admin, rédacteur principal, ou
+        gestionnaire du site (référent validé, admin de son organisme). Les
+        autres passent par ``request_plan_site_link``, validée côté site.
+        """
+        from .access import has_global_plan_access
+        if has_global_plan_access(user) or user.can_manage_site(site):
+            return None
+        return Response({
+            'error': "Ce site n'est pas l'un de ceux que vous gérez : demandez le lien, "
+                     "il sera validé par les gestionnaires du site.",
+            'code': 'lien_a_demander',
+        }, status=status.HTTP_403_FORBIDDEN)
 
     def _can_export_plan(self, user, plan):
         """Vérifie si l'utilisateur peut exporter ce plan.
@@ -244,7 +260,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     ).prefetch_related('sites__site__id_type_site', 'fichiers', 'referents', 'children', 'membres__id_role')
 
     pagination_class = StandardPagination
-    permission_classes = [permissions.IsAuthenticated, CanModifyOnlyDraftPlan]
+    permission_classes = [permissions.IsAuthenticated, PeutEcrireLePlan, CanModifyOnlyDraftPlan]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
 
     def get_permissions(self):
@@ -678,6 +694,10 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         try:
             from apps.users.models import Site
             site = Site.objects.get(id_site=site_id)
+            if not CorSitePg.objects.filter(plan_de_gestion=plan, site=site).exists():
+                refus = self._lien_direct_refuse(request.user, site)
+                if refus is not None:
+                    return refus
 
             # Créer ou mettre à jour la relation
             cor_site_pg, created = CorSitePg.objects.update_or_create(
@@ -763,6 +783,9 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         except Site.DoesNotExist:
             return Response({'error': 'Nouveau site non trouvé'},
                           status=status.HTTP_404_NOT_FOUND)
+        refus = self._lien_direct_refuse(request.user, new_site)
+        if refus is not None:
+            return refus
 
         # Vérifier que l'ancien site est bien lié au plan
         try:
@@ -869,6 +892,21 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 {'error': "Seul un utilisateur simple peut devenir rédacteur externe."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # Devenir rédacteur externe retire l'accès par ses sites et son
+        # organisme : un référent ne l'impose pas à un compte qui en a.
+        if target.role_level == 'utilisateur' and not request.user.is_super_admin():
+            from apps.users.models import CorRoleSite
+            attaches = (
+                CorRoleSite.objects.filter(id_role=target).exists()
+                or CorRolePlan.objects.filter(id_role=target).exclude(plan_de_gestion=plan).exists()
+            )
+            if attaches:
+                return Response({
+                    'error': "Cet utilisateur est rattaché à des sites ou à d'autres plans : "
+                             "en faire un rédacteur externe lui retirerait ces accès. "
+                             "Seul un super administrateur peut le faire.",
+                    'code': 'utilisateur_rattache',
+                }, status=status.HTTP_403_FORBIDDEN)
 
         from django.db import transaction
 
@@ -2730,6 +2768,13 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                     {'error': "Un plan ne peut pas être son propre rang suivant."},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            # Le rang suivant est un plan que l'on rédige : pas celui d'un autre.
+            from .access import user_can_write_plan
+            if not user_can_write_plan(request.user, next_rang_plan):
+                return Response(
+                    {'error': "Vous ne pouvez désigner comme rang suivant qu'un plan que vous rédigez."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
         plan.en_revision = True
         if next_rang_plan is not None:
@@ -2833,6 +2878,16 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             return Response(
                 {'detail': "Vous n'avez pas les droits pour supprimer cette version."},
                 status=status.HTTP_403_FORBIDDEN,
+            )
+        # Une version validée ou archivée est l'historique du plan (arrêté,
+        # suivis saisis) : elle s'archive, elle ne se supprime pas. Seul un
+        # super administrateur garde la main, pour réparer une erreur.
+        if plan.statut != 'draft' and not request.user.is_super_admin():
+            return Response(
+                {'detail': "Seule une version en brouillon peut être supprimée. "
+                           "Une version validée ou archivée s'archive.",
+                 'code': 'version_non_brouillon'},
+                status=status.HTTP_409_CONFLICT,
             )
 
         # Capturer la chaîne et les acteurs AVANT la suppression.
@@ -3297,7 +3352,9 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
         """
         if self.action in ('list', 'retrieve', 'download'):
             return [permissions.IsAuthenticated()]
-        return [permissions.IsAuthenticated(), IsReferent()]
+        # Référent de CE plan ou gestionnaire : être référent d'autre chose
+        # ouvrait le dépôt dans n'importe quel plan.
+        return [permissions.IsAuthenticated(), IsReferent(), PeutEcrireLePlan()]
 
     def get_queryset(self):
         """Filtrer les fichiers selon les permissions sur les plans."""
@@ -3351,11 +3408,9 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
                 status=404
             )
 
-        # Déterminer le content type
-        import mimetypes
-        content_type, _ = mimetypes.guess_type(fichier.nom_fichier)
-        if not content_type:
-            content_type = 'application/octet-stream'
+        # Type et ouverture déduits de l'extension enregistrée au dépôt.
+        from apps.core.documents_http import s_ouvre_en_ligne, securiser, type_du_document
+        content_type = type_du_document(fichier.extension)
 
         # Servir le fichier
         try:
@@ -3364,16 +3419,12 @@ class CorPgFichierViewSet(viewsets.ModelViewSet):
 
             response = HttpResponse(file_content, content_type=content_type)
 
-            # Inline pour PDF et images, attachment pour le reste
-            ext = (fichier.extension or '').lower().lstrip('.')
-            if ext in ('pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp'):
-                disposition = 'inline'
-            else:
-                disposition = 'attachment'
+            # En ligne pour les PDF et les images matricielles, téléchargé sinon
+            disposition = 'inline' if s_ouvre_en_ligne(fichier.extension) else 'attachment'
             response['Content-Disposition'] = f'{disposition}; filename="{fichier.nom_fichier}"'
             response['Content-Length'] = len(file_content)
 
-            return response
+            return securiser(response, fichier.extension)
 
         except Exception as e:
             return HttpResponse(
@@ -3443,6 +3494,12 @@ def bulk_assign_sites(request):
             if not request.user.can_manage_site(site):
                 return Response({'error': f'Permissions insuffisantes pour le site {site.nom_site}'}, 
                               status=status.HTTP_403_FORBIDDEN)
+        # … et sur chaque plan : un plan d'un autre organisme ne reçoit pas de site.
+        from .access import user_can_write_plan
+        for plan in plans:
+            if not user_can_write_plan(request.user, plan):
+                return Response({'error': f'Permissions insuffisantes pour le plan {plan.nom}'},
+                                status=status.HTTP_403_FORBIDDEN)
         
         created_relations = []
         for plan in plans:

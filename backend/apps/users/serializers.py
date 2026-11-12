@@ -233,6 +233,21 @@ class RoleCreateSerializer(serializers.ModelSerializer):
             'password', 'password_confirm', 'active', 'is_staff'
         ]
 
+    def validate_is_staff(self, value):
+        """Seul un super administrateur pose ou retire l'accès à l'admin Django.
+
+        ``is_staff`` ouvre l'interface d'administration de Django ; un
+        administrateur d'organisme qui le cochait sur un compte de son
+        organisme lui ouvrait cette porte.
+        """
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        actuel = self.instance.is_staff if self.instance is not None else False
+        if value != actuel and not (user and user.is_authenticated and user.is_super_admin()):
+            raise serializers.ValidationError(
+                _("Seul un super administrateur peut modifier l'accès à l'administration Django."))
+        return value
+
     def validate_identifiant(self, value):
         """L'identifiant est obligatoire et unique (#656)."""
         return _validate_identifiant_unique(value)
@@ -306,6 +321,21 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
             'nom_role', 'prenom_role', 'role_level', 'uuid_organisme',
             'desc_role', 'identifiant', 'remarques', 'active', 'is_staff'
         ]
+
+    def validate_is_staff(self, value):
+        """Seul un super administrateur pose ou retire l'accès à l'admin Django.
+
+        ``is_staff`` ouvre l'interface d'administration de Django ; un
+        administrateur d'organisme qui le cochait sur un compte de son
+        organisme lui ouvrait cette porte.
+        """
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        actuel = self.instance.is_staff if self.instance is not None else False
+        if value != actuel and not (user and user.is_authenticated and user.is_super_admin()):
+            raise serializers.ValidationError(
+                _("Seul un super administrateur peut modifier l'accès à l'administration Django."))
+        return value
 
     def validate_identifiant(self, value):
         """Un identifiant déjà posé ne peut pas être vidé ni dupliqué (#656)."""

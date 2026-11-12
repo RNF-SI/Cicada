@@ -397,5 +397,7 @@ def build_fiche_suivi_workbook(plan, annee, operation_ids=None) -> bytes:
         _render(ws, plan, op, annee, code)
 
     buf = io.BytesIO()
+    from .export_theme import neutraliser_formules
+    neutraliser_formules(wb)
     wb.save(buf)
     return buf.getvalue()

@@ -63,12 +63,12 @@ plans.CorResponsabiliteTaxon.id_responsabilite -> plans.Responsabilite : CASCADE
 plans.CorRolePlan.id_role -> users.Role : CASCADE
 plans.CorRolePlan.plan_de_gestion -> plans.PlanGestion : CASCADE
 plans.CorSitePg.plan_de_gestion -> plans.PlanGestion : CASCADE
-plans.CorSitePg.site -> users.Site : CASCADE
+plans.CorSitePg.site -> users.Site : CASCADE  # site lié à un plan validé ou partagé : suppression refusée (409)
 plans.Enjeu.id_pg -> plans.PlanGestion : CASCADE
 plans.Enjeu.id_utilisateur_maj -> users.Role : SET_NULL
 plans.FacteurInfluence.id_utilisateur_maj -> users.Role : SET_NULL
 plans.FinanceOperation.id_categorie -> core.Nomenclature : SET_NULL
-plans.FinanceOperation.id_financeur -> plans.Financeur : CASCADE
+plans.FinanceOperation.id_financeur -> plans.Financeur : CASCADE  # suppression refusée (409) si plan validé ou suivi saisi
 plans.FinanceOperation.id_operation -> plans.Operation : CASCADE
 plans.Financeur.id_categorie -> core.Nomenclature : SET_NULL
 plans.Financeur.id_pg -> plans.PlanGestion : CASCADE
@@ -102,7 +102,6 @@ plans.Operation.id_type_action -> core.Nomenclature : SET_NULL
 plans.Operation.id_utilisateur_maj -> users.Role : SET_NULL
 plans.OperationAnnee.id_operation -> plans.Operation : CASCADE
 plans.OperationAnneeOrganisme.id_operation_annee -> plans.OperationAnnee : CASCADE
-plans.OperationAnneeOrganisme.id_organisme -> users.BibOrganismes : CASCADE
 plans.OperationAnneeRH.id_operation_annee -> plans.OperationAnnee : CASCADE
 plans.OperationAnneeRH.id_organisme -> users.BibOrganismes : SET_NULL
 plans.OperationAnneeRH.id_poste -> plans.Poste : SET_NULL
@@ -128,7 +127,7 @@ plans.Pression.id_facteur_influence -> plans.FacteurInfluence : CASCADE
 plans.Pression.id_type_pression -> core.Nomenclature : SET_NULL
 plans.Pression.id_utilisateur_maj -> users.Role : SET_NULL
 plans.Protocole.id_utilisateur_maj -> users.Role : SET_NULL
-plans.RealisationFinanceur.id_financeur -> plans.Financeur : CASCADE
+plans.RealisationFinanceur.id_financeur -> plans.Financeur : CASCADE  # suppression du financeur refusée (409) dès qu'il porte du suivi
 plans.RealisationFinanceur.id_realisation_operation_annee -> plans.RealisationOperationAnnee : CASCADE
 plans.RealisationOperationAnnee.id_niveau_realisation -> core.Nomenclature : SET_NULL
 plans.RealisationOperationAnnee.id_operation_annee -> plans.OperationAnnee : CASCADE
@@ -136,7 +135,7 @@ plans.RealisationOperationAnnee.id_utilisateur_maj -> users.Role : SET_NULL
 plans.RealisationOperationAnneeOrganisme.id_operation_annee_organisme -> plans.OperationAnneeOrganisme : CASCADE
 plans.RealisationOperationAnneeRH.id_operation_annee_rh -> plans.OperationAnneeRH : SET_NULL
 plans.RealisationOperationAnneeRH.id_organisme -> users.BibOrganismes : SET_NULL
-plans.RealisationOperationAnneeRH.id_poste -> plans.Poste : SET_NULL
+plans.RealisationOperationAnneeRH.id_poste -> plans.Poste : SET_NULL  # poste portant du temps réalisé : suppression refusée (409)
 plans.RealisationOperationAnneeRH.id_realisation_operation_annee -> plans.RealisationOperationAnnee : CASCADE
 plans.Responsabilite.id_site -> users.Site : CASCADE
 plans.Responsabilite.id_utilisateur_maj -> users.Role : SET_NULL

@@ -39,7 +39,7 @@ soumises à ``IsReferentOrReadOnly`` et ``CanModifyOnlyDraftPlan``.
 
 from rest_framework.permissions import SAFE_METHODS
 
-from .access import lecture_exploration
+from .access import lecture_exploration, user_can_access_suivi
 from .models import PlanGestion
 
 #: Clés retirées d'une réponse servie à un lecteur d'exploration, où qu'elles
@@ -80,16 +80,26 @@ CLES_SENSIBLES = frozenset({
 CLE_ACCES = 'acces_exploration'
 
 
-def elaguer(donnees):
-    """Retire récursivement les clés sensibles d'une structure JSON-like."""
+#: Ce qu'un utilisateur lié au plan mais sans accès aux suivis ne lit pas.
+CLES_DU_SUIVI = frozenset({
+    'realisation', 'realisations', 'financeurs_bilan',
+    'niveau_realisation_global_mnemonique', 'niveau_realisation_global_label',
+    'niveau_realisation_global_manuel', 'niveau_realisation_global_commentaire',
+    'declinaison_par_type_cout_realise', 'cout_salarial_auto_realise',
+    'declinaison_par_poste_realise', 'mesures', 'annual_mesures',
+})
+
+
+def elaguer(donnees, cles=CLES_SENSIBLES):
+    """Retire récursivement les clés ``cles`` d'une structure JSON-like."""
     if isinstance(donnees, dict):
         return {
-            cle: elaguer(valeur)
+            cle: elaguer(valeur, cles)
             for cle, valeur in donnees.items()
-            if cle not in CLES_SENSIBLES
+            if cle not in cles
         }
     if isinstance(donnees, list):
-        return [elaguer(element) for element in donnees]
+        return [elaguer(element, cles) for element in donnees]
     return donnees
 
 
@@ -143,6 +153,11 @@ class LectureExplorationMixin:
         exploration = lecture_exploration(request.user, plan)
         if exploration:
             response.data = elaguer(response.data)
+        elif not user_can_access_suivi(request.user, plan, lecture=True):
+            # Lié au plan sans accès aux suivis (#740) — rédacteur externe
+            # (#700), membre de l'organisme non rattaché : le contenu, oui ;
+            # les réalisations imbriquées dans les actions, non.
+            response.data = elaguer(response.data, CLES_DU_SUIVI)
         if isinstance(response.data, dict):
             # Dit au client dans quel mode il lit : c'est lui qui masque les
             # entrées (suivis, exports, fichiers…) dont l'API ne répondrait
