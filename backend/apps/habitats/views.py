@@ -1,5 +1,6 @@
 """Vues API pour le référentiel HabRef."""
 
+from django.db.models import Q
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -41,11 +42,16 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
           recherche porte sur l'ensemble d'HabRef.
         - limit : nombre max de résultats (défaut 20)
         """
-        search = request.query_params.get('search', '').strip()
+        # Bornée : un ILIKE par mot sur toute la table, des milliers de mots
+        # d'un caractère tenaient un worker et la base plusieurs minutes.
+        search = request.query_params.get('search', '').strip()[:200]
         if len(search) < 2:
             return Response([])
 
-        limit = min(int(request.query_params.get('limit', 20)), 100)
+        try:
+            limit = max(1, min(int(request.query_params.get('limit', 20)), 100))
+        except (TypeError, ValueError):
+            limit = 20
 
         is_numeric = search.isdigit()
 
@@ -53,7 +59,7 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
         # Recherche par mots : chaque mot doit apparaître (sous-chaîne, sans
         # accents). Sans ça, « pelouse sèche » ne trouvait pas « Pelouses sèches »
         # (l'espace coupait la sous-chaîne au mauvais endroit à cause du pluriel).
-        words = search.split() or [search]
+        words = [w for w in search.split() if len(w) >= 2][:8] or [search]
         with connection.cursor() as cursor:
             text_conds = " AND ".join(
                 ["unaccent(search_name) ILIKE unaccent(%s)"] * len(words)
@@ -206,6 +212,8 @@ class HabrefViewSet(viewsets.ReadOnlyModelViewSet):
         items = request.data.get('items', [])
         if not items:
             return Response({'found': [], 'not_found': []})
+        if not isinstance(items, list) or len(items) > 500:
+            return Response({'items': ["500 éléments au plus par appel."]}, status=400)
 
         found = []
         not_found = []

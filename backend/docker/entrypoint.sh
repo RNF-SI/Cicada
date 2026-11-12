@@ -5,7 +5,9 @@ set -e
 
 # Fixer les permissions des volumes montes (executes en root)
 if [ "$(id -u)" = "0" ]; then
-    chown -R cicada:cicada /app/logs /app/media /app/static 2>/dev/null || true
+    # -h : jamais la cible d'un lien posé dans ces dossiers (l'un d'eux est
+    # monté depuis l'hôte).
+    chown -hR cicada:cicada /app/logs /app/media /app/static 2>/dev/null || true
     # Jeton de l'instance auprès de l'API de suivi (#696) : monté depuis l'hôte
     # en root:root 600, donc illisible par l'utilisateur `cicada` une fois les
     # privilèges abandonnés. Lu ici, encore en root, et transmis par
@@ -132,6 +134,11 @@ else:
 fi
 
 echo "=== Initialisation terminée ==="
+
+# Durée maximale d'une requête SQL pour le serveur web (pas pour les commandes
+# d'initialisation ni Celery, qui importent les référentiels) : une requête
+# continue sinon après la mort du worker qui l'attendait (délai gunicorn 120 s).
+export CICADA_DB_STATEMENT_TIMEOUT_MS="${CICADA_DB_STATEMENT_TIMEOUT_MS:-90000}"
 
 # Lancer la commande passée (gunicorn en prod) ou runserver par défaut
 if [ "$#" -gt 0 ]; then

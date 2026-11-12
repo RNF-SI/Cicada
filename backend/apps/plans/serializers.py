@@ -106,6 +106,17 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
             'date_upload'
         ]
 
+    def validate_nom_fichier(self, value):
+        """Un nom, jamais un chemin : ni séparateur, ni caractère de contrôle
+        (il sert aussi à nommer la copie du fichier à la duplication)."""
+        import os
+        import re
+        nom = os.path.basename((value or '').replace('\\', '/'))
+        nom = re.sub(r'[\x00-\x1f\x7f]', '', nom).strip()
+        if value and not nom or nom in ('.', '..'):
+            raise serializers.ValidationError(_("Nom de fichier invalide."))
+        return nom[:255]
+
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_file_size_human(self, obj):
         """Retourne la taille du fichier en format lisible."""

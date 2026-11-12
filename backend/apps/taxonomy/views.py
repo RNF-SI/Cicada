@@ -91,11 +91,16 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
         - regne : filtre optionnel par règne
         - group2_inpn : filtre optionnel par groupe
         """
-        search = request.query_params.get('search', '').strip()
+        # Bornée : un ILIKE par mot sur toute la table, des milliers de mots
+        # d'un caractère tenaient un worker et la base plusieurs minutes.
+        search = request.query_params.get('search', '').strip()[:200]
         if len(search) < 2:
             return Response([])
 
-        limit = min(int(request.query_params.get('limit', 20)), 100)
+        try:
+            limit = max(1, min(int(request.query_params.get('limit', 20)), 100))
+        except (TypeError, ValueError):
+            limit = 20
 
         # #449 — Recherche élargie incluant les SYNONYMES. La vue
         # `vm_taxref_list_forautocomplete` ne contient que les noms valides
@@ -108,7 +113,7 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
         # Recherche par mots : chaque mot doit apparaître (sous-chaîne, sans
         # accents) — sinon un espace casse la recherche (ex. « chene pubescent »
         # ne trouvait pas « Chêne pubescent » selon les variantes de casse/pluriel).
-        words = search.split() or [search]
+        words = [w for w in search.split() if len(w) >= 2][:8] or [search]
         # Colonne de recherche selon la source (vue = search_name ; table = lb_nom).
         search_col = 'lb_nom' if include_synonyms else 'search_name'
         with connection.cursor() as cursor:
@@ -216,6 +221,8 @@ class TaxrefViewSet(viewsets.ReadOnlyModelViewSet):
         items = request.data.get('items', [])
         if not items:
             return Response({'found': [], 'not_found': []})
+        if not isinstance(items, list) or len(items) > 500:
+            return Response({'items': ["500 éléments au plus par appel."]}, status=400)
 
         found = []
         not_found = []

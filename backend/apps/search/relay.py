@@ -84,7 +84,7 @@ def relayer(chemin, params=None):
             url,
             params=dict(params.lists()) if hasattr(params, 'lists') else params,
             headers={'X-Hub-Token': jeton_lecture(ligne) or ''},
-            timeout=DELAI,
+            allow_redirects=False, timeout=DELAI,
         )
     except requests.RequestException as erreur:
         logger.error("Hub d'exploration injoignable (%s) : %s", url, erreur)

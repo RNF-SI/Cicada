@@ -210,7 +210,7 @@ def suivi_qui_accepte():
     """Simule `POST /instances/adhesion-hub/` : le suivi enregistre la demande."""
     recu = {}
 
-    def poster(url, headers=None, json=None, timeout=None):
+    def poster(url, headers=None, json=None, timeout=None, **_options):
         recu.update(url=url, headers=headers, corps=json)
         return reponse(201, {'statut': 'en_attente', 'demandee_le': 'x'})
 
@@ -394,7 +394,7 @@ class TestActualisation:
 @pytest.mark.django_db
 class TestVerifier:
     def _hub(self, instances_status=200, instances=None):
-        def get(url, headers=None, timeout=None):
+        def get(url, headers=None, timeout=None, **_options):
             assert timeout == 5
             if url.endswith('/api/health/'):
                 return reponse(200, {'status': 'ok'})
@@ -666,7 +666,7 @@ class TestContactDeLaDemande:
 def suivi_confirmation(status_code, corps):
     recu = {}
 
-    def poster(url, headers=None, json=None, timeout=None):
+    def poster(url, headers=None, json=None, timeout=None, **_options):
         recu.update(url=url, headers=headers, corps=json, timeout=timeout)
         return reponse(status_code, corps)
 

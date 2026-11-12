@@ -1572,17 +1572,11 @@ def _extract_rh(plan, poste_code_by_id, org_code_by_id) -> list[dict]:
 def parse_actions_workbook(source) -> dict:
     """Lit le classeur d'actions : renvoie ``{"actions": [...], "indicateurs":
     {code: id_indicateur}}``. Lève ``ArborescenceImportError`` si illisible."""
-    if isinstance(source, (bytes, bytearray)):
-        source = io.BytesIO(source)
-    elif hasattr(source, "read"):
-        source = io.BytesIO(source.read())
-    try:
-        wb = load_workbook(source, data_only=True)
-    except Exception as exc:  # noqa: BLE001
-        raise ArborescenceImportError(
-            "Le fichier n'a pas pu être lu. Vérifiez qu'il s'agit bien d'un "
-            "classeur Excel (.xlsx) issu du modèle d'import des actions."
-        ) from exc
+    from .services_import import ouvrir_classeur
+    wb = ouvrir_classeur(
+        source,
+        "Le fichier n'a pas pu être lu. Vérifiez qu'il s'agit bien d'un "
+        "classeur Excel (.xlsx) issu du modèle d'import des actions.")
 
     ws_by_name = {_norm(name): wb[name] for name in wb.sheetnames}
 

@@ -239,8 +239,16 @@ class PlanDuplicationService:
             if old_path and os.path.exists(old_path):
                 new_dir = f"/app/media/plans/{new_plan.id_pg}"
                 os.makedirs(new_dir, exist_ok=True)
-                new_path = os.path.join(new_dir, fichier.nom_fichier)
-                shutil.copy2(old_path, new_path)
+                # Nom sur disque tiré du nom affiché, sans aucun composant de
+                # chemin : « ../../… » dans nom_fichier écrivait hors du dossier.
+                from django.utils.text import get_valid_filename
+                nom_disque = get_valid_filename(os.path.basename(
+                    (fichier.nom_fichier or '').replace('\\', '/'))) or f'document-{fichier.pk}'
+                new_path = os.path.join(new_dir, nom_disque)
+                if os.path.realpath(new_path).startswith(os.path.realpath(new_dir) + os.sep):
+                    shutil.copy2(old_path, new_path)
+                else:
+                    new_path = ''
                 new_fichier.chemin_fichier = new_path
             else:
                 new_fichier.chemin_fichier = ''

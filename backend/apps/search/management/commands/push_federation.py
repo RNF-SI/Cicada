@@ -270,7 +270,7 @@ class Command(BaseCommand):
                 methode, f"{self.hub}{chemin}",
                 headers=self._entetes(),
                 data=json.dumps(corps) if corps is not None else None,
-                timeout=DELAI,
+                allow_redirects=False, timeout=DELAI,
             )
         except requests.RequestException as erreur:
             raise HubIndisponible(f"{methode} {chemin} → hub injoignable : {erreur}") from erreur

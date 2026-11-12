@@ -60,7 +60,7 @@ git push origin v0.1.21
 
 **Effets :**
 
-- Le workflow **Docker Build & Push** s’exécute et publie les images `ghcr.io/rnf-si/cicada-backend:0.1.13`, `ghcr.io/rnf-si/cicada-frontend:0.1.13` (et `:latest`).
+- Le workflow **Docker Build & Push** lance d'abord toute la suite de tests (`tests.yml`, appelé par le workflow) puis, **seulement si elle passe**, publie les images `ghcr.io/rnf-si/cicada-backend:0.1.13`, `ghcr.io/rnf-si/cicada-frontend:0.1.13` (et `:latest`). Un tag dont les tests échouent ne publie aucune image : corriger, puis poser un nouveau tag (jamais réécrire un tag publié). Le tag doit être de la forme `vX.Y.Z`, sinon les workflows s'arrêtent.
 - Le workflow **Build Debian package** (voir ci‑dessous) s’exécute et produit un artefact `cicada_0.1.13_amd64.deb` (téléchargeable depuis l’onglet Actions ou la Release GitHub si vous en créez une).
 
 La version du .deb est dérivée du tag (`v0.1.13` → `0.1.13`), donc elle reste alignée avec les images Docker.

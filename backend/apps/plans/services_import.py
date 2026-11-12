@@ -1838,6 +1838,36 @@ class ImportReport:
 # ---------------------------------------------------------------------------
 
 
+#: Taille maximale d'un classeur lu à l'import (avant toute lecture).
+TAILLE_MAX_CLASSEUR = 5 * 1024 * 1024
+
+
+def ouvrir_classeur(source, message):
+    """Classeur lu en flux (``read_only``), dimensions déclarées ignorées.
+
+    Lu en entier, un classeur de quelques kilo-octets déclarant une cellule en
+    ``XFD1048576`` demandait des dizaines de giga-octets ; en flux, mais avec
+    la dimension annoncée, chaque ligne était complétée jusqu'à 16 384
+    colonnes. Les lecteurs ne font qu'itérer les lignes (``iter_rows``) et
+    tolèrent des lignes de longueurs inégales.
+    """
+    if isinstance(source, (bytes, bytearray)):
+        source = io.BytesIO(source)
+    elif hasattr(source, "read") and not hasattr(source, "getbuffer"):
+        source = io.BytesIO(source.read(TAILLE_MAX_CLASSEUR + 1))
+    if source.getbuffer().nbytes > TAILLE_MAX_CLASSEUR:
+        raise ArborescenceImportError(
+            f"Le fichier dépasse {TAILLE_MAX_CLASSEUR // (1024 * 1024)} Mo : "
+            "un classeur d'import n'a pas besoin d'être aussi lourd.")
+    try:
+        wb = load_workbook(source, data_only=True, read_only=True)
+        for ws in wb.worksheets:
+            ws.reset_dimensions()
+    except Exception as exc:  # noqa: BLE001
+        raise ArborescenceImportError(message) from exc
+    return wb
+
+
 def parse_workbook(source) -> dict[str, list[dict]]:
     """Lit le classeur et renvoie, par clé d'onglet, la liste des lignes.
 
@@ -1848,17 +1878,10 @@ def parse_workbook(source) -> dict[str, list[dict]]:
     Lève ``ArborescenceImportError`` si le fichier est illisible ou si un onglet attendu
     (ou une colonne obligatoire) est absent.
     """
-    if isinstance(source, (bytes, bytearray)):
-        source = io.BytesIO(source)
-    elif hasattr(source, "read"):
-        source = io.BytesIO(source.read())
-    try:
-        wb = load_workbook(source, data_only=True)
-    except Exception as exc:  # noqa: BLE001
-        raise ArborescenceImportError(
-            "Le fichier n'a pas pu être lu. Vérifiez qu'il s'agit bien d'un "
-            "classeur Excel (.xlsx) issu du modèle d'import."
-        ) from exc
+    wb = ouvrir_classeur(
+        source,
+        "Le fichier n'a pas pu être lu. Vérifiez qu'il s'agit bien d'un "
+        "classeur Excel (.xlsx) issu du modèle d'import.")
 
     # Index des feuilles par nom normalisé.
     ws_by_name = {_norm(name): wb[name] for name in wb.sheetnames}
@@ -3096,21 +3119,15 @@ def read_any_workbook(source) -> list[dict]:
     ligne (en-têtes présumés) et ``rows`` les lignes suivantes (valeurs brutes).
     Ne présuppose rien de la structure — c'est l'utilisateur qui mappe ensuite.
     """
-    if isinstance(source, (bytes, bytearray)):
-        source = io.BytesIO(source)
-    elif hasattr(source, "read"):
-        source = io.BytesIO(source.read())
-    try:
-        wb = load_workbook(source, data_only=True, read_only=True)
-    except Exception as exc:  # noqa: BLE001
-        raise ArborescenceImportError(
-            "Le fichier n'a pas pu être lu. Vérifiez qu'il s'agit d'un classeur "
-            "Excel (.xlsx)."
-        ) from exc
+    wb = ouvrir_classeur(
+        source,
+        "Le fichier n'a pas pu être lu. Vérifiez qu'il s'agit d'un classeur "
+        "Excel (.xlsx).")
 
     sheets = []
     for ws in wb.worksheets:
-        rows_iter = ws.iter_rows(values_only=True)
+        # Aperçu : 200 colonnes au plus (le mapping n'en demande jamais autant).
+        rows_iter = ws.iter_rows(values_only=True, max_col=200)
         first = next(rows_iter, None)
         if first is None:
             sheets.append({"name": ws.title, "headers": [], "rows": []})

@@ -71,10 +71,13 @@ def lire_ecrans(reference):
         return ecrans
 
     ligne = raccordement()
-    url = f"{hub_url(ligne)}/api/exploration/plans/{reference}/ecrans/"
+    # La référence vient de l'URL demandée : encodée, elle ne peut pas changer
+    # la requête envoyée au hub avec le jeton de lecture (« %3F… »).
+    from urllib.parse import quote
+    url = f"{hub_url(ligne)}/api/exploration/plans/{quote(str(reference), safe=':')}/ecrans/"
     try:
         reponse = requests.get(
-            url, headers={'X-Hub-Token': jeton_lecture(ligne) or ''}, timeout=DELAI,
+            url, headers={'X-Hub-Token': jeton_lecture(ligne) or ''}, allow_redirects=False, timeout=DELAI,
         )
     except requests.RequestException as erreur:
         logger.error("Hub injoignable pour les écrans de %s : %s", reference, erreur)

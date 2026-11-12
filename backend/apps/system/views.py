@@ -45,7 +45,7 @@ def get_rgpd_info():
         response = requests.get(
             f"{tracking_url}/instances/me/",
             headers={'X-Instance-Token': token},
-            timeout=10
+            allow_redirects=False, timeout=10
         )
         if response.ok:
             data = response.json()
@@ -99,7 +99,7 @@ def withdraw_consent(request):
         response = requests.delete(
             f"{tracking_url}/instances/me/",
             headers={'X-Instance-Token': token},
-            timeout=10
+            allow_redirects=False, timeout=10
         )
         if response.ok:
             return JsonResponse({

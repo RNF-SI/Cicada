@@ -68,7 +68,7 @@ def hub_qui_purge(purges=4, appels=None):
     """Simule le hub : ouverture d'un lot, puis bascule qui purge `purges` plans."""
     appels = appels if appels is not None else []
 
-    def repondre(methode, url, headers=None, data=None, timeout=None):
+    def repondre(methode, url, headers=None, data=None, timeout=None, **_options):
         appels.append({'methode': methode, 'url': url, 'headers': headers,
                        'corps': json.loads(data) if data else None})
         r = MagicMock()
@@ -276,7 +276,7 @@ class TestRecocherRepublie:
 
 @pytest.mark.django_db
 class TestAdhesionVautConsentement:
-    def _suivi(self, url, headers=None, json=None, timeout=None):
+    def _suivi(self, url, headers=None, json=None, timeout=None, **_options):
         r = MagicMock(status_code=201)
         r.json.return_value = {'statut': 'en_attente'}
         return r

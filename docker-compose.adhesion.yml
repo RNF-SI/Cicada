@@ -16,6 +16,8 @@ services:
       - CICADA_INSTANCE_LABEL=Poste de développement
       - CICADA_PUBLIC_URL=http://localhost
       - CICADA_HUB_URL=http://host.docker.internal:8002
+      # Banc local : hub en http (en production, https est exigé).
+      - CICADA_HUB_HTTP_AUTORISE=true
       - CICADA_HUB_PUSH_TOKEN=
       - CICADA_HUB_READ_TOKEN=
       - CICADA_EXPLORATION_SOURCE=hub

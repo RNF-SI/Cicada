@@ -85,6 +85,8 @@ class InpgViewSet(viewsets.ReadOnlyModelViewSet):
         items = request.data.get('items', [])
         if not items:
             return Response({'found': [], 'not_found': []})
+        if not isinstance(items, list) or len(items) > 500:
+            return Response({'items': ["500 éléments au plus par appel."]}, status=400)
 
         found = []
         not_found = []

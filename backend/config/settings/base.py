@@ -104,6 +104,9 @@ CICADA_PUBLIC_URL = os.environ.get('CICADA_PUBLIC_URL', '')
 # Ces réglages sont vides par défaut : sans eux, l'instance ne publie rien et
 # sert son exploration depuis son propre index, comme avant.
 CICADA_HUB_URL = os.environ.get('CICADA_HUB_URL', '').rstrip('/')
+# Les jetons du hub partent dans les en-têtes : https exigé pour une adresse
+# saisie à l'écran ou reçue du suivi, sauf banc d'essai explicite.
+CICADA_HUB_HTTP_AUTORISE = os.environ.get('CICADA_HUB_HTTP_AUTORISE', 'false').lower() in ('1', 'true', 'yes')
 
 #: Jeton de dépôt, propre à cette instance (côté hub : `HUB_FEDERATION_TOKENS`).
 CICADA_HUB_PUSH_TOKEN = os.environ.get('CICADA_HUB_PUSH_TOKEN', '')
@@ -209,7 +212,10 @@ DATABASES = {
         'HOST': os.environ.get('POSTGRES_HOST', 'db'),
         'PORT': os.environ.get('POSTGRES_PORT', '5432'),
         'OPTIONS': {
-            'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,ccd_search,taxonomie,ref_habitats,ref_inpg,ref_campanule,public',
+            'options': '-c search_path=utilisateurs,referentiels,ref_nomenclatures,ref_geo,general,fichiers,ccd_commons,ccd_notifications,ccd_search,taxonomie,ref_habitats,ref_inpg,ref_campanule,public'
+                       # Serveur web seulement (posé par l'entrypoint avant gunicorn).
+                       + (f" -c statement_timeout={int(os.environ['CICADA_DB_STATEMENT_TIMEOUT_MS'])}"
+                          if os.environ.get('CICADA_DB_STATEMENT_TIMEOUT_MS', '').isdigit() else ''),
             # Base sur un autre serveur : « require » (écrit par l'installateur)
             # refuse une connexion en clair. Vide : défaut libpq (« prefer »).
             **({'sslmode': os.environ['POSTGRES_SSLMODE']}

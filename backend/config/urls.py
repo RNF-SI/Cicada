@@ -13,6 +13,9 @@ from apps.search.urls import federation_urlpatterns
 from apps.search.views import DocumentPublicView
 
 
+from apps.core.csp import rapport_csp  # noqa: E402
+
+
 def health_check(request):
     """Simple health check endpoint for Docker."""
     return JsonResponse({'status': 'healthy', 'service': 'cicada'})
@@ -21,6 +24,7 @@ def health_check(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/health/', health_check, name='health_check'),
+    path('api/csp-report/', rapport_csp, name='csp_report'),
     # Schéma OpenAPI + Swagger UI, ouverts sans connexion (#750). La documentation statique
     # servie sous /aide/ embarque une copie du schéma (documentation/docs/api/).
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

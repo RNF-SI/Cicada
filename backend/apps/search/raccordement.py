@@ -319,7 +319,7 @@ def actualiser_adhesion(ligne=None):
     try:
         reponse = requests.get(
             f"{url}/instances/adhesion-hub/",
-            headers={'X-Instance-Token': jeton}, timeout=DELAI,
+            headers={'X-Instance-Token': jeton}, allow_redirects=False, timeout=DELAI,
         )
     except requests.RequestException as erreur:
         logger.warning("API de suivi injoignable pour l'adhésion au hub : %s", type(erreur).__name__)
@@ -348,7 +348,7 @@ def actualiser_adhesion(ligne=None):
         if statut == RaccordementHub.STATUT_CODE_ENVOYE else None
     )
     if statut == RaccordementHub.STATUT_ACCEPTEE and corps.get('hub_url'):
-        ligne.hub_url = corps['hub_url'].rstrip('/')
+        ligne.hub_url = url_hub_recue(corps['hub_url']) or ligne.hub_url
     ligne.adhesion_actualisee_le = timezone.now()
     ligne.save()
     if statut != ancien:
@@ -454,7 +454,7 @@ def demander_adhesion(donnees=None):
                 'empreinte_lecture': empreinte_lecture,
                 **contact,
             },
-            timeout=DELAI,
+            allow_redirects=False, timeout=DELAI,
         )
     except requests.RequestException as erreur:
         logger.warning("API de suivi injoignable pour la demande d'adhésion : %s", type(erreur).__name__)
@@ -529,7 +529,7 @@ def confirmer_adhesion(code):
             f"{url}/instances/adhesion-hub/confirmation/",
             headers={'X-Instance-Token': jeton_suivi},
             json={'code': code.strip()},
-            timeout=DELAI,
+            allow_redirects=False, timeout=DELAI,
         )
     except requests.RequestException as erreur:
         logger.warning("API de suivi injoignable pour la confirmation d'adhésion : %s", type(erreur).__name__)
@@ -546,7 +546,7 @@ def confirmer_adhesion(code):
         ligne.adhesion_motif = ''
         ligne.adhesion_code_expire_le = None
         if corps.get('hub_url'):
-            ligne.hub_url = corps['hub_url'].rstrip('/')
+            ligne.hub_url = url_hub_recue(corps['hub_url']) or ligne.hub_url
         ligne.adhesion_actualisee_le = timezone.now()
         ligne.save()
         logger.info("Adhésion au hub confirmée par code (instance « %s »).", settings.CICADA_INSTANCE_ID)
@@ -606,7 +606,7 @@ def contacter_rnf(utilisateur, donnees):
                 'sujet': sujet.strip(),
                 'message': message.strip(),
             },
-            timeout=DELAI,
+            allow_redirects=False, timeout=DELAI,
         )
     except requests.RequestException as erreur:
         logger.warning("API de suivi injoignable pour un message à RNF : %s", type(erreur).__name__)
@@ -647,10 +647,33 @@ def _valider_url(valeur):
     if len(valeur) > 500:
         raise _invalide("URL du hub trop longue.")
     try:
-        URLValidator(schemes=['http', 'https'])(valeur)
+        URLValidator(schemes=schemas_hub_permis())(valeur)
     except ValidationError:
-        raise _invalide("L'URL du hub doit commencer par http:// ou https://.")
+        raise _invalide(
+            "L'URL du hub doit commencer par https://." if 'http' not in schemas_hub_permis()
+            else "L'URL du hub doit commencer par http:// ou https://.")
     return valeur
+
+
+def schemas_hub_permis():
+    """https seulement : les jetons de dépôt et de lecture partent dans les
+    en-têtes. http reste possible en développement ou sur un banc
+    (``CICADA_HUB_HTTP_AUTORISE``)."""
+    if settings.DEBUG or getattr(settings, 'CICADA_HUB_HTTP_AUTORISE', False):
+        return ['http', 'https']
+    return ['https']
+
+
+def url_hub_recue(valeur):
+    """Adresse du hub transmise par l'API de suivi à l'adhésion : retenue
+    seulement si elle est valable (https). Un suivi compromis ne doit pas
+    pouvoir envoyer les plans et le jeton de dépôt vers un hôte de son choix
+    en clair ; on garde alors l'adresse déjà connue."""
+    try:
+        return _valider_url(valeur) or None
+    except ErreurRaccordement:
+        logger.warning("Adhésion au hub : adresse reçue du suivi refusée (%r).", str(valeur)[:200])
+        return None
 
 
 def _valider_jeton(valeur):
@@ -753,7 +776,7 @@ def verifier_hub():
         return resultat
 
     try:
-        sante = requests.get(f"{url}/api/health/", timeout=DELAI)
+        sante = requests.get(f"{url}/api/health/", allow_redirects=False, timeout=DELAI)
         resultat['hub_joignable'] = sante.status_code == 200
     except requests.RequestException:
         pass
@@ -773,7 +796,7 @@ def verifier_hub():
         return resultat
 
     try:
-        reponse = requests.get(f"{url}/api/federation/instances/", headers=entetes, timeout=DELAI)
+        reponse = requests.get(f"{url}/api/federation/instances/", headers=entetes, allow_redirects=False, timeout=DELAI)
     except requests.RequestException:
         resultat['erreur'] = 'hub_injoignable'
         return resultat
@@ -859,7 +882,7 @@ def retirer_du_hub(origine=PublicationHub.ORIGINE_MANUELLE, hub=None, jeton=None
             reponse = requests.request(
                 methode, f"{url}{chemin}", headers=entetes,
                 data=json.dumps(corps) if corps is not None else None,
-                timeout=DELAI_RETRAIT,
+                allow_redirects=False, timeout=DELAI_RETRAIT,
             )
         except requests.RequestException as erreur:
             raise ErreurRaccordement(

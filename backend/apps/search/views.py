@@ -265,7 +265,8 @@ class ExplorationPlanViewSet(ViewSet):
         mesures ni réalisations.
         """
         if relais_actif():
-            return relayer(f'/api/exploration/plans/{reference_plan(slug)}/')
+            from urllib.parse import quote
+            return relayer(f'/api/exploration/plans/{quote(str(reference_plan(slug)), safe=":")}/')
 
         # #703 — une référence « instance:slug » ouverte en exploration locale
         # (lien produit sur l'exploration nationale, partagé). Celle de cette
