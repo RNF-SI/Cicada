@@ -10,6 +10,10 @@ Quatre classeurs calqués sur les modèles CICADA :
   (sections Fonctionnement / Investissement), TOTAL, synthèse par poste de dépense ;
 - ``build_budget_suivi_workbook`` — idem avec colonnes Prévu / Réalisé.
 
+#794 — au suivi, chaque année des onglets par organisme et TOTAL a trois
+colonnes : Prévu PG (plan de gestion) / Prévu ajusté (planification annuelle) /
+Réalisé.
+
 Toute la logique de coûts provient du module partagé
 :mod:`apps.plans.services_export_finance`.
 """
@@ -112,16 +116,26 @@ def _set(ws, r, c, value, *, fill=None, font=_F_CELL, align=_AL_R):
 # ---------------------------------------------------------------------------
 
 class _ActionMatrix:
-    """Feuille : Enjeu/FCR | Code simplifié | Code action PG | Libellé | années | TOTAL."""
+    """Feuille : Enjeu/FCR | Code simplifié | Code action PG | Libellé | années | TOTAL.
+
+    Par année : le prévu (prévisionnel), ou prévu / réalisé (suivi) — #794 :
+    prévu du plan de gestion / prévu ajusté / réalisé (``ajuste=True``)."""
 
     HEADERS = ["Enjeu / FCR", "Code simplifié", "Code action PG", "Libellé de l'action"]
 
-    def __init__(self, ws, years, *, suivi, fmt):
+    def __init__(self, ws, years, *, suivi, fmt, ajuste=False):
         self.ws = ws
         self.years = years
         self.suivi = suivi
         self.fmt = fmt
-        self.ncols = 4 + (2 * len(years) + 2 if suivi else len(years) + 1)
+        if suivi and ajuste:
+            self.sous = ["Prévu PG", "Prévu ajusté", "Réalisé"]
+        elif suivi:
+            self.sous = ["Prévu", "Réalisé"]
+        else:
+            self.sous = [None]
+        self.k = len(self.sous)
+        self.ncols = 4 + self.k * (len(years) + 1)
         self.r = 1
         widths = {1: 18, 2: 13, 3: 15, 4: 44}
         for c in range(5, self.ncols + 1):
@@ -129,16 +143,12 @@ class _ActionMatrix:
         for c, w in widths.items():
             ws.column_dimensions[get_column_letter(c)].width = w
 
-    # --- positions colonnes ---
-    def _yc(self, i, real=False):
-        if self.suivi:
-            return 5 + 2 * i + (1 if real else 0)
-        return 5 + i
+    # --- positions colonnes (j : rang de la valeur dans l'année) ---
+    def _yc(self, i, j=0):
+        return 5 + self.k * i + j
 
-    def _tc(self, real=False):
-        if self.suivi:
-            return 5 + 2 * len(self.years) + (1 if real else 0)
-        return 5 + len(self.years)
+    def _tc(self, j=0):
+        return 5 + self.k * len(self.years) + j
 
     def head(self, title, subtitle):
         ws = self.ws
@@ -154,21 +164,18 @@ class _ActionMatrix:
             if self.suivi:
                 ws.merge_cells(start_row=hr, start_column=col, end_row=hr + 1, end_column=col)
             _set(ws, hr, col, h, fill=_HDR_FILL, font=_F_HDR, align=_AL_C)
-        # années
-        for i, y in enumerate(self.years):
-            if self.suivi:
-                ws.merge_cells(start_row=hr, start_column=self._yc(i), end_row=hr, end_column=self._yc(i, True))
-            _set(ws, hr, self._yc(i), str(year_label(y)), fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
+        # années, puis le total
+        entetes = [(self._yc(i), str(year_label(y))) for i, y in enumerate(self.years)]
+        entetes.append((self._tc(), "TOTAL"))
+        for col, texte in entetes:
+            if self.k > 1:
+                ws.merge_cells(start_row=hr, start_column=col, end_row=hr, end_column=col + self.k - 1)
+            _set(ws, hr, col, texte, fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
         if self.suivi:
-            ws.merge_cells(start_row=hr, start_column=self._tc(), end_row=hr, end_column=self._tc(True))
-        _set(ws, hr, self._tc(), "TOTAL", fill=_YEAR_FILL, font=_F_YEAR, align=_AL_C)
-        if self.suivi:
-            # sous-en-tête Prévu / Réalisé
-            for i in range(len(self.years)):
-                _set(ws, hr + 1, self._yc(i), "Prévu", fill=_SECTION_FILL, font=_F_TOTAL, align=_AL_C)
-                _set(ws, hr + 1, self._yc(i, True), "Réalisé", fill=_SECTION_FILL, font=_F_TOTAL, align=_AL_C)
-            _set(ws, hr + 1, self._tc(), "Prévu", fill=_SECTION_FILL, font=_F_TOTAL, align=_AL_C)
-            _set(ws, hr + 1, self._tc(True), "Réalisé", fill=_SECTION_FILL, font=_F_TOTAL, align=_AL_C)
+            # sous-en-tête : Prévu / Réalisé (#794 : Prévu PG / Prévu ajusté / Réalisé)
+            for col, _t in entetes:
+                for j, sous in enumerate(self.sous):
+                    _set(ws, hr + 1, col + j, sous, fill=_SECTION_FILL, font=_F_TOTAL, align=_AL_C)
             self.r = hr + 2
         else:
             self.r = hr + 1
@@ -179,41 +186,38 @@ class _ActionMatrix:
         _set(ws, self.r, 1, f"► {label}", fill=_SECTION_FILL, font=_F_SECTION, align=_AL_L)
         self.r += 1
 
-    def row(self, enjeu, cat, code, libelle, prev, real=None):
+    def _series(self, prev, real, ajuste):
+        if self.k == 3:
+            return [prev, ajuste or {}, real or {}]
+        if self.k == 2:
+            return [prev, real or {}]
+        return [prev]
+
+    def row(self, enjeu, cat, code, libelle, prev, real=None, ajuste=None):
         ws = self.ws
         _set(ws, self.r, 1, enjeu, font=_F_CELL, align=_AL_L)
         _set(ws, self.r, 2, cat, font=_F_CELL, align=_AL_C)
         _set(ws, self.r, 3, code, font=_F_CELL, align=_AL_C)
         _set(ws, self.r, 4, libelle, font=_F_CELL, align=_AL_L)
-        tp = _ZERO
-        tr = _ZERO
-        for i, y in enumerate(self.years):
-            pv = prev.get(y, _ZERO)
-            tp += pv
-            _set(ws, self.r, self._yc(i), self.fmt(pv))
-            if self.suivi:
-                rv = (real or {}).get(y, _ZERO)
-                tr += rv
-                _set(ws, self.r, self._yc(i, True), self.fmt(rv))
-        _set(ws, self.r, self._tc(), self.fmt(tp), fill=_TOTAL_FILL, font=_F_TOTAL)
-        if self.suivi:
-            _set(ws, self.r, self._tc(True), self.fmt(tr), fill=_TOTAL_FILL, font=_F_TOTAL)
+        for j, serie in enumerate(self._series(prev, real, ajuste)):
+            total = _ZERO
+            for i, y in enumerate(self.years):
+                v = serie.get(y, _ZERO)
+                total += v
+                _set(ws, self.r, self._yc(i, j), self.fmt(v))
+            _set(ws, self.r, self._tc(j), self.fmt(total), fill=_TOTAL_FILL, font=_F_TOTAL)
         self.r += 1
 
-    def total(self, label, prev, real=None):
+    def total(self, label, prev, real=None, ajuste=None):
         ws = self.ws
         ws.merge_cells(start_row=self.r, start_column=1, end_row=self.r, end_column=4)
         _set(ws, self.r, 1, label, fill=_TOTAL_FILL, font=_F_TOTAL, align=_AL_L)
-        tp = tr = _ZERO
-        for i, y in enumerate(self.years):
-            pv = prev.get(y, _ZERO); tp += pv
-            _set(ws, self.r, self._yc(i), self.fmt(pv), fill=_TOTAL_FILL, font=_F_TOTAL)
-            if self.suivi:
-                rv = (real or {}).get(y, _ZERO); tr += rv
-                _set(ws, self.r, self._yc(i, True), self.fmt(rv), fill=_TOTAL_FILL, font=_F_TOTAL)
-        _set(ws, self.r, self._tc(), self.fmt(tp), fill=_TOTAL_FILL, font=_F_TOTAL)
-        if self.suivi:
-            _set(ws, self.r, self._tc(True), self.fmt(tr), fill=_TOTAL_FILL, font=_F_TOTAL)
+        for j, serie in enumerate(self._series(prev, real, ajuste)):
+            total = _ZERO
+            for i, y in enumerate(self.years):
+                v = serie.get(y, _ZERO); total += v
+                _set(ws, self.r, self._yc(i, j), self.fmt(v), fill=_TOTAL_FILL, font=_F_TOTAL)
+            _set(ws, self.r, self._tc(j), self.fmt(total), fill=_TOTAL_FILL, font=_F_TOTAL)
         self.r += 1
 
     def freeze(self):
@@ -437,39 +441,62 @@ def build_rh_previsionnel_workbook(plan) -> bytes:
     return _save(wb)
 
 
+def _ajustees(pf):
+    """#794 — ``ActionFinance`` de chaque action sur la planification annuelle
+    ajustée (le prévu des années ajustées change, le réalisé non)."""
+    from collections import defaultdict
+
+    from .planification_annuelle import ajustements_par_annee
+    from .services_export_finance import build_action_finance, poste_entry_factory
+
+    ajust = ajustements_par_annee([af.op.pk for af in pf.actions])
+    return {
+        af.op.pk: build_action_finance(af.op, pf.org_names, defaultdict(poste_entry_factory),
+                                       ajustements=ajust)
+        for af in pf.actions}
+
+
 def build_rh_suivi_workbook(plan) -> bytes:
     _appliquer_couleur_instance()
     pf = build_plan_finance(plan)
+    aj = _ajustees(pf)  # #794 — colonne « Prévu ajusté »
     wb = Workbook(); wb.remove(wb.active); used = set()
     title = _plan_title(plan)
+
+    def series(af, cell_of):
+        pg, ajustee = af, aj[af.op.pk]
+        return ({y: cell_of(pg, y).jours for y in pf.years},
+                {y: cell_of(pg, y).rjours for y in pf.years},
+                {y: cell_of(ajustee, y).jours for y in pf.years})
 
     for oid in _org_sheets(pf):
         rows = []
         for af in pf.actions:
-            prev = {y: af.cell(oid, y).jours for y in pf.years}
-            real = {y: af.cell(oid, y).rjours for y in pf.years}
-            if sum(prev.values()) != 0 or sum(real.values()) != 0:
-                rows.append((af, prev, real))
+            prev, real, ajuste = series(af, lambda a, y, oid=oid: a.cell(oid, y))
+            if any(sum(d.values()) != 0 for d in (prev, real, ajuste)):
+                rows.append((af, prev, real, ajuste))
         if not rows:
             continue
         name = pf.org_names.get(oid, "Non ventilé")
-        m = _ActionMatrix(wb.create_sheet(_title(f"RH Suivi — {name}", used)), pf.years, suivi=True, fmt=_fmt_jours)
+        m = _ActionMatrix(wb.create_sheet(_title(f"RH Suivi — {name}", used)), pf.years,
+                          suivi=True, fmt=_fmt_jours, ajuste=True)
         m.head(title, f"RESSOURCES HUMAINES — SUIVI (jours) — {name}")
-        for af, prev, real in rows:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, prev, real)
-        m.total(f"TOTAL — {name}", _sum_years([p for _, p, _ in rows], pf.years), _sum_years([r for _, _, r in rows], pf.years))
+        for af, prev, real, ajuste in rows:
+            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, prev, real, ajuste)
+        m.total(f"TOTAL — {name}", _sum_years([r[1] for r in rows], pf.years),
+                _sum_years([r[2] for r in rows], pf.years), _sum_years([r[3] for r in rows], pf.years))
         m.freeze()
 
-    m = _ActionMatrix(wb.create_sheet(_title("TOTAL", used)), pf.years, suivi=True, fmt=_fmt_jours)
+    m = _ActionMatrix(wb.create_sheet(_title("TOTAL", used)), pf.years, suivi=True, fmt=_fmt_jours,
+                      ajuste=True)
     m.head(title, f"RESSOURCES HUMAINES — SUIVI (jours) — {_total_subtitle(pf)}")
-    pr, rr = [], []
+    pr, rr, ar = [], [], []
     for af in pf.actions:
-        prev = {y: af.year_total(y).jours for y in pf.years}
-        real = {y: af.year_total(y).rjours for y in pf.years}
-        if sum(prev.values()) != 0 or sum(real.values()) != 0:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, prev, real)
-            pr.append(prev); rr.append(real)
-    m.total("TOTAL", _sum_years(pr, pf.years), _sum_years(rr, pf.years))
+        prev, real, ajuste = series(af, lambda a, y: a.year_total(y))
+        if any(sum(d.values()) != 0 for d in (prev, real, ajuste)):
+            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, prev, real, ajuste)
+            pr.append(prev); rr.append(real); ar.append(ajuste)
+    m.total("TOTAL", _sum_years(pr, pf.years), _sum_years(rr, pf.years), _sum_years(ar, pf.years))
     m.freeze()
 
     if pf.par_poste_suivi:
@@ -506,33 +533,41 @@ def _budget_sections(pf):
     return [("Budget", "tot", "rtot")]
 
 
-def _budget_matrix(m, pf, cell_for, name, *, suivi):
-    """Remplit une matrice budget (un organisme ou le total) ; False si vide."""
+def _budget_matrix(m, pf, cell_for, name, *, suivi, ajustees=None):
+    """Remplit une matrice budget (un organisme ou le total) ; False si vide.
+
+    #794 — ``ajustees`` ({id_operation: ActionFinance ajustée}) : colonne
+    « Prévu ajusté » (exports de suivi)."""
     blocks = []
     for label, a_prev, a_real in _budget_sections(pf):
         rows = []
         for af in pf.actions:
             prev = {y: getattr(cell_for(af, y), a_prev) for y in pf.years}
             real = {y: getattr(cell_for(af, y), a_real) for y in pf.years} if suivi else None
-            if sum(prev.values()) or (real and sum(real.values())):
-                rows.append((af, prev, real))
+            ajuste = ({y: getattr(cell_for(ajustees[af.op.pk], y), a_prev) for y in pf.years}
+                      if ajustees else None)
+            if sum(prev.values()) or (real and sum(real.values())) or (ajuste and sum(ajuste.values())):
+                rows.append((af, prev, real, ajuste))
         blocks.append((label, rows))
     if not any(rows for _, rows in blocks):
         return False
     for label, rows in blocks:
         m.section(label)
-        for af, prev, real in rows:
-            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, prev, real)
+        for af, prev, real, ajuste in rows:
+            m.row(af.enjeu_label, af.categorie, af.code, af.libelle, prev, real, ajuste)
         suffix = f" {name}" if name else ""
         m.total(f"TOTAL — {label}{suffix}",
-                _sum_years([p for _, p, _ in rows], pf.years),
-                _sum_years([r for _, _, r in rows], pf.years) if suivi else None)
+                _sum_years([r[1] for r in rows], pf.years),
+                _sum_years([r[2] for r in rows], pf.years) if suivi else None,
+                _sum_years([r[3] for r in rows], pf.years) if ajustees else None)
     return True
 
 
 def _build_budget_workbook(plan, *, suivi) -> bytes:
     _appliquer_couleur_instance()
     pf = build_plan_finance(plan)
+    # #794 — suivi : colonne « Prévu ajusté » (planification annuelle).
+    ajustees = _ajustees(pf) if suivi else None
     wb = Workbook(); wb.remove(wb.active); used = set()
     title = _plan_title(plan)
     kind = "SUIVI" if suivi else "PRÉVISIONNEL"
@@ -541,18 +576,20 @@ def _build_budget_workbook(plan, *, suivi) -> bytes:
     for oid in _org_sheets(pf):
         name = pf.org_names.get(oid, "Non ventilé")
         ws = wb.create_sheet(_title(f"{prefix} — {name}", used))
-        m = _ActionMatrix(ws, pf.years, suivi=suivi, fmt=_fmt_euro)
+        m = _ActionMatrix(ws, pf.years, suivi=suivi, fmt=_fmt_euro, ajuste=suivi)
         m.head(title, f"BUDGET {kind} (€) — {name}")
-        if _budget_matrix(m, pf, lambda af, y, oid=oid: af.cell(oid, y), name, suivi=suivi):
+        if _budget_matrix(m, pf, lambda af, y, oid=oid: af.cell(oid, y), name, suivi=suivi,
+                          ajustees=ajustees):
             m.freeze()
         else:
             wb.remove(ws)
             used.discard(ws.title.lower())
 
     total_name = _total_sheet_name(pf, "TOTAL" if suivi else "TOTAL OG")
-    m = _ActionMatrix(wb.create_sheet(_title(total_name, used)), pf.years, suivi=suivi, fmt=_fmt_euro)
+    m = _ActionMatrix(wb.create_sheet(_title(total_name, used)), pf.years, suivi=suivi,
+                      fmt=_fmt_euro, ajuste=suivi)
     m.head(title, f"BUDGET {kind} (€) — {_total_subtitle(pf)}")
-    _budget_matrix(m, pf, lambda af, y: af.year_total(y), "", suivi=suivi)
+    _budget_matrix(m, pf, lambda af, y: af.year_total(y), "", suivi=suivi, ajustees=ajustees)
     m.freeze()
 
     # #735 — synthèse par poste de dépense : seulement si une action détaille

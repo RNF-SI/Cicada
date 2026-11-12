@@ -60,6 +60,7 @@ Tous les exports renvoient un fichier (`Content-Disposition: attachment`) et son
 | `GET …/{id_pg}/export-arborescence-xlsx/`, `…/export-arborescence-presentation-xlsx/` | Arborescence au format d'import (réimportable) ou de présentation |
 | `GET …/{id_pg}/export-fiches-actions-xlsx/`, `…/export-actions-xlsx/` | Fiches action ; classeur des actions au format d'import |
 | `GET …/{id_pg}/export-budget-previsionnel-xlsx/`, `…/export-budget-suivi-xlsx/`, `…/export-rh-previsionnel-xlsx/`, `…/export-rh-suivi-xlsx/` | Budget et ressources humaines, prévisionnel et suivi |
+| `GET …/{id_pg}/export-fiches-suivi-xlsx/?annee=`, `…/export-planification-annuelle-xlsx/?annee=` | Fiches de suivi des actions d'une année ; planification annuelle ajustée d'une année (plan de gestion / ajusté / écart, financeurs, calendrier) |
 | `POST …/{id_pg}/export-tableau-de-bord-xlsx/`, `…/export-suivi-actions-xlsx/` | Tableau de bord et suivi des actions, selon la vue et les filtres passés dans le corps |
 
 ## Exemple : créer un plan rattaché au rang précédent

@@ -126,14 +126,17 @@ class TestClasseur:
         assert "Agence de l'eau" not in _row(rows, "Financeurs")
         i = rows.index(operateurs)
         assert "Prévu" not in rows[i - 1]
-        # #727 — prévu en D:F (index 3), réalisé en G:I (index 6) : la fiche
-        # s'élargit à 9 colonnes pour la grille des scores (6 paliers).
+        # #727 — la fiche s'élargit à 9 colonnes pour la grille des scores (6
+        # paliers). #794 — temps et budget sur trois colonnes : plan de gestion
+        # en D:E (index 3), ajusté en F:G (index 5, ici le plan : rien n'est
+        # ajusté), réalisé en H:I (index 7).
         garde = next(r for r in rows if r[0] == "Garde technicien")
-        assert "10" in garde[3] and "8" in garde[6]
+        assert "10" in garde[3] and "10" in garde[5] and "8" in garde[7]
         salarial = _row(rows, "Coût salarial — fonctionnement")
-        assert salarial[3] == "3 000 €" and salarial[6] == "2 400 €"
+        assert (salarial[3], salarial[5], salarial[7]) == ("3 000 €", "3 000 €", "2 400 €")
         total = _row(rows, "Total budget")
-        assert total[3] == "3 500 €" and total[6] == "2 800 €"
+        assert (total[3], total[5], total[7]) == ("3 500 €", "3 500 €", "2 800 €")
+        # Les autres blocs gardent prévu en D:F et réalisé en G:I.
         indic = _row(rows, "Hectares fauchés (Surface fauchée)")
         # Valeur cible / valeur saisie, suivies de l'unité de la métrique.
         assert indic[3].startswith("12") and indic[6].startswith("9")

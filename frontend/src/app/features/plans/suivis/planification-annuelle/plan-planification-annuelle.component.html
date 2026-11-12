@@ -91,6 +91,14 @@
             </button>
           </div>
 
+          @if (peutExporter()) {
+            <button mat-stroked-button type="button" class="btn-export" (click)="exporter()"
+                    [disabled]="isExporting()" data-testid="planification-exporter">
+              <i class="fi fi-rr-download"></i>
+              {{ 'plans.suivis.planificationAnnuelle.exporter' | translate }}
+            </button>
+          }
+
           <div class="revue" data-testid="planification-revue">
             <span class="revue-texte">
               {{ 'plans.suivis.planificationAnnuelle.revues' | translate:{ revues: t.revues, total: t.total, annee: t.annee } }}

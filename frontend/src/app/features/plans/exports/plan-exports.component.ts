@@ -215,6 +215,17 @@ export class PlanExportsComponent implements OnInit {
           filename: (slug, annee) => `fiches-suivi-${slug}-${annee}.xlsx`,
           parAnnee: true,
         },
+        {
+          // #794 — planification annuelle ajustée de l'année choisie.
+          key: 'planification-annuelle',
+          testId: 'planification-annuelle-export',
+          icon: 'fi-rr-calendar',
+          labelKey: 'plans.exports.planificationAnnuelle',
+          hintKey: 'plans.exports.planificationAnnuelleHint',
+          request: (id, annee) => this.adminService.downloadPlanificationAnnuelle(id, annee),
+          filename: (slug, annee) => `planification-annuelle-${slug}-${annee}.xlsx`,
+          parAnnee: true,
+        },
       ],
     },
     {

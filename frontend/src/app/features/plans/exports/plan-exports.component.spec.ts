@@ -65,6 +65,7 @@ describe('PlanExportsComponent (#617)', () => {
       downloadRhSuivi: jest.fn().mockImplementation(blob),
       downloadArborescenceTemplate: jest.fn().mockImplementation(blob),
       downloadFichesSuivi: jest.fn().mockImplementation(blob),
+      downloadPlanificationAnnuelle: jest.fn().mockImplementation(blob),
       downloadActionsTemplate: jest.fn().mockImplementation(blob),
     };
     mockSnackBar = { open: jest.fn() };
@@ -177,6 +178,14 @@ describe('PlanExportsComponent (#617)', () => {
     (fixture.nativeElement.querySelector('[data-testid="fiches-suivi-export"]') as HTMLButtonElement)
       .click();
     expect(mockAdminService.downloadFichesSuivi).toHaveBeenCalledWith(10, 2025);
+  });
+
+  it('#794 — planification annuelle : export de l\'année choisie', () => {
+    component.setAnneeSuivi(2026);
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('[data-testid="planification-annuelle-export"]') as HTMLButtonElement)
+      .click();
+    expect(mockAdminService.downloadPlanificationAnnuelle).toHaveBeenCalledWith(10, 2026);
   });
 
   it('masque les exports pour un utilisateur lié au plan mais non référent', () => {

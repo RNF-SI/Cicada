@@ -886,6 +886,15 @@ export class AdminService {
       .pipe(catchError(this.handleError));
   }
 
+  /** #794 — planification annuelle ajustée d'une année (plan / ajusté / écart). */
+  downloadPlanificationAnnuelle(planId: number, annee: number): Observable<Blob> {
+    return this.http
+      .get(`${this.plansApiUrl}/plans/${planId}/export-planification-annuelle-xlsx/`, {
+        params: { annee: String(annee) }, responseType: 'blob',
+      })
+      .pipe(catchError(this.handleError));
+  }
+
   downloadRhSuivi(planId: number): Observable<Blob> {
     return this.http
       .get(`${this.plansApiUrl}/plans/${planId}/export-rh-suivi-xlsx/`, { responseType: 'blob' })

@@ -57,7 +57,10 @@ def _total_cell(ws, label, real=False):
                if any(ws.cell(r, c).value == "TOTAL" for c in range(1, ws.max_column + 1)))
     col = next(c for c in range(1, ws.max_column + 1) if ws.cell(hdr, c).value == "TOTAL")
     row = next(r for r in range(1, ws.max_row + 1) if ws.cell(r, 1).value == label)
-    return ws.cell(row, col + (1 if real else 0)).value
+    if real:
+        # #794 — suivi : sous le TOTAL, Prévu PG / Prévu ajusté / Réalisé.
+        col = next(c for c in range(col, col + 3) if ws.cell(hdr + 1, c).value == "Réalisé")
+    return ws.cell(row, col).value
 
 
 @pytest.fixture

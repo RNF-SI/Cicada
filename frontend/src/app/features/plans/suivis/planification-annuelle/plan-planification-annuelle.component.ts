@@ -3,8 +3,10 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
@@ -18,6 +20,7 @@ import {
   LigneTableauAnnuel, ResumeAnnuel, TableauAnnuel,
 } from '../../../../core/models/planification-annuelle.model';
 import { PLANIFICATION_STATUT_TAG, TagAppearance } from '../../../../shared/utils/tag-icons';
+import { downloadBlob } from '../../../../shared/utils/chart-image-export';
 
 /** Filtre du tableau : statut ajusté, actions à revoir, actions qui divergent. */
 export type FiltreAnnuel = 'tous' | 'planifiee' | 'reportee' | 'non_prevue' | 'a_revoir' | 'diverge';
@@ -66,7 +69,7 @@ function sansAccents(texte: string): string {
   selector: 'app-plan-planification-annuelle',
   standalone: true,
   imports: [
-    CommonModule, RouterModule, MatMenuModule, MatProgressSpinnerModule, MatTooltipModule,
+    CommonModule, RouterModule, MatButtonModule, MatMenuModule, MatProgressSpinnerModule, MatTooltipModule,
     TranslateModule, HeaderComponent, PlanSidebarComponent, SearchBarComponent, TagComponent,
   ],
   templateUrl: './plan-planification-annuelle.component.html',
@@ -79,6 +82,7 @@ export class PlanPlanificationAnnuelleComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly service = inject(PlanificationAnnuelleService);
   private readonly translate = inject(TranslateService);
+  private readonly snackBar = inject(MatSnackBar);
 
   readonly filtres = FILTRES_ANNUELS;
 
@@ -86,6 +90,9 @@ export class PlanPlanificationAnnuelleComponent implements OnInit {
   planSlug = signal<string | null>(null);
   planNom = signal('');
   planStatut = signal<string | null>(null);
+  /** Exports réservés aux référents et gestionnaires (#740). */
+  peutExporter = signal(false);
+  isExporting = signal(false);
   isLoading = signal(true);
   errorMessage = signal<string | null>(null);
 
@@ -145,6 +152,7 @@ export class PlanPlanificationAnnuelleComponent implements OnInit {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);
+        this.peutExporter.set(plan.peut_exporter === true);
         this.charger(annee);
       },
       error: () => {
@@ -179,6 +187,24 @@ export class PlanPlanificationAnnuelleComponent implements OnInit {
       relativeTo: this.route, queryParams: { annee }, queryParamsHandling: 'merge', replaceUrl: true,
     });
     this.charger(annee);
+  }
+
+  /** Classeur de la planification annuelle de l'année affichée. */
+  exporter(): void {
+    const planId = this.planId(), annee = this.annee();
+    if (!planId || !annee || this.isExporting()) return;
+    this.isExporting.set(true);
+    this.adminService.downloadPlanificationAnnuelle(planId, annee).subscribe({
+      next: (blob) => {
+        this.isExporting.set(false);
+        downloadBlob(`planification-annuelle-${this.planSlug()}-${annee}.xlsx`, blob);
+      },
+      error: () => {
+        this.isExporting.set(false);
+        this.snackBar.open(this.translate.instant('plans.suivis.planificationAnnuelle.exportErreur'),
+          this.translate.instant('common.actions.close'), { duration: 5000 });
+      },
+    });
   }
 
   anneePrecedente(): number | null {

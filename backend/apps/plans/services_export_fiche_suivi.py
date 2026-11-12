@@ -5,7 +5,9 @@ Une fiche (onglet) par action. Depuis les exports du plan, on choisit l'année :
 seules les actions dont le suivi est saisi cette année-là sont exportées. Depuis
 la saisie du suivi, la fiche de l'action pour l'année ouverte (même vide).
 
-Chaque fiche met en regard, colonne « Prévu » / colonne « Réalisé » :
+Chaque fiche met en regard, colonne « Prévu » / colonne « Réalisé » — #794 : le
+temps de travail et le budget en trois colonnes, prévu du plan de gestion /
+prévu ajusté (planification annuelle) / réalisé :
 identification (enjeu, indicateur d'état ou de pression, OLT / OO), niveau de
 réalisation, opérateurs et financeurs (réalisé seul), temps de travail par poste,
 financement par financeur (prévu global / réalisé de l'année, #790), budget par
@@ -37,6 +39,8 @@ _ZERO = Decimal(0)
 # palier de la grille des scores (indéterminé + 5 niveaux, #727).
 _NCOLS = 9
 _PREVU, _REALISE = (4, 6), (7, 9)
+# #794 — trois colonnes : plan de gestion D:E · ajusté F:G · réalisé H:I.
+_PG, _AJUSTE, _REALISE3 = (4, 5), (6, 7), (8, 9)
 _SANS_OBJET = "/"    # prévu annuel d'une action programmée globalement (#749)
 _SCORE_COLS = [(0, "Indéterminé", "FFDADADA")] + [
     (lvl, fa._SCORE_LABELS[lvl], fa._SCORE_FILLS[lvl]) for lvl in range(1, 6)]
@@ -75,11 +79,13 @@ def actions_suivies(plan, annee, operation_ids=None):
     return ops, codes
 
 
-def _rh_lignes(op, oa, real):
-    """{cible: (jours prévus, jours réalisés)}, dans l'ordre de rencontre."""
+def _rh_lignes(op, oa, real, ajustement=None):
+    """{cible: [jours prévus, jours réalisés, jours prévus ajustés]}, dans
+    l'ordre de rencontre. #794 — sans ajustement, l'ajusté est le prévu ; un
+    ajustement non planifié n'a pas de temps prévu."""
     from .services_export_budget_rh import _rh_cible
 
-    out = defaultdict(lambda: [_ZERO, _ZERO])
+    out = defaultdict(lambda: [_ZERO, _ZERO, _ZERO])
 
     def cle(ligne):
         label = _rh_cible(ligne)
@@ -88,6 +94,11 @@ def _rh_lignes(op, oa, real):
     if oa is not None:
         for l in oa.rh_lignes.select_related("id_poste", "id_organisme").order_by("pk"):
             out[cle(l)][0] += l.jours or _ZERO
+            if ajustement is None:
+                out[cle(l)][2] += l.jours or _ZERO
+    if ajustement is not None and ajustement.statut == "planifiee":
+        for l in ajustement.rh_lignes.select_related("id_poste", "id_organisme").order_by("pk"):
+            out[cle(l)][2] += l.jours or _ZERO
     if real is not None:
         for l in real.rh_lignes.select_related("id_poste", "id_organisme").order_by("pk"):
             out[cle(l)][1] += l.jours or _ZERO
@@ -180,6 +191,46 @@ def _cmp_header(w, label="", prevu="Prévu", realise="Réalisé"):
     w.r += 1
 
 
+def _cmp3(w, label, pg, ajuste, realise, *, total=False):
+    """#794 — « libellé (A:C) | plan de gestion (D:E) | ajusté (F:G) | réalisé (H:I) »."""
+    ws = w.ws
+    fill = fa._TOTAL_FILL if total else fa._SUBLABEL_FILL
+    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
+    lc = ws.cell(w.r, 1, label)
+    lc.fill = PatternFill("solid", fgColor=fill)
+    lc.font = fa._F_TOTAL if total else fa._F_SUBLABEL
+    lc.alignment = fa._AL_L
+    for (col, fin), v in ((_PG, pg), (_AJUSTE, ajuste), (_REALISE3, realise)):
+        ws.merge_cells(start_row=w.r, start_column=col, end_row=w.r, end_column=fin)
+        c = ws.cell(w.r, col, v if v not in (None, "") else "—")
+        c.font = fa._F_TOTAL if total else fa._F_VALUE
+        c.alignment = fa._AL_R if isinstance(v, str) and v[:1].isdigit() else fa._AL_L
+        if total:
+            c.fill = PatternFill("solid", fgColor=fa._TOTAL_FILL)
+    for col in range(1, _NCOLS + 1):
+        ws.cell(w.r, col).border = fa._B
+    w.r += 1
+
+
+def _cmp3_header(w, label, annee):
+    ws = w.ws
+    ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
+    lc = ws.cell(w.r, 1, label)
+    lc.fill = PatternFill("solid", fgColor=fa._LABEL_FILL)
+    lc.font = fa._F_LABEL
+    lc.alignment = fa._AL_L
+    for (col, fin), text in ((_PG, "Prévu plan de gestion"), (_AJUSTE, f"Prévu ajusté {annee}"),
+                             (_REALISE3, "Réalisé")):
+        ws.merge_cells(start_row=w.r, start_column=col, end_row=w.r, end_column=fin)
+        c = ws.cell(w.r, col, text)
+        c.fill = PatternFill("solid", fgColor=fa._YEARHDR_FILL)
+        c.font = fa._F_YEAR
+        c.alignment = fa._AL_C
+    for col in range(1, _NCOLS + 1):
+        ws.cell(w.r, col).border = fa._B
+    w.r += 1
+
+
 def _grille_scores(w, titre, lignes):
     """Grille « métrique × palier » (#727) : la mesure de l'année est rangée
     dans la colonne de son score. `lignes` : [(libellé, palier, texte)]."""
@@ -247,6 +298,13 @@ def _render(ws, plan, op, annee, code):
     oa = _annee(op, annee)
     real = _realisation(oa)
     globale = bool(getattr(op, "programmation_globale", False))
+    # #794 — planification annuelle ajustée de l'année.
+    from .planification_annuelle import ajustements_par_annee
+    ajustements = ajustements_par_annee([op.pk])
+    ajustement = ajustements.get((op.pk, annee))
+    ajuste_planifie = ajustement is not None and ajustement.statut == "planifiee"
+    # Action globale : le plan n'a qu'un prévu sur la période ; l'ajusté est annuel.
+    ajuste_sans_objet = globale and not ajuste_planifie
     cadre = fa._cadre(op)
     l_ind, _l_exig, l_obj = fa.cadre_labels(cadre, fa._is_cs(op))
 
@@ -270,6 +328,19 @@ def _render(ws, plan, op, annee, code):
     else:
         prog = f"Non programmée en {annee} (réalisée non prévue)"
     w.kv("Programmation", prog)
+    # #794 — statut de l'année dans la planification annuelle ajustée.
+    if ajustement is not None:
+        if ajustement.statut == "reportee":
+            ajuste = f"Reportée en {ajustement.annee_report}"
+        elif ajustement.statut == "non_prevue":
+            ajuste = f"Non prévue en {annee}"
+        elif ajustement.annee_report:
+            ajuste = f"Planifiée en {annee}, reste reporté en {ajustement.annee_report}"
+        else:
+            ajuste = f"Planifiée en {annee}"
+        if ajustement.report_de:
+            ajuste += f" (reportée de {ajustement.report_de})"
+        w.kv("Planification ajustée", ajuste)
 
     # --- Réalisation ---
     w.section(f"Réalisation {annee}")
@@ -282,28 +353,33 @@ def _render(ws, plan, op, annee, code):
 
     # --- Temps de travail ---
     w.section("Temps de travail (jours)")
-    _cmp_header(w, "Poste / temps de travail")
-    lignes = _rh_lignes(op, oa, real)
-    tp = tr = _ZERO
-    for label, (p, r) in lignes.items():
-        _cmp(w, label, _SANS_OBJET if globale else fa._jours(p), fa._jours(r))
-        tp += p; tr += r
+    _cmp3_header(w, "Poste / temps de travail", annee)
+    lignes = _rh_lignes(op, oa, real, ajustement)
+    tp = tr = ta = _ZERO
+    for label, (p, r, a) in lignes.items():
+        _cmp3(w, label, _SANS_OBJET if globale else fa._jours(p),
+              _SANS_OBJET if ajuste_sans_objet else fa._jours(a), fa._jours(r))
+        tp += p; tr += r; ta += a
     if not lignes:
-        _cmp(w, "Aucun temps de travail", "—", "—")
-    _cmp(w, "Total temps de travail", _SANS_OBJET if globale else fa._jours(tp),
-         fa._jours(tr), total=True)
+        _cmp3(w, "Aucun temps de travail", "—", "—", "—")
+    _cmp3(w, "Total temps de travail", _SANS_OBJET if globale else fa._jours(tp),
+          _SANS_OBJET if ajuste_sans_objet else fa._jours(ta), fa._jours(tr), total=True)
 
     # --- Budget ---
     w.section("Budget (€)")
-    _cmp_header(w, "Poste de dépense")
+    _cmp3_header(w, "Poste de dépense", annee)
     af = build_action_finance(op, {}, defaultdict(poste_entry_factory))
     cell = af.year_total(annee)
+    cell_aj = build_action_finance(op, {}, defaultdict(poste_entry_factory),
+                                   ajustements=ajustements).year_total(annee)
     for label, prev_of, real_of in _budget_postes(af):
-        p, r = prev_of(cell), real_of(cell)
-        if p or r:
-            _cmp(w, label, _SANS_OBJET if globale else fa._euro(p), fa._euro(r))
-    _cmp(w, "Total budget", _SANS_OBJET if globale else fa._euro(cell.tot),
-         fa._euro(cell.rtot), total=True)
+        p, r, a = prev_of(cell), real_of(cell), prev_of(cell_aj)
+        if p or r or a:
+            _cmp3(w, label, _SANS_OBJET if globale else fa._euro(p),
+                  _SANS_OBJET if ajuste_sans_objet else fa._euro(a), fa._euro(r))
+    _cmp3(w, "Total budget", _SANS_OBJET if globale else fa._euro(cell.tot),
+          _SANS_OBJET if ajuste_sans_objet else fa._euro(cell_aj.tot),
+          fa._euro(cell.rtot), total=True)
 
     # --- Financeurs (#790) : prévu global sur l'action, réalisé de l'année ---
     from .financeurs import bilan_financeurs

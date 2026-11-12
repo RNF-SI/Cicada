@@ -386,7 +386,8 @@ class TestExportWorkbooks:
         wb = self._load(build_budget_suivi_workbook(plan_finance['plan']))
         ws = next(wb[s] for s in wb.sheetnames if 'Org Alpha' in s)
         row4 = [ws.cell(4, c).value for c in range(1, ws.max_column + 1)]
-        assert 'Prévu' in row4 and 'Réalisé' in row4
+        # #794 — par année : prévu du plan de gestion, prévu ajusté, réalisé.
+        assert 'Prévu PG' in row4 and 'Prévu ajusté' in row4 and 'Réalisé' in row4
 
     def test_rh_previsionnel(self, plan_finance):
         from apps.plans.services_export_budget_rh import build_rh_previsionnel_workbook

@@ -1722,6 +1722,39 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         response['Content-Disposition'] = f"attachment; filename*=UTF-8''{_url_quote(filename)}"
         return response
 
+    @extend_schema(
+        summary="Exporter la planification annuelle d'une année (Excel) (#794)",
+        description=(
+            "Pour l'année choisie, chaque action : budget et temps de travail du plan de "
+            "gestion, de la planification ajustée et l'écart (onglets Budget, par "
+            "organisme, RH), montants par financeur et calendrier des mois. Réservé aux "
+            "référents du plan et aux gestionnaires."),
+        parameters=[OpenApiParameter('annee', int, required=True, description="Année du plan")],
+        responses={200: reponse_xlsx('Planification annuelle'), 400: REPONSE_400,
+                   403: REPONSE_403, 404: REPONSE_404})
+    @action(detail=True, methods=['get'], url_path='export-planification-annuelle-xlsx')
+    def export_planification_annuelle_xlsx(self, request, pk=None):
+        """
+        #794 — Planification annuelle ajustée d'une année (Excel).
+
+        GET /api/plans/plans/{id}/export-planification-annuelle-xlsx/?annee=2026
+        """
+        from .services_export_planification_annuelle import build_planification_annuelle_workbook
+
+        plan = self._get_plan_for_export()
+        annee = request.query_params.get('annee')
+        if not (annee or '').isdigit() or int(annee) not in plan.annees_plan():
+            return Response({'annee': ["Indiquez une année du plan de gestion."]},
+                            status=status.HTTP_400_BAD_REQUEST)
+        content = build_planification_annuelle_workbook(plan, int(annee))
+        filename = f"planification-annuelle-{plan.slug or f'plan-{plan.pk}'}-{annee}.xlsx"
+        response = HttpResponse(
+            content,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        response['Content-Disposition'] = f"attachment; filename*=UTF-8''{_url_quote(filename)}"
+        return response
+
     @extend_schema(summary='Exporter les fiches action (Word)', description="Document Word des fiches action, une par page : même contenu que l'export Excel (cadre, détails, volet financier prévisionnel, indicateurs de réponse). Réservé aux référents du plan et aux gestionnaires (admin organisme, rédacteur principal, super admin).", responses={200: reponse_docx('Fiches action du plan'), 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['get'], url_path='export-fiches-actions-docx')
     def export_fiches_actions_docx(self, request, pk=None):
