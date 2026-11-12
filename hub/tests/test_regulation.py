@@ -51,6 +51,34 @@ class TestLimiteDesLotsConcurrents:
         assert reponse.json()['retry_after'] == 600
         assert not LotPublication.objects.filter(instance_id='dreal').exists()
 
+    def test_une_instance_qui_ouvre_des_lots_en_boucle_ne_bloque_pas_les_autres(self, client, settings):
+        """La limite compte des instances : rnf a beau ouvrir trois lots, cen publie."""
+        settings.HUB_LOTS_PAR_INSTANCE_MAX = 2
+        assert ouvrir(client, 'rnf').status_code == 201
+        assert ouvrir(client, 'rnf').status_code == 201
+        assert ouvrir(client, 'rnf').status_code == 429  # au-delà, pour rnf seulement
+        assert ouvrir(client, 'cen').status_code == 201
+
+    def test_une_bascule_ferme_les_autres_lots_de_l_instance(self, client):
+        """Un retrait du partage (lot vide basculé) clôt la publication qui le
+        croisait : elle ne peut plus déposer ni basculer, donc ne republie rien."""
+        ancien = ouvrir(client, 'rnf').json()['lot_id']
+        retrait = ouvrir(client, 'rnf').json()['lot_id']
+        entete = {'HTTP_X_FEDERATION_TOKEN': JETONS['rnf']}
+        assert client.post(f'/api/federation/lots/{retrait}/bascule/',
+                           content_type='application/json', **entete).status_code == 200
+
+        assert client.post(f'/api/federation/lots/{ancien}/bascule/',
+                           content_type='application/json', **entete).status_code == 404
+        assert not LotPublication.objects.filter(pk=ancien).exists()
+
+    def test_les_lots_expires_sont_retires_a_l_ouverture(self, client):
+        lot = ouvrir(client, 'rnf').json()['lot_id']
+        LotPublication.objects.filter(pk=lot).update(
+            date_ouverture=timezone.now() - timedelta(hours=4))
+        ouvrir(client, 'cen')
+        assert not LotPublication.objects.filter(pk=lot).exists()
+
     def test_une_bascule_libere_la_place(self, client):
         ouvrir(client, 'rnf')
         lot = ouvrir(client, 'cen').json()['lot_id']

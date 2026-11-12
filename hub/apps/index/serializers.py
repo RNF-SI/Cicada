@@ -56,6 +56,11 @@ class ProvenanceMixin:
         # provenance laide qu'une provenance absente.
         return (identite or {}).get('libelle') or objet.instance_id
 
+    def get_url_instance(self, objet):
+        from .identites import url_affichee
+        identite = (self.context.get('identites_instances') or {}).get(objet.instance_id)
+        return url_affichee(identite, getattr(objet, 'url_instance', ''))
+
 
 def reference_plan(plan):
     """
@@ -76,6 +81,7 @@ class PlanResumeSerializer(ProvenanceMixin, serializers.ModelSerializer):
 
     reference = serializers.SerializerMethodField()
     instance_libelle = serializers.SerializerMethodField()
+    url_instance = serializers.SerializerMethodField()
 
     class Meta:
         model = PlanIndexe
@@ -184,6 +190,7 @@ class PlanResultatSerializer(ProvenanceMixin, serializers.ModelSerializer):
 
     reference = serializers.SerializerMethodField()
     instance_libelle = serializers.SerializerMethodField()
+    url_instance = serializers.SerializerMethodField()
 
     # #683 — cf. ContenuResultatSerializer : c'est le relais qui tranche.
     acces_direct = serializers.ReadOnlyField(default=False)

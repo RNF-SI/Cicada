@@ -49,6 +49,14 @@ def _declarations(identifiants=None):
     }
 
 
+def url_affichee(identite, url_du_plan):
+    """URL de la structure d'origine à afficher pour un plan."""
+    identite = identite or {}
+    if identite.get('url_du_registre'):
+        return identite['url_publique']
+    return url_du_plan or identite.get('url_publique', '')
+
+
 def identites(identifiants=None):
     """
     Rend ``{instance_id: {'libelle': …, 'url_publique': …}}``.
@@ -103,6 +111,11 @@ def identites(identifiants=None):
                 or url_declaree
                 or urls_plans.get(instance_id, '')
             ),
+            # Écrite par l'administrateur du hub à l'enrôlement : elle prime sur
+            # toute URL que l'instance déclare d'elle-même, plan par plan
+            # compris — sinon une instance pouvait renvoyer « Voir la source »
+            # vers un domaine sosie.
+            'url_du_registre': bool(enrolee and enrolee.url_publique),
         }
     return resolues
 

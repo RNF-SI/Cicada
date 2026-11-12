@@ -174,6 +174,9 @@ HUB_LOTS_CONCURRENTS_MAX = int(os.environ.get('HUB_LOTS_CONCURRENTS_MAX', '3'))
 #: abandonné) est considéré comme expiré : il ne compte plus dans la limite.
 #: Un dépôt complet prend quelques minutes ; trois heures laissent de la marge.
 HUB_LOT_DUREE_MAX_MINUTES = int(os.environ.get('HUB_LOT_DUREE_MAX_MINUTES', '180'))
+# Lots ouverts en même temps par une même instance (une publication, plus un
+# retrait qui la croise).
+HUB_LOTS_PAR_INSTANCE_MAX = int(os.environ.get('HUB_LOTS_PAR_INSTANCE_MAX', '2'))
 #: Délai suggéré à l'instance refusée (en-tête ``Retry-After``).
 HUB_RETRY_AFTER_SECONDES = int(os.environ.get('HUB_RETRY_AFTER_SECONDES', '600'))
 #: Au-delà, le registre signale une instance comme « en retard » de publication.

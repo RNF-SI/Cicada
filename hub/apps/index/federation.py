@@ -41,7 +41,7 @@ from rest_framework.permissions import BasePermission
 
 from apps.geo.models import LArea
 
-from .models import ContenuIndexe, Instance, PlanIndexe
+from .models import ContenuIndexe, Instance, LotPublication, PlanIndexe
 
 logger = logging.getLogger(__name__)
 
@@ -465,6 +465,14 @@ def basculer(lot):
     lot.date_bascule = timezone.now()
     lot.plans_purges = nb_purges
     lot.save(update_fields=['etat', 'date_bascule', 'plans_purges'])
+
+    # Les autres lots ouverts de cette instance sont dépassés : celui-ci fait
+    # désormais foi. Les laisser ouverts permettait à une publication lancée
+    # avant un retrait du partage de continuer, puis de basculer à son tour —
+    # et de republier les plans que la structure venait de retirer.
+    LotPublication.objects.filter(
+        instance_id=lot.instance_id, etat=LotPublication.ETAT_OUVERT,
+    ).exclude(pk=lot.pk).delete()
 
     logger.info(
         "Lot %s basculé pour l'instance %s : %s plans reçus, %s purgés, "

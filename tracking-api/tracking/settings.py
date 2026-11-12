@@ -9,6 +9,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
 DEBUG = config('DEBUG', default=False, cast=bool)
+# L'API de suivi porte le registre des instances et les adhésions au hub : une
+# clé connue de tous (celle par défaut, publiée dans ce dépôt) permettrait de
+# forger une session d'administration. Refus de démarrer en production.
+if not DEBUG and SECRET_KEY.startswith('django-insecure'):
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("SECRET_KEY doit être définie (valeur tirée au sort) hors DEBUG.")
+# Cookies de l'admin : jamais en clair, jamais lisibles par un script.
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 8 * 3600
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
 # Derrière Apache en HTTPS : confiance à l’origine réelle et reconnaissance du proxy
 CSRF_TRUSTED_ORIGINS = [

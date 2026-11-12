@@ -150,6 +150,16 @@ class Instance(models.Model):
         verbose_name = _("Instance fédérée")
         verbose_name_plural = _("Instances fédérées")
         ordering = ['instance_id']
+        # Deux instances ne partagent jamais un jeton : l'une capterait les
+        # publications de l'autre (les vues le refusent aussi, avec un message).
+        constraints = [
+            models.UniqueConstraint(
+                fields=['empreinte_depot'], condition=~models.Q(empreinte_depot=''),
+                name='uniq_instance_empreinte_depot'),
+            models.UniqueConstraint(
+                fields=['empreinte_lecture'], condition=~models.Q(empreinte_lecture=''),
+                name='uniq_instance_empreinte_lecture'),
+        ]
 
     def __str__(self):
         return self.libelle or self.instance_id

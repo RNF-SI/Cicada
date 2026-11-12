@@ -33,7 +33,7 @@ from .filters import (
     annoter_correspondances, filtrer_contenus, filtrer_plans, liste,
     trier_contenus, trier_plans,
 )
-from .identites import identites
+from .identites import identites, url_affichee
 from .models import ContenuIndexe, PlanIndexe
 from .pagination import ExplorationPagination
 from .serializers import (
@@ -184,7 +184,7 @@ class ExplorationPlanViewSet(ViewSet):
             # identifiant : c'est la seule chose qui, sur une fiche ouverte
             # depuis une liste de résultats, dise qui a rédigé ce plan.
             'instance_libelle': identite.get('libelle') or plan.instance_id,
-            'url_instance': plan.url_instance or identite.get('url_publique', ''),
+            'url_instance': url_affichee(identite, plan.url_instance),
             # La date dit à l'appelant l'âge de ce qu'il affiche. Un instantané
             # sans date ne se distingue pas d'une donnée jointe à la volée, et
             # c'est précisément la différence qu'il faut pouvoir voir.

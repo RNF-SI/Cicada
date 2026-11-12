@@ -63,9 +63,22 @@ class LotPublicationViewSet(ViewSet):
         # tard ». Un lot ouvert depuis trop longtemps (dépôt interrompu) a
         # expiré et ne compte plus, sans quoi il bloquerait sa place à jamais.
         limite = timezone.now() - timedelta(minutes=settings.HUB_LOT_DUREE_MAX_MINUTES)
-        en_cours = LotPublication.objects.filter(
-            etat=LotPublication.ETAT_OUVERT, date_ouverture__gte=limite,
-        ).count()
+        # Lots expirés : ils ne seront jamais basculés, on les retire (sans
+        # toucher aux plans déjà reçus, cf. `destroy`).
+        LotPublication.objects.filter(
+            etat=LotPublication.ETAT_OUVERT, date_ouverture__lt=limite,
+        ).delete()
+        ouverts = LotPublication.objects.filter(etat=LotPublication.ETAT_OUVERT)
+        # La limite compte des **instances**, pas des lots : un seul jeton qui
+        # ouvrait des lots en boucle bloquait toutes les publications — et
+        # tous les retraits — des autres structures.
+        if ouverts.filter(instance_id=request.instance_id).count() >= settings.HUB_LOTS_PAR_INSTANCE_MAX:
+            en_cours = settings.HUB_LOTS_CONCURRENTS_MAX
+        else:
+            en_cours = (
+                ouverts.exclude(instance_id=request.instance_id)
+                .values('instance_id').distinct().count()
+            )
         if en_cours >= settings.HUB_LOTS_CONCURRENTS_MAX:
             delai = settings.HUB_RETRY_AFTER_SECONDES
             logger.info(
@@ -254,6 +267,30 @@ class RegistreDesInstances(APIView):
         })
 
 
+def _enrolement_refuse(identifiant, donnees):
+    """Raison de refuser l'enrôlement d'un identifiant nouveau au registre.
+
+    - Un identifiant qui **publie déjà** (par jeton d'amorce, sans ligne au
+      registre) appartient à une structure : l'enrôler au nom d'une autre
+      couperait la vraie (son jeton d'environnement cesse d'être accepté) et
+      donnerait au nouveau venu de quoi purger ses plans.
+    - Une **empreinte déjà enrôlée** pour une autre instance ferait de ses
+      jetons ceux d'une autre identité, qui capterait ses publications.
+    """
+    from django.conf import settings
+    from django.db.models import Q
+
+    if PlanIndexe.objects.filter(instance_id=identifiant).exists() or \
+            identifiant in settings.HUB_FEDERATION_TOKENS or identifiant in settings.HUB_READ_TOKENS:
+        return (f"L'identifiant « {identifiant} » est déjà utilisé par une instance qui publie. "
+                "Rien n'a été modifié : à trancher sur le hub avec « enroler_instance ».")
+    empreintes = {donnees['empreinte_depot'], donnees['empreinte_lecture']}
+    if Instance.objects.filter(
+            Q(empreinte_depot__in=empreintes) | Q(empreinte_lecture__in=empreintes)).exists():
+        return "Ces jetons sont déjà ceux d'une autre instance : tirez-en de nouveaux."
+    return None
+
+
 class EnrolementInstance(APIView):
     """
     Enrôlement d'une instance dont RNF a accepté l'adhésion (#696).
@@ -324,6 +361,11 @@ class EnrolementInstance(APIView):
                      'cree': False},
                     status=status.HTTP_200_OK,
                 )
+
+            refus = _enrolement_refuse(identifiant, donnees)
+            if refus:
+                logger.warning("Enrôlement refusé pour « %s » : %s", identifiant, refus)
+                return Response({'detail': refus}, status=status.HTTP_409_CONFLICT)
 
             Instance.objects.create(
                 instance_id=identifiant,

@@ -181,11 +181,25 @@ sudo systemctl start cicada-tracking-api
     <Directory /opt/tracking-api/static>
         Require all granted
     </Directory>
+
+    # L'admin Django (registre des instances, adhésions au hub) n'est ouverte
+    # qu'au réseau d'administration de RNF : un compte staff deviné suffirait
+    # sinon à enrôler une fausse structure. Adapter les adresses.
+    <Location /admin/>
+        Require ip 10.0.0.0/8 192.0.2.0/24
+    </Location>
+
+    # HSTS : le navigateur ne repasse plus jamais en clair.
+    Header always set Strict-Transport-Security "max-age=31536000"
 </VirtualHost>
 ```
 
+> **Sécurité.** Sans la section `<Location /admin/>`, la page de connexion de l'admin est publique et sans limite
+> d'essais. `SECRET_KEY` doit être tirée au sort (`python3 -c "import secrets;print(secrets.token_urlsafe(50))"`) :
+> l'application refuse de démarrer avec la valeur par défaut hors `DEBUG`.
+
 ```bash
-sudo a2enmod proxy proxy_http
+sudo a2enmod proxy proxy_http headers
 sudo a2ensite cicada-tracking-api
 sudo apache2ctl configtest
 sudo systemctl reload apache2

@@ -96,6 +96,21 @@ class TestResolutionDuNom:
         assert identites()['inconnue']['libelle'] == 'inconnue'
 
 
+    def test_l_url_du_registre_prime_sur_celle_du_plan(self):
+        """Une instance ne renvoie pas « Voir la source » vers un domaine sosie :
+        l'URL enrôlée par l'administrateur du hub l'emporte sur celle que
+        l'instance publie avec ses plans."""
+        from apps.index.identites import url_affichee
+        Instance.objects.create(instance_id='rnf', libelle='RNF', url_publique='https://rnf.example')
+        identite = identites()['rnf']
+        assert url_affichee(identite, 'https://rnf-sosie.example') == 'https://rnf.example'
+
+    def test_sans_registre_l_url_du_plan_sert(self):
+        from apps.index.identites import url_affichee
+        declarer('cen', 'CEN', 'https://cen.example')
+        assert url_affichee(identites()['cen'], 'https://cen.example/x') == 'https://cen.example/x'
+
+
 class TestProvenanceDesResultats:
     def test_chaque_contenu_dit_de_quelle_structure_il_vient(self, lire):
         Instance.objects.create(instance_id='cen', libelle='CEN Auvergne')

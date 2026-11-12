@@ -156,6 +156,24 @@ class TestConflit:
         assert Instance.identifier(jeton_existant, Instance.USAGE_DEPOT) == 'cen-aura'
 
 
+    def test_un_identifiant_qui_publie_deja_par_jeton_d_amorce_n_est_pas_reattribue(
+        self, client, admin_configure, jetons, settings,
+    ):
+        """L'enrôler au nom d'un tiers couperait la vraie structure (son jeton
+        d'environnement cesse d'être accepté) et lui permettrait de purger ses plans."""
+        settings.HUB_FEDERATION_TOKENS = {'cen-aura': 'jeton-d-amorce'}
+        reponse = enroler(client, corps(jetons))
+        assert reponse.status_code == 409
+        assert not Instance.objects.filter(pk='cen-aura').exists()
+
+    def test_les_empreintes_d_une_autre_instance_sont_refusees(
+        self, client, admin_configure, jetons,
+    ):
+        enroler(client, corps(jetons))
+        reponse = enroler(client, corps(jetons, instance_id='usurpateur', libelle='Usurpateur'))
+        assert reponse.status_code == 409
+        assert not Instance.objects.filter(pk='usurpateur').exists()
+
 class TestAutorisation:
     def test_jeton_absent(self, client, admin_configure, jetons):
         assert enroler(client, corps(jetons), jeton=None).status_code == 403
