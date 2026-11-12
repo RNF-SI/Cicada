@@ -3222,7 +3222,7 @@
       "miParcoursBadge": "Évaluation mi-parcours",
       "versionLabel": "Version",
       "deleteVersion": "Supprimer cette version",
-      "deleteVersionNonBrouillon": "Une version validée ou archivée ne se supprime pas : archivez-la depuis le cycle de vie.",
+      "deleteVersionNonBrouillon": "Une version validée ou terminée ne se supprime pas : pour la retirer de l'usage, terminez-la depuis le cycle de vie.",
       "deleteVersionConfirmTitle": "Supprimer définitivement cette version ?",
       "deleteVersionConfirmMessage": "La version « {{name}} » (v{{version}}) et tout son contenu seront supprimés définitivement. Ses liens avec les sites, utilisateurs et organismes seront retirés, et les versions restantes seront renumérotées. Cette action est irréversible.",
       "deleteSuccess": "La version a été supprimée.",
