@@ -69,6 +69,36 @@ CHAMPS_CONTENU = [
 ]
 
 
+#: Données de gestion qu'aucune instance ne doit publier (budget, financement,
+#: RH, mesures, réalisations). Les instances les retirent elles-mêmes
+#: (``CLES_SENSIBLES`` de CICADA) ; le hub les retire **aussi**, pour ne pas
+#: dépendre de la discipline de chaque instance ni de sa version : une clé
+#: oubliée chez une instance (cas de la programmation globale, #735) ne doit
+#: jamais être servie aux autres structures.
+CLES_DE_GESTION = frozenset({
+    'operation_annees', 'operation_annee_globale', 'nb_operation_annees',
+    'finances', 'nb_finances', 'financeurs', 'financeurs_bilan',
+    'rh_lignes', 'organismes_annee', 'nb_etp_cycle',
+    'budget', 'budget_fonctionnement', 'budget_investissement', 'budget_realise',
+    'cout_salarial', 'cout_salarial_invest', 'cout_stage', 'cout_prestataire',
+    'cout_prestataire_invest', 'autre_cout', 'autre_cout_invest', 'montant',
+    'etp_realise', 'mesures', 'annual_mesures', 'realisation', 'realisations',
+})
+
+
+def retirer_donnees_de_gestion(arbre):
+    """Retire récursivement les clés de :data:`CLES_DE_GESTION` d'un instantané."""
+    if isinstance(arbre, dict):
+        return {
+            cle: retirer_donnees_de_gestion(valeur)
+            for cle, valeur in arbre.items()
+            if cle not in CLES_DE_GESTION
+        }
+    if isinstance(arbre, list):
+        return [retirer_donnees_de_gestion(element) for element in arbre]
+    return arbre
+
+
 def identifier_porteur(jeton, usage):
     """
     Quelle instance porte ce jeton ?

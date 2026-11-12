@@ -149,6 +149,7 @@ Ces tests repèrent une perte de données **sans connaître le bug d'avance**. I
 | `socle.py` | `construire_plan_complet()` : un plan avec un exemplaire de chaque donnée saisie (programmation annuelle et globale, suivi sur deux années, organismes, temps, financeurs, mesures, suivi-inventaire, document) ; `inventaire()` / `ecarts()` : photographie de toutes les lignes des applications métier |
 | `test_aller_retour.py` | `GET` puis `PATCH` / `PUT` du même corps, pour chaque ressource du plan : l'inventaire ne bouge pas |
 | `test_garde_fous.py` | une année ou un organisme qui porte un suivi ne quitte pas la programmation ; une erreur en fin d'enregistrement ne laisse rien à moitié supprimé ; `seed_testdata` refusé en production |
+| `test_canari.py` | des valeurs repères dans chaque champ sensible (budget, temps, financeurs, mesures, commentaires, personnes) ; aucune n'apparaît, où que ce soit, dans la lecture d'exploration d'un autre organisme, les écrans publiés, la fiche publique ni la charge envoyée au hub |
 | `test_cascades.py` + `cascades_relues.txt` | toute suppression en cascade (`CASCADE` / `SET_NULL`) a été relue ; un chemin nouveau fait échouer le test |
 | `test_migrations.py` + `migrations_irreversibles.txt` | toute migration qui supprime ou transforme sans retour a été relue |
 

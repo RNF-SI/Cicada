@@ -59,9 +59,15 @@ CLES_SENSIBLES = frozenset({
     'annual_mesures',
     # Programmation, budget, RH, financement
     'operation_annees', 'nb_operation_annees', 'finances', 'nb_finances',
+    # Programmation globale (#735) : budget, temps et coûts par organisme de
+    # la période — tests/integrite/test_canari.py le vérifie par la valeur.
+    'operation_annee_globale',
     'financeurs', 'financeurs_bilan', 'ventilation_mode', 'declinaison_par_poste',
     'declinaison_par_type_cout', 'cout_salarial_auto',
     'rh_lignes', 'organismes_annee',
+    # Charge de travail d'un cycle de protocole : du RH (exclue de la fiche
+    # publique, serializers_fiche.py).
+    'nb_etp_cycle',
     # Réalisations
     'realisation', 'realisations',
     'niveau_realisation_global_mnemonique', 'niveau_realisation_global_label',

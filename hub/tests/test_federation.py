@@ -381,6 +381,23 @@ class TestFiche:
         assert PlanIndexe.objects.get().fiche == {}
 
 
+    def test_le_budget_ne_se_range_jamais(self, client):
+        """Le hub élague lui-même les données de gestion : une instance qui en
+        oublierait une (programmation globale, #735) ne les publie pas pour autant."""
+        action = {
+            'libelle': 'Pâturage', 'programmation_globale': True,
+            'operation_annee_globale': {'budget': '38000.00', 'organismes': [
+                {'cout_stage': '12500.00', 'autre_cout_commentaire': 'Frais'}]},
+            'finances': [{'montant': '6000.00'}],
+        }
+        ecrans = {'operations': {'7': dict(action)}, 'plan': {'nom': 'Camargue'}}
+        Publication(client).publier(plan_charge(fiche={'actions': [dict(action)]}, ecrans=ecrans))
+
+        plan = PlanIndexe.objects.get()
+        for arbre in (plan.fiche['actions'][0], plan.ecrans['operations']['7']):
+            assert arbre == {'libelle': 'Pâturage', 'programmation_globale': True}
+        assert plan.ecrans['plan'] == {'nom': 'Camargue'}
+
 class TestJournalDesLots:
     def test_le_lot_garde_trace_de_ce_qui_a_ete_recu(self, client):
         Publication(client).publier(

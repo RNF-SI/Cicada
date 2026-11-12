@@ -12,7 +12,7 @@ champs que ce hub ne connaît pas encore : ils sont ignorés, pas refusés.
 
 from rest_framework import serializers
 
-from .federation import FORMATS_ACCEPTES
+from .federation import FORMATS_ACCEPTES, retirer_donnees_de_gestion
 from .models import VALIDATEUR_IDENTIFIANT, ContenuIndexe
 
 #: Empreinte SHA-256 d'un jeton, telle que ``Instance.empreinte`` la produit :
@@ -144,6 +144,15 @@ class PlanPublieSerializer(serializers.Serializer):
     ecrans = serializers.DictField(required=False)
 
     contenus = ContenuSerializer(many=True, required=False)
+
+    # Le hub ne dépend pas de la seule discipline des instances : un instantané
+    # qui porterait budget, financement, RH, mesures ou réalisations (instance
+    # ancienne, oubli dans sa liste de clés) en est élagué avant d'être rangé.
+    def validate_fiche(self, valeur):
+        return retirer_donnees_de_gestion(valeur)
+
+    def validate_ecrans(self, valeur):
+        return retirer_donnees_de_gestion(valeur)
 
 
 class PagePlansSerializer(serializers.Serializer):
