@@ -1,6 +1,9 @@
 """
 Serializers pour l'API REST Opérations (Actions).
 """
+from django.db import transaction
+
+from apps.core.serializer_mixins import SansValeurParDefautEnMiseAJourMixin
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
@@ -436,7 +439,7 @@ class PosteSerializer(serializers.ModelSerializer):
         return obj.is_finance_par_defaut()
 
 
-class PosteWriteSerializer(serializers.ModelSerializer):
+class PosteWriteSerializer(SansValeurParDefautEnMiseAJourMixin, serializers.ModelSerializer):
     """Poste d'un plan de gestion (écriture, fonctions imbriquées)."""
     fonctions = PosteFonctionWriteSerializer(many=True, required=False, default=[])
 
@@ -492,12 +495,14 @@ class PosteWriteSerializer(serializers.ModelSerializer):
             for f in fonctions_data
         ])
 
+    @transaction.atomic
     def create(self, validated_data):
         fonctions_data = validated_data.pop('fonctions', [])
         poste = Poste.objects.create(**validated_data)
         self._set_fonctions(poste, fonctions_data)
         return poste
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         fonctions_data = validated_data.pop('fonctions', None)
         for attr, value in validated_data.items():
@@ -506,6 +511,49 @@ class PosteWriteSerializer(serializers.ModelSerializer):
         if fonctions_data is not None:
             self._set_fonctions(instance, fonctions_data)
         return instance
+
+
+_CHAMPS_ORGANISME = (
+    'budget_fonctionnement', 'budget_investissement', 'cout_salarial', 'cout_salarial_invest',
+    'cout_stage', 'cout_prestataire', 'autre_cout', 'cout_prestataire_invest',
+    'autre_cout_invest', 'etp',
+)
+
+
+def _valeurs_organisme(org):
+    """Valeurs prévues d'un organisme pour une année ; un champ absent vaut vide."""
+    valeurs = {champ: org.get(champ) for champ in _CHAMPS_ORGANISME}
+    valeurs['autre_cout_commentaire'] = org.get('autre_cout_commentaire', '') or ''
+    valeurs['autre_cout_invest_commentaire'] = org.get('autre_cout_invest_commentaire', '') or ''
+    return valeurs
+
+
+def _valeurs_rh(rh):
+    """Jours et catégorie d'une ligne de temps prévue (bulk_create contourne save(), #597)."""
+    categorie, finance = CategorieDepense.resolve(rh.get('categorie_depense'), rh.get('finance'))
+    return {'jours': rh.get('jours'), 'categorie_depense': categorie, 'finance': finance}
+
+
+def _assigner_champs(obj, donnees, exclus=()):
+    """Pose chaque champ reçu ; un champ absent reprend sa valeur par défaut.
+
+    Même résultat que la recréation de la ligne, sans en changer l'identité.
+    """
+    for champ in obj._meta.concrete_fields:
+        if champ.primary_key or champ.name in exclus:
+            continue
+        if champ.name in donnees:
+            setattr(obj, champ.name, donnees[champ.name])
+        elif champ.has_default() or champ.null:
+            setattr(obj, champ.attname, champ.get_default())
+
+
+def _porte_un_suivi(annee_obj):
+    """Une année porte un suivi dès qu'une réalisation y est enregistrée."""
+    try:
+        return annee_obj.realisation is not None
+    except Exception:
+        return False
 
 
 class OperationAnneeRHSerializer(serializers.ModelSerializer):
@@ -736,6 +784,7 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             for rh in rh_data
         ])
 
+    @transaction.atomic
     def create(self, validated_data):
         rh_data = validated_data.pop('rh_lignes', None)
         fin_data = validated_data.pop('financeurs', None)
@@ -747,6 +796,7 @@ class RealisationOperationAnneeSerializer(serializers.ModelSerializer):
             self._set_financeurs(instance, fin_data)
         return instance
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         rh_data = validated_data.pop('rh_lignes', None)
         fin_data = validated_data.pop('financeurs', None)
@@ -890,6 +940,7 @@ class FinanceurSerializer(serializers.ModelSerializer):
                 "Ce plan a déjà un financeur de ce nom dans cette catégorie.")})
         return attrs
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         instance = super().update(instance, validated_data)
         # Les lignes des actions recopient le financeur (exports, exploration).
@@ -1694,7 +1745,7 @@ class OperationAnneeGlobaleWriteSerializer(OperationAnneeWriteSerializer):
     geom = None
 
 
-class OperationCreateSerializer(serializers.ModelSerializer):
+class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers.ModelSerializer):
     """Serializer pour la création/modification d'une Opération."""
     site_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -1776,9 +1827,8 @@ class OperationCreateSerializer(serializers.ModelSerializer):
 
     def _save_annee_globale(self, operation, globale_data):
         """#735 — remplace la ligne globale ; aucune pour une action annuelle."""
-        OperationAnnee.tous.filter(id_operation=operation, annee__isnull=True).delete()
-        if operation.programmation_globale and globale_data:
-            self._create_operation_annees(operation, [{**globale_data, 'annee': None}])
+        donnees = [globale_data] if operation.programmation_globale and globale_data else []
+        self._maj_operation_annees(operation, donnees, globale=True)
 
     def _create_operation_annees(self, operation, annees_data):
         """Create OperationAnnee objects with nested organismes."""
@@ -1793,18 +1843,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                     OperationAnneeOrganisme(
                         id_operation_annee=annee_obj,
                         id_organisme_id=org['id_organisme'],
-                        budget_fonctionnement=org.get('budget_fonctionnement'),
-                        budget_investissement=org.get('budget_investissement'),
-                        cout_salarial=org.get('cout_salarial'),
-                        cout_salarial_invest=org.get('cout_salarial_invest'),
-                        cout_stage=org.get('cout_stage'),
-                        cout_prestataire=org.get('cout_prestataire'),
-                        autre_cout=org.get('autre_cout'),
-                        autre_cout_commentaire=org.get('autre_cout_commentaire', '') or '',
-                        cout_prestataire_invest=org.get('cout_prestataire_invest'),
-                        autre_cout_invest=org.get('autre_cout_invest'),
-                        autre_cout_invest_commentaire=org.get('autre_cout_invest_commentaire', '') or '',
-                        etp=org.get('etp'),
+                        **_valeurs_organisme(org),
                     )
                     for org in organismes_data
                 ])
@@ -1815,15 +1854,106 @@ class OperationCreateSerializer(serializers.ModelSerializer):
                         id_operation_annee=annee_obj,
                         id_poste_id=rh.get('id_poste'),
                         id_organisme_id=rh.get('id_organisme'),
-                        jours=rh.get('jours'),
-                        # bulk_create contourne save() : on réconcilie ici (#597).
-                        **dict(zip(
-                            ('categorie_depense', 'finance'),
-                            CategorieDepense.resolve(rh.get('categorie_depense'), rh.get('finance')),
-                        )),
+                        **_valeurs_rh(rh),
                     )
                     for rh in rh_lignes_data
                 ])
+
+    def _maj_operation_annees(self, operation, annees_data, globale=False):
+        """Met à jour la programmation **en place**, année par année.
+
+        Supprimer puis recréer les années effaçait en cascade tout le suivi
+        saisi (réalisations, budgets et jours réalisés, financeurs réalisés,
+        emprise, commentaires) : enregistrer la fiche d'une action sans rien
+        changer suffisait à le perdre. Les lignes restent donc les mêmes ; seule
+        la programmation change. Une année (ou un organisme) qui porte un suivi
+        ne peut pas disparaître de la programmation : refus explicite.
+        """
+        existantes = OperationAnnee.tous.filter(
+            id_operation=operation, annee__isnull=globale,
+        ).select_related('realisation')
+        par_annee = {a.annee: a for a in existantes}
+        recues = []
+        for annee_data in annees_data or []:
+            annee_data = dict(annee_data)
+            organismes_data = annee_data.pop('organismes', [])
+            rh_lignes_data = annee_data.pop('rh_lignes', [])
+            annee = None if globale else annee_data.get('annee')
+            recues.append(annee)
+            annee_obj = par_annee.get(annee)
+            if annee_obj is None:
+                annee_data['annee'] = annee
+                self._create_operation_annees(operation, [{
+                    **annee_data, 'organismes': organismes_data, 'rh_lignes': rh_lignes_data,
+                }])
+                continue
+            _assigner_champs(annee_obj, annee_data, exclus={'id_operation', 'annee'})
+            annee_obj.save()
+            self._maj_organismes(annee_obj, organismes_data)
+            self._maj_rh_lignes(annee_obj, rh_lignes_data)
+        for annee, annee_obj in par_annee.items():
+            if annee in recues:
+                continue
+            if _porte_un_suivi(annee_obj):
+                raise serializers.ValidationError({'operation_annees': [_(
+                    "L'année {annee} porte un suivi saisi : elle ne peut pas être retirée de "
+                    "la programmation. Effacez d'abord son suivi."
+                ).format(annee=annee if annee is not None else _("« Période »"))]})
+            annee_obj.delete()
+
+    @staticmethod
+    def _maj_organismes(annee_obj, organismes_data):
+        existants = {
+            o.id_organisme_id: o
+            for o in annee_obj.organismes.select_related('realisation')
+        }
+        recus = set()
+        for org in organismes_data or []:
+            id_org = org['id_organisme']
+            recus.add(id_org)
+            ligne = existants.get(id_org)
+            if ligne is None:
+                OperationAnneeOrganisme.objects.create(
+                    id_operation_annee=annee_obj, id_organisme_id=id_org,
+                    **_valeurs_organisme(org),
+                )
+                continue
+            for champ, valeur in _valeurs_organisme(org).items():
+                setattr(ligne, champ, valeur)
+            ligne.save()
+        for id_org, ligne in existants.items():
+            if id_org in recus:
+                continue
+            if getattr(ligne, 'realisation', None) is not None:
+                raise serializers.ValidationError({'operation_annees': [_(
+                    "L'organisme « {nom} » a un suivi saisi en {annee} : il ne peut pas être "
+                    "retiré de la programmation de cette année. Effacez d'abord son suivi."
+                ).format(nom=ligne.id_organisme, annee=annee_obj.annee or _("« Période »"))]})
+            ligne.delete()
+
+    @staticmethod
+    def _maj_rh_lignes(annee_obj, rh_lignes_data):
+        """Lignes de temps prévues : mises à jour en place par (poste, organisme).
+
+        Le temps réalisé garde ainsi son lien vers la ligne prévue qu'il réalise.
+        """
+        restantes = list(annee_obj.rh_lignes.all())
+        for rh in rh_lignes_data or []:
+            cle = (rh.get('id_poste'), rh.get('id_organisme'))
+            ligne = next(
+                (l for l in restantes if (l.id_poste_id, l.id_organisme_id) == cle), None)
+            if ligne is None:
+                OperationAnneeRH.objects.create(
+                    id_operation_annee=annee_obj, id_poste_id=cle[0], id_organisme_id=cle[1],
+                    **_valeurs_rh(rh),
+                )
+                continue
+            restantes.remove(ligne)
+            for champ, valeur in _valeurs_rh(rh).items():
+                setattr(ligne, champ, valeur)
+            ligne.save()
+        for ligne in restantes:
+            ligne.delete()
 
     def _create_finances(self, operation, finances_data):
         """Lignes de financement, rattachées aux financeurs du plan (#790)."""
@@ -1848,6 +1978,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             ))
         FinanceOperation.objects.bulk_create(lignes)
 
+    @transaction.atomic
     def create(self, validated_data):
         validated_data.pop('id_type_action_attendu', None)
         site_ids = validated_data.pop('site_ids', [])
@@ -1943,6 +2074,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
             f"(« {instance.id_type_action} ») : rechargez la fiche avant de le modifier."
         ]}, code='type_deja_modifie')
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         site_ids = validated_data.pop('site_ids', None)
         metrique_ids = validated_data.pop('metrique_ids', None)
@@ -2030,8 +2162,7 @@ class OperationCreateSerializer(serializers.ModelSerializer):
 
         # Replace nested operation_annees (delete + recreate)
         if annees_data is not None:
-            OperationAnnee.objects.filter(id_operation=instance).delete()
-            self._create_operation_annees(instance, annees_data)
+            self._maj_operation_annees(instance, annees_data)
         # #735 — la ligne globale est réécrite quand elle est envoyée, et
         # supprimée dès que l'action redevient annuelle.
         if globale_data is not None or not instance.programmation_globale:

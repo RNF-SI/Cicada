@@ -1,6 +1,7 @@
 """
 Serializers pour l'API REST Suivis/Inventaires (standalone).
 """
+from django.db import transaction
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
@@ -154,6 +155,7 @@ class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
             'id_type_action': {'required': False, 'allow_null': True},
         }
 
+    @transaction.atomic
     def create(self, validated_data):
         protocoles_data = pop_protocoles_data(validated_data)
         user = validated_data.get('id_utilisateur_ajout')
@@ -162,6 +164,7 @@ class SuiviInventaireCreateSerializer(serializers.ModelSerializer):
         sync_suivi_protocoles(suivi, protocoles_data, user)
         return suivi
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         protocoles_data = pop_protocoles_data(validated_data)
         user = validated_data.get('id_utilisateur_maj') or instance.id_utilisateur_ajout

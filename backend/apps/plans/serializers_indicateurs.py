@@ -1,6 +1,7 @@
 """
 Serializers pour l'API REST Indicateurs, Métriques et Mesures.
 """
+from django.db import transaction
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
@@ -233,6 +234,7 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             'nom_metrique': {'required': False, 'allow_blank': True},
         }
 
+    @transaction.atomic
     def create(self, validated_data):
         blocks = validated_data.pop('score_blocks', [])
         metrique = super().create(validated_data)
@@ -240,6 +242,7 @@ class MetriqueCreateSerializer(serializers.ModelSerializer):
             MetriqueScoreBlock.objects.create(id_metrique=metrique, **block)
         return metrique
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         # Stratégie simple : on remplace l'ensemble des blocs à chaque update.
         # Le client doit envoyer la liste complète des blocs complémentaires

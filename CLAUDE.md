@@ -717,6 +717,10 @@ docker compose -f docker-compose.hub.yml --env-file .env.hub exec hub pytest
 scripts/federation.sh test
 ```
 
+#### Filet « perte de données » (`backend/tests/integrite/`)
+
+Plan complet (`construire_plan_complet()`) + inventaire de toutes les lignes métier (`inventaire()` / `ecarts()`) : l'aller-retour `GET` → `PATCH`/`PUT` d'une ressource ne doit rien perdre, une année ou un organisme qui porte un suivi ne quitte pas la programmation (400), une erreur en fin d'enregistrement ne laisse rien à moitié supprimé (serializers d'écriture en `@transaction.atomic`), un `PUT` qui omet une liste imbriquée ne la vide pas (`SansValeurParDefautEnMiseAJourMixin`, `apps/core/serializer_mixins.py`). Toute nouvelle suppression en cascade (`cascades_relues.txt`) ou migration sans retour (`migrations_irreversibles.txt`) doit être relue et ajoutée à sa liste. **La programmation d'une action se met à jour en place** (`OperationCreateSerializer._maj_operation_annees`) : ne jamais revenir à « supprimer puis recréer » les `OperationAnnee`, le suivi part en cascade. `seed_testdata` refuse les réglages de production (`--instance-de-production` pour une instance de démonstration). Voir `docs/TESTING.md`.
+
 #### Backend (pytest)
 
 ```bash

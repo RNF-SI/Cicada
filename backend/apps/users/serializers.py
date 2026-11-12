@@ -1,6 +1,7 @@
 """
 Serializers pour l'API REST des utilisateurs.
 """
+from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -252,6 +253,7 @@ class RoleCreateSerializer(serializers.ModelSerializer):
 
         return attrs
     
+    @transaction.atomic
     def create(self, validated_data):
         """Création d'un utilisateur avec mot de passe hashé."""
         # Retirer les champs non-modèle
@@ -326,6 +328,7 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
 
         return attrs
     
+    @transaction.atomic
     def update(self, instance, validated_data):
         """Mise à jour avec gestion des groupes."""
         # Sauvegarder l'ancien role_level
@@ -411,6 +414,7 @@ class SiteAssignmentSerializer(serializers.ModelSerializer):
         except Site.DoesNotExist:
             raise serializers.ValidationError(_("Site non trouvé."))
 
+    @transaction.atomic
     def create(self, validated_data):
         """Créer une assignation de site."""
         site_data = validated_data.pop('id_site')

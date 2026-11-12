@@ -1,0 +1,87 @@
+# Migrations qui suppriment ou transforment sans retour (tests/integrite/test_migrations.py).
+#
+# Relues : elles ne sont défaites qu'en restaurant la sauvegarde prise avant la
+# mise à jour (#796, `cicada-restore … --avec-sa-version`, #800). Une nouvelle
+# entrée dit en commentaire ce qu'elle perd et pourquoi c'est acceptable.
+#
+# Historique antérieur au 12/11/2026 : repris tel quel. À noter :
+# plans.0137 fusionne les lignes de temps (perte de la répartition agent /
+# partenaire en « aucune ventilation », #759).
+#
+geo.0001_initial : RunSQL sans retour
+plans.0009_restructure_etat_olt : RemoveField etatactuel.id_enjeu
+plans.0009_restructure_etat_olt : RemoveField objectiflongterme.id_etat
+plans.0013_remove_operation_cout_communication_and_more : RemoveField operation.cout_communication
+plans.0013_remove_operation_cout_communication_and_more : RemoveField operation.cout_force
+plans.0013_remove_operation_cout_communication_and_more : RemoveField operation.frequence_prescrite
+plans.0013_remove_operation_cout_communication_and_more : RemoveField operation.terme_toison
+plans.0016_suivi_inventaire : RemoveField operation.annee_lancement_suivi
+plans.0016_suivi_inventaire : RemoveField operation.cibles_principales
+plans.0016_suivi_inventaire : RemoveField operation.differences_protocole
+plans.0016_suivi_inventaire : RemoveField operation.justification_non_respect
+plans.0016_suivi_inventaire : RemoveField operation.objectif_principal
+plans.0016_suivi_inventaire : RemoveField operation.outil_bancarisation
+plans.0016_suivi_inventaire : RemoveField operation.outil_saisie
+plans.0016_suivi_inventaire : RemoveField operation.protocole_campanule_nom
+plans.0016_suivi_inventaire : RemoveField operation.protocole_dans_campanule
+plans.0016_suivi_inventaire : RemoveField operation.respect_protocole
+plans.0016_suivi_inventaire : RemoveField operation.taxon_taxref
+plans.0016_suivi_inventaire : RemoveField operation.transmission_donnee
+plans.0017_protocole : RemoveField suiviinventaire.differences_protocole
+plans.0017_protocole : RemoveField suiviinventaire.justification_non_respect
+plans.0017_protocole : RemoveField suiviinventaire.protocole_campanule_nom
+plans.0017_protocole : RemoveField suiviinventaire.protocole_dans_campanule
+plans.0017_protocole : RemoveField suiviinventaire.respect_protocole
+plans.0028_remove_suiviinventaire_annee_lancement_suivi_and_more : RemoveField suiviinventaire.annee_lancement_suivi
+plans.0029_restructure_etat_actuel_olt : RemoveField etatactuel.id_olt
+plans.0029_restructure_etat_actuel_olt : RemoveField objectiflongterme.id_enjeu
+plans.0031_oo_remove_id_enjeu : RemoveField objectifoperationnel.id_enjeu
+plans.0032_operation_fk_metrique : DeleteModel CorOperationIndicateur
+plans.0032_operation_fk_metrique : DeleteModel CorOperationMetrique
+plans.0032_operation_fk_metrique : RemoveField operation.indicateurs
+plans.0032_operation_fk_metrique : RemoveField operation.metriques
+plans.0034_oo_remove_id_facteur_influence : RemoveField objectifoperationnel.id_facteur_influence
+plans.0036_remove_etat_actuel : DeleteModel EtatActuel
+plans.0036_remove_etat_actuel : RemoveField objectiflongterme.id_etat_actuel
+plans.0039_remove_operationannee_id_operateur : RemoveField operationannee.id_operateur
+plans.0041_alter_enjeu_intitule_court_max25 : RunPython au retour vide
+plans.0045_remove_id_type_suivi_from_suiviinventaire : RemoveField suiviinventaire.id_type_suivi
+plans.0046_operation_m2m_metrique : RemoveField operation.id_metrique
+plans.0051_oo_remove_fk_pression : RemoveField objectifoperationnel.id_pression
+plans.0058_switch_to_metrique_score_blocks : DeleteModel MetriqueIntervalleExtra
+plans.0064_revert_categorie_socio_economique : RemoveField enjeu.categorie_socio_economique
+plans.0070_backfill_operation_statut_valide : RunPython au retour vide
+plans.0071_remove_etendu_statut : RunPython au retour vide
+plans.0072_en_revision_as_attribute : RunPython au retour vide
+plans.0073_is_mi_parcours_as_attribute : RunPython au retour vide
+plans.0088_corenjeuobjetgeologique_nomenclature : RemoveField corenjeuobjetgeologique.code
+plans.0088_corenjeuobjetgeologique_nomenclature : RemoveField corenjeuobjetgeologique.libelle
+plans.0088_corenjeuobjetgeologique_nomenclature : RunSQL sans retour
+plans.0101_facteur_influence_partage_enjeux : RemoveField facteurinfluence.id_enjeu
+plans.0101_facteur_influence_partage_enjeux : RemoveField facteurinfluence.ordre
+plans.0104_postes_remplacent_personnes : DeleteModel PersonneFonction
+plans.0104_postes_remplacent_personnes : DeleteModel PersonnePlan
+plans.0104_postes_remplacent_personnes : RemoveField operationanneerh.id_fonction
+plans.0104_postes_remplacent_personnes : RemoveField operationanneerh.id_personne_plan
+plans.0104_postes_remplacent_personnes : RemoveField personneplan.id_pg
+plans.0104_postes_remplacent_personnes : RemoveField personneplan.id_role
+plans.0104_postes_remplacent_personnes : RemoveField realisationoperationanneerh.id_fonction
+plans.0104_postes_remplacent_personnes : RemoveField realisationoperationanneerh.id_personne_plan
+plans.0106_alter_corindicateurtaxon_unique_together_and_more : DeleteModel CorIndicateurHabitat
+plans.0106_alter_corindicateurtaxon_unique_together_and_more : DeleteModel CorIndicateurTaxon
+plans.0107_suivi_protocoles_m2m : RemoveField suiviinventaire.id_protocole
+plans.0120_fonction_portee_plan : RunPython au retour vide
+plans.0122_socle_garde_animateur : RunPython au retour vide
+plans.0123_fonction_type_poste_nomenclature : RemoveField fonction.type_poste
+plans.0133_corredacteurplan_principal : RunPython au retour vide
+plans.0134_cout_salarial_saisi_hors_modes_poste : RunPython au retour vide
+plans.0137_temps_total_unique_aucune_ventilation : RunPython au retour vide
+plans.0140_declinaison_par_poste_explicite : RunPython au retour vide
+plans.0143_libelle_action_sans_code_type : RunPython au retour vide
+plans.0144_referents_lignes_membres : RunPython au retour vide
+plans.0145_financeurs_du_plan : RunPython au retour vide
+plans.0146_reparer_categories_reserve : RunPython au retour vide
+search.0002_contenuindexe_rattachements_and_more : RemoveField contenuindexe.search_full
+search.0002_contenuindexe_rattachements_and_more : RemoveField contenuindexe.search_titre
+search.0006_contenu_annees_extension : RunPython au retour vide
+search.0007_ascendance_portees : RemoveField contenuindexe.search_full

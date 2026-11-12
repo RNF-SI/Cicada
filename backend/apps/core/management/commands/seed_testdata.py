@@ -20,6 +20,7 @@ Donnees creees:
     - 8 Logs d'erreur
     - 25+ Logs d'activite
 """
+from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection, transaction
@@ -68,6 +69,13 @@ REQUIRED_SCHEMAS = [
     'ccd_commons',
     'ccd_notifications',
 ]
+
+
+
+def est_production():
+    """Réglages de production : ceux du paquet et du compose de production."""
+    module = getattr(settings, 'SETTINGS_MODULE', '') or ''
+    return module.rsplit('.', 1)[-1] == 'production'
 
 
 class Command(BaseCommand):
@@ -119,6 +127,13 @@ class Command(BaseCommand):
             help='Liste des seeders a executer (separes par des virgules). '
                  'Ex: --only=users,plans. Les dependances sont incluses automatiquement.',
         )
+        parser.add_argument(
+            '--instance-de-production',
+            action='store_true',
+            help="Autorise la commande avec les reglages de production. Elle cree des "
+                 "comptes au mot de passe connu et --reset SUPPRIME TOUS LES PLANS ET "
+                 "TOUS LES SITES de l'instance, pas seulement ceux du jeu d'essai.",
+        )
 
     def handle(self, *args, **options):
         self.dry_run = options['dry_run']
@@ -127,6 +142,14 @@ class Command(BaseCommand):
 
         if self.dry_run:
             self.stdout.write(self.style.WARNING('Mode dry-run: aucune modification ne sera effectuee'))
+        elif est_production() and not options.get('instance_de_production'):
+            raise CommandError(
+                "seed_testdata refuse de s'executer avec les reglages de production "
+                f"({settings.SETTINGS_MODULE}) : --reset supprime tous les plans et tous les "
+                "sites de l'instance, et le jeu d'essai cree des comptes au mot de passe "
+                "connu. Sur une instance de demonstration, relancer avec "
+                "--instance-de-production."
+            )
 
         # Verifier les dependances des seeders
         validate_dependencies()

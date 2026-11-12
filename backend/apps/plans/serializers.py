@@ -1,6 +1,7 @@
 """
 Serializers pour l'API REST Plans de Gestion.
 """
+from django.db import transaction
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
@@ -144,6 +145,7 @@ class CorPgFichierSerializer(serializers.ModelSerializer):
         """#745 — Taille maximale réglée par l'administrateur de l'instance."""
         return SiteConfiguration.verifier_taille_document(value)
 
+    @transaction.atomic
     def create(self, validated_data):
         """Créer un fichier avec upload."""
         fichier = validated_data.pop('fichier', None)
@@ -639,6 +641,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             )
         return value
 
+    @transaction.atomic
     def create(self, validated_data):
         """Créer un plan avec ses relations."""
         sites_ids = validated_data.pop('sites_ids', [])
@@ -673,6 +676,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
 
         return plan
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         """Mettre à jour un plan avec ses relations."""
         sites_ids = validated_data.pop('sites_ids', None)
@@ -767,6 +771,7 @@ class PlanGestionCreateSerializer(serializers.ModelSerializer):
             'annee_fin': {'required': True},
         }
 
+    @transaction.atomic
     def create(self, validated_data):
         """Créer un plan avec sites, référents et organisme rédacteur."""
         sites_ids = validated_data.pop('sites_ids', [])

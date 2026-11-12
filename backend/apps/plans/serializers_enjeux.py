@@ -1,6 +1,9 @@
 """
 Serializers pour l'API REST Enjeux, FCR et Responsabilités.
 """
+from django.db import transaction
+
+from apps.core.serializer_mixins import SansValeurParDefautEnMiseAJourMixin
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
@@ -167,6 +170,7 @@ class CorEnjeuFichierSerializer(serializers.ModelSerializer):
         """#745 — Taille maximale réglée par l'administrateur de l'instance."""
         return SiteConfiguration.verifier_taille_document(value)
 
+    @transaction.atomic
     def create(self, validated_data):
         fichier = validated_data.pop('fichier', None)
         instance = super().create(validated_data)
@@ -588,6 +592,7 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         pression_ids = validated_data.pop('pression_ids', [])
         oo = super().create(validated_data)
@@ -595,6 +600,7 @@ class ObjectifOperationnelCreateSerializer(serializers.ModelSerializer):
             oo.pressions.set(pression_ids)
         return oo
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         pression_ids = validated_data.pop('pression_ids', None)
         oo = super().update(instance, validated_data)
@@ -808,6 +814,7 @@ class FacteurInfluenceCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(_("L'enjeu indiqué n'existe pas."))
         return value
 
+    @transaction.atomic
     def create(self, validated_data):
         enjeu_id = validated_data.pop('id_enjeu', None)
         if enjeu_id is None:
@@ -821,6 +828,7 @@ class FacteurInfluenceCreateSerializer(serializers.ModelSerializer):
         )
         return facteur
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         # Le rattachement aux enjeux se gère via link/unlink (#552), pas ici.
         validated_data.pop('id_enjeu', None)
@@ -998,7 +1006,7 @@ class EnjeuDetailSerializer(serializers.ModelSerializer):
         return _prefetched_count(obj, 'objectifs_operationnels_directs')
 
 
-class EnjeuCreateSerializer(serializers.ModelSerializer):
+class EnjeuCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers.ModelSerializer):
     """Serializer pour la création/modification d'un Enjeu/FCR."""
 
     # IDs pour les relations taxonomiques (write-only)
@@ -1108,6 +1116,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         """Créer un enjeu avec ses relations taxonomiques."""
         # Extraire les IDs et données des relations
@@ -1140,6 +1149,7 @@ class EnjeuCreateSerializer(serializers.ModelSerializer):
 
         return enjeu
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         """Mettre à jour un enjeu avec ses relations taxonomiques."""
         # Extraire les IDs et données des relations
@@ -1346,7 +1356,7 @@ class ResponsabiliteDetailSerializer(serializers.ModelSerializer):
         ]
 
 
-class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
+class ResponsabiliteCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers.ModelSerializer):
     """Serializer pour la création/modification d'une Responsabilité."""
 
     # IDs pour les relations (write-only)
@@ -1406,6 +1416,7 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id_responsabilite']
 
+    @transaction.atomic
     def create(self, validated_data):
         """Créer une responsabilité avec ses relations."""
         # Extraire les IDs et données des relations
@@ -1436,6 +1447,7 @@ class ResponsabiliteCreateSerializer(serializers.ModelSerializer):
 
         return responsabilite
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         """Mettre à jour une responsabilité avec ses relations."""
         taxon_ids = validated_data.pop('taxon_ids', None)
