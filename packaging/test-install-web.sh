@@ -221,7 +221,7 @@ if curl -s http://localhost:4567/api/health > /dev/null 2>&1; then
     echo -e "${GREEN}========================================${NC}"
     echo ""
     echo -e "${BLUE}Accédez à l'interface :${NC}"
-    echo -e "  ${BLUE}http://localhost:4567${NC}"
+    echo -e "  ${BLUE}http://localhost:4567/?jeton=$(docker exec "$CONTAINER_NAME" cat /etc/cicada/installer_token 2>/dev/null)${NC}"
     echo ""
     echo -e "${YELLOW}Pour voir les logs :${NC}"
     echo "  docker exec $CONTAINER_NAME tail -f /tmp/cicada-installer.log"

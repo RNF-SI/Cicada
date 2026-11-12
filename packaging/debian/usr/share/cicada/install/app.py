@@ -2,11 +2,55 @@
 """
 Application Flask pour l'installation de CICADA
 """
-from flask import Flask, Response, render_template, request, jsonify
+import hmac
+import os
+from pathlib import Path
+
+from flask import Flask, Response, abort, jsonify, redirect, render_template, request
 from install_service import InstallService, get_hub_url
 
 app = Flask(__name__)
 install_service = InstallService()
+
+#: Jeton tiré par le paquet (postinst) et affiché dans le terminal avec le lien
+#: de l'installateur. Sans lui, quiconque atteignait le port 4567 installait
+#: l'instance avec SON compte administrateur, ou s'en servait pour sonder le
+#: réseau interne depuis le serveur.
+FICHIER_JETON = Path(os.environ.get('CICADA_INSTALLER_TOKEN_FILE', '/etc/cicada/installer_token'))
+COOKIE = 'cicada_installeur'
+#: Servis sans jeton : ils ne contiennent aucun secret (ils sont dans le dépôt
+#: public) et sont lancés par curl depuis le serveur de base, sans navigateur.
+ROUTES_PUBLIQUES = {'/api/health', '/prepare-db.sh', '/usershub-lecture.sh'}
+
+
+def _jeton_attendu():
+    try:
+        return FICHIER_JETON.read_text().strip()
+    except OSError:
+        return ''
+
+
+def _jeton_presente():
+    return (request.args.get('jeton') or request.headers.get('X-Installer-Token')
+            or request.cookies.get(COOKIE) or '')
+
+
+@app.before_request
+def exiger_le_jeton():
+    if request.path in ROUTES_PUBLIQUES or request.path.startswith('/static/'):
+        return None
+    attendu = _jeton_attendu()
+    if not attendu:
+        return ("Installateur verrouillé : jeton absent. Sur le serveur, lancez "
+                "« sudo dpkg-reconfigure cicada » pour en obtenir un.", 503)
+    if not hmac.compare_digest(_jeton_presente(), attendu):
+        abort(403)
+    if request.args.get('jeton'):
+        # Le jeton quitte l'URL (historique, en-tête Referer) pour un cookie.
+        reponse = redirect(request.path)
+        reponse.set_cookie(COOKIE, attendu, httponly=True, samesite='Strict')
+        return reponse
+    return None
 
 
 @app.route('/')
@@ -23,7 +67,27 @@ def install():
 
     data = request.json
     result = install_service.run_installation(data)
+    if result.get('success'):
+        _arreter_l_installateur_plus_tard()
     return jsonify(result)
+
+
+def _arreter_l_installateur_plus_tard():
+    """L'instance installée, l'installateur cesse d'écouter sur le réseau.
+
+    Dans deux minutes, le temps que la page affiche la fin de l'installation
+    et redirige vers l'application. Sans systemd (tests en conteneur) : rien.
+    """
+    import subprocess
+    try:
+        subprocess.Popen(
+            ['systemd-run', '--on-active=120', '--unit=cicada-installer-arret',
+             'systemctl', 'disable', '--now', 'cicada-installer.service'],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        )
+        FICHIER_JETON.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 @app.route('/prepare-db.sh')

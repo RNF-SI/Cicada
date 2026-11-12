@@ -141,6 +141,20 @@ class InstallService:
                     self.update_status('failed', blocking[0]['label'], 'db', 'failed')
                     return {'success': False, 'error': self.format_db_errors(blocking)}
 
+            # 1.6. Une base Docker existe déjà (installation antérieure dont le
+            # .env a disparu) : la réinstaller tirerait un nouveau mot de passe,
+            # qui ne correspond plus au volume, et une nouvelle SECRET_KEY, qui
+            # rend illisibles les secrets chiffrés en base. Refus explicite.
+            if data.get('db_type', 'docker') == 'docker' and self.base_docker_existante():
+                message = (
+                    "Une base CICADA existe déjà sur ce serveur (volume Docker « postgres_data »). "
+                    "Réinstaller la rendrait inutilisable : restaurez plutôt /var/lib/cicada/.env "
+                    "depuis sa sauvegarde (guide d'installation, « Restaurer »). Pour repartir "
+                    "de zéro, supprimez d'abord ce volume, en connaissance de cause."
+                )
+                self.update_status('failed', message)
+                return {'success': False, 'error': message}
+
             # 2. Générer les secrets
             self.update_status('in_progress', 'Génération des secrets...')
             secrets_data = self.generate_secrets(data)
@@ -182,6 +196,21 @@ class InstallService:
         except Exception as e:
             self.update_status('failed', str(e))
             return {'success': False, 'error': str(e)}
+
+    def base_docker_existante(self):
+        """Vrai si un volume de base CICADA (Compose, « postgres_data ») existe."""
+        docker_cmd = self._find_docker_command()
+        if not docker_cmd:
+            return False
+        try:
+            sortie = subprocess.run(
+                [docker_cmd, 'volume', 'ls', '-q',
+                 '--filter', 'label=com.docker.compose.volume=postgres_data'],
+                capture_output=True, text=True, timeout=30,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return False
+        return sortie.returncode == 0 and bool(sortie.stdout.strip())
 
     def validate_data(self, data):
         errors = []
@@ -305,6 +334,7 @@ class InstallService:
             f"POSTGRES_PASSWORD={db_password}",
             f"POSTGRES_HOST={db_host}",
             f"POSTGRES_PORT={db_port}",
+            f"POSTGRES_SSLMODE={self.db_sslmode(data, db_type)}",
             f"DB_TYPE={db_type}",
             "",
             f"REDIS_HOST={data.get('redis_host', 'redis')}",
@@ -382,9 +412,14 @@ class InstallService:
                 env_lines.append(f"TRAEFIK_HTTP_PORT={thp}")
             if thsp:
                 env_lines.append(f"TRAEFIK_HTTPS_PORT={thsp}")
+            # Traefik envoie /api à Django ; derrière un Apache / Nginx
+            # (ports déplacés), un proxy de plus.
+            env_lines.append(f"NUM_PROXIES={2 if (thp or thsp) else 1}")
         else:
             env_lines.append("")
             env_lines.append("TRAEFIK_ENABLED=false")
+            # Apache / Nginx d'entrée + Apache du conteneur frontend.
+            env_lines.append("NUM_PROXIES=2")
 
         env_path = Path("/var/lib/cicada/.env")
         env_path.touch(mode=0o600, exist_ok=True)
@@ -699,6 +734,18 @@ class InstallService:
         return match.group(1) if match else '172.17.0.1'
 
     SSLMODES = ('prefer', 'require', 'verify-ca', 'verify-full')
+
+    def db_sslmode(self, data, db_type):
+        """Chiffrement de la connexion à la base de l'instance : exigé dès
+        qu'elle est sur un autre serveur (les données des plans et l'empreinte
+        du mot de passe passent sur le réseau), sauf choix explicite. Base
+        Docker : aucun, la connexion ne quitte pas le réseau des conteneurs."""
+        if db_type != 'existing':
+            return ''
+        choix = (data.get('db_sslmode') or '').strip().lower()
+        if choix in self.SSLMODES:
+            return choix
+        return 'prefer' if self.is_local_db((data.get('db_host') or '').strip()) else 'require'
 
     def usershub_sslmode(self, data, host):
         """Chiffrement de la connexion à la base UsersHub : exigé dès qu'elle est

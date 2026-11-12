@@ -67,6 +67,7 @@ def service(tmp_path, monkeypatch):
         monkeypatch.setattr(svc, step, lambda *a, **k: None)
     monkeypatch.setattr(svc, 'test_database', lambda data: [])
     monkeypatch.setattr(svc, 'get_version', lambda: '0.0.0-test')
+    monkeypatch.setattr(svc, 'base_docker_existante', lambda: False)
     return svc
 
 
@@ -93,6 +94,9 @@ def test_traefik_publie_en_https(service, tmp_path):
     env = read_env(tmp_path)
     assert env['TRAEFIK_ENABLED'] == 'true'
     assert env['SITE_URL'] == 'https://cicada.example.org'
+    # Traefik seul devant Django : l'adresse du client est la dernière de
+    # X-Forwarded-For (limite des essais de connexion).
+    assert env['NUM_PROXIES'] == '1'
 
 
 def test_apache_publie_sans_le_port_mais_autorise_l_acces_direct(service, tmp_path):
@@ -101,6 +105,7 @@ def test_apache_publie_sans_le_port_mais_autorise_l_acces_direct(service, tmp_pa
     env = read_env(tmp_path)
     assert env['TRAEFIK_ENABLED'] == 'false'
     assert env['SITE_URL'] == 'https://cicada.example.org'
+    assert env['NUM_PROXIES'] == '2'
     assert 'http://cicada.example.org:1717' in env['CORS_ALLOWED_ORIGINS'].split(',')
     assert result['redirect_url'] == 'http://cicada.example.org:1717'
 
@@ -326,3 +331,14 @@ def test_le_script_du_compte_de_lecture_est_servi_par_l_installateur(monkeypatch
     assert reponse.status_code == 200
     assert 'GRANT SELECT (id_role, groupe' in reponse.get_data(as_text=True)
     assert LECTURE_SCRIPT.stat().st_mode & 0o111, 'script non exécutable'
+
+
+def test_reinstaller_sur_une_base_existante_est_refuse(service, tmp_path, monkeypatch):
+    """Le .env a disparu mais la base Docker est là : de nouveaux secrets la
+    rendraient inutilisable (mot de passe, SECRET_KEY). Rien n'est écrit."""
+    monkeypatch.setattr(service, 'base_docker_existante', lambda: True)
+    result = service.run_installation({**BASE, **CONFIGURATIONS['traefik']})
+
+    assert result['success'] is False
+    assert 'postgres_data' in result['error']
+    assert not (tmp_path / 'var/lib/cicada/.env').exists()

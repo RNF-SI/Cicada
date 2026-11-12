@@ -16,7 +16,7 @@ from pathlib import Path
 
 sys.path.insert(0, '/usr/share/cicada/maintenance')
 
-from cicada_maintenance import CODES, ErreurMaintenance, Instance, horodatage  # noqa: E402
+from cicada_maintenance import CODES, ErreurMaintenance, Instance, horodatage, lire_echange  # noqa: E402
 
 # Dossier d'échange avec l'application (monté dans le conteneur web à
 # /var/lib/cicada) : le bouton « Mettre à jour » y dépose le déclencheur.
@@ -29,7 +29,8 @@ def main():
         instance.dire("Pas de mise à jour demandée")
         return 0
     try:
-        trigger = json.loads(TRIGGER_FILE.read_text())
+        # Sans suivre de lien : le dossier appartient au conteneur.
+        trigger = json.loads(lire_echange(TRIGGER_FILE))
     except (OSError, ValueError):
         trigger = {}
     # Déclencheur consommé dès maintenant : la page d'administration lit sa

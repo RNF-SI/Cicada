@@ -27,6 +27,7 @@ DB_PORT="5432"
 INIT_SQL=""
 CLIENTS=()
 DOCKER_LOCAL=false
+SANS_SSL=false
 # Plages d'adresses par défaut des réseaux Docker : les conteneurs de CICADA
 # se connectent depuis l'une d'elles quand PostgreSQL est sur le même serveur.
 DOCKER_NETWORKS="172.16.0.0/12"
@@ -55,6 +56,9 @@ Prépare PostgreSQL pour CICADA sur ce serveur de base.
   --db-user NOM         Compte applicatif (défaut : $DB_USER)
   --password MDP        Mot de passe du compte (défaut : généré et affiché)
   --port PORT           Port PostgreSQL (défaut : $DB_PORT)
+  --sans-ssl            Autoriser les --client sans chiffrement (réseau privé
+                        sûr uniquement). Par défaut, une machine distante n'est
+                        ouverte qu'en TLS (hostssl) et demande ssl = on.
   --init-sql CHEMIN     init.sql de CICADA (défaut : celui inclus dans le script
                         fourni par l'installateur, sinon /usr/share/cicada/…)
   -y, --yes             Accepté pour compatibilité (le script ne pose plus de question)
@@ -76,6 +80,7 @@ while [ $# -gt 0 ]; do
         --password) DB_PASSWORD="$2"; shift 2 ;;
         --port)     DB_PORT="$2"; shift 2 ;;
         --init-sql) INIT_SQL="$2"; shift 2 ;;
+        --sans-ssl) SANS_SSL=true; shift ;;
         -y|--yes)   shift ;;
         -h|--help)  usage ;;
         *) echo "Option inconnue : $1"; usage ;;
@@ -212,10 +217,28 @@ ok "Fonction unaccent confiée à $DB_USER"
 if [ ${#CLIENTS[@]} -gt 0 ]; then
     echo -e "\nAccès réseau (pg_hba.conf) :"
     HBA="$(pg -c 'show hba_file')"
+    # Serveur CICADA distant : les données des plans et l'empreinte du mot de
+    # passe traversent le réseau. Ligne « hostssl » : PostgreSQL refuse alors
+    # toute connexion en clair de ce compte. Les conteneurs du serveur lui-même
+    # (--docker-local) restent en « host » : rien ne sort de la machine.
     for client in "${CLIENTS[@]}"; do
+        if { [ "$client" = "$DOCKER_NETWORKS" ] || [ "$client" = samehost ]; } || [ "$SANS_SSL" = true ]; then
+            continue
+        fi
+        SSL="$(pg -c 'show ssl')"
+        [ "$SSL" = on ] || die "PostgreSQL n'accepte pas de connexion chiffrée (ssl = $SSL) : la base ne sera pas ouverte à $client" \
+            "Dans $(pg -c 'show config_file'), mettez :\n  ssl = on\n  ssl_cert_file = '/etc/ssl/certs/ssl-cert-snakeoil.pem'      (ou le certificat du serveur)\n  ssl_key_file = '/etc/ssl/private/ssl-cert-snakeoil.key'\npuis rechargez : sudo -u postgres psql -c 'select pg_reload_conf()'   (pas de redémarrage)\nRéseau privé sûr uniquement : relancez avec --sans-ssl."
+        break
+    done
+    for client in "${CLIENTS[@]}"; do
+        if [ "$client" = "$DOCKER_NETWORKS" ] || [ "$client" = samehost ] || [ "$SANS_SSL" = true ]; then
+            type=host
+        else
+            type=hostssl
+        fi
         [[ "$client" == */* || "$client" == samehost ]] || client="$client/32"
-        line="host    $DB_NAME    $DB_USER    $client    scram-sha-256"
-        if grep -qE "^host[[:space:]]+$DB_NAME[[:space:]]+$DB_USER[[:space:]]+${client//./\\.}[[:space:]]" "$HBA"; then
+        line="$type    $DB_NAME    $DB_USER    $client    scram-sha-256"
+        if grep -qE "^$type[[:space:]]+$DB_NAME[[:space:]]+$DB_USER[[:space:]]+${client//./\\.}[[:space:]]" "$HBA"; then
             ok "$client déjà autorisé"
         else
             printf '# CICADA (cicada-prepare-db, %s)\n%s\n' "$(date +%F)" "$line" >> "$HBA"

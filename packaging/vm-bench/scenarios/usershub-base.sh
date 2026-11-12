@@ -59,6 +59,7 @@ statuses() { python3 -c "import json,sys;print(' '.join(c['status'] for c in jso
 labels()   { python3 -c "import json,sys;print(' | '.join(c['label'] for c in json.load(sys.stdin)['checks']))"; }
 api_test_usershub() {  # api_test_usershub MOTDEPASSE CODE → JSON des contrôles
     curl -s --max-time 30 -H 'Content-Type: application/json' \
+        -H "X-Installer-Token: $(cat /etc/cicada/installer_token)" \
         -d "{\"usershub_db_host\":\"localhost\",\"usershub_db_port\":\"5432\",\"usershub_db_name\":\"$UH_DB\",\"usershub_db_user\":\"cicada_usershub\",\"usershub_db_password\":\"$1\",\"geonature_auth_code_application\":\"$2\"}" \
         http://127.0.0.1:4567/api/test-usershub
 }
@@ -66,7 +67,7 @@ api_test_usershub() {  # api_test_usershub MOTDEPASSE CODE → JSON des contrôl
 before_form() {
     local out result
     check "Le formulaire affiche la commande du compte de lecture" bash -c \
-        "curl -s http://127.0.0.1:4567/ | grep -q 'id=\"usershub_command\"'"
+        "curl -s -H \"X-Installer-Token: \$(cat /etc/cicada/installer_token)\" http://127.0.0.1:4567/ | grep -q 'id=\"usershub_command\"'"
     check "L'installateur sert cicada-usershub-lecture tel qu'installé" bash -c \
         "curl -s http://127.0.0.1:4567/usershub-lecture.sh | cmp -s - /usr/bin/cicada-usershub-lecture"
 

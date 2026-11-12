@@ -30,8 +30,11 @@ for f in update_available.json update_trigger.json update_result.json; do
 done
 # Secrets (SECRET_KEY, mots de passe) : lisibles par root seul
 [ -f "$ENV_FILE" ] && chmod 600 "$ENV_FILE"
-chgrp www-data "$CICADA_DIR" 2>/dev/null || true
-chmod 775 "$CICADA_DIR" 2>/dev/null || true
+# Dossier de .env et de .install_lock : root seul. Ouvert en écriture au
+# groupe www-data, il laissait un Apache (ou un GeoNature) du même serveur
+# remplacer .env — et donc la SECRET_KEY — ou rouvrir l'installateur.
+chown root:root "$CICADA_DIR" 2>/dev/null || true
+chmod 0750 "$CICADA_DIR" 2>/dev/null || true
 
 # --- Générer le token d'instance si absent ---
 if [ ! -f "$TOKEN_FILE" ]; then
@@ -42,6 +45,17 @@ if [ ! -f "$TOKEN_FILE" ]; then
         cat /dev/urandom | tr -dc 'a-f0-9' | fold -w 32 | head -n 1 | sed 's/\(........\)\(....\)\(....\)\(....\)\(............\)/\1-\2-\3-\4-\5/' > "$TOKEN_FILE"
         chmod 600 "$TOKEN_FILE"
     fi
+fi
+
+# --- Jeton de l'installateur web ---
+# L'installateur écoute sur le réseau (formulaire ouvert depuis un autre poste) :
+# seul qui a le lien affiché ci-dessous peut s'en servir. Plus de jeton une fois
+# l'instance installée (le service est alors arrêté).
+INSTALLER_TOKEN="$CONFIG_DIR/installer_token"
+if [ -f "$ENV_FILE" ]; then
+    rm -f "$INSTALLER_TOKEN"
+elif [ ! -s "$INSTALLER_TOKEN" ]; then
+    ( umask 077; head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$INSTALLER_TOKEN" )
 fi
 
 # --- Venv pour l'installateur Flask ---
@@ -62,11 +76,17 @@ fi
 # n'étaient alors jamais démarrés (#222).
 if [ -d /run/systemd/system ]; then
     systemctl daemon-reload || true
-    systemctl enable --now cicada-installer.service || true
-    # enable --now ne relance pas un service déjà démarré : après une mise à
-    # jour, l'installateur servait encore le code de la version précédente
-    # (0.1.61 : PostgreSQL local toujours refusé par le formulaire).
-    systemctl try-restart cicada-installer.service || true
+    if [ -f "$ENV_FILE" ]; then
+        # Instance installée : l'installateur n'a plus rien à faire, et il
+        # ne doit plus écouter sur le réseau.
+        systemctl disable --now cicada-installer.service || true
+    else
+        systemctl enable --now cicada-installer.service || true
+        # enable --now ne relance pas un service déjà démarré : après une mise à
+        # jour, l'installateur servait encore le code de la version précédente
+        # (0.1.61 : PostgreSQL local toujours refusé par le formulaire).
+        systemctl try-restart cicada-installer.service || true
+    fi
     systemctl enable --now cicada-heartbeat.timer || true
     systemctl enable --now cicada-updater.path || true
     systemctl enable --now cicada-heartbeat-check.path || true
@@ -105,8 +125,10 @@ if [ -f "$ENV_FILE" ]; then
 else
     # Première installation → l'utilisateur doit passer par l'installateur web
     echo ""
+    ADRESSE="$(hostname -I 2>/dev/null | awk '{print $1}')"
     echo "============================================"
     echo "CICADA installé avec succès !"
-    echo "Accédez à http://localhost:4567 pour continuer"
+    echo "Pour continuer, ouvrez (lien personnel, ne le partagez pas) :"
+    echo "  http://${ADRESSE:-localhost}:4567/?jeton=$(cat "$INSTALLER_TOKEN" 2>/dev/null)"
     echo "============================================"
 fi

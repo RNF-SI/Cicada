@@ -7,6 +7,9 @@ import requests
 from datetime import datetime
 from pathlib import Path
 
+sys.path.insert(0, '/usr/share/cicada/maintenance')
+from cicada_maintenance import ecrire_echange, lire_echange  # noqa: E402
+
 TOKEN_FILE = "/etc/cicada/instance_token"
 CONFIG_FILE = "/etc/cicada/cicada.conf"
 VERSION_FILE = "/usr/share/cicada/VERSION"
@@ -111,7 +114,8 @@ def send_heartbeat():
         logger.info(f"Heartbeat envoyé. Version: {version}")
 
         # Sauvegarder les infos de mise à jour
-        Path(UPDATE_FILE).write_text(json.dumps({
+        # Dossier d'échange appartenant au conteneur : jamais en suivant un lien.
+        ecrire_echange(UPDATE_FILE, json.dumps({
             'update_available': data.get('update_available', False),
             'current_version': version,
             'latest_version': data.get('latest_version'),
@@ -134,13 +138,13 @@ def record_check_error(message):
     d'administration l'affiche au lieu de laisser croire que tout est à jour."""
     path = Path(UPDATE_FILE)
     try:
-        data = json.loads(path.read_text()) if path.exists() else {}
+        data = json.loads(lire_echange(path)) if path.exists() else {}
     except (OSError, ValueError):
         data = {}
     data['last_check_error'] = message
     data['last_check_attempt'] = datetime.now().isoformat()
     try:
-        path.write_text(json.dumps(data))
+        ecrire_echange(path, json.dumps(data))
     except OSError as e:
         logger.error(f"Impossible d'écrire {UPDATE_FILE}: {e}")
 

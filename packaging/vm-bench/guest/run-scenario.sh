@@ -246,7 +246,10 @@ answers_json > "$BENCH_DIR/answers.json"
 POLLER=$!
 
 t0=$(date +%s)
+check "Installateur fermé sans le jeton du paquet" \
+    test "$(http_code http://127.0.0.1:4567/)" = 403
 curl -s --max-time 2400 -X POST -H 'Content-Type: application/json' \
+    -H "X-Installer-Token: $(cat /etc/cicada/installer_token)" \
     --data @"$BENCH_DIR/answers.json" http://127.0.0.1:4567/api/install \
     > "$BENCH_DIR/install-response.json"
 curl_rc=$?
@@ -350,7 +353,9 @@ else
     pkg_check "Enregistrement de l'instance reçu par l'API de suivi" grep -q '/instances/register/' "$FAKE_TRACKING_LOG"
 fi
 pkg_check ".env (secrets) lisible par root seul" test "$(stat -c %a /var/lib/cicada/.env)" = 600
-pkg_check "Installateur verrouillé après installation" test "$(http_code http://127.0.0.1:4567/)" = 403
+# Fermé (403, sans jeton) puis arrêté deux minutes après l'installation (000).
+pkg_check "Installateur fermé après installation" bash -c \
+    'c=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 http://127.0.0.1:4567/); [ "$c" = 403 ] || [ "$c" = 000 ]'
 
 scenario_checks
 

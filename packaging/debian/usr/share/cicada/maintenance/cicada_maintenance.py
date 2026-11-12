@@ -61,6 +61,35 @@ COMMANDE_REPRISE = 'sudo cicada-update rollback'
 RETOUR_VERSION = 'retour_version'  # origine d'une tentative lancée par cicada-restore --avec-sa-version
 
 
+
+def ecrire_echange(chemin, texte, mode=0o644):
+    """Écrit un fichier du dossier d'échange avec le conteneur, sans suivre de lien.
+
+    Ce dossier appartient à l'utilisateur du conteneur ; un code qui s'y
+    exécuterait pourrait y poser un lien symbolique (« update_result.json » →
+    /etc/…) que root suivrait en écrivant. Fichier temporaire créé en
+    exclusivité (mkstemp) puis renommé : le renommage remplace le lien
+    lui-même, jamais sa cible.
+    """
+    import tempfile
+    chemin = Path(chemin)
+    fd, tmp = tempfile.mkstemp(dir=chemin.parent, prefix='.' + chemin.name + '.')
+    try:
+        with os.fdopen(fd, 'w') as f:
+            f.write(texte)
+        os.chmod(tmp, mode)
+        os.replace(tmp, chemin)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def lire_echange(chemin):
+    """Lit un fichier du dossier d'échange, en refusant un lien symbolique."""
+    fd = os.open(chemin, os.O_RDONLY | os.O_NOFOLLOW)
+    with os.fdopen(fd) as f:
+        return f.read()
+
 class ErreurMaintenance(Exception):
     """Échec expliqué, affiché tel quel à l'administrateur."""
 
@@ -300,11 +329,8 @@ class Instance:
                 'commande': COMMANDE_REPRISE if t['statut'] == SANS_RETOUR else None,
                 'avertissement': t.get('avertissement') or None,
             }
-            chemin = self.c.echanges / 'update_result.json'
-            tmp = chemin.with_suffix('.partiel')
-            tmp.write_text(json.dumps(resultat, ensure_ascii=False))
-            os.chmod(tmp, 0o644)
-            os.replace(tmp, chemin)
+            ecrire_echange(self.c.echanges / 'update_result.json',
+                           json.dumps(resultat, ensure_ascii=False))
         except OSError as e:
             self.dire(f"  ! résultat non écrit pour l'application : {e}")
 
@@ -457,9 +483,7 @@ class Instance:
         }
         try:
             self.c.echanges.mkdir(parents=True, exist_ok=True)
-            chemin = self.c.echanges / 'backups.json'
-            chemin.write_text(json.dumps(resume, ensure_ascii=False))
-            os.chmod(chemin, 0o644)
+            ecrire_echange(self.c.echanges / 'backups.json', json.dumps(resume, ensure_ascii=False))
         except OSError:
             pass
 

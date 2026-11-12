@@ -5,4 +5,6 @@
 services:
   frontend:
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      # Apache / Nginx d entrée sur ce même serveur : FRONTEND_BIND=127.0.0.1 dans .env,
+      # sinon le port contourne le proxy (et son TLS) depuis le réseau.
+      - "${FRONTEND_BIND:-0.0.0.0}:${FRONTEND_PORT:-80}:80"
