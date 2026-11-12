@@ -455,34 +455,14 @@ describe('ValidationService', () => {
       req.flush(response);
     });
 
-    it('should check registration status - pending', () => {
+    it('should check registration status (réponse unique, sans énumération)', () => {
       service.checkRegistrationStatus('pending@test.com').subscribe(response => {
-        expect(response.status).toBe('pending');
+        expect(response.status).toBe('unknown');
       });
 
       const req = httpMock.expectOne('/api/auth/registration-status/?email=pending@test.com');
       expect(req.request.method).toBe('GET');
-      req.flush({ status: 'pending', message: 'En attente de validation' });
-    });
-
-    it('should check registration status - registered', () => {
-      service.checkRegistrationStatus('registered@test.com').subscribe(response => {
-        expect(response.status).toBe('registered');
-      });
-
-      const req = httpMock.expectOne('/api/auth/registration-status/?email=registered@test.com');
-      expect(req.request.method).toBe('GET');
-      req.flush({ status: 'registered', message: 'Utilisateur enregistré' });
-    });
-
-    it('should check registration status - not found', () => {
-      service.checkRegistrationStatus('unknown@test.com').subscribe(response => {
-        expect(response.status).toBe('not_found');
-      });
-
-      const req = httpMock.expectOne('/api/auth/registration-status/?email=unknown@test.com');
-      expect(req.request.method).toBe('GET');
-      req.flush({ status: 'not_found', message: 'Email non trouvé' });
+      req.flush({ status: 'unknown', message: 'Si une demande existe…' });
     });
   });
 

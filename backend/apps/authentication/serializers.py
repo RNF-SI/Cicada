@@ -6,7 +6,7 @@ import logging
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password
 from django.contrib.auth.models import update_last_login
-from django.db.models import Q
+
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -42,9 +42,10 @@ class CustomTokenObtainPairSerializer(serializers.Serializer):
             )
 
         # Rechercher l'utilisateur par email OU identifiant
-        user = Role.objects.filter(
-            Q(email__iexact=username) | Q(identifiant__iexact=username)
-        ).first()
+        # L'e-mail d'abord : un identifiant choisi égal à l'e-mail d'un autre
+        # compte ne doit jamais l'emporter sur ce compte.
+        user = (Role.objects.filter(email__iexact=username).first()
+                or Role.objects.filter(identifiant__iexact=username).first())
 
         if not user:
             # Verifier si c'est un utilisateur en attente d'inscription
@@ -102,7 +103,8 @@ def reponse_connexion(user):
     Jetons JWT + profil renvoyés après une connexion réussie, quel que soit le
     mode (local, GeoNature #689) : le frontend enchaîne de la même façon.
     """
-    refresh = RefreshToken.for_user(user)
+    from .sessions import ouvrir
+    refresh = ouvrir(RefreshToken.for_user(user))
     premiere_connexion = user.last_login is None
 
     # Mettre a jour last_login (le custom serializer ne passe pas par

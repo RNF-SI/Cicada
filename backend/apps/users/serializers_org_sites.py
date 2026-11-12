@@ -173,7 +173,22 @@ class OrganismeDetailSerializer(serializers.ModelSerializer):
     
     @extend_schema_field(UtilisateurOrganismeSchema(many=True))
     def get_users(self, obj):
-        """Utilisateurs de l'organisme."""
+        """Utilisateurs de l'organisme — pour qui administre cet organisme.
+
+        ``?for_invite=true`` ouvre la fiche de tout organisme à un référent (pour
+        inviter un organisme sur un site) : le nom suffit à ce geste, la liste des
+        comptes (e-mails et rôles) n'en fait pas partie.
+        """
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not (user and user.is_authenticated):
+            return []
+        # (Role.id_organisme pointe sur uuid_organisme : comparer les objets.)
+        mien = user.id_organisme if user.id_organisme_id else None
+        if not (user.is_super_admin() or user.is_redacteur_principal() or (
+                user.is_admin_organisme() and mien is not None
+                and (mien.pk == obj.pk or obj.id_parent_id == mien.pk))):
+            return []
         users = Role.objects.filter(id_organisme=obj, active=True)
         return [{
             'id_role': user.id_role,

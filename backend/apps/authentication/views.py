@@ -24,7 +24,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from . import echecs
+from . import echecs, journal_connexion
 from .throttles import AuthRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
@@ -98,19 +98,23 @@ class CustomTokenObtainPairView(APIView):
     )
     def post(self, request):
         identifiant = str(request.data.get('username') or request.data.get('email') or '')
-        if echecs.bloque(identifiant):
+        compte, ip = echecs.compte_vise(identifiant), echecs.adresse(request)
+        if echecs.bloque(compte, ip):
+            journal_connexion.refus(identifiant, ip, 'verrou')
             return Response({'detail': echecs.MESSAGE_BLOQUE},
                             status=status.HTTP_429_TOO_MANY_REQUESTS)
         serializer = CustomTokenObtainPairSerializer(data=request.data)
 
         if serializer.is_valid():
-            echecs.effacer(identifiant)
+            echecs.effacer(compte, ip)
+            journal_connexion.succes(serializer.validated_data['user']['id'], ip, 'local')
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
         # Reformater les erreurs pour un message plus clair
         errors = serializer.errors
         if 'non_field_errors' in errors:
-            echecs.noter_echec(identifiant)
+            echecs.noter_echec(compte, ip)
+            journal_connexion.refus(identifiant, ip, 'identifiants')
             return Response(
                 {'detail': errors['non_field_errors'][0]},
                 status=status.HTTP_401_UNAUTHORIZED
@@ -212,22 +216,28 @@ class ConnexionGeoNatureView(APIView):
             return Response({'detail': "L'identifiant et le mot de passe sont requis."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        if echecs.bloque(login):
-            return Response({'detail': echecs.MESSAGE_BLOQUE},
+        cle, ip = echecs.compte_vise(login), echecs.adresse(request)
+        if echecs.bloque(cle, ip):
+            journal_connexion.refus(login, ip, 'verrou')
+            return Response({'detail': echecs.MESSAGE_BLOQUE_USERSHUB},
                             status=status.HTTP_429_TOO_MANY_REQUESTS)
         try:
             identite = usershub.verifier(login, password)
             compte = usershub.compte_pour(identite)
         except usershub.UsersHubErreur as exc:
             if exc.status_code == status.HTTP_401_UNAUTHORIZED:
-                echecs.noter_echec(login)
+                echecs.noter_echec(cle, ip)
+            journal_connexion.refus(login, ip, f'usershub-{exc.status_code}')
             return Response({'detail': str(exc.message)}, status=exc.status_code)
 
-        echecs.effacer(login)
+        echecs.effacer(cle, ip)
+        journal_connexion.succes(compte.pk, ip, 'geonature')
         return Response(reponse_connexion(compte), status=status.HTTP_200_OK)
 
 
 class CustomTokenRefreshView(TokenRefreshView):
+    _serializer_class = 'apps.authentication.sessions.RafraichissementSerializer'
+
     """
     Vue personnalisee pour le refresh de token JWT.
     Verifie que l'utilisateur est toujours actif avant de generer un nouveau token.
@@ -279,6 +289,23 @@ class CustomTokenRefreshView(TokenRefreshView):
         return response
 
 
+ENVOIS_RESET_PAR_HEURE = 3
+
+
+def _envoi_permis(cle, limite, duree=3600):
+    """Au plus ``limite`` courriels par destinataire et par heure : la limite
+    par adresse IP n'empêche pas d'inonder une même boîte depuis plusieurs
+    adresses."""
+    import hashlib
+    from django.core.cache import cache
+    cle = 'envois-courriel:' + hashlib.sha256(cle.encode()).hexdigest()
+    try:
+        cache.add(cle, 0, duree)
+        return cache.incr(cle) <= limite
+    except Exception:
+        return True
+
+
 class PasswordResetRequestView(APIView):
     """
     Demande de réinitialisation de mot de passe (#329).
@@ -315,7 +342,7 @@ class PasswordResetRequestView(APIView):
         email = serializer.validated_data['email']
 
         user = Role.objects.filter(email__iexact=email, active=True).first()
-        if user and user.email:
+        if user and user.email and _envoi_permis(f'reset:{user.pk}', ENVOIS_RESET_PAR_HEURE):
             from apps.notifications.tasks import send_password_reset_email
 
             uid = urlsafe_base64_encode(force_bytes(user.pk))
@@ -394,6 +421,8 @@ class PasswordResetConfirmView(APIView):
 
         user.set_password(new_password)
         user.save(update_fields=['password'])
+        # Le message du verrou invite à réinitialiser : cela doit débloquer.
+        echecs.effacer_compte(f'role:{user.pk}')
         logger.info(f"Password reset completed for user {user.pk}")
 
         return Response(
@@ -437,6 +466,10 @@ def logout_view(request):
             if str(token.get('user_id')) != str(request.user.pk):
                 return Response({'error': 'Token invalide'}, status=status.HTTP_400_BAD_REQUEST)
             token.blacklist()
+            if token.get('is_impersonating'):
+                ImpersonationLog.objects.filter(
+                    pk=token.get('impersonation_log_id'), ended_at__isnull=True,
+                ).update(ended_at=timezone.now())
 
         return Response(
             {'message': 'Deconnexion reussie'},
@@ -543,11 +576,8 @@ def health_check_view(request):
 
 
 def get_client_ip(request):
-    """Recupere l'adresse IP du client."""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        return x_forwarded_for.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR')
+    """Adresse IP du client, lue selon ``NUM_PROXIES`` (cf. ``echecs.adresse``)."""
+    return echecs.adresse(request)
 
 
 @extend_schema(
@@ -637,13 +667,30 @@ def start_impersonation_view(request, user_id):
     log = ImpersonationLog.objects.create(
         impersonator=request.user,
         impersonated_user=target_user,
-        ip_address=get_client_ip(request),
+        ip_address=echecs.adresse(request),
         user_agent=request.META.get('HTTP_USER_AGENT', ''),
         reason=request.data.get('reason', '')
     )
 
-    # Generer un token JWT pour l'utilisateur cible
-    refresh = RefreshToken.for_user(target_user)
+    # Le navigateur ne garde pas les jetons du super admin pendant
+    # l'impersonation : son jeton de rafraîchissement est révoqué, et
+    # stop-impersonation lui en délivre de nouveaux.
+    origine = request.data.get('refresh')
+    if origine:
+        try:
+            jeton_origine = RefreshToken(origine)
+            if str(jeton_origine.get('user_id')) == str(request.user.pk):
+                jeton_origine.blacklist()
+        except TokenError:
+            pass
+
+    # Generer un token JWT pour l'utilisateur cible (une heure au plus,
+    # contrôlé à chaque requête et au rafraîchissement : sessions.py)
+    from .sessions import CLAIM_DEBUT, ouvrir
+    refresh = ouvrir(RefreshToken.for_user(target_user))
+    debut_origine = request.auth.get(CLAIM_DEBUT) if request.auth is not None else None
+    if debut_origine is not None:
+        refresh['session_debut_origine'] = debut_origine
 
     # Ajouter des claims personnalises pour l'impersonation
     refresh['is_impersonating'] = True
@@ -776,17 +823,22 @@ def stop_impersonation_view(request):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    # Mettre a jour le log d'impersonation
-    if log_id:
-        try:
-            log = ImpersonationLog.objects.get(id=log_id)
-            log.ended_at = timezone.now()
-            log.save()
-        except ImpersonationLog.DoesNotExist:
-            pass  # Le log n'existe pas, on continue quand meme
+    # L'auteur doit être encore super admin actif (sinon : se reconnecter).
+    from .regles import compte_autorise
+    if not compte_autorise(original_admin) or not original_admin.is_super_admin():
+        return Response(
+            {'detail': "Ce compte ne peut plus reprendre la session : reconnectez-vous."},
+            status=status.HTTP_403_FORBIDDEN
+        )
 
-    # Generer un nouveau token pour l'admin original
-    refresh = RefreshToken.for_user(original_admin)
+    # Clore le journal (une seule fois) : le jeton d'impersonation est dès lors
+    # refusé, à la requête comme au rafraîchissement (sessions.py).
+    if log_id:
+        ImpersonationLog.objects.filter(id=log_id, ended_at__isnull=True).update(ended_at=timezone.now())
+
+    # Generer un nouveau token pour l'admin original, dans sa session d'origine
+    from .sessions import ouvrir
+    refresh = ouvrir(RefreshToken.for_user(original_admin), debut=decoded.get('session_debut_origine'))
 
     return Response({
         'refresh': str(refresh),

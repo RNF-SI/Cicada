@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { MatomoService } from './matomo.service';
+import { MatomoService, urlSuivie } from './matomo.service';
 import { SettingsService, SiteConfiguration } from './settings.service';
 
 @Component({ template: '' })
@@ -112,5 +112,16 @@ describe('MatomoService (#670)', () => {
 
     expect(commands()).toContainEqual(['trackEvent', 'Plans', 'Changement de statut', 'valide']);
     expect(commands()).toContainEqual(['trackSiteSearch', 'loutre', 'Contenus', 3]);
+  });
+});
+
+describe('urlSuivie', () => {
+  it('ne transmet pas le jeton de réinitialisation', () => {
+    expect(urlSuivie('/auth/reset-password?uid=MQ&token=abc-123')).toBe('/auth/reset-password');
+    expect(urlSuivie('/auth/login#x')).toBe('/auth/login');
+  });
+
+  it('garde la query string des autres pages', () => {
+    expect(urlSuivie('/exploration?q=loutre')).toBe('/exploration?q=loutre');
   });
 });

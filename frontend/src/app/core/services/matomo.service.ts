@@ -94,7 +94,8 @@ export class MatomoService {
     }
   }
 
-  private trackPageView(url: string): void {
+  private trackPageView(brute: string): void {
+    const url = urlSuivie(brute);
     if (!this.isReady() || url === this.previousUrl) return;
     const origin = this.document.location?.origin ?? '';
     if (this.previousUrl) {
@@ -112,4 +113,15 @@ export class MatomoService {
     win._paq = win._paq || [];
     win._paq.push(command);
   }
+}
+
+/**
+ * URL transmise à la mesure d'audience. Les pages d'authentification portent
+ * des secrets dans leur query string (`/auth/reset-password?uid=…&token=…`) :
+ * on ne transmet que leur chemin, sinon le jeton de réinitialisation partait
+ * vers Matomo (puis en référent de la page suivante).
+ */
+export function urlSuivie(url: string): string {
+  const chemin = url.split(/[?#]/)[0];
+  return chemin.startsWith('/auth/') ? chemin : url;
 }

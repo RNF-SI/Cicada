@@ -1356,10 +1356,8 @@ def public_registration_view(request):
         200: inline_serializer(
             name='StatutInscription',
             fields={
-                'status': drf_serializers.ChoiceField(choices=['pending', 'registered', 'not_found']),
+                'status': drf_serializers.ChoiceField(choices=['unknown']),
                 'message': drf_serializers.CharField(),
-                'created_at': drf_serializers.DateTimeField(required=False,
-                                                            help_text='Date de la demande (statut pending)'),
             },
         ),
         400: OpenApiResponse(response=ERREUR_SERIALIZER, description='Email manquant'),
@@ -1382,23 +1380,11 @@ def check_registration_status_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    try:
-        pending_user = PendingUser.objects.get(email__iexact=email)
-        return Response({
-            'status': 'pending',
-            'message': 'Votre demande est en attente de validation.',
-            'created_at': pending_user.created_at.isoformat(),
-        })
-    except PendingUser.DoesNotExist:
-        # Verifier si l'utilisateur existe deja
-        from apps.users.models import Role
-        if Role.objects.filter(email__iexact=email).exists():
-            return Response({
-                'status': 'registered',
-                'message': 'Ce compte existe deja. Vous pouvez vous connecter.',
-            })
-
-        return Response({
-            'status': 'not_found',
-            'message': 'Aucune demande trouvee pour cette adresse email.',
-        })
+    # Même réponse quelle que soit l'adresse : cette route publique disait
+    # sinon à n'importe qui si une adresse avait un compte ou une demande en
+    # cours. L'état d'une demande se donne par courriel (validation, refus).
+    return Response({
+        'status': 'unknown',
+        'message': "Si une demande existe pour cette adresse, vous recevrez un courriel "
+                   "dès qu'elle aura été traitée.",
+    })

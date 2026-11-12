@@ -256,7 +256,17 @@ def compte_pour(identite):
                 compte.email = email
         # UsersHub fait foi sur l'organisme, mais une fiche absente ne retire
         # pas celui déjà connu.
-        if organisme is not None:
-            compte.id_organisme = organisme
+        if organisme is not None and organisme.uuid_organisme != compte.id_organisme_id:
+            if compte.rang() >= 1 and compte.id_organisme_id:
+                # Un administrateur déplacé dans UsersHub deviendrait
+                # administrateur de l'autre organisme sans que personne ne l'ait
+                # décidé dans CICADA (ce que _verifier_adoption refuse déjà au
+                # premier rattachement) : son organisme ne change qu'ici.
+                logger.warning(
+                    "Connexion GeoNature : organisme UsersHub changé pour le compte élevé %s "
+                    "— organisme CICADA conservé", compte.pk,
+                )
+            else:
+                compte.id_organisme = organisme
         compte.save()
         return compte

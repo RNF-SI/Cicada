@@ -100,12 +100,25 @@ class IsOwnerOrReadOnly(BasePermission):
         
         # Écriture seulement pour le propriétaire ou les admins
         if hasattr(obj, 'id_role'):
-            return (
-                obj.id_role == request.user or 
-                request.user.is_admin_organisme()
-            )
-        
+            proprietaire = obj.id_role
+            if hasattr(proprietaire, 'pk'):
+                proprietaire = proprietaire.pk
+            return proprietaire == request.user.pk or request.user.is_admin_organisme()
+
         return request.user.is_admin_organisme()
+
+
+class PeutModifierLeCompte(BasePermission):
+    """Modifier un compte : le sien, ou un compte que l'on administre
+    (``Role.peut_administrer_compte`` : rang inférieur, même organisme)."""
+
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated)
+
+    def has_object_permission(self, request, view, obj):
+        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return True
+        return obj.pk == request.user.pk or request.user.peut_administrer_compte(obj)
 
 
 class IsOrganismeMember(BasePermission):

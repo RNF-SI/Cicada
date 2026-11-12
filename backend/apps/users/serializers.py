@@ -12,7 +12,17 @@ from .models import Role, BibOrganismes, Site, CorRoleSite, CorOgSite
 from apps.plans.models import PlanGestion
 
 
-def _validate_identifiant_unique(identifiant, exclude_pk=None):
+def refuser_identifiant_email(identifiant, email_du_compte=None):
+    """Un identifiant au format e-mail n'est accepté que s'il est l'e-mail du
+    compte lui-même : sinon, choisi égal à l'e-mail d'un compte créé plus tard,
+    il détournait la connexion de ce compte."""
+    identifiant = (identifiant or '').strip()
+    if '@' in identifiant and identifiant.lower() != (email_du_compte or '').strip().lower():
+        raise serializers.ValidationError(
+            _("L'identifiant ne peut pas être une adresse e-mail (autre que la vôtre)."))
+
+
+def _validate_identifiant_unique(identifiant, exclude_pk=None, email_du_compte=None):
     """
     Vérifie qu'un identifiant de connexion est renseigné et libre.
 
@@ -25,6 +35,8 @@ def _validate_identifiant_unique(identifiant, exclude_pk=None):
     identifiant = (identifiant or '').strip()
     if not identifiant:
         raise serializers.ValidationError(_("L'identifiant est obligatoire."))
+
+    refuser_identifiant_email(identifiant, email_du_compte)
 
     existants = Role.objects.filter(identifiant__iexact=identifiant)
     if exclude_pk is not None:
@@ -250,7 +262,7 @@ class RoleCreateSerializer(serializers.ModelSerializer):
 
     def validate_identifiant(self, value):
         """L'identifiant est obligatoire et unique (#656)."""
-        return _validate_identifiant_unique(value)
+        return _validate_identifiant_unique(value, email_du_compte=self.initial_data.get('email'))
 
     def validate(self, attrs):
         """Validation personnalisée."""
@@ -340,7 +352,12 @@ class RoleUpdateSerializer(serializers.ModelSerializer):
     def validate_identifiant(self, value):
         """Un identifiant déjà posé ne peut pas être vidé ni dupliqué (#656)."""
         exclude_pk = self.instance.pk if self.instance else None
-        return _validate_identifiant_unique(value, exclude_pk=exclude_pk)
+        if self.instance is not None and (value or '').strip() == (self.instance.identifiant or ''):
+            # Inchangé (formulaire renvoyé tel quel) : rien à revérifier.
+            return self.instance.identifiant
+        return _validate_identifiant_unique(
+            value, exclude_pk=exclude_pk,
+            email_du_compte=self.instance.email if self.instance is not None else None)
 
     def validate(self, attrs):
         """Validation pour la modification."""
@@ -405,9 +422,19 @@ class RolePasswordChangeSerializer(serializers.Serializer):
         validators=[validate_password]
     )
     password_confirm = serializers.CharField(write_only=True)
-    
+    old_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
     def validate(self, attrs):
         """Vérifier que les mots de passe correspondent."""
+        user = self.context['user']
+        request = self.context.get('request')
+        if request is not None and request.user.pk == user.pk:
+            # Son propre mot de passe : l'ancien est exigé (une session laissée
+            # ouverte ne suffit pas à prendre le compte).
+            if not user.check_password(attrs.get('old_password') or ''):
+                raise serializers.ValidationError({
+                    'old_password': _('Mot de passe actuel incorrect.')
+                })
         if attrs.get('password') != attrs.get('password_confirm'):
             raise serializers.ValidationError({
                 'password_confirm': _('Les mots de passe ne correspondent pas.')

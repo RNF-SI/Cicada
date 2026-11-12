@@ -440,7 +440,7 @@ describe('AuthService', () => {
 
       const req = httpMock.expectOne(`/api/auth/impersonate/${mockUser.id}/`);
       expect(req.request.method).toBe('POST');
-      expect(req.request.body).toEqual({ reason: 'Testing' });
+      expect(req.request.body).toEqual({ reason: 'Testing', refresh: mockTokens.refresh });
       req.flush(impersonationResponse);
       tick();
 
@@ -486,6 +486,36 @@ describe('AuthService', () => {
 
       expect(service.isImpersonating()).toBe(false);
       expect(service.currentUser()).toEqual(mockSuperAdmin);
+    }));
+
+    it('ne garde pas les jetons du super admin pendant l\'impersonation', fakeAsync(() => {
+      const impersonationResponse: ImpersonationResponse = {
+        access: 'impersonated-access-token',
+        refresh: 'impersonated-refresh-token',
+        user: mockUser,
+        impersonation: {
+          isImpersonating: true,
+          impersonator: { id: mockSuperAdmin.id, email: mockSuperAdmin.email },
+          logId: 1,
+          startedAt: new Date().toISOString()
+        }
+      };
+      service.startImpersonation(mockUser.id).subscribe();
+      httpMock.expectOne(`/api/auth/impersonate/${mockUser.id}/`).flush(impersonationResponse);
+      tick();
+
+      expect(localStorage.getItem('original_auth_tokens')).toBeNull();
+      expect(localStorage.getItem('auth_tokens')).not.toContain(mockTokens.refresh);
+    }));
+
+    it('la déconnexion pendant une impersonation efface tout', fakeAsync(() => {
+      localStorage.setItem('original_auth_tokens', JSON.stringify(mockTokens));
+      service.logout().subscribe();
+      httpMock.expectOne('/api/auth/logout/').flush({});
+      tick();
+
+      expect(localStorage.getItem('original_auth_tokens')).toBeNull();
+      expect(service.isImpersonating()).toBe(false);
     }));
   });
 

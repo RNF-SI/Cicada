@@ -193,6 +193,29 @@ class Role(AbstractUser):
         """Vérifie si l'utilisateur est Administrateur d'organisme (ou rôle supérieur)."""
         return self.role_level in ['admin_og', 'redacteur_principal', 'super_admin'] or self.is_superuser
 
+    def rang(self):
+        """Rang du compte pour l'administration des comptes : super admin (3) >
+        rédacteur principal (2) > admin d'organisme (1) > tous les autres (0)."""
+        if self.is_super_admin():
+            return 3
+        return {'redacteur_principal': 2, 'admin_og': 1}.get(self.role_level, 0)
+
+    def peut_administrer_compte(self, cible):
+        """Gérer le compte ``cible`` (le désactiver, le détacher, changer sa fiche).
+
+        Jamais le sien par cette voie (le profil a ses propres règles), jamais un
+        compte de rang égal ou supérieur, et hors super admin seulement dans son
+        organisme : sans cette règle, un admin d'organisme désactivait le super
+        admin ou fabriquait un admin d'un autre organisme.
+        """
+        if cible is None or cible.pk == self.pk:
+            return False
+        if self.is_super_admin():
+            return True
+        if not self.is_admin_organisme() or cible.rang() >= self.rang():
+            return False
+        return bool(self.id_organisme_id) and cible.id_organisme_id == self.id_organisme_id
+
     def can_manage_plan_lifecycle(self):
         """Vérifie si l'utilisateur peut gérer le cycle de vie des plans (valider/archiver/évaluation).
         #346 — Le Rédacteur Principal peut désormais gérer le cycle de vie, au même
@@ -329,6 +352,11 @@ class Role(AbstractUser):
         # Generer un identifiant unique pour le compte anonymise
         anon_id = str(uuid.uuid4())[:8]
 
+        # Les traces nominatives laissées ailleurs (journal d'activité,
+        # notifications) : sans elles, le nom et l'e-mail survivaient à
+        # l'anonymisation dans l'historique de l'instance.
+        self._effacer_traces_nominatives()
+
         # Anonymiser les donnees personnelles
         self.email = f"anonymized_{anon_id}@deleted.local"
         self.nom_role = "Utilisateur"
@@ -349,6 +377,34 @@ class Role(AbstractUser):
         self.active = False
 
         self.save()
+
+    def _effacer_traces_nominatives(self):
+        from django.db.models import F, Value
+        from django.db.models.functions import Replace
+        from apps.core.models import ActivityLog
+        from apps.notifications.models import Notification
+
+        neutre = 'Utilisateur anonymisé'
+        prenom, nom = (self.prenom_role or '').strip(), (self.nom_role or '').strip()
+        textes = {self.email, self.identifiant, f'{prenom} {nom}', f'{nom} {prenom}', self.get_full_name()}
+        # Les plus longs d'abord (« Prénom Nom » avant l'e-mail qui le contient
+        # parfois) ; rien de trop court pour ne pas abîmer d'autres mots.
+        textes = sorted({(t or '').strip() for t in textes if t and len(t.strip()) >= 4}, key=len, reverse=True)
+
+        Notification.objects.filter(recipient=self).delete()
+        ActivityLog.objects.filter(entity_type='user', entity_id=self.pk).update(entity_name=neutre)
+        ActivityLog.objects.filter(actor=self).update(actor_name=neutre)
+        for texte in textes:
+            ActivityLog.objects.filter(description__contains=texte).update(
+                description=Replace(F('description'), Value(texte), Value(neutre)))
+            ActivityLog.objects.filter(entity_name__contains=texte).update(
+                entity_name=Replace(F('entity_name'), Value(texte), Value(neutre)))
+            ActivityLog.objects.filter(actor_name__contains=texte).update(
+                actor_name=Replace(F('actor_name'), Value(texte), Value(neutre)))
+            Notification.objects.filter(message__contains=texte).update(
+                message=Replace(F('message'), Value(texte), Value(neutre)))
+            Notification.objects.filter(title__contains=texte).update(
+                title=Replace(F('title'), Value(texte), Value(neutre)))
 
     def can_be_anonymized(self):
         """

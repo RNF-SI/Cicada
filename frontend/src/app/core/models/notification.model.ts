@@ -319,7 +319,7 @@ export interface PublicRegistrationResponse {
  * Reponse statut inscription.
  */
 export interface RegistrationStatusResponse {
-  status: 'pending' | 'registered' | 'not_found';
+  status: 'unknown';
   message: string;
   created_at?: string;
 }

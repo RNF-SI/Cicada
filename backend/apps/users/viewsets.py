@@ -18,8 +18,9 @@ from .serializers import (
 )
 from .permissions import (
     IsSuperAdmin, IsAdminOrganisme, IsReferent,
-    CanManageOrganisme, IsOwnerOrReadOnly
+    CanManageOrganisme, PeutModifierLeCompte
 )
+from rest_framework.exceptions import PermissionDenied
 from .filters import RoleFilter
 
 
@@ -123,18 +124,16 @@ class RoleViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             # Seuls Admin Organisme+ peuvent créer des utilisateurs
             permission_classes = [IsAdminOrganisme]
-        elif self.action in ['update', 'partial_update']:
-            # Utilisateur peut modifier son profil OU Admin Organisme+ peut modifier dans son scope
-            permission_classes = [IsOwnerOrReadOnly]
+        elif self.action in ['update', 'partial_update', 'change_password']:
+            # Son propre compte, ou un compte que l'on administre (rang inférieur,
+            # même organisme) — Role.peut_administrer_compte.
+            permission_classes = [PeutModifierLeCompte]
         elif self.action == 'destroy':
             # Seuls Admin Organisme+ peuvent supprimer
             permission_classes = [IsAdminOrganisme]
         elif self.action in ['assign_site', 'unassign_site']:
             # Seuls Admin Organisme+ peuvent assigner des sites
             permission_classes = [IsAdminOrganisme]
-        elif self.action == 'change_password':
-            # Utilisateur peut changer son mot de passe OU Admin peut changer celui de ses users
-            permission_classes = [IsOwnerOrReadOnly]
         else:
             # Actions de lecture : authentifié suffit (filtrage via get_queryset)
             permission_classes = [IsAuthenticated]
@@ -170,29 +169,31 @@ class RoleViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         """
         Logique lors de la modification d'un utilisateur.
+
+        La permission ``PeutModifierLeCompte`` a déjà vérifié que la cible est le
+        compte de l'utilisateur ou un compte qu'il administre.
         """
         user = self.request.user
-        target_user = self.get_object()
-        
-        # Validation des permissions de modification
+        target_user = serializer.instance
+        donnees = serializer.validated_data
+
         if not user.is_super_admin():
-            # Utilisateur peut modifier son profil (sauf role_level et organisme)
-            if user == target_user:
-                # Empêcher auto-modification du role_level et organisme
-                if 'role_level' in serializer.validated_data:
-                    serializer.validated_data.pop('role_level')
-                if 'id_organisme' in serializer.validated_data:
-                    serializer.validated_data.pop('id_organisme')
-            
-            # Admin organisme peut modifier dans son organisme
-            elif user.is_admin_organisme():
-                if target_user.id_organisme != user.id_organisme:
-                    raise PermissionError('Vous ne pouvez modifier que les utilisateurs de votre organisme.')
-                
-                # Ne peut pas créer de Super Admin ni Rédacteur Principal
-                if serializer.validated_data.get('role_level') in ('super_admin', 'redacteur_principal'):
-                    raise PermissionError('Vous ne pouvez pas attribuer ce rôle.')
-        
+            if target_user.pk == user.pk:
+                # Son propre profil : ni son rôle, ni son organisme, ni son activation.
+                for champ in ('role_level', 'id_organisme', 'active'):
+                    donnees.pop(champ, None)
+            else:
+                # Le rôle passe par les gestes dédiés et le circuit de validation
+                # (promotion d'administrateur) : jamais par cette route.
+                if 'role_level' in donnees and donnees['role_level'] != target_user.role_level:
+                    raise PermissionDenied(
+                        "Le rôle d'un compte se change par une demande de validation ou par un super administrateur.")
+                # Un administrateur détache un compte de son organisme, il ne le
+                # rattache à aucun autre.
+                if 'id_organisme' in donnees and donnees['id_organisme'] not in (None, target_user.id_organisme):
+                    raise PermissionDenied(
+                        "Vous ne pouvez pas rattacher un compte à un autre organisme.")
+
         serializer.save()
     
     def perform_destroy(self, instance):
@@ -203,16 +204,11 @@ class RoleViewSet(viewsets.ModelViewSet):
         
         # Empêcher l'auto-suppression
         if user == instance:
-            raise PermissionError('Vous ne pouvez pas supprimer votre propre compte.')
+            raise PermissionDenied('Vous ne pouvez pas supprimer votre propre compte.')
         
-        # Super admin ne peut pas être supprimé par un admin organisme
-        if instance.is_super_admin() and not user.is_super_admin():
-            raise PermissionError('Vous ne pouvez pas supprimer un Super Administrateur.')
-        
-        # Validation organisme pour admin organisme
-        if user.is_admin_organisme() and not user.is_super_admin():
-            if instance.id_organisme != user.id_organisme:
-                raise PermissionError('Vous ne pouvez supprimer que les utilisateurs de votre organisme.')
+        # Rang inférieur et même organisme (super admin excepté)
+        if not user.peut_administrer_compte(instance):
+            raise PermissionDenied("Vous ne pouvez pas désactiver ce compte.")
         
         # Désactivation au lieu de suppression physique
         instance.active = False
@@ -230,7 +226,12 @@ class RoleViewSet(viewsets.ModelViewSet):
             return Response({'detail': message_connexion_externe()}, status=status.HTTP_403_FORBIDDEN)
 
         user = self.get_object()
-        serializer = self.get_serializer(data=request.data, context={'user': user})
+        if user.pk != request.user.pk and not request.user.is_super_admin():
+            # Le mot de passe d'autrui : super admin seulement (un admin
+            # d'organisme envoie le lien de réinitialisation).
+            raise PermissionDenied("Seul un super administrateur change le mot de passe d'un autre compte.")
+        serializer = self.get_serializer(
+            data=request.data, context={'user': user, 'request': request})
         
         if serializer.is_valid():
             serializer.save()
@@ -688,6 +689,11 @@ class RoleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        if '@' in identifiant and identifiant.lower() != (user.email or '').lower():
+            return Response(
+                {'identifiant': "L'identifiant ne peut pas être une adresse e-mail (autre que la vôtre)."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         if len(identifiant) > 100:
             return Response(
                 {'identifiant': '100 caracteres maximum.'},
@@ -843,22 +849,20 @@ class RoleViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Sauvegarder le nom pour le log
-        user_name = str(user)
         user_id = user.id_role
 
         # Anonymiser le compte
         user.anonymize()
 
-        # Enregistrer l'activité
+        # Enregistrer l'activité — sans le nom qu'on vient d'effacer.
         from apps.core.services import ActivityService
         ActivityService.log_activity(
             entity_type='user',
             entity_id=user_id,
-            entity_name=user_name,
+            entity_name='Utilisateur anonymisé',
             action='rgpd_anonymized',
             actor=request.user,
-            description=f"Le compte de {user_name} a ete anonymise suite a une demande RGPD par {request.user}.",
+            description=f"Le compte n° {user_id} a ete anonymise suite a une demande RGPD par {request.user}.",
             visibility='system'
         )
 

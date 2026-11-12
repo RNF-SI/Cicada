@@ -773,34 +773,19 @@ class TestPublicRegistration:
 class TestCheckRegistrationStatus:
     """Tests for check registration status endpoint."""
 
-    def test_check_status_pending(self):
-        """Test checking status of pending registration."""
+    def test_la_reponse_ne_dit_pas_si_l_adresse_existe(self):
+        """Même réponse pour une demande en attente, un compte, une adresse inconnue."""
         organisme = OrganismeFactory()
         pending = PendingUserFactory(requested_organisme=organisme)
-
-        client = APIClient()
-        response = client.get(f'/api/auth/registration-status/?email={pending.email}')
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data['status'] == 'pending'
-
-    def test_check_status_registered(self):
-        """Test checking status when user is already registered."""
         user = RoleFactory()
 
         client = APIClient()
-        response = client.get(f'/api/auth/registration-status/?email={user.email}')
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data['status'] == 'registered'
-
-    def test_check_status_not_found(self):
-        """Test checking status for unknown email."""
-        client = APIClient()
-        response = client.get('/api/auth/registration-status/?email=unknown@test.fr')
-
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data['status'] == 'not_found'
+        reponses = [
+            client.get(f'/api/auth/registration-status/?email={email}')
+            for email in (pending.email, user.email, 'unknown@test.fr')
+        ]
+        assert {r.status_code for r in reponses} == {status.HTTP_200_OK}
+        assert reponses[0].data == reponses[1].data == reponses[2].data
 
     def test_check_status_no_email(self):
         """Test error when email is not provided."""

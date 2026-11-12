@@ -78,6 +78,11 @@ class JWTAuthentificationActivite(JWTAuthentication):
             if not token.get('is_impersonating'):
                 noter_activite(user)
             else:
+                from rest_framework_simplejwt.exceptions import AuthenticationFailed
+                from .sessions import impersonation_refusee
+                motif = impersonation_refusee(token)
+                if motif:
+                    raise AuthenticationFailed(motif, code='impersonation_terminee')
                 refuser_ecriture_en_impersonation(request)
         return resultat
 

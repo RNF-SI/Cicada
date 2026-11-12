@@ -227,122 +227,61 @@ class TestSecurityHeadersMiddleware:
 @pytest.mark.django_db
 @pytest.mark.unit
 class TestAuditMiddleware:
-    """Tests for AuditMiddleware."""
+    """Le journal d'audit est écrit **après** la vue : c'est là seulement que
+    l'utilisateur d'une requête de l'API (jeton JWT) est connu."""
 
-    def test_audit_info_stored_for_post(self, request_factory, get_response):
-        """Test that audit info is stored for POST requests on audit paths."""
+    @staticmethod
+    def _passer(request_factory, methode, chemin, user=None, statut=200):
+        from django.contrib.auth.models import AnonymousUser
+        middleware = AuditMiddleware(Mock(return_value=HttpResponse(status=statut)))
+        request = getattr(request_factory, methode)(chemin)
+        request.user = user or AnonymousUser()
+        return middleware.process_response(request, HttpResponse(status=statut))
+
+    @pytest.mark.parametrize('methode', ['post', 'put', 'patch', 'delete'])
+    def test_une_ecriture_de_l_api_est_journalisee_avec_son_auteur(self, request_factory, methode, caplog):
         user = RoleFactory()
-        middleware = AuditMiddleware(get_response)
+        with caplog.at_level('INFO', logger='audit'):
+            self._passer(request_factory, methode, '/api/plans/plans/1/', user)
+        enregistrements = [r for r in caplog.records if r.name == 'audit']
+        assert len(enregistrements) == 1
+        assert enregistrements[0].user_email == user.email
+        assert enregistrements[0].action == methode.upper()
 
-        request = request_factory.post('/api/users/')
-        request.user = user
+    def test_toute_l_api_est_couverte(self, request_factory, caplog):
+        with caplog.at_level('INFO', logger='audit'):
+            self._passer(request_factory, 'post', '/api/validations/1/approve/', RoleFactory())
+        assert [r for r in caplog.records if r.name == 'audit']
 
-        middleware.process_request(request)
+    def test_pas_de_journal_pour_une_lecture(self, request_factory, caplog):
+        with caplog.at_level('INFO', logger='audit'):
+            self._passer(request_factory, 'get', '/api/users/', RoleFactory())
+        assert not [r for r in caplog.records if r.name == 'audit']
 
-        assert hasattr(request, 'audit_info')
-        assert request.audit_info['action'] == 'POST'
-        assert request.audit_info['user_email'] == user.email
-        assert request.audit_info['path'] == '/api/users/'
+    def test_pas_de_journal_hors_api(self, request_factory, caplog):
+        with caplog.at_level('INFO', logger='audit'):
+            self._passer(request_factory, 'post', '/admin/login/', RoleFactory())
+        assert not [r for r in caplog.records if r.name == 'audit']
 
-    def test_audit_info_stored_for_put(self, request_factory, get_response):
-        """Test that audit info is stored for PUT requests."""
+    def test_un_refus_anonyme_est_journalise(self, request_factory, caplog):
+        with caplog.at_level('INFO', logger='audit'):
+            self._passer(request_factory, 'post', '/api/plans/plans/', None, statut=401)
+        enregistrements = [r for r in caplog.records if r.name == 'audit']
+        assert len(enregistrements) == 1 and enregistrements[0].success is False
+
+    def test_une_ecriture_anonyme_reussie_n_est_pas_journalisee_ici(self, request_factory, caplog):
+        with caplog.at_level('INFO', logger='audit'):
+            self._passer(request_factory, 'post', '/api/auth/register/', None, statut=201)
+        assert not [r for r in caplog.records if r.name == 'audit']
+
+    def test_par_l_api_reelle_l_auteur_du_jeton_est_journalise(self, caplog):
+        """Le cas qui manquait : DRF authentifie après les middlewares."""
+        from rest_framework.test import APIClient
+        from rest_framework_simplejwt.tokens import RefreshToken
         user = RoleFactory()
-        middleware = AuditMiddleware(get_response)
-
-        request = request_factory.put('/api/users/1/')
-        request.user = user
-
-        middleware.process_request(request)
-
-        assert hasattr(request, 'audit_info')
-        assert request.audit_info['action'] == 'PUT'
-
-    def test_audit_info_stored_for_patch(self, request_factory, get_response):
-        """Test that audit info is stored for PATCH requests."""
-        user = RoleFactory()
-        middleware = AuditMiddleware(get_response)
-
-        request = request_factory.patch('/api/plans/1/')
-        request.user = user
-
-        middleware.process_request(request)
-
-        assert hasattr(request, 'audit_info')
-        assert request.audit_info['action'] == 'PATCH'
-
-    def test_audit_info_stored_for_delete(self, request_factory, get_response):
-        """Test that audit info is stored for DELETE requests."""
-        user = RoleFactory()
-        middleware = AuditMiddleware(get_response)
-
-        request = request_factory.delete('/api/sites/1/')
-        request.user = user
-
-        middleware.process_request(request)
-
-        assert hasattr(request, 'audit_info')
-        assert request.audit_info['action'] == 'DELETE'
-
-    def test_no_audit_for_get_requests(self, request_factory, get_response):
-        """Test that GET requests are not audited."""
-        user = RoleFactory()
-        middleware = AuditMiddleware(get_response)
-
-        request = request_factory.get('/api/users/')
-        request.user = user
-
-        middleware.process_request(request)
-
-        assert not hasattr(request, 'audit_info')
-
-    def test_no_audit_for_non_audit_paths(self, request_factory, get_response):
-        """Test that non-audit paths are not audited."""
-        user = RoleFactory()
-        middleware = AuditMiddleware(get_response)
-
-        request = request_factory.post('/api/auth/login/')
-        request.user = user
-
-        middleware.process_request(request)
-
-        assert not hasattr(request, 'audit_info')
-
-    def test_no_audit_for_unauthenticated(self, request_factory, get_response):
-        """Test that unauthenticated requests are not audited."""
-        middleware = AuditMiddleware(get_response)
-
-        request = request_factory.post('/api/users/')
-        request.user = Mock()
-        request.user.is_authenticated = False
-
-        middleware.process_request(request)
-
-        assert not hasattr(request, 'audit_info')
-
-    def test_process_response_adds_timestamp(self, request_factory, get_response):
-        """Test that process_response adds timestamp to audit info."""
-        user = RoleFactory()
-        middleware = AuditMiddleware(get_response)
-
-        request = request_factory.post('/api/users/')
-        request.user = user
-
-        middleware.process_request(request)
-
-        response = HttpResponse(status=201)
-        middleware.process_response(request, response)
-
-        assert request.audit_info['timestamp'] is not None
-        assert request.audit_info['status_code'] == 201
-
-    def test_audit_paths_include_organismes(self, request_factory, get_response):
-        """Test that /api/organismes/ is included in audit paths."""
-        user = RoleFactory()
-        middleware = AuditMiddleware(get_response)
-
-        request = request_factory.post('/api/organismes/')
-        request.user = user
-
-        middleware.process_request(request)
-
-        assert hasattr(request, 'audit_info')
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(user).access_token}')
+        with caplog.at_level('INFO', logger='audit'):
+            client.post('/api/notifications/read-all/', {}, format='json')
+        enregistrements = [r for r in caplog.records if r.name == 'audit']
+        assert enregistrements and enregistrements[-1].user_id == user.pk

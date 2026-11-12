@@ -656,16 +656,31 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         if user.is_super_admin():
             return queryset
 
-        # Rédacteur principal voit tout
+        # Journaux système et RGPD : super admin seulement (les routes dédiées
+        # le disaient déjà ; la liste filtrée les rendait au RP).
+        queryset = queryset.exclude(visibility='system').exclude(action__startswith='rgpd')
+
+        # Rédacteur principal : tout le reste
         if user.is_redacteur_principal():
             return queryset
 
-        # Admin organisme voit public + admin de son organisme
+        # Admin organisme : public et admin, **dans son organisme** (ses sites,
+        # leurs plans, ses comptes). « Public » ne veut pas dire « toute
+        # l'instance » : noms de personnes, validations et brouillons des
+        # autres organismes n'en font pas partie.
         if user.is_admin_organisme() and user.id_organisme:
-            return queryset.filter(
-                Q(visibility='public') |
-                Q(visibility='admin', related_organisme=user.id_organisme)
+            from apps.plans.access import accessible_plan_ids
+            org = user.id_organisme
+            sites_org = CorOgSite.objects.filter(uuid_og=org).values('id_site_id')
+            perimetre = (
+                Q(related_organisme=org)
+                | Q(related_site_id__in=sites_org)
+                | Q(related_plan_id__in=accessible_plan_ids(user))
+                | Q(related_user__id_organisme=org)
+                | Q(related_user=user)
+                | Q(actor=user)
             )
+            return queryset.filter(visibility__in=('public', 'admin')).filter(perimetre)
 
         # Utilisateur standard : seulement les activites publiques liees a ses sites/plans
         user_site_ids = CorRoleSite.objects.filter(

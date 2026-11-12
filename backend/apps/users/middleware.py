@@ -91,58 +91,42 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
 
 class AuditMiddleware(MiddlewareMixin):
     """
-    Middleware pour l'audit des actions utilisateur.
+    Journal d'audit (``audit.log``) : chaque écriture de l'API, avec son auteur.
+
+    Tout se fait **après** la vue : l'utilisateur d'une requête de l'API n'est
+    connu qu'une fois DRF passé (jeton JWT) ; lu avant, il était toujours anonyme
+    et aucune écriture n'était journalisée.
     """
-    
-    def process_request(self, request):
-        """
-        Log des actions importantes pour l'audit.
-        """
-        # Actions à auditer
-        audit_paths = [
-            '/api/users/',
-            '/api/organismes/',
-            '/api/sites/',
-            '/api/plans/',
-        ]
-        
-        # Méthodes importantes à auditer
-        audit_methods = ['POST', 'PUT', 'PATCH', 'DELETE']
-        
-        should_audit = (
-            any(request.path.startswith(path) for path in audit_paths) and
-            request.method in audit_methods
-        )
-        
-        if should_audit and request.user and request.user.is_authenticated:
-            # Stocker l'information d'audit dans la requête pour utilisation ultérieure
-            request.audit_info = {
-                'user_id': request.user.id_role,
-                'user_email': request.user.email,
-                'action': request.method,
-                'path': request.path,
-                'timestamp': None,  # Sera rempli dans process_response
-            }
-        
-        return None
-    
+
+    METHODES = ('POST', 'PUT', 'PATCH', 'DELETE')
+
     def process_response(self, request, response):
-        """
-        Finalise l'audit apres traitement de la requete.
-        Log les actions importantes pour la tracabilite.
-        """
-        if hasattr(request, 'audit_info'):
-            from datetime import datetime
-            request.audit_info['timestamp'] = datetime.now().isoformat()
-            request.audit_info['status_code'] = response.status_code
-            request.audit_info['success'] = 200 <= response.status_code < 400
-
-            # Log l'action d'audit
-            log_level = logging.INFO if request.audit_info['success'] else logging.WARNING
-            audit_logger.log(
-                log_level,
-                f"AUDIT: {request.audit_info['action']} {request.audit_info['path']}",
-                extra=request.audit_info,
-            )
-
+        if request.method not in self.METHODES or not request.path.startswith('/api/'):
+            return response
+        user = getattr(request, 'user', None)
+        authentifie = bool(user is not None and getattr(user, 'is_authenticated', False))
+        if not authentifie and response.status_code < 400:
+            # Écritures anonymes réussies (inscription, demande de lien…) : les
+            # connexions ont leur propre journal (apps.authentication.journal_connexion).
+            return response
+        from datetime import datetime
+        from apps.authentication.echecs import adresse
+        info = {
+            'user_id': getattr(user, 'pk', None) if authentifie else None,
+            'user_email': getattr(user, 'email', None) if authentifie else None,
+            'action': request.method,
+            'path': request.path,
+            'ip': adresse(request),
+            'timestamp': datetime.now().isoformat(),
+            'status_code': response.status_code,
+            'success': 200 <= response.status_code < 400,
+        }
+        jeton = getattr(request, 'auth', None)
+        if jeton is not None and hasattr(jeton, 'get'):
+            info['impersonator_id'] = jeton.get('impersonator_id')
+        audit_logger.log(
+            logging.INFO if info['success'] else logging.WARNING,
+            f"AUDIT: {request.method} {request.path} {response.status_code} user={info['user_id']}",
+            extra=info,
+        )
         return response

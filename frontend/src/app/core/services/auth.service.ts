@@ -397,6 +397,8 @@ export class AuthService {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TOKEN_TIMESTAMP_KEY);
+    this.clearImpersonationData();
+    this.impersonationInfoSignal.set(null);
     this.currentUserSignal.set(null);
     this.router.navigate(['/accueil']);
   }
@@ -426,20 +428,20 @@ export class AuthService {
   // ==================== IMPERSONATION METHODS ====================
 
   /**
-   * Start impersonating another user (super_admin only)
-   * Stores original tokens to allow returning to admin account
+   * Start impersonating another user (super_admin only).
+   *
+   * Les jetons du super admin ne sont pas gardés dans le navigateur pendant
+   * l'impersonation : son jeton de rafraîchissement est révoqué par le serveur,
+   * et `stop-impersonation` lui en délivre de nouveaux. Gardés dans
+   * `localStorage`, ils survivaient à la déconnexion et faisaient du prochain
+   * utilisateur du poste (ou d'un script injecté) un super admin.
    */
   startImpersonation(userId: number, reason?: string): Observable<ImpersonationResponse> {
-    // Store original tokens before impersonation
     const currentTokens = this.getStoredTokens();
-    const currentUser = this.getStoredUser();
-
-    if (currentTokens && currentUser) {
-      localStorage.setItem(ORIGINAL_TOKENS_KEY, JSON.stringify(currentTokens));
-      localStorage.setItem(ORIGINAL_USER_KEY, JSON.stringify(currentUser));
+    const body: { reason?: string; refresh?: string } = reason ? { reason } : {};
+    if (currentTokens?.refresh) {
+      body.refresh = currentTokens.refresh;
     }
-
-    const body = reason ? { reason } : {};
 
     return this.http.post<ImpersonationResponse>(`${this.apiUrl}/impersonate/${userId}/`, body).pipe(
       tap(response => {
@@ -455,26 +457,13 @@ export class AuthService {
         // Update current user signal
         this.currentUserSignal.set(response.user);
       }),
-      catchError(error => {
-        // Restore original tokens on error
-        const originalTokens = localStorage.getItem(ORIGINAL_TOKENS_KEY);
-        const originalUser = localStorage.getItem(ORIGINAL_USER_KEY);
-
-        if (originalTokens && originalUser) {
-          this.storeTokens(JSON.parse(originalTokens));
-          this.storeUser(JSON.parse(originalUser));
-        }
-
-        localStorage.removeItem(ORIGINAL_TOKENS_KEY);
-        localStorage.removeItem(ORIGINAL_USER_KEY);
-
-        return this.handleError(error);
-      })
+      catchError(error => this.handleError(error))
     );
   }
 
   /**
-   * Stop impersonation and return to original admin account
+   * Stop impersonation and return to original admin account.
+   * En cas d'échec, la session est fermée : le super admin se reconnecte.
    */
   stopImpersonation(): Observable<StopImpersonationResponse> {
     return this.http.post<StopImpersonationResponse>(`${this.apiUrl}/stop-impersonation/`, {}).pipe(
@@ -492,22 +481,7 @@ export class AuthService {
         this.currentUserSignal.set(response.user);
       }),
       catchError(error => {
-        // If API fails, try to restore from stored original tokens
-        const originalTokens = localStorage.getItem(ORIGINAL_TOKENS_KEY);
-        const originalUser = localStorage.getItem(ORIGINAL_USER_KEY);
-
-        if (originalTokens && originalUser) {
-          const tokens = JSON.parse(originalTokens);
-          const user = JSON.parse(originalUser);
-
-          this.storeTokens(tokens);
-          this.storeUser(user);
-          this.currentUserSignal.set(user);
-        }
-
-        this.clearImpersonationData();
-        this.impersonationInfoSignal.set(null);
-
+        this.clearAuthData();
         return throwError(() => error);
       })
     );
@@ -539,6 +513,7 @@ export class AuthService {
 
   private clearImpersonationData(): void {
     localStorage.removeItem(IMPERSONATION_KEY);
+    // Anciennes versions : jetons du super admin gardés pendant l'impersonation.
     localStorage.removeItem(ORIGINAL_TOKENS_KEY);
     localStorage.removeItem(ORIGINAL_USER_KEY);
   }

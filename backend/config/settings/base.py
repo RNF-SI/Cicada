@@ -267,12 +267,24 @@ REST_FRAMEWORK = {
 # JWT Configuration
 from datetime import timedelta
 
+# Durée absolue d'une session : au-delà, on se reconnecte même si l'on n'a
+# jamais cessé d'utiliser l'application.
+JWT_SESSION_DUREE_MAX_JOURS = int(os.environ.get('JWT_SESSION_DUREE_MAX_JOURS', '7'))
+
+# Lien « mot de passe oublié » : une heure (Django : trois jours). Le lien
+# transite par la boîte mail, l'historique et, le cas échéant, la mesure
+# d'audience.
+PASSWORD_RESET_TIMEOUT = 60 * 60
+
 SIMPLE_JWT = {
     # Jeton d'accès court : l'interface le renouvelle seule sur un 401
     # (auth.interceptor.ts), personne n'est déconnecté pour autant (#161). Un
     # jeton volé ou un compte désactivé ne vaut plus une semaine d'accès.
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    # La rotation repousse l'échéance à chaque rafraîchissement : la durée
+    # absolue d'une session est bornée à part (claim `session_debut`,
+    # apps/authentication/sessions.py).
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=JWT_SESSION_DUREE_MAX_JOURS),
     # Changer son mot de passe ferme les sessions ouvertes ailleurs.
     'CHECK_REVOKE_TOKEN': True,
     'ROTATE_REFRESH_TOKENS': True,

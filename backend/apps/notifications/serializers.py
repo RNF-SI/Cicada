@@ -559,6 +559,9 @@ class PublicRegistrationSerializer(serializers.Serializer):
                 _("L'identifiant est obligatoire.")
             )
 
+        from apps.users.serializers import refuser_identifiant_email
+        refuser_identifiant_email(identifiant, self.initial_data.get('email'))
+
         if Role.objects.filter(identifiant__iexact=identifiant).exists():
             raise serializers.ValidationError(
                 _("Cet identifiant est déjà utilisé.")
@@ -677,8 +680,10 @@ class PublicRegistrationSerializer(serializers.Serializer):
         # Envoyer un email de confirmation au demandeur
         try:
             from .tasks import send_registration_pending_email
-            full_name = f"{pending_user.prenom_role} {pending_user.nom_role}".strip() or pending_user.email
-            send_registration_pending_email.delay(pending_user.email, nom_complet=full_name)
+            # Aucun texte saisi dans ce courriel : l'adresse est libre et non
+            # vérifiée, le nom aussi — sinon l'inscription servait à écrire
+            # n'importe quoi, au nom de l'instance, à n'importe qui.
+            send_registration_pending_email.delay(pending_user.email)
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
