@@ -10,7 +10,7 @@ psycopg[binary]==3.1.19
 # charge directement la libgdal système (Dockerfile) : pas de bindings Python GDAL.
 
 # Production
-gunicorn==22.0.0
+gunicorn==26.2.0
 
 # Client HTTP (appels sortants éventuels vers les instances)
 requests==2.34.2
