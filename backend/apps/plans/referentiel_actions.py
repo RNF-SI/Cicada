@@ -885,3 +885,154 @@ def resume_attente(operation) -> dict | None:
         'options': [_option(n) for n in options],
         'note': obj.note,
     }
+
+
+# ---------------------------------------------------------------------------
+# Import d'un classeur d'actions (#786)
+# ---------------------------------------------------------------------------
+#
+# Un classeur exporté par une instance restée sur une ancienne version (ou
+# avant le passage) porte des types que l'instance cible a désactivés. Il
+# s'importe avec les règles du passage : sûre / probable → équivalent,
+# modifiable ; à arbitrer → ancien type gardé, action « à actualiser ».
+
+_CODE_EN_TETE = re.compile(r'^\s*([A-Za-z]{1,4}\.?\d[\w.]*)\s+[—–-]\s+\S')
+
+
+def libelle_type_action(nom: Nomenclature | None) -> str:
+    """« CS.8.3 — Études de la végétation » : le code reste lisible d'une
+    version du référentiel à l'autre, le libellé non."""
+    if nom is None:
+        return ''
+    code = nom.cd_nomenclature or nom.mnemonique or ''
+    if code and nom.label:
+        return f'{code} — {nom.label}'
+    return nom.label or code
+
+
+def _cle(valeur) -> str:
+    from .services_import import _norm
+    return _norm(valeur)
+
+
+@dataclass
+class TypeImporte:
+    type: Nomenclature                       # type posé sur l'action
+    ancien: Nomenclature | None = None       # type d'une ancienne version reconnu
+    corr: Correspondance | None = None
+
+    @property
+    def converti(self) -> bool:
+        return self.ancien is not None and self.type != self.ancien
+
+    @property
+    def a_actualiser(self) -> bool:
+        return self.ancien is not None and self.type == self.ancien
+
+
+class ResolveurTypesImport:
+    """Rapproche une cellule « type d'action » du référentiel en service."""
+
+    def __init__(self):
+        self._index = {}
+        self._definition = None
+        self._definition_lue = False
+
+    def _par(self, actif: bool):
+        if actif not in self._index:
+            par_code, par_libelle = {}, {}
+            for n in (Nomenclature.objects.filter(id_type__mnemonique=TYPE_ACTION, actif=actif)
+                      .order_by('id_nomenclature')):
+                for code in (n.cd_nomenclature, n.mnemonique):
+                    if code:
+                        par_code.setdefault(_cle(code), n)
+                if n.label:
+                    par_libelle.setdefault(_cle(n.label), n)
+            self._index[actif] = (par_code, par_libelle)
+        return self._index[actif]
+
+    def _trouver(self, actif: bool, code: str, valeur: str, libelle: str):
+        par_code, par_libelle = self._par(actif)
+        if code:
+            return par_code.get(_cle(code))
+        return (par_code.get(_cle(valeur)) or par_libelle.get(_cle(valeur))
+                or (par_libelle.get(_cle(libelle)) if libelle else None))
+
+    def definition(self) -> DefinitionVersion | None:
+        """Table de correspondance de la version en service (dernier passage)."""
+        if not self._definition_lue:
+            self._definition_lue = True
+            courante = version_courante()
+            dossier = DOSSIER_REFERENTIELS
+            if courante and dossier.is_dir():
+                for p in sorted(dossier.iterdir()):
+                    try:
+                        meta = json.loads((p / 'version.json').read_text(encoding='utf-8'))
+                    except (OSError, ValueError):
+                        continue
+                    if meta.get('code') == courante.code:
+                        try:
+                            self._definition = charger_version(p.name)
+                        except ReferentielErreur:
+                            pass
+                        break
+        return self._definition
+
+    def libelle_version(self) -> str:
+        courante = version_courante()
+        return courante.libelle if courante else LIBELLE_INITIAL
+
+    def resoudre(self, valeur) -> TypeImporte | None:
+        valeur = ' '.join(str(valeur or '').split())
+        if not valeur:
+            return None
+        m = _CODE_EN_TETE.match(valeur)
+        code = m.group(1) if m else ''
+        libelle = valeur[m.end() - 1:].strip() if m else ''
+        # Avec un code, il fait foi ; sans, valeur nue (code ou libellé).
+        essais = [(code, valeur, libelle)] if code else []
+        essais.append(('', valeur, libelle))
+        for c, v, l in essais:
+            actif = self._trouver(True, c, v, l)
+            if actif is not None:
+                return TypeImporte(actif)
+            ancien = self._trouver(False, c, v, l)
+            if ancien is not None:
+                return self._depuis_ancien(ancien)
+        return None
+
+    def _depuis_ancien(self, ancien: Nomenclature) -> TypeImporte:
+        definition = self.definition()
+        if definition is None:
+            return TypeImporte(ancien, ancien, None)
+        corr = _correspondance(definition, ancien)
+        if corr.confiance in CONFIANCES_APPLIQUEES:
+            nouveau = self._trouver(True, corr.nouveau_code, corr.nouveau_code, '')
+            if nouveau is not None:
+                return TypeImporte(nouveau, ancien, corr)
+        return TypeImporte(ancien, ancien, corr)
+
+
+def journaliser_import(operation, importe: TypeImporte, plan) -> None:
+    """Action créée par un import avec un type d'une ancienne version : elle
+    entre dans le passage en service comme si elle y avait été (changement
+    automatique modifiable, ou « à actualiser » avec ses équivalents)."""
+    if importe is None or importe.ancien is None or importe.corr is None:
+        return
+    passage = passage_en_service()
+    if passage is None:
+        return
+    ancien, corr = importe.ancien, importe.corr
+    PassageReferentielObjet.objects.create(
+        passage=passage, operation=operation, plan=plan,
+        ancien_type=ancien,
+        ancien_code=ancien.cd_nomenclature or ancien.mnemonique or '',
+        ancien_libelle=ancien.label or '',
+        ancienne_categorie=operation.id_categorie_action_reserve,
+        nouveau_type=importe.type if importe.converti else None,
+        nouvelle_categorie=operation.id_categorie_action_reserve,
+        suggestion_code=corr.nouveau_code, options=corr.options,
+        confiance=corr.confiance, note=corr.note,
+        statut=(PassageReferentielObjet.STATUT_APPLIQUE if importe.converti
+                else PassageReferentielObjet.STATUT_A_ACTUALISER),
+    )

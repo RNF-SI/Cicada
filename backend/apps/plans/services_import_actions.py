@@ -61,6 +61,7 @@ from .models_operations import (
     Poste,
 )
 from .services_export_finance import ORG_VENTILATION_MODES, TYPE_VENTILATION_MODES
+from .referentiel_actions import libelle_type_action
 from .rh_total import fusionner_temps_total
 from . import services_import_actions_fiche as fiche
 from .services_import import (
@@ -366,7 +367,9 @@ _ACTION_COLUMNS = [
         "type_action",
         "type d'action",
         False,
-        "Type d'action (codification Eden 62).",
+        "Type d'action du référentiel en service, avec son code (liste "
+        "déroulante). Un type d'une version antérieure est converti à l'import "
+        "selon la table de correspondance.",
         _TYPE_ACTION,
         26,
     ),
@@ -637,11 +640,14 @@ _RH_HEADERS = {
 def _nomenclature_values() -> dict[str, list[str]]:
     values: dict[str, list[str]] = {}
     for type_mnemo in (_TYPE_ACTION, _PRIORITE, "CATEGORIE_ACTION_RESERVE"):
-        labels = list(
-            Nomenclature.objects.filter(id_type__mnemonique=type_mnemo, actif=True)
-            .order_by("id_nomenclature")
-            .values_list("label", flat=True)
-        )
+        noms = Nomenclature.objects.filter(
+            id_type__mnemonique=type_mnemo, actif=True
+        ).order_by("id_nomenclature")
+        if type_mnemo == _TYPE_ACTION:
+            # #786 — le code fait foi d'une version du référentiel à l'autre.
+            labels = [libelle_type_action(n) for n in noms]
+        else:
+            labels = [n.label for n in noms]
         values[type_mnemo] = [lbl for lbl in labels if lbl]
     return values
 
@@ -1323,7 +1329,7 @@ def _extract_actions(plan, code_by_id, extra=None) -> list[dict]:
                 "code": _op_code(op),
                 "indicateur": code_by_id.get(_op_indicateur_id(op, code_by_id), ""),
                 "libelle": op.libelle,
-                "type_action": op.id_type_action.label if op.id_type_action else "",
+                "type_action": libelle_type_action(op.id_type_action),
                 "priorite": op.id_priorite.label if op.id_priorite else "",
                 "annee_min": op.annee_min if op.annee_min is not None else "",
                 "annee_max": op.annee_max if op.annee_max is not None else "",
@@ -1833,6 +1839,45 @@ def _mode_phrase(settings) -> str:
 # ---------------------------------------------------------------------------
 
 
+_CONFIANCE_LIBELLE = {"sure": "sûre", "probable": "probable"}
+
+
+def _valider_type_action(report, resolver, r, value) -> None:
+    """#786 — un type d'une ancienne version du référentiel n'est pas une
+    erreur : il suit les règles du passage (#751 / #776)."""
+    if not value:
+        return
+    from .referentiel_actions import libelle_type_action
+
+    importe = resolver.type_action(value)
+    if importe is None:
+        report.add(
+            "Actions", r, "type_action", ERROR,
+            f"Type d'action « {value} » inconnu du référentiel en service "
+            f"({resolver.libelle_version_types_action()}) : choisissez un type dans "
+            "la liste proposée, ou indiquez son code.",
+        )
+    elif importe.converti:
+        confiance = _CONFIANCE_LIBELLE.get(importe.corr.confiance, importe.corr.confiance)
+        report.add(
+            "Actions", r, "type_action", WARNING,
+            f"Type « {libelle_type_action(importe.ancien)} » d'une version antérieure du "
+            "référentiel : remplacé par "
+            f"« {libelle_type_action(importe.type)} » (correspondance {confiance}). "
+            "Il reste modifiable dans la fiche action.",
+        )
+    elif importe.a_actualiser:
+        options = (importe.corr.options if importe.corr else []) or []
+        proposes = f" Équivalents proposés : {', '.join(options)}." if options else ""
+        report.add(
+            "Actions", r, "type_action", WARNING,
+            f"Type « {libelle_type_action(importe.ancien)} » d'une version antérieure du "
+            "référentiel, sans "
+            "équivalent unique : il est conservé et l'action sera « à actualiser »."
+            + proposes,
+        )
+
+
 def validate_actions_import(plan, parsed: dict) -> ImportReport:
     report = ImportReport()
     resolver = _NomenclatureResolver()
@@ -1908,8 +1953,8 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
                     "d'abord l'arborescence du plan d'origine.",
                 )
 
+        _valider_type_action(report, resolver, r, _cell_str(row.get("type_action")))
         for col, type_mnemo, label in (
-            ("type_action", _TYPE_ACTION, "type d'action"),
             ("priorite", _PRIORITE, "priorité"),
         ):
             value = _cell_str(row.get(col))
@@ -2307,6 +2352,7 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         return resolver.resolve(type_mnemo, v) if v else None
 
     op_by_code: dict[str, Operation] = {}
+    types_importes: dict = {}
     annee_index: dict[tuple[str, int], OperationAnnee] = {}
 
     n_actions = n_annees = 0
@@ -2317,11 +2363,14 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         amax = _as_int(row.get("annee_max"))
         code = _cell_str(row.get("code"))
         settings = settings_by_code[code]
+        type_importe = resolver.type_action(_cell_str(row.get("type_action")))
+        if type_importe is not None and type_importe.ancien is not None:
+            types_importes[code] = type_importe
         operation = Operation.objects.create(
             id_indicateur=indicateur,
             libelle=_cell_str(row.get("libelle")),
             code_operation=code or None,
-            id_type_action=nom(_TYPE_ACTION, row.get("type_action")),
+            id_type_action=type_importe.type if type_importe else None,
             id_priorite=nom(_PRIORITE, row.get("priorite")),
             annee_min=amin,
             annee_max=amax,
@@ -2473,6 +2522,14 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
 
     # #786 — reste de la fiche : suivis, sites, métriques, années, emprises.
     fiche.appliquer_fiche(plan, parsed, user, op_by_code, _get_annee, resolver)
+
+    # #786 — un type d'une version antérieure du référentiel entre dans le
+    # passage en service (changement modifiable, ou action « à actualiser »).
+    from .referentiel_actions import journaliser_import
+    for code, importe in types_importes.items():
+        op = op_by_code[code]
+        op.refresh_from_db(fields=["id_categorie_action_reserve"])
+        journaliser_import(op, importe, plan)
 
     # Les organismes de la ventilation sont ceux des sites de l'action : sans ce
     # rattachement, la fiche action ne les proposerait pas (plan multi-sites).

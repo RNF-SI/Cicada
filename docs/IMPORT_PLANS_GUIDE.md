@@ -143,6 +143,20 @@ lignes d'organisme sans montant et, pour les données antérieures à #560, les
 totaux enregistrés (budget, jours) — repris seulement là où `Budgets` / `RH` ne
 disent rien. Import : création seule (plan sans action).
 
+**Type d'action et versions du référentiel (#786, retour 09/11)** — l'export
+écrit `CODE — libellé` (`referentiel_actions.libelle_type_action()`, liste
+déroulante comprise) ; l'import lit le code en tête, sinon la valeur nue (code
+ou libellé). `ResolveurTypesImport` cherche d'abord parmi les types actifs,
+puis parmi les types **désactivés** d'une version antérieure, convertis selon
+la table de correspondance de la version en service (`_correspondance()`, mêmes
+règles que le passage) : sûre / probable → équivalent (avertissement) ; à
+arbitrer → ancien type gardé (avertissement). À l'exécution,
+`journaliser_import()` inscrit l'action dans le passage en service
+(`PassageReferentielObjet` appliqué ou « à actualiser ») : elle apparaît dans
+« Actions à actualiser » comme si elle avait été là au passage. Type inconnu de
+l'instance → erreur qui nomme la version en service. Même résolution pour le
+type d'action de l'onglet `Suivis`.
+
 - `Actions` — une action par ligne : `code`, `indicateur` (code de référence),
   `libellé`, `type d'action`, `priorité`, `année début` / `année fin`, puis le
   **paramétrage budgétaire de la fiche action (#600)** : `mode de ventilation`,

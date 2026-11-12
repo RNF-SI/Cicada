@@ -65,6 +65,9 @@ def vers_cellule(value, genre):
         return ""
     if genre == "bool":
         return "Oui" if value else "Non"
+    if genre == "nom:TYPE_ACTION":
+        from .referentiel_actions import libelle_type_action
+        return libelle_type_action(value)
     if genre.startswith("nom:"):
         return value.label or ""
     if genre == "json":

@@ -45,6 +45,7 @@ Si le plan contient déjà une arborescence, vous choisissez d'ajouter le conten
     - un poste absent du plan est créé avec ses fonctions, et le rapport d'import l'annonce ;
     - les suivis et protocoles des actions CS sont créés ;
     - un organisme introuvable dans l'instance est une erreur ; un organisme qui existe mais ne gère aucun site du plan est signalé en avertissement.
+    - le type d'action est écrit avec son code (« CS.8.3 — … »). Un type d'une version antérieure du référentiel (classeur exporté en Eden 62, instance passée à Gestref, par exemple) n'est pas refusé : il est remplacé par son équivalent quand la correspondance est sûre ou probable, modifiable ensuite dans la fiche action ; sinon il est conservé et l'action apparaît dans « Actions à actualiser » ([§ 4.8.3](actions.md#483-les-types-daction-à-actualiser)). Le rapport d'import l'annonce pour chaque ligne.
 
 <figure markdown="span">
 ![Import de l'arborescence - statut valide](../assets/figures/fig34.webp){ loading=lazy }

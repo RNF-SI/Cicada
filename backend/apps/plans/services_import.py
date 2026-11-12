@@ -1755,6 +1755,19 @@ class _NomenclatureResolver:
 
     def __init__(self):
         self._cache: dict[str, dict[str, object]] = {}
+        self._types_action = None
+
+    def type_action(self, label: str):
+        """#786 — type d'action en service, ou d'une ancienne version du
+        référentiel converti selon sa table de correspondance (``TypeImporte``)."""
+        if self._types_action is None:
+            from .referentiel_actions import ResolveurTypesImport
+            self._types_action = ResolveurTypesImport()
+        return self._types_action.resoudre(label)
+
+    def libelle_version_types_action(self) -> str:
+        self.type_action("")
+        return self._types_action.libelle_version()
 
     def _index(self, type_mnemo: str) -> dict[str, object]:
         if type_mnemo not in self._cache:
@@ -1768,6 +1781,9 @@ class _NomenclatureResolver:
         return self._cache[type_mnemo]
 
     def resolve(self, type_mnemo: str, label: str):
+        if type_mnemo == "TYPE_ACTION":
+            importe = self.type_action(label)
+            return importe.type if importe else None
         return self._index(type_mnemo).get(_norm(label))
 
 
