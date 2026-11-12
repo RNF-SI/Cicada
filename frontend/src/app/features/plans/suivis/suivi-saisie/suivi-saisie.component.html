@@ -200,6 +200,33 @@
             <h2 class="card-title">{{ 'plans.suivis.saisie.sections.realisation' | translate }}</h2>
           </div>
 
+          <!-- #794 — planification annuelle ajustée de l'année : prévu ajusté,
+               plan de gestion au survol ; « Reportée » proposé pour une année reportée. -->
+          @if (ajustementAnnee(); as aj) {
+            <div class="info-block ajustement-annee" data-testid="suivi-ajustement">
+              <i class="fi fi-rr-calendar"></i>
+              @if (aj.statut === 'reportee') {
+                <span>{{ 'plans.suivis.saisie.ajustement.reportee' | translate:{ annee: aj.anneeReport } }}</span>
+              } @else if (aj.statut === 'non_prevue') {
+                <span>{{ 'plans.suivis.saisie.ajustement.nonPrevue' | translate:{ annee: selectedYear() } }}</span>
+              } @else {
+                <span>
+                  {{ 'plans.suivis.saisie.ajustement.prevu' | translate:{ annee: selectedYear() } }}
+                  <strong class="ajuste"
+                          [matTooltip]="aj.budgetPg != null ? ('plans.suivis.saisie.ajustement.pg' | translate:{
+                            budget: formatNumber(aj.budgetPg, ' €'), jours: formatNumber(aj.joursPg, ' j') }) : ''">
+                    {{ formatNumber(aj.budget, ' €') }} · {{ formatNumber(aj.jours, ' j') }}
+                  </strong>
+                </span>
+              }
+            </div>
+          }
+          @if (niveauReportePropose()) {
+            <p class="text-mention" data-testid="suivi-reporte-propose">
+              {{ 'plans.suivis.saisie.ajustement.reporteePropose' | translate }}
+            </p>
+          }
+
           <app-form-field
             [label]="'plans.suivis.saisie.fields.niveau' | translate"
             [required]="true"

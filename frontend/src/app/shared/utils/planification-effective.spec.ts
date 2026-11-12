@@ -1,4 +1,4 @@
-import { operationAjustee, ranger } from './planification-effective';
+import { infoAjustementAnnee, operationAjustee, ranger } from './planification-effective';
 import { yearBudgetPrev, yearBudgetReal } from './operation-budget';
 import { getActionStatusForYear } from '../../features/plans/suivis/action-status.util';
 import { Operation } from '../../core/models/enjeu.model';
@@ -39,7 +39,7 @@ describe('Programmation effective (#794)', () => {
   it('prévu et mois ajustés, réalisé par organisme conservé', () => {
     const ajustee = operationAjustee(op, ranger([ajustement({
       periodicite_mensuelle: { '9': true },
-      organismes: [{ id_organisme: 10, budget_fonctionnement: '1200.00' }],
+      organismes: [{ id_organisme: 10, organisme_nom: 'RNF', budget_fonctionnement: '1200.00' }],
     })]));
     const oa = ajustee.operation_annees!.find(a => a.annee === 2026)!;
     expect(oa.periodicite_mensuelle).toEqual({ '9': true });
@@ -60,9 +60,27 @@ describe('Programmation effective (#794)', () => {
 
   it('une année planifiée hors du plan de gestion s\'ajoute', () => {
     const ajustee = operationAjustee(op, ranger([ajustement({
-      annee: 2028, organismes: [{ id_organisme: 10, budget_fonctionnement: '300.00' }],
+      annee: 2028, organismes: [{ id_organisme: 10, organisme_nom: 'RNF', budget_fonctionnement: '300.00' }],
     })]));
     expect(ajustee.operation_annees!.map(a => a.annee)).toEqual([2026, 2027, 2028]);
     expect(getActionStatusForYear(ajustee, 2028)).toBe('planned');
+  });
+});
+
+describe('Année ajustée rappelée à la saisie du suivi (#794)', () => {
+  it('prévu ajusté et prévu du plan de gestion', () => {
+    const ajustee = operationAjustee(op, ranger([ajustement({
+      organismes: [{ id_organisme: 10, organisme_nom: 'RNF', budget_fonctionnement: '1200.00' }],
+    })]));
+    expect(infoAjustementAnnee(ajustee, op, 2026)).toEqual(expect.objectContaining({
+      statut: 'planifiee', budget: 1200, budgetPg: 1500,
+    }));
+    expect(infoAjustementAnnee(ajustee, op, 2027)).toBeNull();
+  });
+
+  it('année reportée : statut et année du report', () => {
+    const ajustee = operationAjustee(op, ranger([ajustement({ statut: 'reportee', annee_report: 2027 })]));
+    expect(infoAjustementAnnee(ajustee, op, 2026)).toEqual(expect.objectContaining({
+      statut: 'reportee', anneeReport: 2027, budget: 0 }));
   });
 });

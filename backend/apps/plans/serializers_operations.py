@@ -327,12 +327,16 @@ def _score_block_grid(b):
 
 class RealisationOperationAnneeOrganismeSerializer(serializers.ModelSerializer):
     """Réalisation ventilée par organisme (1-1 avec OperationAnneeOrganisme)."""
+    # #794 — la saisie retrouve par son organisme une ligne créée à la volée.
+    id_organisme = serializers.IntegerField(
+        source='id_operation_annee_organisme.id_organisme_id', read_only=True)
 
     class Meta:
         model = RealisationOperationAnneeOrganisme
         fields = [
             'id_realisation_op_annee_organisme',
             'id_operation_annee_organisme',
+            'id_organisme',
             'budget_fonctionnement_realise',
             'budget_investissement_realise',
             'etp_realise',

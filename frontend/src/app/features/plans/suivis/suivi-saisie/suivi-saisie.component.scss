@@ -1026,3 +1026,18 @@ textarea.full-width {
   align-items: center;
   margin-top: $spacing-sm;
 }
+
+// #794 — planification annuelle ajustée de l'année.
+.ajustement-annee {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+
+  .ajuste {
+    color: $primary-color;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+    cursor: help;
+  }
+}

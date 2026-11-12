@@ -251,11 +251,16 @@ class ApercuReportSerializer(serializers.Serializer):
         many=True, help_text="Programmation qui tomberait après la fin du plan : abandonnée.")
 
 
+class OrganismeAjusteLuSerializer(OrganismeAjusteSerializer):
+    organisme_nom = serializers.CharField(allow_blank=True)
+
+
 class AjustementDuPlanSerializer(ContenuAnnuelSerializer):
     """Une année ajustée d'une action, telle que le suivi la lit."""
     id_operation = serializers.IntegerField()
     annee = serializers.IntegerField()
     revue = serializers.BooleanField()
+    organismes = OrganismeAjusteLuSerializer(many=True)
     rh_lignes = RhAjusteLuSerializer(many=True)
 
 

@@ -152,12 +152,16 @@ class AjustementsDuPlanView(APIView):
         assert_suivi_access(request.user, plan, lecture=True)
         ajustements = (
             AjustementAnnuel.objects.filter(id_operation__in=plan_operation_ids(plan))
-            .prefetch_related('organismes', 'financeurs', 'rh_lignes__id_poste')
+            .prefetch_related('organismes__id_organisme', 'financeurs', 'rh_lignes__id_poste')
             .order_by('id_operation', 'annee'))
         lignes = []
         for ajustement in ajustements:
             contenu = contenu_ajuste(ajustement)
             postes = {l.id_poste_id: l.id_poste for l in ajustement.rh_lignes.all() if l.id_poste_id}
+            noms = {o.id_organisme_id: o.id_organisme.nom_organisme or ''
+                    for o in ajustement.organismes.all()}
+            for org in contenu['organismes']:
+                org['organisme_nom'] = noms.get(org['id_organisme'], '')
             for ligne in contenu['rh_lignes']:
                 poste = postes.get(ligne['id_poste'])
                 ligne['poste_cout_jour'] = getattr(poste, 'cout_jour', None)

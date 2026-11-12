@@ -16,6 +16,7 @@
 import {
   Operation, OperationAnnee, OperationAnneeOrganisme,
 } from '../../core/models/enjeu.model';
+import { yearBudgetPrev, yearJoursPrev } from './operation-budget';
 import { OperationRHLigne } from '../../core/models/rh.model';
 import { AjustementDuPlan } from '../../core/models/planification-annuelle.model';
 
@@ -56,8 +57,11 @@ export function anneeAjustee(pg: OperationAnnee | undefined, aj: AjustementDuPla
     periodicite: planifiee,
     periodicite_mensuelle: planifiee ? { ...(aj.periodicite_mensuelle ?? {}) } : {},
     realisation: pg?.realisation ?? null,
-    // Repère des vues de suivi : l'année porte un ajustement.
+    // Repère des vues de suivi : l'année porte un ajustement, son statut et
+    // l'année du report (saisie du suivi : niveau « Reporté » proposé).
     ajustee: true,
+    statut_annuel: aj.statut,
+    annee_report: aj.annee_report ?? null,
   };
   for (const champ of CHAMPS_ANNEE) {
     annee[champ] = planifiee ? (aj as unknown as Record<string, unknown>)[champ] ?? null
@@ -104,4 +108,35 @@ export function operationAjustee(op: Operation, ajustements: AjustementsParActio
   }
   annees.sort((a, b) => a.annee - b.annee);
   return { ...op, operation_annees: annees };
+}
+
+/** Ce que la saisie du suivi rappelle d'une année ajustée (#794). */
+export interface InfoAjustementAnnee {
+  statut: string;
+  anneeReport: number | null;
+  /** Prévu ajusté de l'année. */
+  budget: number;
+  jours: number;
+  /** Prévu du plan de gestion (`null` : action programmée globalement). */
+  budgetPg: number | null;
+  joursPg: number | null;
+}
+
+/** L'année ajustée d'une action (`ajustee` = action effective), ou `null`. */
+export function infoAjustementAnnee(
+  ajustee: Operation | null, pg: Operation | null, annee: number,
+): InfoAjustementAnnee | null {
+  const oa = ajustee?.operation_annees?.find(a => a.annee === annee) as
+    (OperationAnnee & { ajustee?: boolean; statut_annuel?: string; annee_report?: number | null }) | undefined;
+  if (!ajustee || !pg || !oa?.ajustee) return null;
+  const pgOa = pg.operation_annees?.find(a => a.annee === annee);
+  const globale = !!pg.programmation_globale;
+  return {
+    statut: oa.statut_annuel ?? 'planifiee',
+    anneeReport: oa.annee_report ?? null,
+    budget: yearBudgetPrev(ajustee, oa).total ?? 0,
+    jours: yearJoursPrev(oa, true) ?? 0,
+    budgetPg: globale ? null : pgOa ? yearBudgetPrev(pg, pgOa).total ?? 0 : 0,
+    joursPg: globale ? null : pgOa ? yearJoursPrev(pgOa, true) ?? 0 : 0,
+  };
 }

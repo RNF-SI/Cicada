@@ -1698,3 +1698,101 @@ describe('SuiviSaisieComponent — montants par financeur (#790)', () => {
     expect(c.financeursAnnee().map((l: any) => l.id_financeur)).toEqual([1, 2]);
   });
 });
+
+// -----------------------------------------------------------------------------
+// #794 — planification annuelle ajustée : « Reportée » proposé, réalisé par
+// organisme sans ligne au plan (année reportée, organisme ajouté).
+// -----------------------------------------------------------------------------
+describe('SuiviSaisieComponent — planification annuelle ajustée (#794)', () => {
+  const NIVEAUX = [
+    { id_nomenclature: 1, mnemonique: 'TERMINE', label: 'Terminé' },
+    { id_nomenclature: 2, mnemonique: 'PARTIEL', label: 'Partiel' },
+    { id_nomenclature: 3, mnemonique: 'NON_REALISE', label: 'Non réalisé' },
+    { id_nomenclature: 9, mnemonique: 'REPORTE', label: 'Reporté' },
+  ];
+
+  function avecAnnee(ajust: any, oa: any) {
+    const c = Object.create(SuiviSaisieComponent.prototype) as any;
+    c.fb = new FormBuilder();
+    c.form = c.fb.group({ id_niveau_realisation: [null] });
+    c.ajustementAnnee = signal(ajust);
+    c.currentOperationAnnee = signal(oa);
+    c.niveaux = signal(NIVEAUX);
+    c.niveauReportePropose = signal(false);
+    return c;
+  }
+
+  it('année reportée et pas encore suivie : « Reportée » proposé', () => {
+    const c = avecAnnee({ statut: 'reportee', anneeReport: 2027 }, { annee: 2026, realisation: null });
+    c.proposerNiveauReporte();
+    expect(c.niveauReportePropose()).toBe(true);
+    expect(c.form.value.id_niveau_realisation).toBe(9);
+  });
+
+  it('année déjà suivie ou non reportée : rien n\'est proposé', () => {
+    const suivie = avecAnnee({ statut: 'reportee' }, { annee: 2026, realisation: { id_niveau_realisation: 1 } });
+    suivie.proposerNiveauReporte();
+    expect(suivie.niveauReportePropose()).toBe(false);
+    const planifiee = avecAnnee({ statut: 'planifiee' }, { annee: 2026, realisation: null });
+    planifiee.proposerNiveauReporte();
+    expect(planifiee.form.value.id_niveau_realisation).toBeNull();
+  });
+
+  it('organisme sans ligne au plan : désigné par l\'action, l\'année et l\'organisme', () => {
+    const c = Object.create(SuiviSaisieComponent.prototype) as any;
+    c.fb = new FormBuilder();
+    c.form = c.fb.group({
+      id_niveau_realisation: [1], commentaires: [''], operateurs_realises: [''], financeurs_realises: [''],
+      organismes: c.fb.array([]), indicateurs: c.fb.array([]), rhLignes: c.fb.array([]),
+    });
+    const oa = { annee: 2027, periodicite: true, ajustee: true, realisation: null,
+      organismes: [{ id_organisme: 4, budget_fonctionnement: '900.00', realisation: null }] };
+    c.operation = signal<any>({ operation_annees: [oa] });
+    c.operationId = signal(5);
+    c.selectedYear = signal(2027);
+    c.financeursAnnee = signal([]);
+    c.currentOperationAnnee = computed(
+      () => c.operation()?.operation_annees?.find((o: any) => o.annee === c.selectedYear()) ?? null);
+    c.hasSaisieForYear = computed(() => hasSaisieRealisation(c.currentOperationAnnee()));
+    c.saisieBloquee = signal(false);
+    c.editionDemandee = signal(false);
+    c.enLecture = computed(() => false);
+    c.formVerrouille = computed(() => false);
+    c.showNiveauError = signal(false);
+    c.isSaving = signal(false);
+    c.niveaux = signal([]);
+    c.reglagesProposes = signal<any>(null);
+    c.isOrgVentilation = signal(true);
+    c.isGlobalDetailVentilation = signal(false);
+    c.isByType = signal(false);
+    c.isMaxVentilation = signal(false);
+    c.ventilationMode = signal('by_org');
+    c.pendingGeomRealisee = signal<any>(undefined);
+    c.isEditingGeom = signal(false);
+    c.empriseSnapshot = signal<any>(null);
+    c.mesuresByMetrique = new Map();
+    c.translate = { instant: (k: string) => k };
+    c.snack = { open: jest.fn() };
+    const appels: string[] = [];
+    c.realisationService = {
+      upsert: jest.fn(() => { appels.push('annee'); return of({ id_operation_annee: 77 }); }),
+      upsertOrganisme: jest.fn((p: any) => {
+        appels.push('organisme');
+        return of({ id_operation_annee_organisme: 31, id_organisme: p.id_organisme, budget_fonctionnement_realise: 400 });
+      }),
+    };
+    c.organismesFA.push(c.fb.group({
+      id_operation_annee_organisme: [null], id_organisme: [4], budget_fonctionnement_realise: [400], etp_realise: [null],
+    }));
+    c.submit();
+    expect(c.realisationService.upsertOrganisme).toHaveBeenCalledWith(expect.objectContaining({
+      id_operation: 5, annee: 2027, id_organisme: 4, budget_fonctionnement_realise: 400 }));
+    // L'année d'abord : la ligne d'organisme créée à la volée en a besoin.
+    expect(appels).toEqual(['annee', 'organisme']);
+    // Le réalisé recollé sur l'année ajustée (sans doublon d'année).
+    const annees = c.operation().operation_annees;
+    expect(annees).toHaveLength(1);
+    expect(annees[0].id_operation_annee).toBe(77);
+    expect(annees[0].organismes[0].realisation.budget_fonctionnement_realise).toBe(400);
+  });
+});

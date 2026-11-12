@@ -1977,14 +1977,24 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
 
         POST /api/plans/realisations-organismes/upsert/
         Body: { "id_operation_annee_organisme": 123, "budget_fonctionnement_realise": 800, ... }
+
+        #794 — à défaut de ligne au plan, { "id_operation": 12, "annee": 2027,
+        "id_organisme": 4, ... } : un report ou un ajustement annuel place
+        l'action sur une année (ou un organisme) que le plan ne programme pas.
+        L'année et la ligne d'organisme sont créées sans prévu, comme une année
+        réalisée non prévue (#418).
         """
+        with transaction.atomic():
+            return self._upsert(request)
+
+    def _upsert(self, request):
         id_oao = request.data.get('id_operation_annee_organisme')
         if not id_oao:
-            return Response(
-                {'detail': 'id_operation_annee_organisme est requis.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-        oao = get_object_or_404(OperationAnneeOrganisme, pk=id_oao)
+            oao, refus = self._ligne_a_la_volee(request)
+            if refus is not None:
+                return refus
+        else:
+            oao = get_object_or_404(OperationAnneeOrganisme, pk=id_oao)
         accessible = _scope_realisation_queryset(
             OperationAnneeOrganisme.objects.filter(pk=oao.pk),
             request.user, 'id_operation_annee__id_operation',
@@ -2001,6 +2011,35 @@ class RealisationOperationAnneeOrganismeViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def _ligne_a_la_volee(request):
+        """Ligne d'organisme (et année) du plan créée sans prévu (#794)."""
+        from .access import assert_suivi_access
+        from .views_planification_annuelle import _organismes_admis
+
+        id_operation = request.data.get('id_operation')
+        annee = request.data.get('annee')
+        id_organisme = request.data.get('id_organisme')
+        if not id_operation or annee in (None, '') or not id_organisme:
+            return None, Response(
+                {'detail': 'id_operation_annee_organisme, ou (id_operation + annee + '
+                           'id_organisme), est requis.'},
+                status=status.HTTP_400_BAD_REQUEST)
+        operation = get_object_or_404(Operation, pk=id_operation)
+        plan = operation.get_plan_de_gestion()
+        if plan is None:
+            return None, Response({'detail': "Action sans plan de gestion."},
+                                  status=status.HTTP_404_NOT_FOUND)
+        assert_suivi_access(request.user, plan)
+        if int(id_organisme) not in _organismes_admis(plan, operation, None):
+            return None, Response({'detail': "Organisme étranger au plan de gestion."},
+                                  status=status.HTTP_400_BAD_REQUEST)
+        operation_annee, _ = OperationAnnee.objects.get_or_create(
+            id_operation=operation, annee=int(annee), defaults={'periodicite': False})
+        oao, _ = OperationAnneeOrganisme.objects.get_or_create(
+            id_operation_annee=operation_annee, id_organisme_id=int(id_organisme))
+        return oao, None
 
 
 # =============================================================================

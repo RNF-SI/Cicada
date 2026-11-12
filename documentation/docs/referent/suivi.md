@@ -74,6 +74,8 @@ Pour chaque année, vous pouvez renseigner :
 
 Les onglets d'années couvrent toute la durée du plan : saisir une année non prévue enregistre une action réalisée non prévue.
 
+Le prévu rappelé dans la saisie est celui de la **planification annuelle ajustée** ([§ 4.9.4](#494-lajustement-de-la-planification-annuelle)). Pour une année ajustée, un encadré en tête de la réalisation donne le prévu ajusté de l'année ; la valeur du plan de gestion s'affiche au survol. Pour une année **reportée**, l'encadré le rappelle et le niveau « **Reportée** » est proposé tant que le suivi de l'année n'est pas enregistré. Une année devenue prévue par un report (ou un organisme ajouté pour l'année) se suit comme les autres, organisme par organisme compris.
+
 Les cases « Déclinaison par type de poste » et « Déclinaison par type de coût » sont reprises du **premier suivi saisi dans le plan** : pour une action dont le suivi n'a encore jamais été saisi, elles sont proposées dans l'état de ce premier suivi (sauf si la programmation de l'action impose de les cocher). Ce n'est qu'une valeur par défaut, modifiable ; elle est enregistrée avec le premier suivi de l'action, et les suivis déjà enregistrés ne changent pas.
 
 Chaque année s'ouvre avec ses propres données : une année jamais saisie s'affiche directement en saisie, vide, avec seulement les valeurs reprises de la programmation. Une année **déjà enregistrée** s'affiche en lecture : le bouton « **Modifier** », en haut à droite du formulaire, la repasse en saisie. À côté, « **Effacer la saisie de l'année** » supprime tout le suivi de cette année (niveau, budget, temps, emprise, commentaires) après confirmation : l'action revient à l'état « non encore saisie » et le formulaire repasse en saisie.

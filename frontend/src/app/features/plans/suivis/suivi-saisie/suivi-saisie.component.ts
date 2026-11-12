@@ -53,6 +53,10 @@ import {
   hasTypeBudget, salaryIsComputed, tempsParPoste, salaryIsComputedReal, salaryOptionAvailable, yearBudgetPrev, yearBudgetReal, yearJoursPrev, yearJoursReal,
 } from '../../../../shared/utils/operation-budget';
 import { planEndYear } from '../../../../shared/utils/plan-periode';
+import { PlanificationAnnuelleService } from '../../../../core/services/planification-annuelle.service';
+import {
+  AjustementsParAction, infoAjustementAnnee, operationAjustee, ranger,
+} from '../../../../shared/utils/planification-effective';
 import { downloadBlob } from '../../../../shared/utils/chart-image-export';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
 
@@ -92,6 +96,20 @@ export class SuiviSaisieComponent implements OnInit {
   private readonly enjeuService = inject(EnjeuService);
   private readonly realisationService = inject(RealisationService);
   private readonly rhService = inject(RhService);
+  private readonly planificationService = inject(PlanificationAnnuelleService);
+
+  /** #794 — l'action telle que le plan de gestion la programme ; `operation`
+   *  porte la planification annuelle ajustée (prévu affiché, statuts). */
+  operationPg = signal<Operation | null>(null);
+  private ajustements: AjustementsParAction | null = null;
+  private actionChargee = false;
+
+  /** #794 — année sélectionnée : prévu ajusté et prévu du plan, si ajustée. */
+  ajustementAnnee = computed(() =>
+    infoAjustementAnnee(this.operation(), this.operationPg(), this.selectedYear()));
+
+  /** #794 — « Reporté » proposé (année reportée, suivi pas encore saisi). */
+  niveauReportePropose = signal(false);
 
   // -------- Routing / context --------
   planSlug = signal<string | null>(null);
@@ -142,7 +160,14 @@ export class SuiviSaisieComponent implements OnInit {
   ];
   niveauSaisieOptions = computed<{ id: number; labelKey: string }[]>(() => {
     const byMnem = new Map(this.niveaux().map(n => [n.mnemonique, n]));
-    return this.NIVEAU_SAISIE
+    // #794 — « Reportée » s'ajoute pour une année reportée par la planification
+    // annuelle (ou déjà saisie ainsi).
+    const reportee = this.ajustementAnnee()?.statut === 'reportee'
+      || this.currentOperationAnnee()?.realisation?.niveau_realisation_mnemonique === 'REPORTE';
+    const options = reportee
+      ? [...this.NIVEAU_SAISIE, { mnemonique: 'REPORTE', labelKey: 'plans.suivis.saisie.niveau.reportee' }]
+      : this.NIVEAU_SAISIE;
+    return options
       .map(o => {
         const n = byMnem.get(o.mnemonique);
         return n ? { id: n.id_nomenclature, labelKey: o.labelKey } : null;
@@ -1081,6 +1106,11 @@ export class SuiviSaisieComponent implements OnInit {
     this.editionDemandee.set(false);
     this.reglagesProposes.set(null);
     this.reglagesDemandes = false;
+    // #794 — l'action et la planification ajustée arrivent séparément.
+    this.ajustements = null;
+    this.actionChargee = false;
+    this.operationPg.set(null);
+    this.niveauReportePropose.set(false);
 
     // Plan (pour breadcrumb + sidebar) — slug → plan via AdminService
     this.adminService.getPlanBySlug(slug).subscribe({
@@ -1102,6 +1132,11 @@ export class SuiviSaisieComponent implements OnInit {
           next: (list) => this.financeursPlan.set(list),
           error: () => this.financeursPlan.set([]),
         });
+        // #794 — planification annuelle ajustée.
+        this.planificationService.ajustements(plan.id_pg).subscribe({
+          next: (r) => this.recevoirAjustements(ranger(r.ajustements)),
+          error: () => this.recevoirAjustements(new Map()),
+        });
         this.applyReadOnlyLock();
       },
       error: (err) => {
@@ -1112,25 +1147,63 @@ export class SuiviSaisieComponent implements OnInit {
 
     // Nomenclature niveaux de réalisation
     this.adminService.getNomenclaturesByType('NIVEAU_REALISATION').subscribe({
-      next: (list) => this.niveaux.set(list),
+      next: (list) => {
+        this.niveaux.set(list);
+        if (this.operation()) this.proposerNiveauReporte();  // #794
+      },
       error: () => this.niveaux.set([]),
     });
 
     // Opération + sa programmation annuelle et ses réalisations
     this.enjeuService.getOperation(opId).subscribe({
       next: (op) => {
+        this.operationPg.set(op);
         this.operation.set(op);
-        this.loadMesuresForMetriques(op);
-        this.hydrateFormFromCurrentYear();
-        this.proposerReglagesDuPlan();  // #761
-        this.isLoading.set(false);
-        this.scrollToRequestedFragment();
+        this.actionChargee = true;
+        this.afficherQuandPret();
       },
       error: () => {
         this.errorMessage.set(this.translate.instant('plans.suivis.saisie.errors.operationNotFound'));
         this.isLoading.set(false);
       },
     });
+  }
+
+  private recevoirAjustements(ajustements: AjustementsParAction): void {
+    this.ajustements = ajustements;
+    this.afficherQuandPret();
+  }
+
+  /**
+   * #794 — L'action ET sa planification ajustée sont là : le formulaire se
+   * remplit sur le prévu ajusté (une seule fois, pour ne rien écraser).
+   */
+  private afficherQuandPret(): void {
+    const pg = this.operationPg();
+    if (!pg || !this.actionChargee || this.ajustements === null) return;
+    this.actionChargee = false;
+    const op = operationAjustee(pg, this.ajustements);
+    this.operation.set(op);
+    this.loadMesuresForMetriques(op);
+    this.hydrateFormFromCurrentYear();
+    this.proposerReglagesDuPlan();  // #761
+    this.isLoading.set(false);
+    this.scrollToRequestedFragment();
+  }
+
+  /**
+   * #794 — Année reportée par la planification annuelle et pas encore suivie :
+   * le niveau « Reporté » est proposé (modifiable, enregistré avec le suivi).
+   */
+  private proposerNiveauReporte(): void {
+    const ajust = this.ajustementAnnee();
+    const oa = this.currentOperationAnnee();
+    const reporte = this.niveaux().find(n => n.mnemonique === 'REPORTE');
+    const propose = !!ajust && ajust.statut === 'reportee' && !oa?.realisation && !!reporte;
+    this.niveauReportePropose.set(propose);
+    if (propose && !this.form.get('id_niveau_realisation')?.value) {
+      this.form.patchValue({ id_niveau_realisation: reporte!.id_nomenclature });
+    }
   }
 
   /**
@@ -1418,6 +1491,7 @@ export class SuiviSaisieComponent implements OnInit {
     });
     this.hydrateOrganismesArray(oa);
     this.hydrateRhArray(oa);
+    this.proposerNiveauReporte();  // #794
     this.hydrateFinanceurs(oa);
     this.applyReadOnlyLock();
   }
@@ -1992,11 +2066,17 @@ export class SuiviSaisieComponent implements OnInit {
     // 2) Payloads par organisme (mode by_org / by_org_type).
     const orgPayloads: RealisationOrganismeUpsertPayload[] = orgVentilation
       ? this.organismesFA.controls
-          .filter(c => c.get('id_operation_annee_organisme')?.value)
+          .filter(c => c.get('id_operation_annee_organisme')?.value || c.get('id_organisme')?.value)
           .map(c => {
             const val = c.value as any;
             const p: RealisationOrganismeUpsertPayload = {
-              id_operation_annee_organisme: val.id_operation_annee_organisme,
+              // #794 — organisme sans ligne au plan (année reportée, organisme
+              // ajouté à l'ajustement) : désigné par l'action, l'année et
+              // l'organisme, la ligne est créée sans prévu.
+              ...(val.id_operation_annee_organisme
+                ? { id_operation_annee_organisme: val.id_operation_annee_organisme }
+                : { id_operation: this.operationId() ?? undefined, annee: this.selectedYear(),
+                    id_organisme: val.id_organisme }),
               budget_fonctionnement_realise: val.budget_fonctionnement_realise ?? null,
               etp_realise: val.etp_realise ?? null,
             };
@@ -2061,8 +2141,11 @@ export class SuiviSaisieComponent implements OnInit {
     const mesureCallsObs = measureCalls.length ? forkJoin(measureCalls) : of([]);
 
     // #761 — 1er suivi de l'action : ses réglages proposés sont enregistrés d'abord.
+    // #794 — les organismes après l'année : une ligne créée à la volée a
+    // besoin de l'année, que l'enregistrement de l'année peut créer aussi.
     this.persisterReglagesProposes().pipe(
-      switchMap(() => forkJoin([annualCall, orgCalls, mesureCallsObs])),
+      switchMap(() => annualCall),
+      switchMap(saved => forkJoin([of(saved), orgCalls, mesureCallsObs])),
     ).subscribe({
       next: ([savedAnnual, savedOrgs, savedMesures]) => {
         this.isSaving.set(false);
@@ -2087,8 +2170,10 @@ export class SuiviSaisieComponent implements OnInit {
         // Synchroniser le signal `operation` avec les réponses serveur.
         const op = this.operation();
         if (op?.operation_annees) {
+          // #794 — une année ajustée sans ligne au plan n'a pas d'identifiant.
           const idx = op.operation_annees.findIndex(
-            o => o.id_operation_annee === savedAnnual.id_operation_annee,
+            o => o.id_operation_annee === savedAnnual.id_operation_annee
+              || (!o.id_operation_annee && o.annee === this.selectedYear()),
           );
           if (idx >= 0) {
             // #758 — nouvelle référence d'année (et d'organismes) : modifiée sur
@@ -2099,13 +2184,21 @@ export class SuiviSaisieComponent implements OnInit {
             const savedByOao = new Map<number | undefined, any>(
               ((savedOrgs as any[]) ?? []).map(so => [so.id_operation_annee_organisme, so]),
             );
+            // #794 — organisme créé à la volée : retrouvé par son organisme.
+            const savedByOrg = new Map<number | undefined, any>(
+              ((savedOrgs as any[]) ?? []).map(so => [so.id_organisme, so]),
+            );
             const updated: OperationAnnee = {
               ...target,
+              id_operation_annee: target.id_operation_annee ?? savedAnnual.id_operation_annee,
               realisation: savedAnnual,
-              organismes: (target.organismes || []).map((oao: OperationAnneeOrganisme) =>
-                savedByOao.has(oao.id_operation_annee_organisme)
-                  ? { ...oao, realisation: savedByOao.get(oao.id_operation_annee_organisme) }
-                  : oao),
+              organismes: (target.organismes || []).map((oao: OperationAnneeOrganisme) => {
+                const saved = savedByOao.get(oao.id_operation_annee_organisme)
+                  ?? (oao.id_operation_annee_organisme ? undefined : savedByOrg.get(oao.id_organisme));
+                return saved
+                  ? { ...oao, id_operation_annee_organisme: saved.id_operation_annee_organisme, realisation: saved }
+                  : oao;
+              }),
             };
             this.operation.set({
               ...op,

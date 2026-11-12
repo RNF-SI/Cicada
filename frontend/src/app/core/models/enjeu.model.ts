@@ -780,7 +780,12 @@ export interface RealisationUpsertPayload {
  * Payload d'upsert d'une réalisation ventilée par organisme.
  */
 export interface RealisationOrganismeUpsertPayload {
-  id_operation_annee_organisme: number;
+  /** Ligne d'organisme du plan ; à défaut (#794), `id_operation` + `annee` +
+   *  `id_organisme` : la ligne est créée sans prévu. */
+  id_operation_annee_organisme?: number;
+  id_operation?: number;
+  annee?: number;
+  id_organisme?: number;
   budget_fonctionnement_realise?: number | null;
   budget_investissement_realise?: number | null;
   etp_realise?: number | null;

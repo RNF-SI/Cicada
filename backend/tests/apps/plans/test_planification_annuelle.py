@@ -306,6 +306,7 @@ class TestAjustementsDuPlan:
         (aj,) = reponse.json()['ajustements']
         assert (aj['id_operation'], aj['annee'], aj['statut']) == (pc.action.pk, pc.annee + 1, 'planifiee')
         assert aj['periodicite_mensuelle'] == {'4': True, '5': True}
+        assert [o['organisme_nom'] for o in aj['organismes']] == ['Organisme A']
         (rh,) = aj['rh_lignes']
         assert (rh['id_poste'], Decimal(rh['poste_cout_jour'])) == (pc.poste.pk, Decimal('250'))
         assert rh['poste_id_organisme'] == pc.org_a.pk
@@ -316,6 +317,40 @@ class TestAjustementsDuPlan:
         monde.plan.referents.add(redacteur)
         for user in (redacteur, RoleFactory()):
             assert _client(user).get(f'{BASE}/plan/{monde.plan.pk}/ajustements/').status_code == 403
+
+
+class TestRealiseParOrganismeSansLigneAuPlan:
+    """Un report place l'action sur une année où le plan ne programme aucun
+    organisme : son réalisé par organisme doit pouvoir être saisi."""
+
+    def test_la_ligne_est_creee_a_la_volee(self):
+        from apps.plans.models_operations import (
+            OperationAnneeOrganisme, RealisationOperationAnneeOrganisme,
+        )
+        pc = construire_plan_complet(statut='valide')
+        annee = pc.annee + 2  # ni année ni organisme au plan
+        reponse = _client(pc.referent).post('/api/plans/realisations-organismes/upsert/', {
+            'id_operation': pc.action.pk, 'annee': annee, 'id_organisme': pc.org_a.pk,
+            'budget_fonctionnement_realise': '450.00'}, format='json')
+        assert reponse.status_code == 200, reponse.content[:300]
+        assert reponse.json()['id_organisme'] == pc.org_a.pk
+        oao = OperationAnneeOrganisme.objects.get(
+            id_operation_annee__id_operation=pc.action, id_operation_annee__annee=annee,
+            id_organisme=pc.org_a)
+        assert oao.id_operation_annee.periodicite is False
+        assert oao.cout_stage is None and oao.budget_fonctionnement is None
+        assert RealisationOperationAnneeOrganisme.objects.get(
+            id_operation_annee_organisme=oao).budget_fonctionnement_realise == Decimal('450.00')
+
+    def test_hors_perimetre_rien_n_est_cree(self):
+        from apps.plans.models_operations import OperationAnneeOrganisme
+        pc = construire_plan_complet(statut='valide')
+        avant = OperationAnnee.tous.count(), OperationAnneeOrganisme.objects.count()
+        reponse = _client(RoleFactory()).post('/api/plans/realisations-organismes/upsert/', {
+            'id_operation': pc.action.pk, 'annee': pc.annee + 2, 'id_organisme': pc.org_a.pk,
+            'budget_fonctionnement_realise': '1.00'}, format='json')
+        assert reponse.status_code in (403, 404)
+        assert (OperationAnnee.tous.count(), OperationAnneeOrganisme.objects.count()) == avant
 
 
 class TestDroits:

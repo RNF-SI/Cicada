@@ -194,5 +194,6 @@ export interface AjustementDuPlan extends ContenuAnnuel {
   id_operation: number;
   annee: number;
   revue: boolean;
+  organismes: (OrganismeAjuste & { organisme_nom: string })[];
   rh_lignes: (RhAjuste & { poste_cout_jour: string | null; poste_id_organisme: number | null })[];
 }

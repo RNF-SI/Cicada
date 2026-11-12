@@ -3039,7 +3039,8 @@
         "niveau": {
           "realisee": "Réalisée",
           "partielle": "Partiellement réalisée",
-          "nonRealisee": "Non réalisée"
+          "nonRealisee": "Non réalisée",
+          "reportee": "Reportée"
         },
         "rh": {
           "title": "Temps de travail réalisé",
@@ -3056,6 +3057,13 @@
           "total": "TOTAL",
           "addLine": "Ajouter une ligne",
           "optional": "Aucun temps de travail n'a été prévu pour cette année. Ajoutez une ligne si l'action a mobilisé du temps."
+        },
+        "ajustement": {
+          "prevu": "Prévu ajusté pour {{annee}} (planification annuelle) :",
+          "pg": "Plan de gestion : {{budget}} · {{jours}}",
+          "reportee": "Action reportée en {{annee}} dans la planification annuelle : elle n'est plus prévue cette année.",
+          "nonPrevue": "L'action n'est pas prévue en {{annee}} dans la planification annuelle : un suivi saisi la compte comme réalisée non prévue.",
+          "reporteePropose": "Niveau « Reportée » proposé : enregistrez pour le confirmer, ou choisissez un autre niveau."
         }
       },
       "indicateur": {
