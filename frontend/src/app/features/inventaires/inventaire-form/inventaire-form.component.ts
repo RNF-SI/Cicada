@@ -41,6 +41,7 @@ import {
 } from '../../../shared/utils/nomenclature-autocomplete.utils';
 import { serializeTaxonRefs, parseTaxonRefs } from '../../../shared/utils/taxon-ref.utils';
 import { parseSuiviHabitats, serializeSuiviHabitats } from '../../../shared/utils/suivi-habitats.utils';
+import { dateLocaleISO, dateDepuisISO } from '../../../shared/utils/dates.utils';
 
 @Component({
   selector: 'app-inventaire-form',
@@ -651,7 +652,7 @@ export class InventaireFormComponent implements OnInit {
       objectif_secondaire: suivi.objectif_secondaire || '',
       cibles_principales: suivi.cibles_principales || '',
       cible_secondaire: suivi.cible_secondaire || '',
-      date_lancement_suivi: suivi.date_lancement_suivi ? new Date(suivi.date_lancement_suivi) : null,
+      date_lancement_suivi: dateDepuisISO(suivi.date_lancement_suivi),
       id_statut: suivi.id_statut,
       annee_fin_suivi: suivi.annee_fin_suivi,
       // Frequency
@@ -837,12 +838,7 @@ export class InventaireFormComponent implements OnInit {
 
   /** Format date to ISO string (YYYY-MM-DD) for backend */
   private formatDate(date: Date | string | null): string | undefined {
-    if (!date) return undefined;
-    if (typeof date === 'string') return date;
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return dateLocaleISO(date) ?? undefined;  // #862 — utilitaire partagé
   }
 
   cancel(): void {

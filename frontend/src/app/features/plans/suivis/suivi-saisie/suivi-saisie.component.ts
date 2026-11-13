@@ -61,6 +61,7 @@ import {
 } from '../../../../shared/utils/planification-effective';
 import { downloadBlob } from '../../../../shared/utils/chart-image-export';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { anneeDe } from '../../../../shared/utils/dates.utils';
 
 interface Niveau {
   id_nomenclature: number;
@@ -1253,7 +1254,7 @@ export class SuiviSaisieComponent implements OnInit {
    */
   private latestMesureForYear(mesures: Mesure[], year: number): Mesure | undefined {
     return mesures
-      .filter(mm => mm.date_mesure && new Date(mm.date_mesure).getFullYear() === year)
+      .filter(mm => anneeDe(mm.date_mesure) === year)
       .sort((a, b) => {
         const da = new Date(a.date_mesure!).getTime();
         const db = new Date(b.date_mesure!).getTime();

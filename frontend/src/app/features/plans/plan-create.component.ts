@@ -43,6 +43,7 @@ import {
   SitePlanSummary
 } from '../../core/models/admin.model';
 import { OrganismeFormModalComponent } from '../../shared/components/modals/organisme-form-modal/organisme-form-modal.component';
+import { dateLocaleISO } from '../../shared/utils/dates.utils';
 
 interface NomenclatureItem {
   id_nomenclature: number;
@@ -565,8 +566,8 @@ export class PlanCreateComponent implements OnInit {
     // Formater la date pour l'API (YYYY-MM-DD)
     let dateValidationCspn: string | undefined;
     if (formValue.date_avis_csrpn) {
-      const date = new Date(formValue.date_avis_csrpn);
-      dateValidationCspn = date.toISOString().split('T')[0];
+      // #862 — jour local (toISOString() passait en UTC : la veille en métropole).
+      dateValidationCspn = dateLocaleISO(formValue.date_avis_csrpn) ?? undefined;
     }
 
     // Formater l'organisme rédacteur

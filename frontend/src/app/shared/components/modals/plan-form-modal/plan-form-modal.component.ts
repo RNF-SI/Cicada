@@ -37,6 +37,7 @@ import {
   SitePlansEntry,
   SitePlanSummary
 } from '../../../../core/models/admin.model';
+import { dateLocaleISO, dateDepuisISO } from '../../../utils/dates.utils';
 
 export interface PlanFormModalData {
   plan?: AdminPlan; // If provided, edit mode
@@ -356,7 +357,7 @@ export class PlanFormModalComponent implements OnInit {
 
       // Champs optionnels
       surface: [plan?.surface || null],
-      date_avis_csrpn: [plan?.date_avis_csrpn ? new Date(plan.date_avis_csrpn) : null],
+      date_avis_csrpn: [dateDepuisISO(plan?.date_avis_csrpn)],
       id_docgestion_fcen: [plan?.id_docgestion_fcen || ''],
       id_redacteur_type: [plan?.id_redacteur_type || null],
       redacteur_nom: [plan?.redacteur_nom || '', Validators.maxLength(255)],
@@ -667,8 +668,8 @@ export class PlanFormModalComponent implements OnInit {
     // Formater la date pour l'API (YYYY-MM-DD)
     let dateValidationCspn: string | undefined;
     if (formValue.date_avis_csrpn) {
-      const date = new Date(formValue.date_avis_csrpn);
-      dateValidationCspn = date.toISOString().split('T')[0];
+      // #862 — jour local (toISOString() passait en UTC : la veille en métropole).
+      dateValidationCspn = dateLocaleISO(formValue.date_avis_csrpn) ?? undefined;
     }
 
     const payload: PlanCreatePayload = {

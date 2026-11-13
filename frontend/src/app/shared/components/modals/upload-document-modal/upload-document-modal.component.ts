@@ -14,6 +14,7 @@ import { AdminService } from '../../../../core/services/admin.service';
 import { SettingsService } from '../../../../core/services/settings.service';
 import { FichierType } from '../../../../core/models/admin.model';
 import { FormFieldComponent } from '../../form-field/form-field.component';
+import { dateLocaleISO } from '../../../utils/dates.utils';
 
 export interface UploadDocumentDialogData {
   planId: number;
@@ -106,7 +107,7 @@ export class UploadDocumentModalComponent {
     if (this.description.trim()) metadata.description = this.description.trim();
     if (this.auteur.trim()) metadata.auteur = this.auteur.trim();
     if (this.dateDocument) {
-      metadata.date_document = this.dateDocument.toISOString().split('T')[0];
+      metadata.date_document = dateLocaleISO(this.dateDocument);  // #862 — jour local
     }
 
     this.adminService.uploadFichier(this.data.planId, file, metadata).subscribe({

@@ -67,6 +67,7 @@ import {
 } from '../../../../shared/utils/metrique-form.util';
 import { posteDisplayLabel, posteDisplayLabelById } from '../../../../shared/utils/poste-label';
 import { planEndYear } from '../../../../shared/utils/plan-periode';
+import { dateLocaleISO, dateDepuisISO } from '../../../../shared/utils/dates.utils';
 
 /** Option de type de métrique brute (nomenclature TYPE_METRIQUE). */
 type TypeMetriqueNomenclature = { id_nomenclature: number; mnemonique?: string; label: string };
@@ -1629,7 +1630,7 @@ export class OperationFormComponent implements OnInit {
         objectif_secondaire: suivi.objectif_secondaire || '',
         cibles_principales: suivi.cibles_principales || null,
         cible_secondaire: suivi.cible_secondaire || '',
-        date_lancement_suivi: suivi.date_lancement_suivi ? new Date(suivi.date_lancement_suivi) : null,
+        date_lancement_suivi: dateDepuisISO(suivi.date_lancement_suivi),
         outil_bancarisation: suivi.outil_bancarisation || null,
         outil_saisie: suivi.outil_saisie || null,
         transmission_donnee: suivi.transmission_donnee ?? null,
@@ -3002,7 +3003,7 @@ export class OperationFormComponent implements OnInit {
           objectif_secondaire: detail.objectif_secondaire || '',
           cibles_principales: detail.cibles_principales || null,
           cible_secondaire: detail.cible_secondaire || '',
-          date_lancement_suivi: detail.date_lancement_suivi ? new Date(detail.date_lancement_suivi) : null,
+          date_lancement_suivi: dateDepuisISO(detail.date_lancement_suivi),
           outil_bancarisation: detail.outil_bancarisation || null,
           outil_saisie: detail.outil_saisie || null,
           transmission_donnee: detail.transmission_donnee ?? null,
@@ -3347,12 +3348,7 @@ export class OperationFormComponent implements OnInit {
   }
 
   private formatDate(date: Date | string | null): string | undefined {
-    if (!date) return undefined;
-    if (typeof date === 'string') return date;
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return dateLocaleISO(date) ?? undefined;  // #862 — utilitaire partagé
   }
 
   private resetSuiviFields(): void {

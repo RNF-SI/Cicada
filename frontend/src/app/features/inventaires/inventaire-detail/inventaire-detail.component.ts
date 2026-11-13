@@ -16,6 +16,7 @@ import { SuiviInventaireDetail } from '../../../core/models/inventaire.model';
 import { Protocole } from '../../../core/models/enjeu.model';
 import { taxonRefsToText } from '../../../shared/utils/taxon-ref.utils';
 import { parseSuiviHabitats } from '../../../shared/utils/suivi-habitats.utils';
+import { anneeDe } from '../../../shared/utils/dates.utils';
 
 @Component({
   selector: 'app-inventaire-detail',
@@ -53,7 +54,7 @@ export class InventaireDetailComponent implements OnInit {
   periode = computed(() => {
     const s = this.suivi();
     if (!s) return '';
-    const debut = s.date_lancement_suivi ? new Date(s.date_lancement_suivi).getFullYear() : null;
+    const debut = anneeDe(s.date_lancement_suivi);
     const fin = s.annee_fin_suivi;
     if (debut && fin) return `${debut} – ${fin}`;
     if (debut) return `${debut} –`;

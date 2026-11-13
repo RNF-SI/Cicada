@@ -24,6 +24,7 @@ import { computeMetriqueScore, computeCombinedScore, scoreLevelName } from '../m
 import {
   prevAnnees, yearBudgetPrev, yearBudgetReal, yearJoursAgentsPrev, yearJoursAgentsReal,
 } from '../../../../shared/utils/operation-budget';
+import { dateDepuisISO, anneeDe } from '../../../../shared/utils/dates.utils';
 
 interface YearRow {
   annee: number;
@@ -157,9 +158,10 @@ export class ActionGlobalComponent implements OnInit {
       const bestTs = new Map<number, number>();
       for (const mes of (map.get(m.id_metrique) || [])) {
         if (!mes.date_mesure) continue;
-        const d = new Date(mes.date_mesure);
-        const y = d.getFullYear();
-        const t = d.getTime();
+        // #862 — année lue dans la chaîne (pas de fuseau) ; l'instant ne sert
+        // qu'à comparer deux mesures de la même année.
+        const y = anneeDe(mes.date_mesure)!;
+        const t = dateDepuisISO(mes.date_mesure)!.getTime();
         if (!bestTs.has(y) || t >= (bestTs.get(y) as number)) {
           bestTs.set(y, t);
           byYear.set(y, mes.valeur);

@@ -23,6 +23,7 @@ import { SearchBarComponent } from '../../../shared/components/search-bar/search
 import { InventaireService } from '../../../core/services/inventaire.service';
 import { AdminService } from '../../../core/services/admin.service';
 import { SuiviInventaireList } from '../../../core/models/inventaire.model';
+import { anneeDe } from '../../../shared/utils/dates.utils';
 
 @Component({
   selector: 'app-inventaires-list',
@@ -233,7 +234,7 @@ export class InventairesListComponent implements OnInit {
    * Examples: "2026-", "2015-2020", "-"
    */
   formatPeriode(suivi: SuiviInventaireList): string {
-    const debut = suivi.date_lancement_suivi ? new Date(suivi.date_lancement_suivi).getFullYear() : null;
+    const debut = anneeDe(suivi.date_lancement_suivi);
     const fin = suivi.annee_fin_suivi;
     if (debut && fin) return `${debut}-${fin}`;
     if (debut) return `${debut}-`;

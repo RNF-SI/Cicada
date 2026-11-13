@@ -31,6 +31,7 @@ import { downloadBlob } from '../../../shared/utils/chart-image-export';
 import { GridCell, GridExportPayload, GridRow } from '../../../shared/utils/grid-export';
 import { planEndYear } from '../../../shared/utils/plan-periode';
 import { PlanGenerateMenuComponent } from '../exports/plan-generate-menu/plan-generate-menu.component';
+import { anneeDe } from '../../../shared/utils/dates.utils';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
@@ -445,7 +446,7 @@ export class PlanTableauDeBordComponent implements OnInit {
     let hasMesure = false;
     for (const metrique of row.metriques) {
       const mesure = (metrique.mesures || []).find(
-        m => m.date_mesure && new Date(m.date_mesure).getFullYear() === year,
+        m => anneeDe(m.date_mesure) === year,
       );
       if (!mesure) continue;
       hasMesure = true;
@@ -467,7 +468,7 @@ export class PlanTableauDeBordComponent implements OnInit {
     const mesures = metrique.mesures || [];
     const mesure = mesures.find(m => {
       if (!m.date_mesure) return false;
-      return new Date(m.date_mesure).getFullYear() === year;
+      return anneeDe(m.date_mesure) === year;
     });
     if (!mesure) return null;
     return this.mesureToScoreLevel(metrique, mesure);

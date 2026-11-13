@@ -10,6 +10,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { CheckboxComponent } from '../../checkbox/checkbox.component';
 import { FormFieldComponent } from '../../form-field/form-field.component';
+import { dateLocaleISO } from '../../../utils/dates.utils';
 
 /** Type d'étape CSRPN à saisir (#277). */
 export type CsrpnStep = 'csrpn' | 'comite' | 'arrete';
@@ -100,7 +101,8 @@ export class CsrpnStepDialogComponent {
     if (this.form.invalid) return;
     const value = this.form.value;
     const date: Date = value.date;
-    const iso = date.toISOString().slice(0, 10);
+    // #862 — jour local (toISOString() passait en UTC : la veille en métropole).
+    const iso = dateLocaleISO(date)!;
     const result: CsrpnStepDialogResult = { date: iso };
     if (this.data.step === 'arrete') {
       result.numeroArrete = value.numeroArrete;

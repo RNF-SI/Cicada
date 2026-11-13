@@ -34,6 +34,7 @@ import { EnjeuService } from '../../../../core/services/enjeu.service';
 import { Indicateur, Metrique, Mesure, MesureCreatePayload } from '../../../../core/models/enjeu.model';
 import { formatScoreRange, isMetriqueIndetermine, computeMetriqueScore, computeCombinedScore, formatBlockFormula, matchingGridLevels } from '../metrique-seuils.util';
 import { planEndYear } from '../../../../shared/utils/plan-periode';
+import { anneeDe } from '../../../../shared/utils/dates.utils';
 
 // #510 — un seul mode d'édition cohérent (les anciens 'edit-auto'/'edit-override'
 // sont fusionnés : auto par défaut, forçage manuel optionnel via une case).
@@ -628,7 +629,7 @@ export class IndicateurSaisieComponent implements OnInit {
     ).pipe(
       map((arr: Mesure[][]) => {
         const out: Array<[number, Mesure]> = [];
-        const yearOf = (m: Mesure) => m.date_mesure ? new Date(m.date_mesure).getFullYear() : null;
+        const yearOf = (m: Mesure) => anneeDe(m.date_mesure);
         arr.forEach((list, idx) => {
           const met = mets[idx];
           const exact = list.find(m => yearOf(m) === year);
@@ -702,7 +703,7 @@ export class IndicateurSaisieComponent implements OnInit {
         if (!confirmed) return;
         this.isSaving.set(true);
         const mets = ind.metriques || [];
-        const yearOf = (m: Mesure) => m.date_mesure ? new Date(m.date_mesure).getFullYear() : null;
+        const yearOf = (m: Mesure) => anneeDe(m.date_mesure);
         const mesures$ = mets.length
           ? forkJoin(mets.map((m: Metrique) => this.enjeuService.getMesuresByMetrique(m.id_metrique)))
           : of([] as Mesure[][]);
