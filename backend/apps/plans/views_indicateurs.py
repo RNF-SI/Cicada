@@ -1207,12 +1207,16 @@ class IndicateurMesureViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'annee invalide.'}, status=status.HTTP_400_BAD_REQUEST)
 
         indicateur = _indicateur_du_suivi(request, id_ind, lecture=False)
-        instance, _ = IndicateurMesure.objects.get_or_create(
-            id_indicateur=indicateur, annee=annee,
-        )
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(id_utilisateur_maj=request.user)
+        # #830 — une saisie refusée ne laisse pas de ligne vide derrière elle :
+        # au transfert du suivi entre versions (#803), une année présente sur
+        # la nouvelle version « prime » sur celle de l'ancienne.
+        with transaction.atomic():
+            instance, _ = IndicateurMesure.objects.get_or_create(
+                id_indicateur=indicateur, annee=annee,
+            )
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(id_utilisateur_maj=request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get'], url_path='auto-score')

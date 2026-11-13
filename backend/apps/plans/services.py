@@ -256,6 +256,7 @@ class PlanDuplicationService:
             new_fichier.save()
 
     @staticmethod
+    @transaction.atomic
     def copy_content(source_plan, new_plan, user):
         """Copie tout le contenu (enjeux + hiérarchie + suivis + opérations) d'un
         plan source vers un nouveau plan déjà créé (#377).
@@ -276,6 +277,31 @@ class PlanDuplicationService:
         PlanDuplicationService._copy_suivis_and_operations(
             source_id, new_plan, user, indicateur_map, metrique_map, poste_map
         )
+
+    @staticmethod
+    @transaction.atomic
+    def creer_version(source_plan, user, **overrides):
+        """Crée un brouillon de version (prolongation, rang suivant, évaluation)
+        avec ses sites, référents, membres et tout son contenu — **tout ou rien**
+        (#830) : une copie interrompue laissait un brouillon enfant à moitié
+        copié, et `has_draft_child()` refusait ensuite tout nouvel essai.
+        """
+        from .models import CorRolePlan, CorSitePg
+
+        new_plan = PlanDuplicationService.build_version_plan(source_plan, user, **overrides)
+        new_plan.save()
+        for cor_site in source_plan.sites.all():
+            CorSitePg.objects.create(
+                plan_de_gestion=new_plan, site=cor_site.site, rang=cor_site.rang)
+        new_plan.referents.set(source_plan.referents.all())
+        for membre in source_plan.membres.all():
+            # Les référents copiés ci-dessus ont déjà leur ligne (signal #789).
+            CorRolePlan.objects.get_or_create(
+                id_role=membre.id_role, plan_de_gestion=new_plan,
+                defaults={'referent': membre.referent})
+        PlanDuplicationService.copy_content(source_plan, new_plan, user)
+        new_plan.update_geometrie()
+        return new_plan
 
     @staticmethod
     def build_version_plan(source_plan, user, **overrides):

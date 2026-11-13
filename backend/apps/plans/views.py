@@ -2,6 +2,7 @@
 Vues API REST pour les Plans de Gestion.
 """
 import json as json_module
+import logging
 import os
 from django.http import JsonResponse, Http404, HttpResponse
 from django.shortcuts import get_object_or_404
@@ -144,6 +145,8 @@ DONNEES_ARBORESCENCE_REQUEST = inline_serializer(
     },
 )
 
+logger = logging.getLogger(__name__)
+
 
 class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
     """
@@ -270,14 +273,19 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             rendre_suivi(plan)  # #803 — le suivi du rang revient à la version précédente
             plan.delete()
 
-        NotificationService.notify_plan_deleted(
-            plan_name=plan_name,
-            plan_id=plan_id,
-            deleted_by=deleted_by,
-            referent_ids=referent_ids,
-            org_ids=org_ids,
-            member_ids=member_ids,
-        )
+        # #830 — le plan est supprimé : une notification en échec ne doit pas
+        # faire croire le contraire (500).
+        try:
+            NotificationService.notify_plan_deleted(
+                plan_name=plan_name,
+                plan_id=plan_id,
+                deleted_by=deleted_by,
+                referent_ids=referent_ids,
+                org_ids=org_ids,
+                member_ids=member_ids,
+            )
+        except Exception:
+            logger.exception("Plan %s supprimé, notification en échec", plan_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -2691,39 +2699,13 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # Créer le brouillon de version étendue (copie métadonnées + contenu),
         # même rang que le plan source — il sera validé en `modifie` puis le
         # plan d'origine archivé (pop-up #246). #377 — copie complète.
-        new_plan = PlanDuplicationService.build_version_plan(
+        # #830 — sites, référents, membres et contenu : tout ou rien.
+        new_plan = PlanDuplicationService.creer_version(
             plan, request.user,
             nom=f"Plan de gestion étendu - {plan.nom}",
             version=plan.get_next_version(),
             annees_extension=new_extension,
         )
-        new_plan.save()
-
-        # Copier les sites
-        for cor_site in plan.sites.all():
-            CorSitePg.objects.create(
-                plan_de_gestion=new_plan,
-                site=cor_site.site,
-                rang=cor_site.rang,
-            )
-
-        # Copier les référents
-        new_plan.referents.set(plan.referents.all())
-
-        # Copier les membres (CorRolePlan)
-        from .models import CorRolePlan
-        for membre in plan.membres.all():
-            # Les référents copiés ci-dessus ont déjà leur ligne (signal #789).
-            CorRolePlan.objects.get_or_create(
-                id_role=membre.id_role,
-                plan_de_gestion=new_plan,
-                defaults={'referent': membre.referent},
-            )
-
-        # #377 — Copier tout le contenu pour que la version étendue soit
-        # éditable (ajout d'actions, suivi) sans impacter la version source.
-        PlanDuplicationService.copy_content(plan, new_plan, request.user)
-        new_plan.update_geometrie()
 
         # Log activity
         try:
@@ -3094,7 +3076,10 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # Nouveau rang → nouvelle numérotation (v1). Un changement de rang
         # correspond à un NOUVEAU plan de gestion, pas à une nouvelle version.
         # #377 — copie de toutes les métadonnées du plan source (sauf statut).
-        new_plan = PlanDuplicationService.build_version_plan(
+        # #377 — contenu copié (enjeux, hiérarchie, suivis, opérations) pour que
+        # le rang suivant soit éditable sans impacter la version source.
+        # #830 — tout ou rien.
+        new_plan = PlanDuplicationService.creer_version(
             plan, request.user,
             nom=nom,
             id_type_document=revise_type,
@@ -3103,32 +3088,6 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             annee_fin=annee_fin,
             rang=new_rang,
         )
-        new_plan.save()
-
-        # Copier les sites
-        for cor_site in plan.sites.all():
-            CorSitePg.objects.create(
-                plan_de_gestion=new_plan,
-                site=cor_site.site,
-                rang=cor_site.rang,
-            )
-
-        # Copier les référents
-        new_plan.referents.set(plan.referents.all())
-
-        # Copier les membres (CorRolePlan)
-        from .models import CorRolePlan
-        for membre in plan.membres.all():
-            # Les référents copiés ci-dessus ont déjà leur ligne (signal #789).
-            CorRolePlan.objects.get_or_create(
-                id_role=membre.id_role,
-                plan_de_gestion=new_plan,
-                defaults={'referent': membre.referent},
-            )
-
-        # #377 — Copier tout le contenu (enjeux, hiérarchie, suivis, opérations)
-        # pour que le rang suivant soit éditable sans impacter la version source.
-        PlanDuplicationService.copy_content(plan, new_plan, request.user)
 
         try:
             from apps.core.services import ActivityService
@@ -3197,47 +3156,18 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
 
         # Créer le nouveau plan.
         # #377 — copie de toutes les métadonnées du plan source (sauf statut).
-        new_plan = PlanDuplicationService.build_version_plan(
+        # #377 — contenu copié pour que l'évaluation soit éditable sans impacter
+        # la version source. #830 — tout ou rien.
+        # #349 — marquée mi-parcours DÈS le brouillon (et non seulement à sa
+        # validation), si aucune mi-parcours n'existe déjà dans la chaîne
+        # (unicité). Le drapeau est préservé à la validation.
+        new_plan = PlanDuplicationService.creer_version(
             plan, request.user,
             nom=f"Évaluation mi-parcours - {plan.nom}",
             id_type_document=eval_type,
             version=plan.get_next_version(),
+            is_mi_parcours=not plan.chain_has_mi_parcours(),
         )
-        new_plan.save()
-
-        # Copier les sites
-        for cor_site in plan.sites.all():
-            CorSitePg.objects.create(
-                plan_de_gestion=new_plan,
-                site=cor_site.site,
-                rang=cor_site.rang,
-            )
-
-        # Copier les référents
-        new_plan.referents.set(plan.referents.all())
-
-        # Copier les membres (CorRolePlan)
-        from .models import CorRolePlan
-        for membre in plan.membres.all():
-            # Les référents copiés ci-dessus ont déjà leur ligne (signal #789).
-            CorRolePlan.objects.get_or_create(
-                id_role=membre.id_role,
-                plan_de_gestion=new_plan,
-                defaults={'referent': membre.referent},
-            )
-
-        # #377 — Copier tout le contenu pour que l'évaluation mi-parcours soit
-        # éditable sans impacter la version source.
-        PlanDuplicationService.copy_content(plan, new_plan, request.user)
-
-        # #349 — Marquer l'évaluation comme mi-parcours DÈS le brouillon (et non
-        # seulement à sa validation), afin qu'elle soit identifiée comme
-        # évaluation mi-parcours pendant sa rédaction. Posé uniquement si aucune
-        # mi-parcours n'existe déjà dans la chaîne (unicité). Le flag est préservé
-        # à la validation (change_status ne le réinitialise pas).
-        if not plan.chain_has_mi_parcours():
-            new_plan.is_mi_parcours = True
-            new_plan.save(update_fields=['is_mi_parcours'])
 
         # Log activity
         try:

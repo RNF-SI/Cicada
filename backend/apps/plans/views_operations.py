@@ -791,35 +791,37 @@ class OperationViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         else:
             parent_kwargs = {'id_ne': None, 'id_resultat_attendu_id': parent_ind.id_resultat_attendu_id}
 
-        new_ind = Indicateur.objects.create(
-            nom_indicateur=nom_indicateur,
-            type_indicateur=type_ind_reponse or parent_ind.type_indicateur,
-            id_utilisateur_ajout=request.user,
-            **parent_kwargs,
-        )
+        # #830 — indicateur, métrique et lien à l'action : tout ou rien.
+        with transaction.atomic():
+            new_ind = Indicateur.objects.create(
+                nom_indicateur=nom_indicateur,
+                type_indicateur=type_ind_reponse or parent_ind.type_indicateur,
+                id_utilisateur_ajout=request.user,
+                **parent_kwargs,
+            )
 
-        type_met_id = request.data.get('type_metrique_id')
-        # #398 — ne PAS retomber sur `nom_indicateur` : un indicateur de réponse
-        # créé sans métrique nommée doit rester « sans métrique » (sinon le nom
-        # de l'indicateur s'affiche à tort comme une métrique sous l'action).
-        new_met = Metrique.objects.create(
-            id_indicateur=new_ind,
-            nom_metrique=(request.data.get('nom_metrique') or '').strip(),
-            type_metrique_id=type_met_id if type_met_id else None,
-            format_metrique_id=request.data.get('format_metrique') or None,
-            etat_reference=request.data.get('valeur_cible') or '',
-            id_utilisateur_ajout=request.user,
-        )
+            type_met_id = request.data.get('type_metrique_id')
+            # #398 — ne PAS retomber sur `nom_indicateur` : un indicateur de réponse
+            # créé sans métrique nommée doit rester « sans métrique » (sinon le nom
+            # de l'indicateur s'affiche à tort comme une métrique sous l'action).
+            new_met = Metrique.objects.create(
+                id_indicateur=new_ind,
+                nom_metrique=(request.data.get('nom_metrique') or '').strip(),
+                type_metrique_id=type_met_id if type_met_id else None,
+                format_metrique_id=request.data.get('format_metrique') or None,
+                etat_reference=request.data.get('valeur_cible') or '',
+                id_utilisateur_ajout=request.user,
+            )
 
-        # #452 — grille de scoring optionnelle (format GRILLE) : passe-plat des
-        # champs de grille fournis par l'éditeur. Aucune validation stricte ici
-        # (l'édition ultérieure via PATCH /metriques/ la fait) — on persiste ce
-        # que le front a saisi pour une métrique de réponse en grille.
-        _apply_metrique_grid(new_met, request.data)
+            # #452 — grille de scoring optionnelle (format GRILLE) : passe-plat des
+            # champs de grille fournis par l'éditeur. Aucune validation stricte ici
+            # (l'édition ultérieure via PATCH /metriques/ la fait) — on persiste ce
+            # que le front a saisi pour une métrique de réponse en grille.
+            _apply_metrique_grid(new_met, request.data)
 
-        CorOperationMetrique.objects.create(
-            id_operation=operation, id_metrique=new_met,
-        )
+            CorOperationMetrique.objects.create(
+                id_operation=operation, id_metrique=new_met,
+            )
 
         return Response({
             'id_metrique': new_met.id_metrique,

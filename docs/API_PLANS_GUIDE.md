@@ -809,9 +809,11 @@ Les attributs orthogonaux de cycle de vie ne sont pas hérités non plus
 (`is_mi_parcours`, `en_revision`, `annees_extension`, `next_rang_plan` repartent
 à zéro) ; `geometrie` est recalculée depuis les sites.
 
-> Les actions `create-evaluation` (évaluation mi-parcours) et `create-next-rang`
-> (rang suivant) appliquent la **même copie complète** (contenu via
-> `copy_content()` + métadonnées via `build_version_plan()`).
+> Les actions `create-evaluation` (évaluation mi-parcours), `create-next-rang`
+> (rang suivant) et `extend-duration` (prolongation) appliquent la **même copie
+> complète**, par `creer_version()` : plan, sites, référents, membres et contenu
+> sont écrits **en tout ou rien** (#830). Une erreur au milieu de la copie ne
+> laisse aucun brouillon partiel, et un nouvel essai est possible aussitôt.
 
 ### 16. Suppression d'une version (#348)
 
