@@ -37,6 +37,7 @@ from .serializers import (
     CorSitePgSerializer, CorPgFichierSerializer
 )
 from .services import PlanDuplicationService
+from apps.core.services import ActivityService
 from .services_import import (
     build_arborescence_workbook,
     build_example_workbook,
@@ -2350,19 +2351,8 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             if old_status == 'draft' and new_status in ('valide', 'modifie'):
                 suivi_repris = transferer_suivi(plan)
 
-        # Log activity
-        try:
-            from apps.core.services import ActivityService
-            ActivityService.log(
-                user=request.user,
-                action='status_change',
-                entity_type='plan',
-                entity_id=plan.id_pg,
-                entity_name=plan.nom,
-                description=f"Statut changé de {old_status} à {new_status}",
-            )
-        except Exception:
-            pass
+        # Le changement de statut est journalisé par le signal post_save
+        # (`log_plan_activity_on_save`, #837).
 
         serializer = PlanGestionDetailSerializer(plan)
         # #803 — ce qui a été repris des versions antérieures (actions, années…).
@@ -2475,17 +2465,13 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
 
         # Log activity
         try:
-            from apps.core.services import ActivityService
-            ActivityService.log(
-                user=request.user,
-                action='status_change',
-                entity_type='plan',
-                entity_id=plan.id_pg,
-                entity_name=plan.nom,
+            ActivityService.log_plan_activity(
+                plan=plan, action='status_change', actor=request.user,
                 description=f"Étape CSRPN changée de {old_step or 'aucune'} à {new_step or 'aucune'}",
             )
         except Exception:
-            pass
+            # #837 — le geste a réussi ; l'historique manquant se journalise.
+            logger.exception("Historique du plan %s non écrit", plan.pk)
 
         # Notifier les référents de la transition CSRPN (entrée / changement /
         # sortie du workflow). Notification high priority avec email auto.
@@ -2498,7 +2484,8 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 triggered_by=request.user,
             )
         except Exception:
-            pass
+            # #837 — jamais avalé sans trace.
+            logger.exception("Étape annexe en échec")
 
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
@@ -2585,18 +2572,14 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         plan.save(update_fields=update_fields)
 
         try:
-            from apps.core.services import ActivityService
             verb = 'enregistrée' if date_value else 'effacée'
-            ActivityService.log(
-                user=request.user,
-                action='status_change',
-                entity_type='plan',
-                entity_id=plan.id_pg,
-                entity_name=plan.nom,
+            ActivityService.log_plan_activity(
+                plan=plan, action='status_change', actor=request.user,
                 description=f"Validation administrative « {key} » {verb}",
             )
         except Exception:
-            pass
+            # #837 — le geste a réussi ; l'historique manquant se journalise.
+            logger.exception("Historique du plan %s non écrit", plan.pk)
 
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
@@ -2705,25 +2688,13 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             nom=f"Plan de gestion étendu - {plan.nom}",
             version=plan.get_next_version(),
             annees_extension=new_extension,
-        )
-
-        # Log activity
-        try:
-            from apps.core.services import ActivityService
-            ActivityService.log(
-                user=request.user,
-                action='create',
-                entity_type='plan',
-                entity_id=new_plan.id_pg,
-                entity_name=new_plan.nom,
-                description=(
-                    f"Brouillon de version étendue (+{years} an{'s' if years > 1 else ''}, "
-                    f"cumul {new_extension} an{'s' if new_extension > 1 else ''}) "
-                    f"créé depuis '{plan.nom}'"
+            # #837 — journalisé une fois, avec le plan d'origine.
+            description=(
+                f"Brouillon de version étendue (+{years} an{'s' if years > 1 else ''}, "
+                f"cumul {new_extension} an{'s' if new_extension > 1 else ''}) "
+                f"créé depuis '{plan.nom}'"
                 ),
-            )
-        except Exception:
-            pass
+        )
 
         serializer = PlanGestionDetailSerializer(new_plan)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -2760,17 +2731,13 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         plan.save(update_fields=['annees_extension', 'id_utilisateur_maj', 'date_maj'])
 
         try:
-            from apps.core.services import ActivityService
-            ActivityService.log(
-                user=request.user,
-                action='update',
-                entity_type='plan',
-                entity_id=plan.id_pg,
-                entity_name=plan.nom,
+            ActivityService.log_plan_activity(
+                plan=plan, action='update', actor=request.user,
                 description=f"Extension de {old_years} an(s) retirée",
             )
         except Exception:
-            pass
+            # #837 — le geste a réussi ; l'historique manquant se journalise.
+            logger.exception("Historique du plan %s non écrit", plan.pk)
 
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
@@ -2841,18 +2808,14 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         plan.save(update_fields=['en_revision', 'next_rang_plan', 'id_utilisateur_maj', 'date_maj'])
 
         try:
-            from apps.core.services import ActivityService
             link_info = f" (rang suivant : {next_rang_plan.nom})" if next_rang_plan else ""
-            ActivityService.log(
-                user=request.user,
-                action='update',
-                entity_type='plan',
-                entity_id=plan.id_pg,
-                entity_name=plan.nom,
+            ActivityService.log_plan_activity(
+                plan=plan, action='update', actor=request.user,
                 description=f"Plan placé en cours de révision{link_info}",
             )
         except Exception:
-            pass
+            # #837 — le geste a réussi ; l'historique manquant se journalise.
+            logger.exception("Historique du plan %s non écrit", plan.pk)
 
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
@@ -2889,17 +2852,13 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         plan.save(update_fields=['en_revision', 'next_rang_plan', 'id_utilisateur_maj', 'date_maj'])
 
         try:
-            from apps.core.services import ActivityService
-            ActivityService.log(
-                user=request.user,
-                action='update',
-                entity_type='plan',
-                entity_id=plan.id_pg,
-                entity_name=plan.nom,
+            ActivityService.log_plan_activity(
+                plan=plan, action='update', actor=request.user,
                 description="Révision arrêtée",
             )
         except Exception:
-            pass
+            # #837 — le geste a réussi ; l'historique manquant se journalise.
+            logger.exception("Historique du plan %s non écrit", plan.pk)
 
         serializer = PlanGestionDetailSerializer(plan)
         return Response(serializer.data)
@@ -2986,7 +2945,8 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
                 member_ids=member_ids,
             )
         except Exception:
-            pass
+            # #837 — jamais avalé sans trace.
+            logger.exception("Étape annexe en échec")
 
         # Construire la chaîne restante pour le frontend.
         anchor = None
@@ -3087,20 +3047,9 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             annee_debut=annee_debut,
             annee_fin=annee_fin,
             rang=new_rang,
+            # #837 — journalisé une fois, avec le plan d'origine.
+            description=f"Brouillon du rang {new_rang} créé depuis '{plan.nom}'",
         )
-
-        try:
-            from apps.core.services import ActivityService
-            ActivityService.log(
-                user=request.user,
-                action='create',
-                entity_type='plan',
-                entity_id=new_plan.id_pg,
-                entity_name=new_plan.nom,
-                description=f"Brouillon du rang {new_rang} créé depuis '{plan.nom}'",
-            )
-        except Exception:
-            pass
 
         serializer = PlanGestionDetailSerializer(new_plan)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -3167,21 +3116,9 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             id_type_document=eval_type,
             version=plan.get_next_version(),
             is_mi_parcours=not plan.chain_has_mi_parcours(),
+            # #837 — journalisé une fois, avec le plan d'origine.
+            description=f"Évaluation mi-parcours créée depuis le plan '{plan.nom}'",
         )
-
-        # Log activity
-        try:
-            from apps.core.services import ActivityService
-            ActivityService.log(
-                user=request.user,
-                action='create',
-                entity_type='plan',
-                entity_id=new_plan.id_pg,
-                entity_name=new_plan.nom,
-                description=f"Évaluation mi-parcours créée depuis le plan '{plan.nom}'",
-            )
-        except Exception:
-            pass
 
         serializer = PlanGestionDetailSerializer(new_plan)
         return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -3,11 +3,13 @@ Views pour les notifications et validations.
 """
 import logging
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import APIException
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from drf_spectacular.utils import (
@@ -65,7 +67,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         """Les notifications sont créées par l'application, jamais par l'API
         (le POST ne sert qu'aux actions ``mark_read`` / ``mark_all_read``)."""
-        from rest_framework.exceptions import MethodNotAllowed
+        from rest_framework.exceptions import MethodNotAllowed, APIException
         raise MethodNotAllowed('POST')
 
     def get_serializer_class(self):
@@ -188,7 +190,7 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
         """Une demande se crée par sa route dédiée (``request_plan_access``…),
         qui en vérifie le sens ; une demande « nue » créée ici était vide mais
         approuvable."""
-        from rest_framework.exceptions import MethodNotAllowed
+        from rest_framework.exceptions import MethodNotAllowed, APIException
         raise MethodNotAllowed('POST')
 
     def get_serializer_class(self):
@@ -496,11 +498,20 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 {'error': 'Demande de validation non trouvee.'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
+        except APIException:
+            # #837 — erreurs de saisie (commentaire manquant…) : format DRF.
+            raise
+        except (ValueError, DjangoValidationError) as e:
+            # Refus métier explicite des services de validation.
             return Response(
-                {'error': str(e)},
+                {'error': str(e.message if hasattr(e, 'message') else e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        except Exception:
+            # #837 — une erreur de code n'est pas un refus : journalisée avec
+            # sa trace, puis 500 (gestionnaire global, avec correlation_id).
+            logger.exception("Traitement de la demande de validation %s en échec", pk)
+            raise
 
         return Response({
             'status': 'approved',
@@ -546,11 +557,20 @@ class ValidationRequestViewSet(viewsets.ModelViewSet):
                 {'error': 'Demande de validation non trouvee.'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        except Exception as e:
+        except APIException:
+            # #837 — erreurs de saisie (commentaire manquant…) : format DRF.
+            raise
+        except (ValueError, DjangoValidationError) as e:
+            # Refus métier explicite des services de validation.
             return Response(
-                {'error': str(e)},
+                {'error': str(e.message if hasattr(e, 'message') else e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        except Exception:
+            # #837 — une erreur de code n'est pas un refus : journalisée avec
+            # sa trace, puis 500 (gestionnaire global, avec correlation_id).
+            logger.exception("Traitement de la demande de validation %s en échec", pk)
+            raise
 
         return Response({
             'status': 'rejected',

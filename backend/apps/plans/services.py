@@ -280,7 +280,7 @@ class PlanDuplicationService:
 
     @staticmethod
     @transaction.atomic
-    def creer_version(source_plan, user, **overrides):
+    def creer_version(source_plan, user, description=None, **overrides):
         """Crée un brouillon de version (prolongation, rang suivant, évaluation)
         avec ses sites, référents, membres et tout son contenu — **tout ou rien**
         (#830) : une copie interrompue laissait un brouillon enfant à moitié
@@ -289,6 +289,9 @@ class PlanDuplicationService:
         from .models import CorRolePlan, CorSitePg
 
         new_plan = PlanDuplicationService.build_version_plan(source_plan, user, **overrides)
+        # #837 — une seule entrée d'historique, qui dit d'où vient la version
+        # (le signal générique écrirait « Plan … créé » en plus).
+        new_plan._skip_activity_signal = True
         new_plan.save()
         for cor_site in source_plan.sites.all():
             CorSitePg.objects.create(
@@ -301,6 +304,11 @@ class PlanDuplicationService:
                 defaults={'referent': membre.referent})
         PlanDuplicationService.copy_content(source_plan, new_plan, user)
         new_plan.update_geometrie()
+        new_plan._skip_activity_signal = False
+        ActivityService.log_plan_activity(
+            plan=new_plan, action='create', actor=user,
+            description=description or f"Nouvelle version créée depuis « {source_plan.nom} »",
+        )
         return new_plan
 
     @staticmethod
