@@ -114,17 +114,33 @@ echo test | gpg --pinentry-mode loopback --clearsign > /dev/null
 reprepro -b /var/www/repos/cicada export stable
 ```
 
-Mettre ensuite à jour **`LATEST_VERSION`** dans le `.env` de l'API de suivi et redémarrer son service :
-c'est elle qui fait annoncer la mise à jour aux instances par leur heartbeat. Sur le serveur de suivi de
-production, l'API n'est **pas** dans `/opt/tracking-api` (chemin de `tracking-api/INSTALLATION.md`) mais dans
-`/home/tracking/Cicada/tracking-api` ; en cas de doute, `systemctl cat cicada-tracking-api | grep WorkingDirectory`.
+Mettre ensuite l'**API de suivi** à la même version : c'est elle qui annonce la mise à jour aux instances
+(`LATEST_VERSION`, lu par leur heartbeat). Un seul script, sur le même serveur, toujours en `sudo -i` :
 
 ```bash
-D=/home/tracking/Cicada/tracking-api
-sed -i 's/^LATEST_VERSION=.*/LATEST_VERSION=X.Y.Z/' $D/.env
-systemctl restart cicada-tracking-api
-grep ^LATEST_VERSION= $D/.env && systemctl is-active cicada-tracking-api
+cd /root
+curl -fsSLO https://raw.githubusercontent.com/RNF-SI/Cicada/vX.Y.Z/tracking-api/mettre-a-jour.sh
+bash mettre-a-jour.sh vX.Y.Z --verifier   # contrôles seuls, rien ne change
+bash mettre-a-jour.sh vX.Y.Z
 ```
+
+Il retrouve l'API par son service (`cicada-tracking-api`), contrôle tout **avant** de rien modifier, sauvegarde
+la base, passe le code sur l'étiquette, installe les dépendances, migre, redémarre, vérifie que l'API répond et
+se termine par « Mise à jour terminée ». En cas d'échec avant toute migration, il remet le code et les
+dépendances de départ, sans avoir redémarré le service. Le relancer est sans risque.
+
+| Contrôle | Ce qui arrivait sans lui (constaté le 13/11/2026, 0.1.50 → 0.1.72) |
+|---|---|
+| Le compte de l'API est propriétaire de ses tables | tables créées par `postgres` : migrations refusées (`droit refusé pour la table tracking_instances`). Le script s'arrête et écrit le SQL à lancer sur le serveur de la base (`/root/cicada-tracking-droits.sql`, psql ou DBeaver) |
+| `SECRET_KEY` propre au serveur | la nouvelle version refuse de démarrer ; le script en tire une au sort |
+| Version publiée sur le dépôt APT | la version était annoncée avant d'être installable et le bouton « Mettre à jour » échouait. Non publiée : code mis à jour, version **non annoncée** (sortie 3) — publier, puis relancer |
+| Aucun fichier du dépôt modifié sur le serveur | changement de version impossible |
+
+Particularités du serveur de production, prises en charge par le script : le clone (`/home/tracking/Cicada`) est
+posé sur une étiquette (`git pull` y est impossible) et n'a pas le même propriétaire que `tracking-api/`
+(`www-data`) ; la base est sur le serveur de bases, d'où une sauvegarde par l'application
+(`/var/backups/cicada-tracking/`, les 5 dernières). Rejoué en conteneurs par
+`tracking-api/tests/mise-a-jour/lancer.sh`.
 
 Pour faire apparaître le bouton sans attendre la nuit : bouton **« Vérifier les mises à jour »** de la page
 Administration > Mise à jour (paquet ≥ 0.1.57). Il dépose `/var/lib/cicada/updates/check_trigger.json`, que
@@ -175,7 +191,7 @@ sudo apt install cicada
 | 2 | Bumper `version.txt`, commiter, **mettre tout `develop` sur `main`**, puis créer et pousser le tag `vX.Y.Z` → la CI construit les images Docker et le .deb. |
 | 3 | Attendre que **Docker Build & Push** et **Build Debian package** soient verts (le workflow `Tests` rejoue aussi la suite sur le tag). |
 | 4 | Créer la release GitHub avec le `.deb` en pièce jointe (`gh run download <run_id> -n cicada-deb-X.Y.Z`, puis `gh release create`). |
-| 5 | Publier le `.deb` dans le dépôt APT (`publish.sh`, qui vérifie l'index publié) et mettre à jour `LATEST_VERSION` sur l'API de suivi (§4). |
+| 5 | Publier le `.deb` dans le dépôt APT (`publish.sh`, qui vérifie l'index publié) puis mettre l'API de suivi à la version (`tracking-api/mettre-a-jour.sh`, qui annonce `LATEST_VERSION` seulement si le paquet est publié — §4). |
 | 5 bis | Sur chaque instance : bouton « Mettre à jour », `sudo apt install cicada`, ou `sudo dpkg -i` du .deb — le `postinst` fait le reste (voir §7). |
 | 6 | Vérifier les tags d’images et les logs de démarrage (voir §7.4). |
 

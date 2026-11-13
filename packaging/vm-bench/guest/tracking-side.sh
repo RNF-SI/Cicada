@@ -77,7 +77,8 @@ TOK="$(python3 -c 'import uuid;print(uuid.uuid4())')"
 code="$(curl -s -o /dev/null -w '%{http_code}' -H 'Content-Type: application/json' \
     -d "{\"token\":\"$TOK\",\"version\":\"0.0.0\"}" http://localhost:8000/api/instances/register/)"
 check "Tracking : API répond (register d'essai)" test "$code" = 201
-pgx -d tracking -c "DELETE FROM tracking_instances WHERE token='$TOK'"
+# Le jeton n'est gardé qu'en empreinte (#697) : la ligne d'essai se retrouve par elle
+pgx -d tracking -c "DELETE FROM tracking_instances WHERE token_empreinte = encode(sha256(convert_to('$TOK', 'UTF8')), 'hex')"
 
 step "Tracking : dépôt APT (packaging/apt-repo)"
 export GNUPGHOME=/root/.gnupg

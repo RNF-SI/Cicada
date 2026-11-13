@@ -1,0 +1,21 @@
+#!/bin/bash
+# Faux systemctl du banc : juste ce que mettre-a-jour.sh demande au service cicada-tracking-api
+# (show ExecStart / WorkingDirectory, restart, is-active). Gunicorn tourne sous www-data, comme en production.
+D=/home/tracking/Cicada/tracking-api
+PID=/run/cicada-tracking-api.pid
+actif() { [ -f "$PID" ] && kill -0 "$(cat "$PID")" 2>/dev/null; }
+case "$1" in
+    show)
+        case "$3" in
+            ExecStart) echo "{ path=$D/venv/bin/gunicorn ; argv[]=$D/venv/bin/gunicorn --workers 2 --bind 127.0.0.1:8000 tracking.wsgi:application ; ignore_errors=no }" ;;
+            WorkingDirectory) echo "$D" ;;
+        esac ;;
+    restart)
+        actif && { kill "$(cat "$PID")"; while actif; do sleep 0.2; done; }
+        cd "$D" && sudo -u www-data -H "$D/venv/bin/gunicorn" --workers 2 --bind 127.0.0.1:8000 \
+            --daemon --pid /tmp/gunicorn.pid --log-file /tmp/gunicorn.log tracking.wsgi:application
+        sleep 1; cp /tmp/gunicorn.pid "$PID" 2>/dev/null ;;
+    is-active)
+        if actif; then [ "$2" = -q ] || echo active; else [ "$2" = -q ] || echo failed; exit 3; fi ;;
+    *) exit 0 ;;
+esac

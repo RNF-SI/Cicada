@@ -114,9 +114,15 @@ GRANT ALL PRIVILEGES ON DATABASE tracking TO tracking_user;
 GRANT USAGE, CREATE ON SCHEMA public TO tracking_user;
 \q
 
-# Appliquer les migrations
+# Appliquer les migrations AVEC LE COMPTE DE L'APPLICATION (celui du .env), jamais en postgres
 python manage.py migrate
 ```
+
+> **Le compte de l'application doit être propriétaire de ses tables.** Seul le propriétaire d'une table peut
+> en changer la structure : des tables créées par `postgres` (migrations lancées avec ce compte, ou base
+> restaurée par lui) font échouer chaque mise à jour qui apporte une migration (`droit refusé pour la table
+> tracking_instances`, constaté en production le 13/11/2026). `mettre-a-jour.sh` le contrôle avant de rien
+> modifier et écrit le SQL qui corrige.
 
 ### 5. Créer un superutilisateur (pour l'admin)
 
@@ -250,15 +256,28 @@ sudo tail -f /var/log/apache2/cicada-tracking-api-access.log
 
 ### Mise à jour
 
+Un seul script, en root sur le serveur de suivi, après la publication du paquet sur le dépôt APT :
+
 ```bash
-cd /opt/tracking-api
-source venv/bin/activate
-git pull  # ou copier les nouveaux fichiers
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py collectstatic --noinput
-sudo systemctl restart cicada-tracking-api
+cd /root
+curl -fsSLO https://raw.githubusercontent.com/RNF-SI/Cicada/vX.Y.Z/tracking-api/mettre-a-jour.sh
+bash mettre-a-jour.sh vX.Y.Z --verifier   # contrôles seuls, rien ne change
+bash mettre-a-jour.sh vX.Y.Z
 ```
+
+Il retrouve l'API par son service (`cicada-tracking-api` ; sinon `--dossier`), puis, **avant de rien modifier**,
+contrôle : fichiers du dépôt non modifiés, étiquette disponible, base joignable et tables appartenant au compte
+de l'application (sinon arrêt, SQL dans `/root/cicada-tracking-droits.sql`), `SECRET_KEY` propre au serveur
+(sinon tirée au sort), paquet publié sur le dépôt APT. Ensuite : sauvegarde de la base par l'application
+(`/var/backups/cicada-tracking/`, root seul, les 5 dernières), code sur l'étiquette `vX.Y.Z`, dépendances,
+`check`, migrations, fichiers statiques, `LATEST_VERSION`, redémarrage, vérification que l'API répond.
+
+- **Échec avant toute migration** : code et dépendances de départ remis, service jamais arrêté.
+- **Paquet pas encore publié** : code mis à jour mais version **non annoncée** (sortie 3) — sinon le bouton
+  « Mettre à jour » des instances échouerait. Publier, puis relancer.
+- **Version plus ancienne** que celle en place : refusée (la base peut porter des migrations plus récentes).
+- Relancer le script est sans risque. Banc : `tests/mise-a-jour/lancer.sh` (Docker, ~1 min) reconstitue le
+  serveur de production tel qu'on l'a trouvé le 13/11/2026 et rejoue chaque cas.
 
 > **Jetons de suivi en empreinte (#697, migrations `0003`/`0004`)** : la base ne garde plus le
 > jeton des instances, seulement son empreinte SHA-256 ; l'identifiant affiché dans l'admin est un

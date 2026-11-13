@@ -78,7 +78,7 @@ sequenceDiagram
     Dev->>GH: tag vX.Y.Z
     GH->>GH: images Docker (backend, frontend, hub) + paquet .deb
     Dev->>TC: publish.sh cicada_X.Y.Z_amd64.deb (dépôt APT)
-    Dev->>TC: LATEST_VERSION=X.Y.Z (.env de l'API de suivi) + redémarrage
+    Dev->>TC: mettre-a-jour.sh vX.Y.Z (API de suivi : code + LATEST_VERSION)
     I->>TC: heartbeat (chaque nuit, 03:00)
     TC-->>I: « mise à jour X.Y.Z disponible »
     Note over I: le super-admin voit le bouton « Mettre à jour »
@@ -88,16 +88,17 @@ sequenceDiagram
 ```
 
 Les **trois** gestes manuels d'une release : le tag, la publication du `.deb`
-dans le dépôt, `LATEST_VERSION` sur l'API de suivi. Oublier le deuxième fait
-échouer le bouton « Mettre à jour » ; oublier le troisième fait que personne
-n'est prévenu. Détail : [Releases et mises à jour](releases.md).
+dans le dépôt, la mise à jour de l'API de suivi (`mettre-a-jour.sh`, qui pose
+`LATEST_VERSION`). Oublier le deuxième fait échouer le bouton « Mettre à jour » —
+le script refuse donc d'annoncer une version absente du dépôt ; oublier le
+troisième fait que personne n'est prévenu. Détail : [Releases et mises à jour](releases.md).
 
 ## Où est quoi
 
 | Serveur | Rôle | Fichiers et commandes clés | Documentation |
 |---|---|---|---|
 | **Serveur de suivi** | dépôt APT | `/var/www/repos/cicada` ; `packaging/apt-repo/init-repo.sh` (une fois), `publish.sh` (à chaque release) | [Releases et mises à jour](releases.md) §4 |
-| | API de suivi | `/opt/tracking-api` (sur le serveur de production : `/home/tracking/Cicada/tracking-api`), son `.env` (`LATEST_VERSION`), service `cicada-tracking-api`, admin sur `/admin/` | `tracking-api/INSTALLATION.md` |
+| | API de suivi | `/opt/tracking-api` (sur le serveur de production : `/home/tracking/Cicada/tracking-api`), son `.env` (`LATEST_VERSION`), service `cicada-tracking-api`, admin sur `/admin/` ; mise à jour : `tracking-api/mettre-a-jour.sh vX.Y.Z` | `tracking-api/INSTALLATION.md` |
 | **Hub** | recherche transverse | `/opt/cicada-hub`, `.env.hub.prod`, `enroler_instance <id>` (délivre les 2 jetons) | [Hub d'exploration fédérée](hub.md) |
 | **Serveur de bases** | PostgreSQL + PostGIS | `cicada-prepare-db --client <ip-instance>` | [Installation](installation.md) étape 3 |
 | **Instance** | l'application | `/var/lib/cicada/.env` (configuration, root seul), `/etc/cicada/` (jeton, URL de suivi), `/var/log/cicada/` (journaux de l'application, écrits par les conteneurs), `/var/log/cicada-maint/` (`heartbeat.log`, `updater.log`, journaux des mises à jour en échec — root seul), `/var/lib/cicada/updates/` (échange avec le bouton « Mettre à jour »), `/var/backups/cicada/` (sauvegardes, root seul), `/var/lib/cicada/maintenance/` (mise à jour en cours, fichiers compose des versions précédentes) ; `cicada-update`, `cicada-backup`, `cicada-restore` | [Installation](installation.md) §§ 6–7 |
