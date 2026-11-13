@@ -311,7 +311,9 @@ class RoleViewSet(viewsets.ModelViewSet):
             )
 
         target_user.role_level = 'utilisateur'
-        target_user.save(update_fields=['role_level'])
+        # La promotion a ouvert l'administration Django (is_staff) : la refermer.
+        target_user.is_staff = target_user.is_superuser
+        target_user.save(update_fields=['role_level', 'is_staff'])
 
         # Mettre à jour le groupe Django
         from django.contrib.auth.models import Group

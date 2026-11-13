@@ -289,6 +289,18 @@ class TestRoles:
         collegue.refresh_from_db()
         assert collegue.is_staff is False
 
+    def test_retirer_le_role_de_redacteur_principal_referme_l_admin_django(self, db):
+        super_admin = SuperAdminFactory()
+        agent = RoleFactory()
+        client = APIClient()
+        client.force_authenticate(super_admin)
+        assert client.post(f'/api/users/users/{agent.pk}/set-redacteur-principal/').status_code == 200
+        agent.refresh_from_db()
+        assert (agent.role_level, agent.is_staff) == ('redacteur_principal', True)
+        assert client.post(f'/api/users/users/{agent.pk}/remove-redacteur-principal/').status_code == 200
+        agent.refresh_from_db()
+        assert (agent.role_level, agent.is_staff) == ('utilisateur', False)
+
     def test_usershub_ne_relie_pas_un_super_admin_par_son_email(self, db):
         SuperAdminFactory(email='chef@rnf.fr')
         identite = usershub.IdentiteUsersHub(id_role=4242, email='chef@rnf.fr', identifiant='chef')

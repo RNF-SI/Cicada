@@ -86,11 +86,15 @@ CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = [origin for origin in os.environ.get('CORS_ALLOWED_ORIGINS', '').split(',') if origin]
 
 # Cache configuration
-# DB 2 pour le cache Django (séparé du broker Celery DB 0 et results DB 1)
+# DB 2 pour le cache Django (séparé du broker Celery DB 0 et results DB 1).
+# L'adresse se déduit de REDIS_URL (qui porte le mot de passe) si REDIS_CACHE_URL
+# manque : voir config/redis_urls.py.
+from config.redis_urls import url_cache  # noqa: E402
+
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': os.environ.get('REDIS_CACHE_URL', 'redis://redis:6379/2'),
+        'LOCATION': url_cache(os.environ),
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
             'IGNORE_EXCEPTIONS': True,
@@ -98,6 +102,9 @@ CACHES = {
         'KEY_PREFIX': 'cicada',
     }
 }
+# Une erreur de cache avalée par IGNORE_EXCEPTIONS reste au moins journalisée :
+# un cache muet désactive en silence les limites de débit et d'essais.
+DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
 
 # Email configuration (à configurer selon l'infrastructure)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
