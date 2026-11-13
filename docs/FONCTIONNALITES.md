@@ -1,82 +1,77 @@
-# Explications fonctionnelles
+# Explications fonctionnelles (développeurs)
 
-Ce document explique le fonctionnement des principales fonctionnalités de l'application de manière conceptuelle, sans entrer dans les détails techniques du code.
+Comment fonctionne CICADA, fonctionnalité par fonctionnalité : les règles, les modèles et les fichiers à connaître avant de toucher au code. Pour l'usage écran par écran, voir la **notice** du site de documentation (`documentation/`, servi par chaque instance sous `/aide/`).
 
-## Table des matières
+> Point d'entrée de toute la documentation : [docs/README.md](README.md).
 
-| # | Fonctionnalité | Description |
-|---|----------------|-------------|
-| 1 | [Système de Logs](fonctionnalites/01-logs.md) | Logging, correlation ID, audit |
-| 2 | [Notifications](fonctionnalites/02-notifications.md) | In-app, emails, Celery, signaux Django |
-| 3 | [Validations](fonctionnalites/03-validations.md) | Workflow de validation, permissions |
-| 4 | [Historique d'activité](fonctionnalites/04-activite.md) | Timeline des actions, filtres par rôle |
-| 5 | [Impersonnation](fonctionnalites/05-impersonnation.md) | Support utilisateur, audit |
-| 6 | [Modules](fonctionnalites/06-modules.md) | Système de modules applicatifs |
-| 7 | [Gestion des Sites](fonctionnalites/07-sites.md) | CRUD sites, géométries, doublons INPN |
-| 8 | [Pages d'administration](fonctionnalites/08-administration.md) | Users, sites, organismes, validations |
-| 9 | [RGPD - Suppression de compte](fonctionnalites/09-rgpd.md) | Droit à l'effacement, anonymisation |
-| 10 | [Tests](fonctionnalites/10-tests.md) | pytest, Jest, CI/CD |
-| 11 | [Configuration du site](fonctionnalites/11-configuration.md) | Paramètres, image d'accueil |
-| 12 | [Page Exploration](fonctionnalites/12-exploration.md) | Page publique vitrine |
-| 13 | [Données de test (Seeders)](fonctionnalites/13-seeders.md) ⚠️ | Architecture modulaire des seeders |
-| 14 | [Plans de Gestion](fonctionnalites/14-plans.md) | Création, sites en attente, réassignation |
-| 15 | [Import en masse de sites](fonctionnalites/15-import-masse.md) | GeoJSON/CSV, validation, doublons, import sync/async |
+## Le métier : plans de gestion
 
-> ⚠️ = Section réservée aux développeurs
+| # | Page | En bref |
+|---|------|---------|
+| 14 | [Plans de gestion](fonctionnalites/14-plans.md) | Statuts, circuit CSRPN, versions et rangs, prolongation, sites et utilisateurs d'un plan |
+| 16 | [Arborescence](fonctionnalites/16-arborescence.md) | Enjeux et FCR, objectifs, indicateurs, métriques et grilles de scores |
+| 17 | [Actions et programmation](fonctionnalites/17-actions.md) | Types d'action, ventilation du budget et du temps, postes, financeurs |
+| 18 | [Suivi, Bilan, planification annuelle](fonctionnalites/18-suivi.md) | Saisie du réalisé, ajustement de l'année, pages de lecture |
+| 19 | [Exports et imports](fonctionnalites/19-exports-imports.md) | Qui exporte quoi, règles de calcul communes, classeurs réimportables |
+| 20 | [Référentiels versionnés](fonctionnalites/20-referentiels.md) | GestRef, PressRef, TaxRef, HabRef : passage de version, actions à actualiser |
+| 12 | [Exploration des données](fonctionnalites/12-exploration.md) | Recherche dans le contenu des plans validés |
+| 21 | [Exploration fédérée et hub](fonctionnalites/21-federation.md) | Plusieurs instances, publication, consentement |
+
+## Utilisateurs, droits et administration
+
+| # | Page | En bref |
+|---|------|---------|
+| 23 | [Rôles et droits](fonctionnalites/23-droits.md) | Qui lit, écrit, saisit le suivi, exporte — et où c'est vérifié |
+| 08 | [Pages d'administration](fonctionnalites/08-administration.md) | Pages `/administration/…` et ce que voit chaque rôle |
+| 03 | [Validations](fonctionnalites/03-validations.md) | Demandes d'accès et de rattachement, qui valide |
+| 07 | [Sites](fonctionnalites/07-sites.md) | Sites, géométries, doublons INPN |
+| 15 | [Import en masse de sites](fonctionnalites/15-import-masse.md) | GeoJSON / CSV, contrôle, doublons |
+| 05 | [Impersonation](fonctionnalites/05-impersonnation.md) | Voir l'application comme un autre, en lecture seule |
+| 09 | [RGPD](fonctionnalites/09-rgpd.md) | Demande de suppression de compte, anonymisation |
+| 06 | [Modules](fonctionnalites/06-modules.md) | Accès aux modules applicatifs |
+
+## Vie de l'application
+
+| # | Page | En bref |
+|---|------|---------|
+| 02 | [Notifications](fonctionnalites/02-notifications.md) | In-app et e-mail, signaux, tâches Celery planifiées |
+| 04 | [Historique d'activité](fonctionnalites/04-activite.md) | Journal des actions, visibilité par rôle |
+| 01 | [Logs](fonctionnalites/01-logs.md) | Journaux, identifiant de corrélation, audit |
+| 11 | [Configuration de l'instance](fonctionnalites/11-configuration.md) | Apparence, CGU, Matomo, API publique, partage |
+| 22 | [Mise à jour sûre](fonctionnalites/22-mise-a-jour.md) | Sauvegarde vérifiée, retour arrière automatique |
+| 10 | [Tests](fonctionnalites/10-tests.md) | pytest, Jest, Playwright, filets transverses, CI |
+| 13 | [Données de test](fonctionnalites/13-seeders.md) | `seed_testdata` et ses seeders |
 
 ---
 
 ## Résumé rapide
 
-### Architecture technique
+### Pile technique
 
 | Composant | Technologie |
 |-----------|-------------|
-| Backend | Django 5.0+ / DRF 3.14+ |
-| Frontend | Angular 22 |
-| Base de données | PostgreSQL 15+ / PostGIS 3.3+ |
-| Tâches async | Celery + Redis |
-| Emails | SMTP via Celery |
+| Backend | Django 5.2 / Django REST Framework |
+| Frontend | Angular 22, Angular Material, design system maison |
+| Base de données | PostgreSQL 17 / PostGIS 3.5 |
+| Tâches asynchrones | Celery + Redis |
+| Documentation | MkDocs Material (`documentation/`) |
 
-### Rôles utilisateurs
+### Rôles
 
-| Rôle | Niveau | Permissions clés |
-|------|--------|------------------|
-| `super_admin` | 1 | Accès total, RGPD, configuration |
-| `admin_og` | 2 | Gestion de son organisme et ses sites |
-| `referent` | 3 | Gestion des sites dont il est référent |
-| `utilisateur` | 4 | Consultation, demandes d'accès |
+| Rôle | Portée |
+|------|--------|
+| `super_admin` | Toute l'instance |
+| `redacteur_principal` | Tous les plans, sites et organismes |
+| `admin_og` | Son organisme |
+| `utilisateur` | Ses sites et ses plans ; **référent** s'il en est désigné |
+| `redacteur` (externe) | Les plans auxquels il a demandé l'accès, jamais les suivis |
 
-### Types de validation
+Détail : [23. Rôles et droits](fonctionnalites/23-droits.md).
 
-| Type | Qui peut valider |
-|------|------------------|
-| `user_registration` | super_admin, admin_og de l'organisme |
-| `site_access` | super_admin, admin_og gestionnaire, référent |
-| `plan_access` | super_admin, admin_og, référent du plan |
-| `referent_validation` | super_admin, admin_og gestionnaire |
-| `plan_site_link` | Référents site/plan ou admin_og (selon demandeur) |
-| `site_org_link` | super_admin, admin_og des deux organismes |
+### Règles à ne jamais oublier
 
-### Tâches Celery planifiées
-
-| Tâche | Fréquence |
-|-------|-----------|
-| Nettoyage logs erreurs | Quotidien 3h |
-| Nettoyage notifications | Quotidien 4h |
-| Expiration inscriptions | Quotidien 5h |
-| Anonymisation RGPD | Quotidien 6h |
-| Audit organismes sans admin | Hebdo lundi 8h |
-| Audit sites orphelins | Hebdo lundi 8h30 |
-
----
-
-**Historique des mises à jour** :
-- Janvier 2026 : Division en fichiers séparés pour meilleure maintenabilité
-- Janvier 2026 : Ajout section Données de test (Seeders) - architecture modulaire
-- Janvier 2026 : Ajout Configuration du site et Page Exploration
-- Janvier 2026 : Ajout fonctionnalité RGPD - Suppression de compte
-- Janvier 2026 : Ajout notification `organisme_changed` (changement d'organisme par admin)
-- Janvier 2026 : Ajout validation `site_org_unlink` (demande de retrait d'organisme d'un site)
-- Janvier 2026 : Ajout import en masse de sites (GeoJSON/CSV, validation, doublons, async Celery)
-- Mars 2026 : Ajout validation plan-site link, permissions élargies référents plan, notifications
+- On ne modifie un plan qu'**en brouillon** (#248) ; le suivi se saisit plan validé.
+- Budget et temps de travail : une seule source de calcul par côté (`operation-budget.ts`, `services_export_finance.py`).
+- La programmation se met à jour **en place** : supprimer puis recréer les années effacerait le suivi.
+- Une instance se met à jour **par le bouton** : une reprise de données = une migration.
+- Budget, RH, mesures et personnes ne sortent **jamais** vers l'exploration ni le hub.

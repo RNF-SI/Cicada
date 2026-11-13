@@ -130,6 +130,10 @@ Le validateur consulte la demande et peut :
 
 ---
 
+#### Cas du rédacteur externe (#700)
+
+Un rédacteur externe (bureau d'études) n'a aucun plan par défaut. Il trouve le plan par `GET /api/plans/plans/recherche-acces/?q=` (métadonnées seulement, plans archivés exclus) et demande un **accès en saisie** (`plan_access` avec `request_as_referent`). Les référents du plan ou l'admin de l'organisme gestionnaire valident. Une fois référent, il saisit et exporte comme tout référent, mais n'accède jamais aux suivis. Un référent du plan peut aussi l'ajouter directement depuis « Gérer les utilisateurs » (#714, #737).
+
 ### Tableau récapitulatif des validations par rôle
 
 Ce tableau détaille **tous les types de demandes de validation**, qui peut les créer, qui peut les valider, et leur résultat.

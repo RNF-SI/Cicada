@@ -39,78 +39,75 @@ Un **plan de gestion** est un document stratégique qui définit les objectifs e
 
 | Statut | Label | Description |
 |--------|-------|-------------|
-| `draft` | Brouillon | En cours de rédaction, non publié |
-| `valide` | Actif | Plan validé et actif |
-| `archive` | Inactif | Plan archivé, rendu inactif |
+| `draft` | Brouillon | Seul statut **modifiable** (#248) |
+| `avis_csrpn` | Avis CSRPN | Envoyé pour avis (circuit #277), lecture seule |
+| `comite_consultatif` | Comité consultatif | Avis rendu, en attente de validation par le comité |
+| `arrete_pref` | Arrêté préfectoral | Validé par le comité, en attente d'arrêté (réserves naturelles nationales seulement) |
+| `valide` | Validé | Première version validée d'un rang |
+| `modifie` | Modifié | Version validée qui succède à une version validée **du même rang** (#275) |
+| `archive` | Archivé | Terminé, inactif |
+
+Trois **attributs** s'ajoutent au statut, sans le changer ni débloquer l'édition :
+
+| Attribut | Sens |
+|----------|------|
+| `annees_extension` (0, 1, 2) | Plan prolongé (#250) |
+| `en_revision` (+ `next_rang_plan`) | Le plan du rang suivant est en préparation (#278) |
+| `is_mi_parcours` | Cette version est l'évaluation mi-parcours, une seule par chaîne (#276) |
 
 ---
 
 ## Cycle de vie
 
-Le cycle de vie d'un plan de gestion gère les transitions de statut, la chaîne de versions (plan parent → évaluation → plan révisé) et les actions associées.
+Usage pas à pas : notice référent, [§ Cycle de vie](../../documentation/docs/referent/cycle-de-vie.md).
 
 ### Transitions de statut
 
-```
-          ┌──────────────────┐
-          │     Brouillon    │
-          │     (draft)      │
-          └───────┬──────────┘
-                  │  Valider
-                  ▼
-          ┌──────────────────┐
-   ┌─────▶│      Actif       │◀─────┐
-   │      │     (valide)     │      │
-   │      └───┬──────────┬───┘      │
-   │          │          │          │
-   │  Remettre│          │Archiver  │ Réactiver
-   │  en      │          │          │
-   │  brouillon          ▼          │
-   │      ┌──────────────────┐      │
-   │      │     Inactif      │──────┘
-   │      │    (archive)     │
-   │      └──────────────────┘
+```mermaid
+stateDiagram-v2
+    draft --> avis_csrpn : Envoyer pour avis
+    avis_csrpn --> comite_consultatif : Avis CSRPN rendu
+    comite_consultatif --> arrete_pref : Validé par le comité (RNN)
+    comite_consultatif --> valide : Validé par le comité (hors RNN)
+    arrete_pref --> valide : Arrêté signé
+    draft --> valide : Valider
+    valide --> draft : Remettre en brouillon (feuille de chaîne)
+    valide --> archive : Archiver
+    archive --> valide : Réactiver
+    avis_csrpn --> draft : Annuler
+    comite_consultatif --> draft : Annuler
+    arrete_pref --> draft : Annuler
 ```
 
-**Transitions autorisées :**
-
-| De | Vers | Action |
-|----|------|--------|
-| `draft` | `valide` | Valider le plan |
-| `valide` | `draft` | Remettre en brouillon |
-| `valide` | `archive` | Archiver (rend le plan inactif) |
-| `archive` | `valide` | Réactiver (rend le plan actif) |
-
-> **Note** : Archiver un plan le rend **inactif**. Réactiver un plan archivé le remet directement en **actif** (statut `valide`).
+- Une validation devient **`modifie`** (ou mi-parcours) quand le plan parent est validé et du même rang : le routage est fait par le serveur.
+- **Pas de validation en cascade** : valider un brouillon dont un plan plus ancien de la chaîne est encore en brouillon est refusé.
+- `valide → draft` n'est permis que sur la **feuille** de la chaîne ; sinon, créer une nouvelle version.
+- À la validation, l'écran propose d'**archiver la version précédente** encore validée (#246).
+- Endpoint : `POST /api/plans/plans/{id}/change-status/` (`new_status`, dates et numéro d'arrêté selon l'étape). Chaque étape CSRPN notifie les référents du plan.
 
 ### Permissions du cycle de vie
 
-Les actions de cycle de vie (changement de statut, création d'évaluation) sont réservées à :
+Réservé aux **référents du plan**, à l'**admin organisme**, au **rédacteur principal** et au **super admin** (`can_manage_plan_lifecycle()`, vérifié pour ce plan dans la vue). Voir [23. Rôles et droits](23-droits.md).
 
-| Rôle | Accès |
-|------|-------|
-| **Référent du plan** | Peut gérer le cycle de vie des plans dont il est référent |
-| **Admin organisme** | Peut gérer tous les plans de son organisme |
-| **Super admin** | Peut gérer tous les plans |
+### Chaîne de versions et rangs
 
-Un utilisateur simple (non référent) ne peut pas modifier le statut d'un plan.
+- Un plan a un **rang** (1er plan de gestion du site, 2e…) et une **version** dans ce rang. La version repart à 1 à chaque nouveau rang.
+- `plan_parent` relie les versions ; `id_type_document` dit ce qu'est le document :
 
-### Chaîne de versions
+| Type | Mnémonique |
+|------|-----------|
+| Plan initial | `PLAN_INITIAL` |
+| Évaluation mi-parcours | `EVAL_MI_PARCOURS` |
+| Plan révisé | `PLAN_REVISE` |
 
-Un plan de gestion peut avoir un **plan parent**, formant une chaîne de versions. Chaque plan est associé à un **type de document** (nomenclature) :
+- **Un seul brouillon enfant** par plan ; un brouillon ne se crée que sur un plan qui a été validé (`valide`, `modifie`, `archive`).
+- Une **prolongation** (#250) crée un brouillon de version étendue (même rang, cumul de 2 ans au plus), à valider comme les autres.
 
-| Type | Mnémonique | Description |
-|------|-----------|-------------|
-| Plan initial | `PLAN_INITIAL` | Premier plan de gestion |
-| Évaluation mi-parcours | `EVAL_MI_PARCOURS` | Évaluation intermédiaire |
-| Plan révisé | `PLAN_REVISE` | Plan révisé suite à une évaluation |
-
-**Exemple de chaîne :**
+Exemple :
 
 ```
-Plan initial (v1.0, validé)
-  └── Évaluation mi-parcours (v1.1, brouillon)
-        └── Plan révisé (v2.0, brouillon)
+Rang 1 : v1 (archivé) → v2 étendue (modifié)
+Rang 2 : v1 (brouillon, en préparation pendant la révision du rang 1)
 ```
 
 ### Création d'une évaluation mi-parcours
@@ -123,32 +120,23 @@ L'action crée un nouveau plan avec :
 - `plan_parent` = plan courant
 - `type_document` = `EVAL_MI_PARCOURS`
 - `statut` = `draft`
-- `version` = version suivante (ex: 1.0 → 1.1)
+- `version` = version suivante dans le rang (entier : 1 → 2)
 - Copie des sites, référents **et de tout le contenu** du plan parent (#377 — voir « Duplication d'un plan / nouvelle version »)
 
 ### Timeline de versions (interface)
 
-La page détail d'un plan affiche une **timeline verticale** des versions dans la colonne latérale, visible uniquement si la chaîne contient plus d'un élément.
+La page détail d'un plan affiche une **timeline verticale** des versions dans la colonne latérale, **regroupées par rang** (rang précédent, actuel, à venir), visible dès que la chaîne a plus d'un élément (`PlanVersionTimelineComponent`).
 
-Chaque noeud affiche :
-- La version (ex: v1.0)
-- Le type de document
-- Un chip de statut (brouillon, actif, inactif)
-- Un badge "actuel" pour la version courante
+Chaque nœud affiche la version, le type de document, le statut et un badge « actuel » ; les nœuds sont cliquables.
 
-La version courante est mise en évidence visuellement (fond coloré, bordure latérale).
-
-Les noeuds sont cliquables pour naviguer entre les versions.
-
-**Boutons d'action contextuels** (visibles uniquement pour les référents, admin_og et super_admin) :
+**Boutons d'action contextuels** (référents du plan, admin organisme, rédacteur principal, super admin) :
 
 | Statut courant | Actions disponibles |
 |----------------|---------------------|
-| Brouillon | Valider le plan |
-| Actif | Remettre en brouillon, Lancer évaluation*, Archiver |
-| Inactif | Réactiver (rend actif) |
-
-\* Uniquement pour les plans (pas les évaluations)
+| Brouillon | Valider le plan, Envoyer pour avis CSRPN |
+| Étapes CSRPN | Étape suivante (dates, numéro d'arrêté), Annuler |
+| Validé / modifié | Remettre en brouillon (feuille de chaîne), Créer une nouvelle version, Lancer l'évaluation mi-parcours, Prolonger, Démarrer la révision, Archiver |
+| Archivé | Réactiver |
 
 ### Pop-up d'archivage du plan précédent (#246)
 

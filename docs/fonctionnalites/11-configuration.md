@@ -1,62 +1,43 @@
-# Configuration du site
+# 11. Configuration de l'instance
 
-### Comment ça marche
+Chaque instance règle elle-même son apparence et ses engagements, sans redéploiement : un super admin le fait depuis **Administration › Paramètres**.
 
-La configuration du site permet aux super administrateurs de personnaliser certains aspects de l'application, notamment l'image affichée sur la page d'accueil pour les visiteurs non connectés.
+> Usage pas à pas : [administration de l'instance › Paramètres](../../documentation/docs/admin-instance/parametres.md).
 
-### Modèle Singleton
+## Un singleton
 
-La configuration du site utilise un **pattern singleton** : il n'existe qu'une seule instance de configuration en base de données (toujours l'ID 1). Cette approche garantit qu'il n'y a jamais de confusion sur quelle configuration utiliser.
+`SiteConfiguration` (`backend/apps/core/models.py`) n'a qu'une ligne (id 1). On la lit avec `SiteConfiguration.get_instance()` ou par l'API.
 
-### API de configuration
+| Endpoint | Méthode | Permission |
+|----------|---------|------------|
+| `/api/settings/` | GET | public (champs d'affichage) |
+| `/api/settings/` | PATCH | super admin |
+| `/api/settings/homepage-image/`, `/api/settings/structure-logo/` | POST / DELETE | super admin |
 
-| Endpoint | Méthode | Permission | Description |
-|----------|---------|------------|-------------|
-| `/api/settings/` | GET | Public | Récupère la configuration actuelle |
-| `/api/settings/` | PATCH | super_admin | Met à jour la configuration |
+## Ce qui se règle
 
-### Flux de modification de l'image
+| Thème | Champs | Effet |
+|-------|--------|-------|
+| **Apparence** | `homepage_image` (+ position), `structure_logo`, `header_color`, `accueil_titre`, `accueil_sous_titre`, `export_color` | Accueil, bandeau, couleur des exports Excel |
+| **Inscription** | `inscription_url_externe` | Renvoie l'inscription vers un formulaire externe |
+| **CGU** (#746) | `cgu_texte` (Markdown), `cgu_version` | Chaque utilisateur accepte la version en vigueur ; changer le texte renouvelle la version |
+| **Documents** (#745) | `taille_max_document_mo` (20 Mo par défaut) | Taille maximale d'un document du plan ou d'un enjeu |
+| **Mesure d'audience** (#670) | `matomo_enabled`, `matomo_url`, `matomo_site_id` | Matomo sans cookie, désactivé par défaut |
+| **API publique** (#645) | `api_publique_plans` | Ouvre `/api/public/plans/` (métadonnées des plans validés), coupée par défaut |
+| **Fédération** (#636) | `federation_partage` | Consentement à publier vers le hub, faux par défaut — voir [21. Fédération](21-federation.md) |
+| **Doc'Gestion FCEN** | `enable_docgestion_fcen` | Affiche le champ d'identifiant Doc'Gestion sur les plans |
 
-1. Le super admin accède à **Administration > Paramètres**
-2. Il clique sur "Choisir une image" ou glisse-dépose un fichier
-3. Une prévisualisation s'affiche
-4. Il clique sur "Enregistrer"
-5. L'image est uploadée en `multipart/form-data`
-6. Le backend :
-   - Valide le type de fichier (image uniquement)
-   - Supprime l'ancienne image si elle existe
-   - Stocke la nouvelle dans `media/settings/homepage/`
-   - Met à jour `updated_at` et `updated_by`
-7. L'URL de l'image est retournée et utilisée sur la page d'accueil
+`updated_at` et `updated_by` gardent la trace de la dernière modification.
 
-### Réinitialisation
+## Autres écrans de réglage
 
-Pour revenir à l'image par défaut :
-- Envoyer `reset_image=true` ou `homepage_image=''` via PATCH
-- Le backend supprime l'image personnalisée
-- La page d'accueil affiche alors l'image par défaut (`assets/images/homepage-default.jpg`)
+- **Connexion GeoNature / UsersHub** (#769) : *Administration › Paramètres › Connexion*, réglages dans un singleton dédié (`ConnexionGeoNature`), lus par `apps/authentication/reglages.py`. Voir [administration › Connexion GeoNature](../../documentation/docs/administration/connexion-geonature.md).
+- **Raccordement au hub** (#695) : URL et jetons du hub, saisis dans *Paramètres › Raccordement manuel*.
 
-### Structure des données
+## Variables d'environnement
 
-| Champ | Type | Description |
-|-------|------|-------------|
-| `homepage_image` | ImageField | Chemin relatif de l'image uploadée |
-| `homepage_image_url` | URL (généré) | URL complète pour affichage |
-| `updated_at` | DateTime | Date de dernière modification |
-| `updated_by` | ForeignKey | Super admin ayant modifié |
-
-### Fichiers concernés
-
-| Fichier | Rôle |
-|---------|------|
-| `backend/apps/core/models.py` | Modèle `SiteConfiguration` |
-| `backend/apps/core/views.py` | Vue `SiteConfigurationView` |
-| `backend/apps/core/serializers.py` | Sérialiseur |
-| `frontend/.../settings.service.ts` | Service Angular |
-| `frontend/.../admin-settings/` | Composant d'administration |
+Le `.env` garde la main sur ce qui touche à l'infrastructure (base, hub, identité de l'instance). Quand une valeur y est renseignée, l'écran correspondant l'affiche verrouillée. Liste : `.env.example` et [administration › Installation](../../documentation/docs/administration/installation.md).
 
 ---
 
----
-
-← [Tests](10-tests.md) | [Index](../FONCTIONNALITES.md) | [Page Exploration](12-exploration.md) →
+← [Tests](10-tests.md) | [Index](../FONCTIONNALITES.md) | [Exploration des données](12-exploration.md) →

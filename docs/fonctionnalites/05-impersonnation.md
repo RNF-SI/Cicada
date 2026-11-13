@@ -9,7 +9,7 @@ L'impersonnation permet à un super admin de "devenir" temporairement un autre u
 #### Démarrage
 
 1. Le super admin va dans la liste des utilisateurs et clique "Impersonner" sur un utilisateur
-2. Le frontend sauvegarde les tokens actuels de l'admin dans localStorage (pour pouvoir revenir)
+2. Les jetons du super admin sont **révoqués** au départ : le navigateur ne les garde pas (`POST /api/auth/impersonate/<id>/`)
 3. Une requête est envoyée au backend avec l'ID de l'utilisateur cible
 4. Le backend vérifie :
    - Est-ce un super admin ?
@@ -28,12 +28,11 @@ L'impersonnation permet à un super admin de "devenir" temporairement un autre u
 
 #### Arrêt
 
-1. L'admin clique sur "Arrêter l'impersonnation"
-2. Le frontend envoie le token actuel au backend
-3. Le backend lit les informations cachées dans le token (impersonator_id)
-4. Le log d'audit est mis à jour avec l'heure de fin
-5. De nouveaux tokens sont générés pour l'admin original
-6. Le frontend restaure le contexte de l'admin
+1. L'admin clique sur "Arrêter l'impersonnation" (`POST /api/auth/stop-impersonation/`), ou se déconnecte
+2. Le backend lit l'auteur dans le jeton (`impersonator_id`, `impersonation_log_id`)
+3. Le log d'audit (`ImpersonationLog`) reçoit l'heure de fin
+4. De nouveaux jetons sont émis pour l'admin, qui retrouve son contexte
+5. Le jeton d'impersonation est refusé dès la requête suivante
 
 ### Sécurité
 
@@ -42,15 +41,17 @@ L'impersonnation permet à un super admin de "devenir" temporairement un autre u
 | Accès restreint | Seuls les super admins peuvent impersonner |
 | Protection super admins | Impossible d'impersonner un autre super admin (protection contre l'escalade) |
 | Traçabilité complète | Tout est tracé : qui, qui, quand, combien de temps, depuis quelle IP |
+| Durée limitée | **Une heure au plus** (`DUREE_IMPERSONATION`, `apps/authentication/sessions.py`) |
+| Contrôle à chaque requête | Session arrêtée, expirée ou dont l'auteur n'est plus super admin actif → jeton refusé (`impersonation_refusee()`) |
 
-### Mode lecture seule en production
+### Mode lecture seule
 
-En mode **production**, les modifications (POST, PUT, PATCH, DELETE) sont **bloquées** pendant l'impersonnation. Cela permet de :
+Les modifications (POST, PUT, PATCH, DELETE) sont **refusées par le serveur** pendant l'impersonnation (`refuser_ecriture_en_impersonation()`, `apps/authentication/activite.py`) : un appel direct avec le jeton d'impersonation ne peut pas écrire au nom de la personne. Seuls `stop-impersonation`, `refresh` et `logout` restent permis. Cela permet de :
 - Consulter l'application comme un utilisateur sans risque de modification
 - Garantir la traçabilité : aucune action ne peut être effectuée au nom d'un autre
 - Protéger les données en production
 
-En mode **développement**, les modifications sont autorisées pour faciliter les tests.
+En **développement**, le réglage `IMPERSONATION_ECRITURE` (vrai par défaut dans `settings/development.py`, faux ailleurs) lève ce blocage pour faciliter les tests. L'interface applique la même règle pour prévenir l'utilisateur avant l'envoi.
 
 #### Indicateurs visuels
 
@@ -110,19 +111,9 @@ onSave() {
 <button [disabled]="!canModify()" (click)="onSave()">Enregistrer</button>
 ```
 
-#### Activer les modifications en production (urgence)
+#### Modifications en production
 
-Dans des situations exceptionnelles où vous devez effectuer des modifications en impersonnation en production, vous pouvez modifier temporairement la valeur de `allowImpersonationModifications` dans le fichier `environment.prod.ts` avant le build :
-
-```typescript
-// environment.prod.ts - Modification temporaire (NON recommandé)
-export const environment = {
-  production: true,
-  allowImpersonationModifications: true  // ⚠️ À remettre à false après
-};
-```
-
-**Recommandation** : Ne pas activer cette option en production. Si des modifications sont nécessaires, utilisez votre propre compte admin ou demandez à l'utilisateur de le faire lui-même.
+Il n'y en a pas : le serveur refuse les écritures quelle que soit la configuration de l'interface. Pour corriger quelque chose, utilisez votre propre compte d'administrateur ou demandez à l'utilisateur de le faire.
 
 ---
 

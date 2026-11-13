@@ -57,17 +57,7 @@ Les tests E2E simulent un **vrai utilisateur** dans un navigateur Chromium. Ils 
 
 #### Ce que ça teste
 
-| Catégorie | Exemples | Tests |
-|-----------|----------|-------|
-| Authentification | Login, logout, inscription | 13 |
-| Admin Utilisateurs | Liste, filtres, activation, assign site | 15 |
-| Admin Sites | Liste, création, organismes | 13 |
-| Admin Validations | Liste, approbation, rejet | 6 |
-| **Workflow validations** | **Demande → approbation/rejet multi-utilisateurs** | **8** |
-| Admin Organismes + Dashboard | Liste, détail, stats | 7 |
-| Contrôle d'accès | Pages autorisées/interdites par rôle | 13 |
-| Navigation | Header, sidebar, liens | 4 |
-| **Total** | | **~80** |
+Authentification et accès par rôle, administration (utilisateurs, sites, organismes, validations), arborescence des enjeux (CRUD, hiérarchie, suppressions en cascade, droits), création et vues des plans, actions et suivis (saisie, ventilation maximale, planification annuelle), inventaires, exploration, import en masse, profil, activité, notifications. La liste des fichiers et leur nombre de tests sont tenus dans [TESTING.md](../TESTING.md).
 
 #### Comment ça marche (workflow de validation multi-utilisateurs)
 
@@ -91,45 +81,30 @@ npm run e2e:ui       # Interface visuelle Playwright
 npm run e2e:headed   # Tests visibles dans le navigateur
 ```
 
+### Filets transverses (backend)
+
+| Dossier / test | Ce qu'il protège |
+|----------------|------------------|
+| `tests/integrite/` | Aucune perte de données à l'aller-retour GET → PATCH, suppressions en cascade relues (`cascades_relues.txt`), migrations sans retour listées, matrice des droits d'écriture (`test_droits_ecriture.py`) et des comptes |
+| `tests/integrite/test_canari.py` | Aucune donnée sensible (budget, RH, mesures, personnes) ne sort vers l'exploration ou le hub |
+| `tests/apps/core/test_seed_coherence_ventilation.py` | Le jeu d'essai suit les règles actuelles de programmation |
+| `tests/federation/bench.py` (hors CI) | Contrat, scénarios et parité entre CICADA et le hub, sur les briques réellement lancées |
+
 ### CI/CD
 
-À chaque push ou pull request sur main/develop, **et à chaque release** (tag `v*`), GitHub Actions :
+À chaque push ou pull request sur `main` / `develop`, et à chaque tag `v*`, GitHub Actions (`.github/workflows/tests.yml`) :
 
-1. Lance un conteneur avec PostgreSQL
-2. Installe les dépendances
-3. Exécute tous les tests backend (pytest)
-4. Exécute tous les tests frontend (Jest)
-5. **Exécute les tests E2E (Playwright) contre le stack Docker complet**
-6. Génère les rapports de couverture
-7. Bloque le merge si des tests échouent
+1. lance les tests backend (pytest, avec PostgreSQL/PostGIS) ;
+2. lance les tests frontend (Jest) et le contrôle de types, E2E compris ;
+3. lance les tests E2E Playwright contre le stack Docker, une fois les tests backend passés ;
+4. construit la documentation en mode strict (`docs-build`).
 
-Les tests E2E ne se lancent que si les tests backend passent (dépendance `needs: [backend-tests]`).
+Un test en échec bloque le merge. Les tests de packaging (`packaging/`) ne tournent pas en CI : ils demandent une VM (voir `packaging/TESTING.md`).
 
 ### Couverture
 
-C'est le pourcentage de lignes de code exécutées par les tests.
-
-| Stack | Type | Tests | Couverture | Objectif |
-|-------|------|-------|----------:|----------:|
-| Backend | Unitaires + Intégration | 317 | 56% | 80% |
-| Frontend (Jest) | Unitaires | 55 | 7% | 70% |
-| **Frontend (E2E)** | **End-to-End** | **~80** | **Voir détail** | **Toutes les pages** |
-
-**Détail couverture E2E par fonctionnalité :**
-
-| Fonctionnalité | Couverte | Détail |
-|----------------|----------|--------|
-| Login / Logout / Inscription | ✅ | Login valide/invalide, inscription, déconnexion |
-| Admin Utilisateurs | ✅ | Liste, recherche, filtres, actions (activer/désactiver) |
-| Admin Sites | ✅ | Liste, recherche, création, lien organismes |
-| Admin Validations | ✅ | Liste, filtres, approbation, rejet |
-| Workflow multi-utilisateurs | ✅ | Demande → vue admin → approbation → vérification |
-| Admin Organismes | ✅ | Grille, détail, recherche, édition |
-| Admin Dashboard | ✅ | Statistiques, message bienvenue |
-| Contrôle d'accès par rôle | ✅ | 5 rôles × pages autorisées/interdites |
-| Scope données par organisme | ✅ | RNF voit RNF, CEN voit CEN, super admin voit tout |
-| Navigation | ✅ | Header, sidebar, liens inter-pages |
+Les chiffres de couverture et le nombre de tests changent à chaque lot : voir [TESTING.md](../TESTING.md).
 
 ---
 
-← [RGPD](09-rgpd.md) | [Index](../FONCTIONNALITES.md) | [Configuration du site](11-configuration.md) →
+← [RGPD](09-rgpd.md) | [Index](../FONCTIONNALITES.md) | [Configuration](11-configuration.md) →

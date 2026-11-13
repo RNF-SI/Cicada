@@ -61,7 +61,7 @@ Les activités sont groupées chronologiquement (Aujourd'hui, Hier, Cette semain
 
 ### Documentation technique
 
-Voir le guide complet : [docs/API_ACTIVITY_GUIDE.md](API_ACTIVITY_GUIDE.md)
+Voir le guide complet : [docs/API_ACTIVITY_GUIDE.md](../API_ACTIVITY_GUIDE.md)
 
 ---
 

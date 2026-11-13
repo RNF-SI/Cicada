@@ -26,42 +26,37 @@ docker compose exec web python manage.py seed_testdata --only=users,plans
 
 ### Données créées
 
-| Entité | Quantité | Description |
-|--------|----------|-------------|
-| Modules | 4 | plans, sites, inventaires, zonages |
-| Organismes | 5 | RNF, CEN AURA, DREAL, Parc Ecrins, OFB |
-| Sites | 7 | Avec géométries PostGIS réelles |
-| Utilisateurs | 14 | 7 actifs, 3 inactifs, 2 en attente, 2 RGPD |
-| Plans de gestion | 8 | 5 actifs, 3 archivés |
-| Groupes Django | 4 | Super Admin, Admin Organisme, Utilisateurs, Invités |
-| PendingUser | 3 | Inscriptions en attente |
-| Validations | 22+ | 11 types différents, statuts variés |
-| Notifications | 21+ | 15 types, priorités variées |
-| Logs d'erreur | 8 | WARNING, ERROR, CRITICAL |
-| Logs d'activité | 25+ | public, admin, system |
+Les volumes et les cas de recette (comptes, plans « Ventilation … », chaînes de versions, plans composites, suivi en cours…) évoluent à chaque lot : la liste à jour est la section **« Test Data Available » du `CLAUDE.md`**. Tous les comptes ont le mot de passe `Test123!`.
+
+Les grandes familles :
+
+| Seeder | Ce qu'il crée |
+|--------|---------------|
+| `modules`, `groups`, `organismes`, `sites`, `users` | Socle : organismes (dont un bureau d'études), sites avec géométries, comptes de chaque rôle |
+| `plans` | Plans de gestion de tous les statuts, chaînes de versions, prolongations, circuit CSRPN, mi-parcours |
+| `enjeux`, `minimal_plans` | Arborescences complètes et plans minimaux |
+| `realisations`, `rh` | Suivi saisi, postes et temps de travail |
+| `ventilation_plans` | Un plan par mode de ventilation budgétaire, leurs jumeaux validés et les plans composites (mêmes totaux : 139 800 €, 269 j) |
+| `pending_users`, `validation_requests`, `notifications`, `error_logs`, `activity_logs` | Inscriptions, demandes de validation, notifications et journaux |
 
 ### Architecture modulaire
 
 ```
 backend/apps/core/management/commands/
-├── seed_testdata.py              # Orchestrateur (~300 lignes)
+├── seed_testdata.py              # Orchestrateur
 └── seeders/
-    ├── __init__.py               # Registry + validation des dépendances
+    ├── __init__.py               # SEEDER_CLASSES + validation des dépendances
     ├── base.py                   # Classe abstraite BaseSeeder
     ├── context.py                # SeederContext (partage de données)
-    ├── signals.py                # Gestion des 28 signaux Django
-    ├── modules_seeder.py
-    ├── nomenclatures_seeder.py
-    ├── groups_seeder.py
-    ├── organismes_seeder.py
-    ├── sites_seeder.py
-    ├── users_seeder.py
-    ├── plans_seeder.py
-    ├── pending_users_seeder.py
-    ├── validation_requests_seeder.py
-    ├── notifications_seeder.py
-    ├── error_logs_seeder.py
-    └── activity_logs_seeder.py
+    ├── signals.py                # Désactivation des signaux Django pendant le seed
+    ├── _coherence.py             # Règles communes aux seeders d'actions (#763)
+    ├── _geo_helpers.py           # Emprises prévues / réalisées
+    ├── modules_seeder.py, groups_seeder.py, organismes_seeder.py
+    ├── sites_seeder.py, users_seeder.py, plans_seeder.py
+    ├── enjeux_seeder.py, minimal_plans_seeder.py
+    ├── realisations_seeder.py, rh_seeder.py, ventilation_plans_seeder.py
+    ├── pending_users_seeder.py, validation_requests_seeder.py
+    └── notifications_seeder.py, error_logs_seeder.py, activity_logs_seeder.py
 ```
 
 ### Composants clés
@@ -75,30 +70,38 @@ backend/apps/core/management/commands/
 
 ### Graphe de dépendances
 
+Les nomenclatures ne sont pas un seeder : elles sont importées au démarrage (`import_nomenclatures`).
+
 ```
-modules, nomenclatures, groups, organismes (indépendants)
+modules, groups, organismes (indépendants)
     │
-    ├── sites (deps: organismes, nomenclatures)
-    ├── users (deps: organismes, sites, groups)
-    ├── pending_users (deps: organismes)
-    ├── plans (deps: users, sites, nomenclatures)
-    ├── validation_requests (deps: users, sites, plans, organismes)
-    ├── notifications (deps: users, sites, plans, organismes, validation_requests)
-    ├── error_logs (deps: users)
-    └── activity_logs (deps: users, sites, plans, organismes, validation_requests)
+    ├── sites (organismes)
+    ├── users (organismes, sites, groups)
+    ├── pending_users (organismes)
+    ├── plans (users, sites)
+    │     ├── enjeux (plans)
+    │     │     ├── minimal_plans (enjeux)
+    │     │     └── realisations (enjeux)
+    │     │           └── rh (minimal_plans, realisations)
+    │     └── ventilation_plans (plans)
+    ├── validation_requests (users, sites, plans, organismes)
+    ├── notifications (… validation_requests)
+    ├── error_logs (users)
+    └── activity_logs (users, sites, plans, organismes, validation_requests)
 ```
 
 ### Option `--only`
 
 Permet un seeding sélectif. Les dépendances sont résolues automatiquement.
 
-**Exemple :** `--only=users,plans` exécute automatiquement :
-1. `nomenclatures` (dépendance de sites et plans)
-2. `groups` (dépendance de users)
-3. `organismes` (dépendance de sites et users)
-4. `sites` (dépendance de users et plans)
-5. `users` (demandé)
-6. `plans` (demandé)
+**Exemple :** `--only=users,plans` exécute aussi `organismes`, `groups` et `sites`, dans l'ordre des dépendances.
+
+### Garde-fous
+
+- Le seed est **idempotent** : il se relance sans doublon. Les années sont ancrées sur l'année courante.
+- Il refuse les réglages de production (`--instance-de-production` pour une instance de démonstration).
+- Sur une base neuve, il reconstruit l'index de recherche et crée la configuration de l'instance avant de dater l'acceptation des CGU des comptes de test.
+- `tests/apps/core/test_seed_coherence_ventilation.py` relance le seed complet deux fois et vérifie chaque action contre les règles actuelles : un nouveau seeder d'actions doit le passer.
 
 ### Ajouter un nouveau seeder
 

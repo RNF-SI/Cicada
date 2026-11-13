@@ -159,13 +159,11 @@ L'utilisateur doit saisir son email exact pour confirmer la suppression. Cette v
 - Confirme que l'utilisateur comprend ce qu'il fait
 - Est insensible a la casse
 
-### Keycloak
+### Connexion par GeoNature / UsersHub
 
-Lorsque l'application est configuree avec `AUTH_PROVIDER=keycloak`, la gestion des comptes est deleguee a Keycloak :
+En mode GeoNature (#689), le compte de connexion vit dans **UsersHub** : CICADA n'en garde qu'une copie locale. Désactiver ou anonymiser le compte dans CICADA n'agit que sur cette copie ; pour qu'il ne puisse plus se connecter nulle part, il faut aussi le retirer dans UsersHub. Un compte retiré de UsersHub est refusé par CICADA dès son prochain rafraîchissement de session.
 
-- La page administration RGPD affiche un message d'avertissement
-- Les boutons d'action sont desactives
-- Les admins doivent traiter les demandes directement dans la console Keycloak
+Le code garde une branche `AUTH_PROVIDER=keycloak` (page RGPD en lecture seule, gestion déléguée à Keycloak), qui n'est plus un mode de connexion proposé.
 
 ### Backend
 
@@ -227,7 +225,7 @@ Lorsque l'application est configuree avec `AUTH_PROVIDER=keycloak`, la gestion d
 
 | Variable | Valeurs | Description |
 |----------|---------|-------------|
-| `AUTH_PROVIDER` | `local` (defaut), `keycloak` | Provider d'authentification |
+| `AUTH_PROVIDER` | `local` (défaut), `geonature` | Mode de connexion ; le réglage de l'écran *Paramètres › Connexion* prime (#769) |
 
 ### Integrite des donnees
 

@@ -98,12 +98,22 @@ Ce tableau liste **tous les cas** où une notification est envoyée dans l'appli
 | Compte désactivé (info admin) | Super_admins | `account_deactivated` | high | ✅ | Signal `post_save` sur `Role` |
 | Organisme modifié | Utilisateur concerné | `organisme_changed` | high | ❌ | Signal `post_save` sur `Role` (changement `id_organisme`) |
 
-#### Alertes système (tâches périodiques Celery)
+#### Alertes système (signaux, en temps réel)
 
-| Événement | Destinataire | Type | Priorité | Email | Déclencheur |
-|-----------|--------------|------|----------|:-----:|-------------|
-| Site orphelin (sans utilisateurs) | Super_admins + Admin_og des organismes gestionnaires | `site_orphaned` | high | ✅ | Signal `post_delete` sur `CorRoleSite` + Tâche Celery quotidienne |
-| Organisme sans administrateur | Super_admins | `organisme_no_admin` | critical | ✅ | Tâche Celery quotidienne |
+| Événement | Destinataire | Type | Email | Déclencheur |
+|-----------|--------------|------|:-----:|-------------|
+| Site orphelin (sans utilisateurs) | Super admins + admin OG des organismes gestionnaires | `site_orphaned` | ❌ (in-app seulement) | Signal sur `CorRoleSite` / `Role` |
+| Organisme sans administrateur | Super admins | `organisme_no_admin` | ✅ | Signal sur `Role` |
+
+Les audits hebdomadaires par email (organismes sans admin, sites et plans orphelins) ont été **supprimés** (#328) : un état orphelin est persistant, pas un événement à renvoyer chaque semaine. Il se consulte à la demande dans *Administration › Orphelins* (`GET /api/admin/orphans/`).
+
+#### Autres notifications métier
+
+| Événement | Destinataire | Type |
+|-----------|--------------|------|
+| Première connexion d'un utilisateur (#706) | Admin OG de son organisme, à défaut super admins | `user_first_login` (in-app) |
+| Transition du circuit CSRPN d'un plan (#277) | Référents du plan, sauf l'auteur | `plan_csrpn_transition` |
+| Types d'action à actualiser après un passage de référentiel (#751) | Référents des plans concernés | `referentiel_actions`, puis `referentiel_actions_suivi` |
 
 ### Types de notifications disponibles
 
@@ -123,7 +133,12 @@ Le modèle `Notification` définit les types suivants :
 | `account_activated` | Compte activé | Compte utilisateur réactivé |
 | `organisme_changed` | Organisme modifié | Changement d'organisme par un admin |
 | `site_orphaned` | Site sans utilisateurs | Alerte site orphelin |
+| `site_deleted`, `plan_deleted` | Site / plan supprimé | Suppression |
 | `organisme_no_admin` | Organisme sans administrateur | Alerte absence d'admin_og |
+| `plan_needs_reassignment` | Plan à réassigner | Plan dont le site a disparu |
+| `plan_csrpn_transition` | Transition workflow CSRPN | Étape du circuit d'avis (#277) |
+| `user_first_login` | Première connexion | Pour les admins de l'organisme (#706) |
+| `referentiel_actions`, `referentiel_actions_suivi` | Types d'action à actualiser | Passage de référentiel (#751) |
 | `system_alert` | Alerte système | Alerte technique |
 | `info` | Information | Information générale |
 
@@ -242,88 +257,19 @@ CELERY_TIMEZONE = 'Europe/Paris'
 
 #### Liste des tâches planifiées
 
-| Tâche | Fréquence | Heure | Description |
-|-------|-----------|-------|-------------|
-| `cleanup_old_error_logs` | Quotidienne | 3h00 | Nettoie les logs d'erreurs |
-| `cleanup_old_notifications` | Quotidienne | 4h00 | Supprime les notifications lues > 90 jours |
-| `cleanup_expired_pending_users` | Quotidienne | 5h00 | Expire les inscriptions en attente > 30 jours |
-| `process_deletion_requests` | Quotidienne | 6h00 | Anonymise les comptes (RGPD) après délai de grâce |
-| `check_organismes_without_admin` | Hebdomadaire | Lundi 8h00 | Audit des organismes sans admin_og |
-| `check_orphaned_sites` | Hebdomadaire | Lundi 8h30 | Audit des sites sans utilisateurs |
+Source : `CELERY_BEAT_SCHEDULE` dans `backend/config/settings/base.py`.
 
-#### Détail des tâches
+| Tâche | Fréquence | Rôle |
+|-------|-----------|------|
+| `core.cleanup_old_error_logs` | chaque jour, 3h00 | Supprime les logs d'erreur de plus de 90 jours (30 jours s'ils sont acquittés) |
+| `authentication.purger_jetons_expires` | chaque jour, 3h40 | Purge les jetons de rafraîchissement expirés de la liste de révocation |
+| `cleanup_old_notifications` | chaque jour, 4h00 | Supprime les notifications **lues** de plus de 90 jours |
+| `cleanup_expired_pending_users` | chaque jour, 5h00 | Passe en `expired` les inscriptions en attente depuis plus de 30 jours |
+| `publier_vers_le_hub` | chaque nuit, heure propre à l'instance (1h–5h) | Publication vers le hub fédéré, si le partage est consenti — voir [21. Fédération](21-federation.md) |
+| `actualiser_adhesion_hub` | toutes les 30 min | Relit une demande d'adhésion au hub en attente |
+| `relancer_retrait_hub` | chaque heure | Relance un retrait du hub resté en attente |
 
-##### 1. `check_organismes_without_admin` (audit hebdomadaire)
-
-**Fichier** : `apps/notifications/tasks.py:231-268`
-
-**Ce qu'elle fait** :
-1. Parcourt tous les organismes de la base de données
-2. Pour chaque organisme, vérifie s'il existe au moins un `admin_og` actif
-3. Si aucun admin_og trouvé → envoie une notification **CRITIQUE** aux super_admins
-4. Anti-spam : ne renvoie pas si une notification identique existe dans les 7 derniers jours
-
-**Pourquoi c'est important** : Un organisme sans administrateur ne peut plus :
-- Gérer ses utilisateurs
-- Valider les demandes d'inscription
-- Administrer ses sites
-
-**Note** : La détection en temps réel est assurée par les signaux Django. Cette tâche sert de filet de sécurité.
-
-##### 2. `check_orphaned_sites` (audit hebdomadaire)
-
-**Fichier** : `apps/notifications/tasks.py:193-228`
-
-**Ce qu'elle fait** :
-1. Identifie les sites actifs qui n'ont aucun utilisateur dans `CorRoleSite`
-2. Notifie les super_admins + les admin_og des organismes gestionnaires du site
-3. Anti-spam : pas de doublon dans les 7 jours
-
-**Pourquoi c'est important** : Un site sans utilisateur :
-- Ne peut plus être géré
-- Ses données peuvent devenir obsolètes
-- Aucun référent pour répondre aux demandes d'accès
-
-##### 3. `cleanup_old_notifications` (quotidienne)
-
-**Fichier** : `apps/notifications/tasks.py:271-289`
-
-**Ce qu'elle fait** :
-- Supprime les notifications **lues** de plus de 90 jours
-- Conserve les notifications non lues indéfiniment
-
-**Objectif** : Éviter l'accumulation de données obsolètes en base.
-
-##### 4. `cleanup_expired_pending_users` (quotidienne)
-
-**Fichier** : `apps/notifications/tasks.py:292-320`
-
-**Ce qu'elle fait** :
-1. Identifie les `ValidationRequest` de type `user_registration` en status `pending` depuis plus de 30 jours
-2. Passe leur statut à `expired`
-3. Supprime les `PendingUser` associés
-
-**Objectif** : Nettoyer les inscriptions abandonnées ou non traitées.
-
-##### 5. `process_deletion_requests` (quotidienne - RGPD)
-
-**Fichier** : `apps/notifications/tasks.py:323-361`
-
-**Ce qu'elle fait** :
-1. Identifie les utilisateurs avec `deletion_requested_at` non nul et `is_anonymized=False`
-2. Vérifie si le délai de grâce de 30 jours est écoulé (`can_be_anonymized()`)
-3. Anonymise le compte : email → `anonymized_X@deleted.local`, nom → "Utilisateur Anonymisé"
-4. Notifie les super_admins du nombre de comptes anonymisés
-
-**Conformité RGPD** : Permet aux utilisateurs d'exercer leur droit à l'effacement tout en conservant l'intégrité référentielle des données.
-
-##### 6. `cleanup_old_error_logs` (quotidienne)
-
-**Fichier** : `apps/core/tasks.py`
-
-**Ce qu'elle fait** :
-- Supprime les logs d'erreurs de plus de 90 jours
-- Supprime les logs acquittés de plus de 30 jours
+La tâche `process_deletion_requests` existe encore mais n'est plus planifiée : pour une demande RGPD, un super admin décide de désactiver ou d'anonymiser le compte (voir [09. RGPD](09-rgpd.md)).
 
 #### Tâches asynchrones (non planifiées)
 
@@ -342,8 +288,7 @@ Ces tâches sont déclenchées à la demande par le code Django :
 
 Le système inclut une protection contre les notifications en double :
 - **Associations site** : Vérification des doublons dans les 30 dernières secondes
-- **Sites orphelins** : Maximum une notification par site et par semaine
-- **Organismes sans admin** : Maximum une notification par organisme et par semaine
+- **Sites orphelins** et **organismes sans admin** : notification au changement d'état, sans rappel périodique ; `_was_recently_notified()` évite de renvoyer la même alerte à brève échéance
 
 ---
 

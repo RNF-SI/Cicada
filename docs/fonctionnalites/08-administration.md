@@ -6,41 +6,55 @@ L'application dispose d'une interface d'administration accessible à `/administr
 
 ### Les rôles et niveaux d'accès
 
-Il est important de comprendre la différence entre un **rôle** et un **niveau d'accès** :
+Il est important de distinguer un **rôle** (porté par le compte) d'un **niveau d'accès** (calculé).
 
 | Terme | Type | Description |
 |-------|------|-------------|
-| `super_admin` | Rôle | Administrateur global de l'application |
-| `admin_og` | Rôle | Administrateur d'un organisme spécifique |
+| `super_admin` | Rôle | Administrateur de l'instance |
+| `redacteur_principal` | Rôle | Accès global aux plans, sites et organismes, cycle de vie compris ; attribué par un super admin |
+| `admin_og` | Rôle | Administrateur d'un organisme |
 | `utilisateur` | Rôle | Utilisateur standard |
-| `referent` | Niveau d'accès | Un utilisateur qui est référent d'au moins un site ou un plan |
+| `redacteur` | Rôle | Rédacteur externe (bureau d'études, #700) : aucun plan par défaut, jamais les suivis |
+| `referent` | Niveau d'accès | Référent d'au moins un site ou un plan |
 
-Un `utilisateur` peut avoir le niveau d'accès `referent` s'il est désigné comme référent d'un site ou d'un plan. Ce n'est pas un rôle, c'est une propriété calculée.
+Règles détaillées par plan : [23. Rôles et droits](23-droits.md).
 
 ### Hiérarchie des droits
 
 ```
-super_admin (accès total)
+super_admin (toute l'instance)
     ↓
-admin_og (accès limité à son organisme)
+redacteur_principal (tous les plans, sites et organismes — pas les paramètres de l'instance)
     ↓
-referent (accès limité à ses sites/plans)
+admin_og (son organisme)
     ↓
-utilisateur (pas d'accès à l'administration)
+referent (ses sites et ses plans)
+    ↓
+utilisateur, redacteur (pas d'administration)
 ```
 
 ### Pages disponibles et qui y a accès
 
-| Page | URL | super_admin | admin_og | referent | utilisateur |
-|------|-----|:-----------:|:--------:|:--------:|:-----------:|
-| **Tableau de bord** | `/admin/dashboard` | ✅ | ❌ | ❌ | ❌ |
-| **Validations** | `/admin/validations` | ✅ | ✅ | ✅ | ❌ |
-| **Utilisateurs** | `/admin/utilisateurs` | ✅ | ✅ | ❌ | ❌ |
-| **Organismes** | `/admin/organismes` | ✅ | ✅ | ❌ | ❌ |
-| **Sites** | `/admin/sites` | ✅ | ✅ | ✅ | ❌ |
-| **Plans de gestion** | `/admin/plans` | ✅ | ✅ | ✅ | ❌ |
-| **Accès modules** | `/admin/modules` | ✅ | ❌ | ❌ | ❌ |
-| **Logs erreurs** | `/admin/logs` | ✅ | ❌ | ❌ | ❌ |
+Toutes les pages sont sous `/administration/…`.
+
+| Page | URL | super_admin | rédacteur principal | admin_og | referent |
+|------|-----|:-----------:|:--:|:--------:|:--------:|
+| **Tableau de bord** | `/administration/dashboard` | ✅ | ❌ | ❌ | ❌ |
+| **Validations** | `/administration/validations` | ✅ | ✅ | ✅ | ✅ |
+| **Utilisateurs** | `/administration/utilisateurs` | ✅ | ✅ | ✅ | ❌ |
+| **Organismes** | `/administration/organismes` | ✅ | ✅ | ✅ | ❌ |
+| **Sites** | `/administration/sites` | ✅ | ✅ | ✅ | ✅ |
+| **Plans de gestion** | `/administration/plans` | ✅ | ✅ | ✅ | ✅ |
+| **Orphelins** | `/administration/orphelins` | ✅ | ✅ | ✅ (sites de son organisme) | ❌ |
+| **Accès modules** | `/administration/modules` | ✅ | ❌ | ❌ | ❌ |
+| **Logs erreurs**, **journaux serveur** | `/administration/logs`, `/logs-serveur` | ✅ | ❌ | ❌ | ❌ |
+| **RGPD** | `/administration/rgpd` | ✅ | ❌ | ❌ | ❌ |
+| **Paramètres** | `/administration/parametres` | ✅ | ❌ | ❌ | ❌ |
+| **Rédacteurs principaux** | `/administration/redacteurs-principaux` | ✅ | ❌ | ❌ | ❌ |
+| **Référentiels** (#777) | `/administration/referentiels` | ✅ | ❌ | ❌ | ❌ |
+| **Mise à jour** (#796) | `/administration/mise-a-jour` | ✅ | ❌ | ❌ | ❌ |
+
+Les pages réservées au super admin passent par `notAdminOgOnlyGuard` (`core/guards/auth.guard.ts`), qui renvoie l'admin organisme et le rédacteur principal vers *Organismes*. Le serveur applique ses propres contrôles : le garde ne fait que masquer.
 
 ### Redirection automatique
 
@@ -48,9 +62,9 @@ Quand un utilisateur accède à `/administration` sans préciser de page :
 
 | Rôle/Niveau | Redirigé vers |
 |-------------|---------------|
-| `super_admin` | `/admin/dashboard` |
-| `admin_og` | `/admin/utilisateurs` |
-| `referent` | `/admin/validations` |
+| `super_admin` | `/administration/dashboard` |
+| `admin_og`, `redacteur_principal` | `/administration/utilisateurs` |
+| `referent` | `/administration/validations` |
 | `utilisateur` | `/accueil` (pas d'accès) |
 
 ### Ce que voit chaque rôle
