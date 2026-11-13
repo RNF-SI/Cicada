@@ -1,110 +1,74 @@
-# 📚 Documentation CICADA
+# Documentation CICADA — par où commencer ?
 
-Index de la documentation pour CICADA - Application web de gestion des plans de gestion d'espaces naturels.
+La documentation de CICADA vit à **deux endroits** :
 
-## 📋 Guides API
+| Où | Pour qui | Comment la lire |
+|----|----------|-----------------|
+| **Site de documentation** (`documentation/`) | Utilisateurs, référents, administrateurs, exploitants, intégrateurs d'API | Sur chaque instance, lien « Aide » (`/aide/`). En local : `docker compose up docs` → http://localhost:8001 |
+| **Ce dossier** (`docs/`) | Développeurs du projet | Sur GitHub ou dans l'éditeur |
 
-### API REST - Guides d'utilisation
-
-| Guide | Description | URL |
-|-------|-------------|-----|
-| **[API Plans de Gestion](API_PLANS_GUIDE.md)** | Guide complet de l'API pour les plans de gestion, fichiers, statistiques | `/api/plans/` |
-| **[API Utilisateurs](API_USERS_GUIDE.md)** | Guide de l'API pour la gestion des utilisateurs | `/api/users/` |
-| **[API Organismes/Sites](API_ORGANISMES_SITES_GUIDE.md)** | Guide de l'API pour organismes et sites avec GeoJSON | `/api/users/organismes/` |
-
-## 📖 Référentiels et données
-
-| Guide | Description |
-|-------|-------------|
-| **[Nomenclatures](../documentation/docs/administration/referentiels.md)** | Gestion des nomenclatures et référentiels pour plans de gestion |
-
-### Authentification
-
-Toutes les API utilisent l'authentification JWT :
-
-```bash
-# 1. Obtenir un token
-curl -X POST http://localhost:8000/api/auth/login/ \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin", "password": "admin"}'
-
-# 2. Utiliser le token
-curl -X GET http://localhost:8000/api/plans/plans/ \
-  -H "Authorization: Bearer {access_token}"
-```
-
-## 🧩 Fonctionnalités
-
-| Document | Description |
-|----------|-------------|
-| **[Explications fonctionnelles](FONCTIONNALITES.md)** | Logs, notifications, validations, impersonnation, modules, pages d'administration (droits par rôle), tests |
-
-## 🎨 Design System
-
-| Document | Description |
-|----------|-------------|
-| **[Design System](DESIGN_SYSTEM.md)** | Couleurs, accessibilité WCAG AA, chips, typographie |
-
-## 🛠️ Documentation technique
-
-| Document | Description |
-|----------|-------------|
-| **[Guide Développeur](GUIDE_DEVELOPPEUR.md)** | Commandes, permissions, logs, i18n, styles |
-| **[Design System](DESIGN_SYSTEM.md)** | Palette de couleurs, règles d'accessibilité, composants |
-| **[Tests](TESTING.md)** | Guide complet des tests (pytest, Jest) |
-| **[Release Pipeline](RELEASE_PIPELINE.md)** | Conventional commits, versioning automatique, Docker, deploiement production |
-| **[Configuration Email](../documentation/docs/administration/email.md)** | Mailpit (dev), SMTP (prod), templates, Celery |
-| **[CLAUDE.md](../CLAUDE.md)** | Référence technique pour Claude Code |
-| **[README.md](../README.md)** | Vue d'ensemble et installation rapide |
-
-## 🚀 Déploiement et exploitation
-
-Point d'entrée : **[Infrastructure](../documentation/docs/administration/infrastructure.md)**, qui situe chaque serveur et renvoie au guide de chacun.
-
-| Document | Description |
-|----------|-------------|
-| **[Infrastructure](../documentation/docs/administration/infrastructure.md)** | Qui parle à qui : instance, serveur de bases, dépôt APT, API de suivi, hub, GHCR — schémas, ports, cycle d'une release, vérifications |
-| **[Guide d'installation](../documentation/docs/administration/installation.md)** | Installer une instance (paquet Debian, formulaire, base dans Docker ou sur un serveur existant, Apache), la mettre à jour |
-| **[Procédure de release](../documentation/docs/administration/releases.md)** | Tag, paquet `.deb`, publication dans le dépôt APT, déploiement, pièges |
-| **[Déploiement du hub](../documentation/docs/administration/hub.md)** | Hub d'exploration fédérée : installation, Apache, enrôlement d'une instance |
-| **[API de suivi](../tracking-api/INSTALLATION.md)** | Installer l'API de suivi des instances (serveur de suivi) |
-| **[Banc de test en VM](../packaging/vm-bench/README.md)** | Rejouer toute cette infrastructure en local (scénario `a-z`, labo persistant) avant de toucher à la production |
-| **[Exploration fédérée en local](MULTI_INSTANCE_LOCAL.md)** | Deux instances de développement + hub sur un poste |
-
-## 🎯 Par cas d'usage
-
-### Pour développeurs frontend
-
-1. **[Design System](DESIGN_SYSTEM.md)** - Couleurs, accessibilité, composants visuels
-2. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Intégration complète des plans
-3. **[API Utilisateurs](API_USERS_GUIDE.md)** - Gestion des utilisateurs
-4. **[Nomenclatures](../documentation/docs/administration/referentiels.md)** - Référentiels et listes de valeurs
-5. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Architecture et patterns
-
-### Pour administrateurs système
-
-1. **[Infrastructure](../documentation/docs/administration/infrastructure.md)** - Les serveurs et leurs liens, puis **[Guide d'installation](../documentation/docs/administration/installation.md)** et **[Procédure de release](../documentation/docs/administration/releases.md)**
-2. **[Release Pipeline](RELEASE_PIPELINE.md)** - Deploiement production, images Docker, mise a jour
-3. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les fonctionnalités (logs, validations, etc.)
-4. **[Configuration Email](../documentation/docs/administration/email.md)** - Configuration SMTP pour l'envoi des notifications
-5. **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Installation et déploiement
-6. **[Nomenclatures](../documentation/docs/administration/referentiels.md)** - Import et maintenance des référentiels
-7. **[CLAUDE.md](../CLAUDE.md)** - Configuration Django et base de données
-
-### Pour gestionnaires d'espaces naturels
-
-1. **[Explications fonctionnelles](FONCTIONNALITES.md)** - Comprendre les notifications, validations, modules
-2. **[API Plans de Gestion](API_PLANS_GUIDE.md)** - Utilisation de l'API
-3. **[Nomenclatures](../documentation/docs/administration/referentiels.md)** - Consultation des référentiels
-4. Interface admin Django : http://localhost:8000/admin/ (`admin` / `admin`)
-
-## 🔗 Liens utiles
-
-- **Projet GitHub** : https://github.com/RNF-SI/Cicada
-- **Issues** : https://github.com/RNF-SI/Cicada/issues
-- **Admin Django** : http://localhost:8000/admin/
-- **API Swagger** : http://localhost:8000/api/docs/ (schéma : http://localhost:8000/api/schema/)
+Une information n'est écrite qu'à un seul endroit : les guides d'exploitation (installation, mise à jour, e-mail, hub…) ont rejoint le site (#743), les fichiers de ce dossier qui portaient leur nom n'en sont plus qu'un renvoi.
 
 ---
 
-**Mise à jour** : Janvier 2025 - Ajout du Design System et des explications fonctionnelles
+## Je veux…
+
+### …utiliser CICADA
+
+→ **Site de documentation, « Guide utilisateur »** : une notice par profil (utilisateur, référent d'un plan, administrateur d'organisme, administrateur d'instance), et un tableau « Je veux… » en page d'accueil.
+
+### …installer ou exploiter une instance
+
+→ **Site de documentation, « Administration technique »** :
+
+| Je veux… | Page |
+|----------|------|
+| installer une instance | [Installation](../documentation/docs/administration/installation.md) |
+| mettre à jour, sauvegarder, revenir en arrière | [Installation, §§ 6 et 7](../documentation/docs/administration/installation.md#6-mettre-à-jour) |
+| comprendre qui parle à qui (serveurs, hub, dépôt APT) | [Infrastructure](../documentation/docs/administration/infrastructure.md) |
+| publier une release | [Releases](../documentation/docs/administration/releases.md) |
+| charger TaxRef, HabRef, passer à une nouvelle version de GestRef | [Référentiels](../documentation/docs/administration/referentiels.md) |
+| brancher la connexion GeoNature / UsersHub | [Connexion GeoNature](../documentation/docs/administration/connexion-geonature.md) |
+| configurer l'envoi d'e-mails, Matomo, le hub | [E-mail](../documentation/docs/administration/email.md), [Mesure d'audience](../documentation/docs/administration/mesure-audience.md), [Hub](../documentation/docs/administration/hub.md) |
+
+### …brancher une application sur l'API
+
+→ **Site de documentation, « API »** : [prise en main](../documentation/docs/api/prise-en-main.md), une page par domaine et la référence OpenAPI complète. L'API publique des métadonnées des plans : [API_PUBLIQUE_PLANS.md](API_PUBLIQUE_PLANS.md).
+
+### …développer sur CICADA
+
+Dans l'ordre :
+
+1. **[README du dépôt](../README.md)** — lancer le projet en local, architecture en un schéma.
+2. **[GUIDE_DEVELOPPEUR.md](GUIDE_DEVELOPPEUR.md)** — conventions, commandes du quotidien.
+3. **[FONCTIONNALITES.md](FONCTIONNALITES.md)** — comment fonctionne chaque fonctionnalité : règles métier, modèles, fichiers.
+4. **[CLAUDE.md](../CLAUDE.md)** — la référence la plus détaillée et la plus à jour, sujet par sujet (règles de calcul, droits, fédération…).
+
+Puis selon le sujet :
+
+| Je travaille sur… | Lire |
+|-------------------|------|
+| l'interface (couleurs, composants, accessibilité) | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) — **obligatoire avant tout code frontend** |
+| les tests | [TESTING.md](TESTING.md) |
+| l'import Excel d'un plan | [IMPORT_PLANS_GUIDE.md](IMPORT_PLANS_GUIDE.md) |
+| l'exploration et l'index de recherche | [RECHERCHE.md](RECHERCHE.md) |
+| la fédération (deux instances + hub en local) | [MULTI_INSTANCE_LOCAL.md](MULTI_INSTANCE_LOCAL.md) |
+| la chaîne de release (commits, versions, images) | [RELEASE_PIPELINE.md](RELEASE_PIPELINE.md) |
+| une copie de données réelles en local | [PARALLEL_REALDATA_STACK.md](PARALLEL_REALDATA_STACK.md) |
+| les valeurs des nomenclatures | [NOMENCLATURES_REFERENCE.md](NOMENCLATURES_REFERENCE.md) |
+
+### …rédiger la notice Word
+
+[NOTICE_UTILISATEUR.md](NOTICE_UTILISATEUR.md) est la source de la notice Word (conversion pandoc, filtre et modèle dans `notice/`). Le site de documentation en reprend le contenu.
+
+---
+
+## Le reste du dossier
+
+| Fichier | Statut |
+|---------|--------|
+| `API_PLANS_GUIDE.md`, `API_USERS_GUIDE.md`, `API_ORGANISMES_SITES_GUIDE.md`, `API_ACTIVITY_GUIDE.md` | Guides d'API historiques, rédigés à la main. **La référence à jour est l'OpenAPI** du site de documentation, générée depuis le code (`scripts/export-openapi.sh`). |
+| `GUIDE_CICADA_COMPLET.md` / `.docx`, `GUIDE_SAISIE_ET_NAVIGATION_PG.md` / `.docx` | Anciens guides d'utilisation (juin–juillet 2026), remplacés par la notice du site. Gardés pour l'historique. |
+| `PRIVACY_POLICY.md` | Politique de confidentialité (les CGU de chaque instance se règlent dans *Administration › Paramètres*). |
+| `CONNEXION_GEONATURE.md`, `DEPLOIEMENT_HUB.md`, `EMAIL_CONFIGURATION.md`, `INFRASTRUCTURE.md`, `INSTALLATION_GUIDE.md`, `MESURE_AUDIENCE.md`, `NOMENCLATURES.md`, `RELEASE_PROCEDURE.md` | Renvois vers le site de documentation (#743). |
+| `analyses/` | Analyses ponctuelles (couverture de tests…). |

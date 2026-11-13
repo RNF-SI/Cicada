@@ -40,6 +40,24 @@ Authentification, permissions, API publique des métadonnées des plans et réf�
 
 </div>
 
+## Je veux…
+
+| Je veux… | Où lire |
+|----------|---------|
+| me connecter, trouver un site ou un plan | [Notice Utilisateur](utilisateur/notice/index.md) |
+| chercher ce que font d'autres gestionnaires | [Explorer les données](utilisateur/notice/exploration.md) |
+| créer un plan de gestion | [Créer un plan](referent/creer-plan.md) |
+| importer un plan depuis Excel | [Importer un plan](referent/parametrage.md#432-importer-un-plan-depuis-un-fichier-excel) |
+| saisir une action, son budget et son temps de travail | [Les actions de gestion](referent/actions.md) |
+| saisir le réalisé d'une année | [Le suivi des actions](referent/suivi.md#492-le-suivi-des-actions-de-gestion) |
+| ajuster la planification de l'année | [La planification annuelle](referent/suivi.md#494-lajustement-de-la-planification-annuelle) |
+| télécharger le plan, les fiches, le budget | [Les exports](referent/exports.md) |
+| gérer les comptes de mon organisme | [Gérer les utilisateurs](admin-organisme/utilisateurs.md) |
+| installer CICADA sur un serveur | [Installation](administration/installation.md) |
+| mettre à jour une instance, sauvegarder, revenir en arrière | [Mettre à jour](administration/installation.md#6-mettre-à-jour), [Sauvegarder et restaurer](administration/installation.md#7-sauvegarder-et-restaurer) |
+| brancher une application sur CICADA | [API : prise en main](api/prise-en-main.md) |
+| développer sur CICADA | Le dépôt GitHub : `README.md`, puis `docs/README.md` |
+
 ## Les différents rôles et profils
 
 Le guide utilisateur rassemble quatre notices. Chacune s'adresse à un profil d'utilisateur différent. Les profils sont cumulatifs : un administrateur peut faire tout ce que fait un utilisateur simple, en plus des fonctions propres à son rôle.
