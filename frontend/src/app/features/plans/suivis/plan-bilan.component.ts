@@ -49,6 +49,7 @@ import {
   RealisationService, BilanResponse, BilanCounts, BilanIndicateursResponse,
   BilanSeriesResponse, BilanFilters, BilanPeriode, BilanEnjeuRef, BilanTypeIndicateur,
 } from '../../../core/services/realisation.service';
+import { PlanGenerateMenuComponent } from '../exports/plan-generate-menu/plan-generate-menu.component';
 
 /**
  * Séries des barres empilées du Bilan — croisé planifiée × réalisée (kit UI).
@@ -81,6 +82,7 @@ type Scope = 'global' | 'mi_parcours' | 'annuel';
   selector: 'app-plan-bilan',
   standalone: true,
   imports: [
+    PlanGenerateMenuComponent,
     CommonModule, RouterModule, FormsModule, TranslateModule,
     MatProgressSpinnerModule, MatMenuModule,
     HeaderComponent, PlanSidebarComponent,

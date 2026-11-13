@@ -47,21 +47,13 @@
             <h1 class="plan-title">{{ 'plans.suivis.bilan.title' | translate }}</h1>
             @if (peutExporter()) {
               <div class="hero-actions">
-                <button class="btn-hero-primary" [matMenuTriggerFor]="genMenu">
+                <app-plan-generate-menu #gen [planId]="planId()" [planSlug]="planSlug()"
+                                        [exports]="['budget-suivi', 'rh-suivi']" [imprimer]="true" />
+                <button class="btn-hero-primary" type="button" [matMenuTriggerFor]="gen.menu" data-testid="plan-generate">
                   <i class="fi fi-rr-download"></i>
                   <span>{{ 'plans.detail.generate' | translate }}</span>
                   <i class="fi fi-rr-angle-small-down"></i>
                 </button>
-                <mat-menu #genMenu="matMenu">
-                  <button mat-menu-item>
-                    <i class="fi fi-rr-file-pdf"></i>
-                    <span>{{ 'plans.suivis.bilan.exportPdf' | translate }}</span>
-                  </button>
-                  <button mat-menu-item>
-                    <i class="fi fi-rr-file-word"></i>
-                    <span>{{ 'plans.suivis.bilan.exportWord' | translate }}</span>
-                  </button>
-                </mat-menu>
               </div>
             }
           </div>

@@ -28,6 +28,7 @@ import { exportFilename } from '../../../shared/utils/csv-export';
 import { downloadBlob } from '../../../shared/utils/chart-image-export';
 import { GridCell, GridExportPayload, GridRow } from '../../../shared/utils/grid-export';
 import { planEndYear } from '../../../shared/utils/plan-periode';
+import { PlanGenerateMenuComponent } from '../exports/plan-generate-menu/plan-generate-menu.component';
 
 type ScoreLevel = 'very-bad' | 'bad' | 'neutral' | 'good' | 'very-good' | 'no-data';
 
@@ -64,6 +65,7 @@ interface IndicatorRow {
   selector: 'app-plan-tableau-de-bord',
   standalone: true,
   imports: [
+    PlanGenerateMenuComponent,
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent, SearchBarComponent,

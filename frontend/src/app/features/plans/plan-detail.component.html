@@ -322,11 +322,15 @@
                     </button>
                   }
                 }
-                <button class="btn-generate">
-                  <i class="fi fi-rr-download"></i>
-                  <span>{{ 'plans.detail.generate' | translate }}</span>
-                  <i class="fi fi-rr-angle-small-down"></i>
-                </button>
+                @if (peutExporter()) {
+                  <app-plan-generate-menu #gen [planId]="planId()" [planSlug]="planSlug()"
+                                          [exports]="['docx', 'presentation', 'fiches', 'fiches-docx']" />
+                  <button class="btn-generate" type="button" [matMenuTriggerFor]="gen.menu" data-testid="plan-generate">
+                    <i class="fi fi-rr-download"></i>
+                    <span>{{ 'plans.detail.generate' | translate }}</span>
+                    <i class="fi fi-rr-angle-small-down"></i>
+                  </button>
+                }
               </div>
             </div>
           }

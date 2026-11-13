@@ -87,11 +87,13 @@ import { planEndYear } from '../../../../shared/utils/plan-periode';
 type TabType = 'detail' | 'olt' | 'operations';
 
 import { SurlignerDirective } from '../../../../shared/directives/surligner.directive';
+import { PlanGenerateMenuComponent } from '../../exports/plan-generate-menu/plan-generate-menu.component';
 
 @Component({
   selector: 'app-enjeux-list',
   standalone: true,
   imports: [
+    PlanGenerateMenuComponent,
     SurlignerDirective,
     CommonModule,
     RouterModule,
@@ -161,6 +163,8 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
    * réponse `by-plan` (`acces_exploration`).
    */
   accesExploration = signal(false);
+  /** #795 — menu « Générer » : réservé à qui peut exporter le plan. */
+  peutExporter = signal(false);
 
   /**
    * #681 — Mot cherché dans l'exploration, transmis dans `?q=` : il est
@@ -725,6 +729,7 @@ export class EnjeuxListComponent implements OnInit, OnDestroy {
       next: (plan) => {
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
+        this.peutExporter.set(plan.peut_exporter === true);
         this.planAnneeDebut.set(plan.annee_debut || null);
         this.planAnneeFin.set(planEndYear(plan) || null);  // #672
         this.planReferentIds.set((plan.referents || []).map(r => r.id_role));

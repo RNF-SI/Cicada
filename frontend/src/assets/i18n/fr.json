@@ -2375,6 +2375,10 @@
       "organismeRedacteur": "Organisme rédacteur principal",
       "viewEnjeux": "Voir les enjeux et FCR",
       "generate": "Générer",
+      "generateMenu": {
+        "print": "Imprimer / enregistrer en PDF",
+        "allExports": "Tous les exports du plan…"
+      },
       "documents": {
         "add": "Ajouter un document",
         "download": "Télécharger",

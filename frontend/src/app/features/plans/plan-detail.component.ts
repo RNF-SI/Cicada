@@ -117,11 +117,13 @@ interface SubAccordion {
 }
 
 import { SurlignerDirective } from '../../shared/directives/surligner.directive';
+import { PlanGenerateMenuComponent } from './exports/plan-generate-menu/plan-generate-menu.component';
 
 @Component({
   selector: 'app-plan-detail',
   standalone: true,
   imports: [
+    PlanGenerateMenuComponent,
     SurlignerDirective,
     CommonModule,
     RouterModule,
@@ -306,6 +308,8 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
    * par l'API (`acces_exploration`).
    */
   accesExploration = computed(() => this.plan()?.acces_exploration === true);
+  /** #795 — menu « Générer » : réservé à qui peut exporter le plan (endpoints `export-*`). */
+  peutExporter = computed(() => this.plan()?.peut_exporter === true);
 
   /** #681 — Mot cherché dans l'exploration (`?q=`), surligné sur la page. */
   motCleSurligne = signal('');

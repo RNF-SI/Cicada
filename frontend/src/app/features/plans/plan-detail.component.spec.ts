@@ -1120,6 +1120,48 @@ describe('PlanDetailComponent', () => {
   // No duplicate button in banner
   // =========================================================================
 
+  // #795 — le bouton « Générer » ouvre le menu des exports du plan.
+  describe('bouton Générer (#795)', () => {
+    const originalCreate = URL.createObjectURL;
+    const originalRevoke = URL.revokeObjectURL;
+    beforeEach(() => {
+      (URL as any).createObjectURL = jest.fn().mockReturnValue('blob:x');
+      (URL as any).revokeObjectURL = jest.fn();
+    });
+    afterEach(() => {
+      (URL as any).createObjectURL = originalCreate;
+      (URL as any).revokeObjectURL = originalRevoke;
+    });
+
+    it('propose les exports du plan et télécharge le document Word', () => {
+      setup({ plan: createMockPlan({ peut_exporter: true }) });
+      (mockAdminService as any).downloadPlanDocx = jest.fn().mockReturnValue(of(new Blob(['x'])));
+      fixture.detectChanges();
+      const bouton = fixture.nativeElement.querySelector('[data-testid="plan-generate"]');
+      expect(bouton).not.toBeNull();
+      bouton.click();
+      fixture.detectChanges();
+      const items = Array.from(document.querySelectorAll('.cdk-overlay-container [mat-menu-item]'))
+        .map(el => el.getAttribute('data-testid'));
+      expect(items).toEqual([
+        'generate-plan-docx-export',
+        'generate-arbo-export-presentation',
+        'generate-fiches-actions-export',
+        'generate-fiches-actions-docx-export',
+        'generate-all-exports',
+      ]);
+      (document.querySelector('[data-testid="generate-plan-docx-export"]') as HTMLElement).click();
+      expect((mockAdminService as any).downloadPlanDocx).toHaveBeenCalledWith(createMockPlan().id_pg);
+    });
+
+    it("est masqué pour qui ne peut pas exporter le plan", () => {
+      setup({ plan: createMockPlan({ peut_exporter: false }) });
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-testid="plan-generate"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('.btn-generate')).toBeNull();
+    });
+  });
+
   describe('no duplicate button in banner', () => {
     it('should NOT have btn-duplicate class in rendered template', () => {
       setup({ isSuperAdmin: true, plan: createMockPlan() });

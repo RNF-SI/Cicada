@@ -46,6 +46,7 @@ import { AjustementsParAction, operationAjustee, ranger } from '../../../shared/
 import { PlanificationAnnuelleService } from '../../../core/services/planification-annuelle.service';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { PlanGenerateMenuComponent } from '../exports/plan-generate-menu/plan-generate-menu.component';
 
 type SuiviTab = 'planification' | 'realisation' | 'budget' | 'rh';
 
@@ -91,6 +92,7 @@ interface FlatOperation {
   selector: 'app-plan-suivi-actions',
   standalone: true,
   imports: [
+    PlanGenerateMenuComponent,
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent, SearchBarComponent,

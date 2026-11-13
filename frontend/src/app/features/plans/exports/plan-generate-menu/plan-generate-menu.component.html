@@ -1,0 +1,23 @@
+<mat-menu #menu="matMenu" xPosition="before">
+  @if (imprimer) {
+    <button mat-menu-item type="button" (click)="imprimerPage()" data-testid="generate-print">
+      <i class="fi fi-rr-print"></i>
+      <span>{{ 'plans.detail.generateMenu.print' | translate }}</span>
+    </button>
+  }
+  @for (item of items; track item.key) {
+    <button mat-menu-item type="button" (click)="telecharger(item)"
+            [disabled]="enCours().has(item.key)"
+            [attr.data-testid]="'generate-' + item.testId">
+      <i [class]="'fi ' + item.icon"></i>
+      <span>{{ item.labelKey | translate }}</span>
+    </button>
+  }
+  @if (planSlug) {
+    <mat-divider></mat-divider>
+    <a mat-menu-item [routerLink]="['/plans', planSlug, 'exports']" data-testid="generate-all-exports">
+      <i class="fi fi-rr-apps"></i>
+      <span>{{ 'plans.detail.generateMenu.allExports' | translate }}</span>
+    </a>
+  }
+</mat-menu>

@@ -655,3 +655,19 @@
   }
 }
 
+
+// #795 — « Générer › Imprimer / enregistrer en PDF » : la page seule, sans
+// l'en-tête, le menu latéral ni les boutons.
+@media print {
+  app-header,
+  app-plan-sidebar,
+  .hero-actions {
+    display: none !important;
+  }
+
+  .plan-main {
+    margin: 0;
+    padding: 0;
+    max-width: none;
+  }
+}

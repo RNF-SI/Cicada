@@ -44,21 +44,15 @@
             </div>
             <h1 class="plan-title">{{ 'plans.suivis.actions.title' | translate }}</h1>
             <div class="hero-actions">
-              <button class="btn-hero-primary" [matMenuTriggerFor]="generateMenu">
-                <i class="fi fi-rr-download"></i>
-                <span>{{ 'plans.detail.generate' | translate }}</span>
-                <i class="fi fi-rr-angle-small-down"></i>
-              </button>
-              <mat-menu #generateMenu="matMenu">
-                <button mat-menu-item>
-                  <i class="fi fi-rr-file-pdf"></i>
-                  <span>Exporter en PDF</span>
+              @if (peutExporter()) {
+                <app-plan-generate-menu #gen [planId]="planId()" [planSlug]="planSlug()"
+                                        [exports]="['budget-suivi', 'rh-suivi', 'budget-prev', 'rh-prev']" />
+                <button class="btn-hero-primary" type="button" [matMenuTriggerFor]="gen.menu" data-testid="plan-generate">
+                  <i class="fi fi-rr-download"></i>
+                  <span>{{ 'plans.detail.generate' | translate }}</span>
+                  <i class="fi fi-rr-angle-small-down"></i>
                 </button>
-                <button mat-menu-item>
-                  <i class="fi fi-rr-file-word"></i>
-                  <span>Exporter en Word</span>
-                </button>
-              </mat-menu>
+              }
             </div>
           </div>
         </div>

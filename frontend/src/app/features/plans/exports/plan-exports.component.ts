@@ -18,7 +18,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { Observable } from 'rxjs';
 
 import { HeaderComponent } from '../../../shared/components/header/header.component';
 import { PlanSidebarComponent } from '../shared/plan-sidebar/plan-sidebar.component';
@@ -26,22 +25,14 @@ import { AdminService } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { AdminPlan } from '../../../core/models/admin.model';
 import { planEndYear } from '../../../shared/utils/plan-periode';
+import {
+  PLAN_EXPORT_GROUPS,
+  PlanExportItem,
+  enregistrerFichier,
+  planExportCatalog,
+} from './plan-exports.catalog';
 
-/** Un export téléchargeable du plan. */
-export interface PlanExportItem {
-  /** Identifiant interne (clé de l'indicateur de chargement). */
-  key: string;
-  /** `data-testid` du bouton (stable pour les tests E2E). */
-  testId: string;
-  /** Classe d'icône Flaticon. */
-  icon: string;
-  labelKey: string;
-  hintKey: string;
-  request: (planId: number, annee: number) => Observable<Blob>;
-  filename: (slug: string, annee: number) => string;
-  /** #727 — export d'une année du plan, choisie à côté du bouton. */
-  parAnnee?: boolean;
-}
+export type { PlanExportItem } from './plan-exports.catalog';
 
 /** Groupe d'exports affiché en section. */
 export interface PlanExportGroup {
@@ -123,137 +114,12 @@ export class PlanExportsComponent implements OnInit {
   /** Clés des exports en cours de téléchargement (plusieurs en parallèle possible). */
   readonly downloading = signal<ReadonlySet<string>>(new Set<string>());
 
-  readonly groups: PlanExportGroup[] = [
-    {
-      titleKey: 'plans.exports.groups.documents',
-      items: [
-        {
-          key: 'docx',
-          testId: 'plan-docx-export',
-          icon: 'fi-rr-file-word',
-          labelKey: 'plans.exports.docx',
-          hintKey: 'plans.exports.docxHint',
-          request: id => this.adminService.downloadPlanDocx(id),
-          filename: slug => `plan-de-gestion-${slug}.docx`,
-        },
-        {
-          key: 'presentation',
-          testId: 'arbo-export-presentation',
-          icon: 'fi-rr-file-spreadsheet',
-          labelKey: 'plans.exports.presentation',
-          hintKey: 'plans.exports.presentationHint',
-          request: id => this.adminService.downloadArborescencePresentation(id),
-          filename: slug => `arborescence-presentation-${slug}.xlsx`,
-        },
-        {
-          key: 'fiches',
-          testId: 'fiches-actions-export',
-          icon: 'fi-rr-clipboard-list',
-          labelKey: 'plans.exports.fichesActions',
-          hintKey: 'plans.exports.fichesActionsHint',
-          request: id => this.adminService.downloadFichesActions(id),
-          filename: slug => `fiches-actions-${slug}.xlsx`,
-        },
-        {
-          key: 'fiches-docx',
-          testId: 'fiches-actions-docx-export',
-          icon: 'fi-rr-file-word',
-          labelKey: 'plans.exports.fichesActionsDocx',
-          hintKey: 'plans.exports.fichesActionsDocxHint',
-          request: id => this.adminService.downloadFichesActionsDocx(id),
-          filename: slug => `fiches-actions-${slug}.docx`,
-        },
-      ],
-    },
-    {
-      titleKey: 'plans.exports.groups.finance',
-      items: [
-        {
-          key: 'budget-prev',
-          testId: 'budget-prev-export',
-          icon: 'fi-rr-coins',
-          labelKey: 'plans.exports.budgetPrev',
-          hintKey: 'plans.exports.budgetPrevHint',
-          request: id => this.adminService.downloadBudgetPrevisionnel(id),
-          filename: slug => `budget-previsionnel-${slug}.xlsx`,
-        },
-        {
-          key: 'budget-suivi',
-          testId: 'budget-suivi-export',
-          icon: 'fi-rr-coins',
-          labelKey: 'plans.exports.budgetSuivi',
-          hintKey: 'plans.exports.budgetSuiviHint',
-          request: id => this.adminService.downloadBudgetSuivi(id),
-          filename: slug => `budget-suivi-${slug}.xlsx`,
-        },
-        {
-          key: 'rh-prev',
-          testId: 'rh-prev-export',
-          icon: 'fi-rr-users',
-          labelKey: 'plans.exports.rhPrev',
-          hintKey: 'plans.exports.rhPrevHint',
-          request: id => this.adminService.downloadRhPrevisionnel(id),
-          filename: slug => `rh-previsionnel-${slug}.xlsx`,
-        },
-        {
-          key: 'rh-suivi',
-          testId: 'rh-suivi-export',
-          icon: 'fi-rr-users',
-          labelKey: 'plans.exports.rhSuivi',
-          hintKey: 'plans.exports.rhSuiviHint',
-          request: id => this.adminService.downloadRhSuivi(id),
-          filename: slug => `rh-suivi-${slug}.xlsx`,
-        },
-        {
-          // #727 — fiche de suivi de chaque action suivie l'année choisie.
-          key: 'fiches-suivi',
-          testId: 'fiches-suivi-export',
-          icon: 'fi-rr-memo-circle-check',
-          labelKey: 'plans.exports.fichesSuivi',
-          hintKey: 'plans.exports.fichesSuiviHint',
-          request: (id, annee) => this.adminService.downloadFichesSuivi(id, annee),
-          filename: (slug, annee) => `fiches-suivi-${slug}-${annee}.xlsx`,
-          parAnnee: true,
-        },
-        {
-          // #794 — planification annuelle ajustée de l'année choisie.
-          key: 'planification-annuelle',
-          testId: 'planification-annuelle-export',
-          icon: 'fi-rr-calendar',
-          labelKey: 'plans.exports.planificationAnnuelle',
-          hintKey: 'plans.exports.planificationAnnuelleHint',
-          request: (id, annee) => this.adminService.downloadPlanificationAnnuelle(id, annee),
-          filename: (slug, annee) => `planification-annuelle-${slug}-${annee}.xlsx`,
-          parAnnee: true,
-        },
-      ],
-    },
-    {
-      titleKey: 'plans.exports.groups.data',
-      items: [
-        {
-          key: 'arborescence',
-          testId: 'arbo-export-prefilled',
-          icon: 'fi-rr-download',
-          labelKey: 'plans.exports.arborescence',
-          hintKey: 'plans.exports.arborescenceHint',
-          request: id => this.adminService.downloadArborescenceTemplate(id, false),
-          filename: slug => `arborescence-${slug}.xlsx`,
-        },
-        {
-          // #786 — actions de gestion dans le classeur d'import des actions,
-          // réimportable dans un autre plan ou sur une autre instance.
-          key: 'actions',
-          testId: 'actions-export-reimportable',
-          icon: 'fi-rr-download',
-          labelKey: 'plans.exports.actions',
-          hintKey: 'plans.exports.actionsHint',
-          request: id => this.adminService.downloadActionsTemplate(id),
-          filename: slug => `actions-${slug}.xlsx`,
-        },
-      ],
-    },
-  ];
+  private readonly catalogue = planExportCatalog(this.adminService);
+
+  readonly groups: PlanExportGroup[] = PLAN_EXPORT_GROUPS.map(g => ({
+    titleKey: g.titleKey,
+    items: g.keys.map(k => this.catalogue[k]),
+  }));
 
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
@@ -318,11 +184,7 @@ export class PlanExportsComponent implements OnInit {
   }
 
   private triggerBlobDownload(blob: Blob, filename: string): void {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
+    enregistrerFichier(blob, filename);
   }
+
 }

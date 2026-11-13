@@ -8,6 +8,17 @@ La rubrique « Exports » permet de télécharger le contenu du plan. Elle est r
 | **Budget et ressources humaines** | Budget prévisionnel (Excel)<br>Suivi budgétaire (Excel)<br>RH prévisionnelle (Excel)<br>Suivi RH (Excel)<br>Fiches de suivi des actions (Excel, pour une année choisie)<br>Planification annuelle (Excel, pour une année choisie) |
 | **Données brutes** | Contenu du plan (Excel, au format du modèle d'import : réimportable dans un autre plan en brouillon)<br>Actions (Excel, format réimportable) |
 
+Le bouton « **Générer** », en haut des pages du plan, propose directement les exports utiles à la page. La dernière entrée, « Tous les exports du plan… », ouvre cette rubrique. Le bouton n'apparaît qu'à ceux qui ont accès aux exports.
+
+| Page | Menu « Générer » |
+|------|------------------|
+| Page du plan | Fiche plan de gestion (Word), arborescence (présentation), fiches action (Excel et Word) |
+| Arborescence | Arborescence (présentation), contenu du plan (Excel), fiche plan de gestion (Word) |
+| Suivi des actions | Suivi budgétaire, suivi RH, budget prévisionnel, RH prévisionnelle (Excel) |
+| Bilan, Tableau de bord | « Imprimer / enregistrer en PDF » (impression du navigateur, sans l'en-tête ni le menu), suivi budgétaire et suivi RH (Excel) |
+
+Les exports d'une année choisie (fiches de suivi, planification annuelle) restent dans cette rubrique.
+
 Les exports suivent le **paramétrage de ventilation** des actions ([§ 4.8.1](actions.md#481-la-saisie-dune-action-de-gestion)) :
 
 - **Fiches action (Excel et Word)** : chaque fiche reprend ce que le gestionnaire a saisi pour l'action. Sans ventilation par type de budget, ni le budget ni le temps de travail ne distinguent fonctionnement et investissement ; sans ventilation par organisme, il n'y a pas de bloc par organisme ; sans déclinaison par type de coût, seuls les totaux figurent. Une action **programmée globalement sur sa période** n'a qu'une colonne « Période … » pour son budget et son temps de travail, sans colonnes d'années vides.
