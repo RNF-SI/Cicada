@@ -46,11 +46,14 @@ La programmation du plan de gestion reste la référence. Chaque année, le gest
 | `GET /api/plans/planification-annuelle/plan/{plan_id}/?annee=` | Tableau de l'année : pour chaque action, prévu du plan (`pg`, et `pg_global` pour une programmation globale), prévu ajusté (`ajuste`), divergence, reports reçus, réalisé ; `revues` / `total` actions revues |
 | `GET …/plan/{plan_id}/ajustements/` | Toutes les années ajustées des actions du plan (contenu, coût jour et organisme des postes des lignes de temps), pour que le suivi calcule son prévu sur la planification ajustée |
 | `GET/PUT/DELETE …/operation/{operation_id}/{annee}/` | Ajustement d'une action pour une année : `PUT` le remplace (organismes, temps et financeurs compris) et marque l'action revue, même sans changement ; `DELETE` revient au plan de gestion |
+| `POST …/operation/{operation_id}/{annee}/reglages/` | La saisie en cours (`contenu`) réécrite selon un autre réglage de l'année (`reglages` : `declinaison_par_type_cout`, `cout_salarial_auto`, `declinaison_par_poste`), total conservé ; rend `contenu`, `reglages` effectifs et `resume`. Rien n'est enregistré |
 | `POST …/operation/{operation_id}/{annee}/report/` | Report de l'action (`annee_report`), avec `apercu: true` pour l'avant / après sans rien écrire |
 
 Le détail d'une action pour une année porte aussi `choix` : les organismes (gestionnaires du plan et organismes de l'action), les postes (avec leur coût jour) et les financeurs du plan, nommés, que le formulaire d'ajustement peut proposer.
 
 Le contenu d'une année a la forme de la programmation du plan : mêmes champs que l'année d'une action (`budget`, `budget_fonctionnement`, `cout_salarial`…), `organismes`, `rh_lignes`, plus `statut`, `periodicite_mensuelle` et `financeurs`. Les totaux (`budget`, `jours`) sont calculés par les règles des exports.
+
+Chaque année ajustée a ses propres réglages de saisie : `declinaison_par_type_cout`, `cout_salarial_auto` et `declinaison_par_poste` (`null` : ceux de l'action). Les totaux de l'année, le Bilan et les exports les appliquent. Comme au suivi, les déclinaisons de la fiche action s'imposent : les décocher pour l'année est refusé (400). Le détail rend les réglages effectifs de l'année dans `effectif_reglages`.
 
 Les règles du report :
 

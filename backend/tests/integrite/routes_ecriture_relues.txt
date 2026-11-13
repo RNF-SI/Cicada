@@ -82,6 +82,7 @@ DELETE FonctionViewSet.destroy            # idem
 PUT AjustementAnnuelView                  # #794 : assert_suivi_access (saisie), plan validé
 DELETE AjustementAnnuelView               # idem
 POST ReportAnnuelView                     # idem
+POST ReglagesAnnuelsView                 # idem (n'écrit rien : conversion de la saisie)
 POST ActualiserElementView                # referentiels.moteur.peut_actualiser (plan : référent ; site : can_manage_site)
 POST AccepterPropositionsReferentielView  # plans_q_pour(user) borne les objets
 POST AccepterPropositionsView             # idem (types d'action)

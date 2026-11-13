@@ -43,7 +43,9 @@ Les exports suivent le **paramétrage de ventilation** des actions ([§ 4.8.1](a
 
 - **Planification annuelle** : choisir l'année sous le bouton (le même classeur s'exporte depuis la page « Ajustement planification annuelle », pour l'année affichée). Calqué sur le budget et les RH prévisionnels, réduit à l'année :
     - onglet **Budget** : pour chaque action, son statut de l'année (avec les reports reçus), le budget du **plan de gestion**, le budget **ajusté** et l'**écart**, et la part fonctionnement / investissement de l'ajusté si une action distingue les types de budget ; puis un onglet par organisme gestionnaire quand une action ventile son budget par organisme. Une action programmée globalement affiche, côté plan de gestion, son budget « sur la période » ;
+    - onglet **Détail budget** : le coût de chaque action décliné par type de coût (coût salarial, stage, prestataire, autres ; fonctionnement et investissement séparés si l'action distingue les types de budget), plan de gestion, ajusté et écart, puis le total de l'action. Une action en enveloppes, au plan comme pour l'année, n'a que ses lignes de budget ;
     - onglet **RH** : jours d'agents du plan de gestion, ajustés et l'écart, et le temps bénévole ou partenaire ajusté à part ;
+    - onglet **Détail RH** : le temps de chaque action par type de poste (ou par organisme, ou en un total, selon la saisie), plan de gestion, ajusté et écart ; le total de l'action ne compte que le temps des agents ;
     - onglet **Financeurs** : par action et par financeur, le montant prévu par le plan de gestion (sur toute l'action) et le montant prévu pour l'année ;
     - onglet **Calendrier** : mois de réalisation de l'année, ● pour la planification ajustée, ○ pour un mois du plan de gestion seul.
 

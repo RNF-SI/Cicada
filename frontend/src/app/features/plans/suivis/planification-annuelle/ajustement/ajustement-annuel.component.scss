@@ -480,3 +480,65 @@ textarea { width: 100%; resize: vertical; }
   gap: $spacing-sm;
   flex-wrap: wrap;
 }
+
+// Retour 13/11 — comme la saisie du suivi (#762) : « Modifier » et « Annuler
+// les modifications » en tête du formulaire.
+.saisie-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-md;
+
+  .text-mention {
+    margin: 0;
+  }
+}
+
+.saisie-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-left: auto;
+
+  i {
+    margin-right: $spacing-xs;
+  }
+}
+
+// Réglages de saisie de l'année (déclinaisons, coût salarial).
+.reglages {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+// Lignes de total des tableaux (budget, temps de travail).
+.saisie-table tfoot {
+  td {
+    font-weight: $font-weight-bold;
+    color: $black;
+    border-top: 2px solid $primary-color;
+  }
+
+  .ligne-sous-total td {
+    font-weight: $font-weight-bold;
+    border-top: 1px solid $gray-light;
+  }
+
+  .ligne-sous-total + .ligne-total td,
+  .ligne-total:first-child td {
+    border-top: 2px solid $primary-color;
+  }
+
+  .valeur-total {
+    display: block;
+  }
+}
+
+.saisie-table .col-total-org {
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+}

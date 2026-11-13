@@ -69,6 +69,8 @@ CHAMPS_COUTS_ORGANISME = (
 )
 CHAMPS_COUTS_ANNEE = ('budget',) + CHAMPS_COUTS_ORGANISME
 CHAMPS_COMMENTAIRES_COUTS = ('autre_cout_commentaire', 'autre_cout_invest_commentaire')
+#: Réglages de saisie propres à une année ajustée (null : ceux de l'action).
+REGLAGES_ANNUELS = ('declinaison_par_type_cout', 'cout_salarial_auto', 'declinaison_par_poste')
 
 
 class AjustementAnnuel(_CoutsAjustes):
@@ -103,6 +105,15 @@ class AjustementAnnuel(_CoutsAjustes):
         _("Mois de réalisation prévus"), default=dict, blank=True,
         help_text=_('Format: {"1": true, "2": false, ..., "12": true}'))
     commentaire = models.TextField(_("Commentaire de l'ajustement"), blank=True, default='')
+    # Réglages de saisie de l'année, comme ceux du suivi (#741) : null = ceux
+    # de l'action. Les déclinaisons du plan de gestion s'imposent ; l'année
+    # peut en ajouter, et saisir son coût salarial plutôt que le calculer.
+    declinaison_par_type_cout = models.BooleanField(
+        _("Déclinaison par type de coût (année)"), null=True, blank=True)
+    cout_salarial_auto = models.BooleanField(
+        _("Coût salarial calculé automatiquement (année)"), null=True, blank=True)
+    declinaison_par_poste = models.BooleanField(
+        _("Déclinaison par type de poste (année)"), null=True, blank=True)
     date_revue = models.DateTimeField(_("Revue le"), null=True, blank=True)
     id_utilisateur_revue = models.ForeignKey(
         'users.Role', on_delete=models.SET_NULL, null=True, blank=True, related_name='+',

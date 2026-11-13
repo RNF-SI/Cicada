@@ -11,6 +11,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
+import { CheckboxComponent } from '../../../../../shared/components/checkbox/checkbox.component';
 import { HeaderComponent } from '../../../../../shared/components/header/header.component';
 import { TagComponent } from '../../../../../shared/components/tag/tag.component';
 import {
@@ -20,12 +21,13 @@ import { PlanSidebarComponent } from '../../../shared/plan-sidebar/plan-sidebar.
 import { AdminService } from '../../../../../core/services/admin.service';
 import { PlanificationAnnuelleService } from '../../../../../core/services/planification-annuelle.service';
 import {
-  ApercuReport, ContenuAnnuel, DetailAnnuel, OrganismeAjuste, RhAjuste,
+  ApercuReport, ContenuAnnuel, DetailAnnuel, OrganismeAjuste, ReglagesAction, ReglagesAnnee, RhAjuste,
 } from '../../../../../core/models/planification-annuelle.model';
+import { salaryOptionAvailable } from '../../../../../shared/utils/operation-budget';
 import { PLANIFICATION_STATUT_TAG, TagAppearance } from '../../../../../shared/utils/tag-icons';
 import {
   ChampCout, DispositionAjustement, LigneBudget, dispositionAjustement, organismeDeLaLigne,
-  salaireCalcule, totauxSaisis,
+  reglagesDeLAnnee, salaireCalcule, totauxBudget, totauxSaisis,
 } from '../ajustement-layout';
 import { statutAnnuelKey } from '../plan-planification-annuelle.component';
 import {
@@ -45,6 +47,11 @@ function copie<T>(valeur: T): T {
  * commentaire, à côté de la programmation du plan de gestion qui reste la
  * référence. Enregistrer marque l'action revue ; le report passe par une
  * modale avec aperçu.
+ *
+ * Retour 13/11 : l'année a ses propres réglages de saisie (déclinaison par type
+ * de coût, par type de poste, coût salarial calculé ou saisi) ; une action
+ * revue s'ouvre en lecture, « Modifier » rouvre la saisie (comme le suivi,
+ * #762) ; « Annuler les modifications » revient au plan de gestion.
  */
 @Component({
   selector: 'app-ajustement-annuel',
@@ -52,6 +59,7 @@ function copie<T>(valeur: T): T {
   imports: [
     CommonModule, FormsModule, RouterModule, MatButtonModule, MatProgressSpinnerModule,
     MatTooltipModule, TranslateModule, HeaderComponent, PlanSidebarComponent, TagComponent,
+    CheckboxComponent,
   ],
   templateUrl: './ajustement-annuel.component.html',
   styleUrl: './ajustement-annuel.component.scss',
@@ -77,6 +85,12 @@ export class AjustementAnnuelComponent implements OnInit {
 
   isLoading = signal(true);
   enregistrement = signal(false);
+  /** Conversion de la saisie en cours après un changement de réglage. */
+  conversion = signal(false);
+  /** « Modifier » cliqué : l'action revue repasse en saisie. */
+  editionDemandee = signal(false);
+  /** Réglages de saisie effectifs de l'année en cours de saisie. */
+  reglagesAnnee = signal<ReglagesAction | null>(null);
   errorMessage = signal<string | null>(null);
 
   detail = signal<DetailAnnuel | null>(null);
@@ -88,8 +102,13 @@ export class AjustementAnnuelComponent implements OnInit {
   ordre = signal<number[]>([]);
 
   disposition = computed<DispositionAjustement | null>(() => {
+    const r = this.reglagesAnnee();
+    return r ? dispositionAjustement(r) : null;
+  });
+  /** Disposition du plan de gestion (colonne « plan de gestion »). */
+  dispositionPg = computed<DispositionAjustement | null>(() => {
     const d = this.detail();
-    return d ? dispositionAjustement(d.reglages) : null;
+    return d ? dispositionAjustement(reglagesDeLAnnee(d.reglages, d.pg)) : null;
   });
 
   planNonValide = computed(() => {
@@ -97,6 +116,12 @@ export class AjustementAnnuelComponent implements OnInit {
     return !!s && !['valide', 'modifie', 'mi_parcours', 'archive'].includes(s);
   });
   lectureSeule = computed(() => !this.detail()?.peut_saisir);
+  /** Action revue pour l'année : affichée en lecture tant que « Modifier »
+   *  n'est pas cliqué. Une action pas encore revue s'ouvre en saisie. */
+  enLecture = computed(() =>
+    !this.lectureSeule() && !!this.detail()?.ajustement?.date_revue && !this.editionDemandee());
+  /** Rien ne se saisit : consultation seule ou action revue en lecture. */
+  verrouille = computed(() => this.lectureSeule() || this.enLecture());
 
   precedente = computed(() => this.voisine(-1));
   suivante = computed(() => this.voisine(1));
@@ -151,9 +176,16 @@ export class AjustementAnnuelComponent implements OnInit {
     contenu.financeurs ??= [];
     contenu.periodicite_mensuelle ??= {};
     this.contenu = contenu;
+    this.majReglages();
     this.completerTemps();
     this.reference = JSON.stringify(this.contenu);
+    this.editionDemandee.set(false);
     this.isLoading.set(false);
+  }
+
+  private majReglages(): void {
+    const d = this.detail();
+    this.reglagesAnnee.set(d ? reglagesDeLAnnee(d.reglages, this.contenu) : null);
   }
 
   private echec(status?: number): void {
@@ -190,14 +222,66 @@ export class AjustementAnnuelComponent implements OnInit {
   }
 
   choisirStatut(statut: 'planifiee' | 'non_prevue'): void {
-    if (this.lectureSeule()) return;
+    if (this.verrouille()) return;
     this.contenu.statut = statut;
     if (statut === 'planifiee' && !this.contenu.organismes?.length && !this.contenu.rh_lignes?.length) {
       // Repartir de la programmation du plan de gestion plutôt que de zéro.
       const pg = copie(this.detail()!.pg);
       Object.assign(this.contenu, pg, { statut, commentaire: this.contenu.commentaire });
+      this.majReglages();
     }
     this.completerTemps();
+  }
+
+  // --- Réglages de l'année (retour 13/11) ---------------------------------------
+
+  /** La fiche action impose la déclinaison : la case est cochée et figée. */
+  reglageImpose(nom: keyof ReglagesAnnee): boolean {
+    const r = this.detail()?.reglages;
+    if (!r) return false;
+    if (nom === 'declinaison_par_type_cout') return r.declinaison_par_type_cout;
+    if (nom === 'declinaison_par_poste') return r.temps_par_poste;
+    return false;
+  }
+
+  /** Case « coût salarial calculé » : coûts détaillés et temps par poste. */
+  optionSalaire(): boolean {
+    const disp = this.disposition();
+    return !!disp && salaryOptionAvailable(disp.detail, disp.rhMode === 'postes');
+  }
+
+  /**
+   * Change un réglage de l'année : le serveur réécrit la saisie en cours
+   * (enveloppe ↔ autres coûts, coût salarial calculé → saisi, temps par poste
+   * regroupé), total conservé. Rien n'est enregistré avant « Enregistrer ».
+   */
+  changerReglage(nom: keyof ReglagesAnnee, valeur: boolean): void {
+    const op = this.operationId(), annee = this.annee();
+    if (!op || !annee || this.verrouille() || this.reglageImpose(nom)) return;
+    this.conversion.set(true);
+    this.service.convertir(op, annee, this.contenuAEnvoyer(), { [nom]: valeur }).subscribe({
+      next: (r) => {
+        this.conversion.set(false);
+        const contenu = copie(r.contenu);
+        contenu.organismes ??= [];
+        contenu.rh_lignes ??= [];
+        contenu.financeurs ??= [];
+        contenu.periodicite_mensuelle ??= {};
+        this.contenu = contenu;
+        this.majReglages();
+        this.completerTemps();
+      },
+      error: (err) => {
+        this.conversion.set(false);
+        this.snackBar.open(this.messageErreur(err),
+          this.translate.instant('common.actions.close'), { duration: 6000 });
+      },
+    });
+  }
+
+  /** « Modifier » : l'action revue repasse en saisie. */
+  modifier(): void {
+    if (!this.lectureSeule()) this.editionDemandee.set(true);
   }
 
   /**
@@ -222,7 +306,7 @@ export class AjustementAnnuelComponent implements OnInit {
   }
 
   basculerMois(m: string): void {
-    if (this.lectureSeule() || !this.planifiee()) return;
+    if (this.verrouille() || !this.planifiee()) return;
     const mois = { ...(this.contenu.periodicite_mensuelle ?? {}) };
     if (mois[m]) delete mois[m]; else mois[m] = true;
     this.contenu.periodicite_mensuelle = mois;
@@ -328,6 +412,18 @@ export class AjustementAnnuelComponent implements OnInit {
     return (this.contenu.rh_lignes ?? []).filter(l => l.id_poste != null);
   }
 
+  /** Temps décliné par poste : lignes saisies sans poste (avant que la case
+   *  soit cochée), gardées à répartir par poste. */
+  lignesSansPoste(): RhAjuste[] {
+    return (this.contenu.rh_lignes ?? []).filter(l => l.id_poste == null && (l.jours ?? '') !== '');
+  }
+
+  libelleSansPoste(ligne: RhAjuste): string {
+    return ligne.id_organisme != null
+      ? this.nomOrganisme(ligne.id_organisme)
+      : this.translate.instant('plans.suivis.planificationAnnuelle.ajustement.tempsTotal');
+  }
+
   retirerLigne(ligne: RhAjuste): void {
     this.contenu.rh_lignes = (this.contenu.rh_lignes ?? []).filter(l => l !== ligne);
   }
@@ -372,8 +468,35 @@ export class AjustementAnnuelComponent implements OnInit {
   // --- Totaux ------------------------------------------------------------------
 
   totaux(): { budget: number; jours: number } {
+    const d = this.detail(), r = this.reglagesAnnee();
+    return d && r ? totauxSaisis(this.contenu, d.choix, r) : { budget: 0, jours: 0 };
+  }
+
+  /** Totaux du budget ajusté (fonctionnement, investissement, total), d'un
+   *  organisme ou de l'année. */
+  totalAjuste(organisme?: number): { fonctionnement: number; investissement: number; total: number } {
+    const d = this.detail(), r = this.reglagesAnnee();
+    return d && r ? totauxBudget(this.contenu, d.choix, r, organisme)
+      : { fonctionnement: 0, investissement: 0, total: 0 };
+  }
+
+  /** Mêmes totaux pour la programmation du plan de gestion. */
+  totalPg(organisme?: number): { fonctionnement: number; investissement: number; total: number } {
     const d = this.detail();
-    return d ? totauxSaisis(this.contenu, d.choix, d.reglages) : { budget: 0, jours: 0 };
+    return d ? totauxBudget(d.pg, d.choix, reglagesDeLAnnee(d.reglages, d.pg), organisme)
+      : { fonctionnement: 0, investissement: 0, total: 0 };
+  }
+
+  /** Montant ajusté d'une ligne du budget, tous organismes confondus. */
+  totalLigne(ligne: LigneBudget): number {
+    if (ligne.calcule) return this.salaire(ligne);
+    return (this.contenu.organismes ?? []).reduce(
+      (t, o) => t + this.num((o as unknown as Record<string, string | null>)[ligne.champ]), 0);
+  }
+
+  joursTotaux(source: 'pg' | 'ajuste'): number {
+    const lignes = source === 'pg' ? this.detail()?.pg.rh_lignes : this.contenu.rh_lignes;
+    return (lignes ?? []).reduce((t, l) => t + this.num(l.jours), 0);
   }
 
   num(valeur: string | number | null | undefined): number {
@@ -397,7 +520,7 @@ export class AjustementAnnuelComponent implements OnInit {
   /** Enregistre l'ajustement (l'action est revue) ; `ensuite` : action suivante. */
   enregistrer(ensuite = false): void {
     const op = this.operationId(), annee = this.annee();
-    if (!op || !annee || this.lectureSeule()) return;
+    if (!op || !annee || this.verrouille()) return;
     this.enregistrement.set(true);
     this.service.enregistrer(op, annee, this.contenuAEnvoyer()).subscribe({
       next: (detail) => {
@@ -441,13 +564,24 @@ export class AjustementAnnuelComponent implements OnInit {
     return this.translate.instant('plans.suivis.planificationAnnuelle.ajustement.erreurEnregistrement');
   }
 
+  /**
+   * « Annuler les modifications » : revient à la programmation du plan de
+   * gestion pour l'année. Ajustement enregistré : supprimé après confirmation ;
+   * sinon la saisie en cours est simplement abandonnée.
+   */
   revenirAuPlan(): void {
     const op = this.operationId(), annee = this.annee();
-    if (!op || !annee) return;
+    const d = this.detail();
+    if (!op || !annee || !d || this.lectureSeule()) return;
+    if (!d.ajustement) {
+      this.afficher(d);
+      return;
+    }
     const data: ConfirmDialogData = {
       title: this.translate.instant('plans.suivis.planificationAnnuelle.ajustement.revenirTitre'),
       message: this.translate.instant('plans.suivis.planificationAnnuelle.ajustement.revenirMessage'),
-      confirmText: this.translate.instant('plans.suivis.planificationAnnuelle.ajustement.revenir'),
+      confirmText: this.translate.instant('plans.suivis.planificationAnnuelle.ajustement.revenir',
+        { annee: this.annee() }),
     };
     this.dialog.open(ConfirmDialogComponent, { data, width: '560px', maxWidth: '95vw' })
       .afterClosed().subscribe(ok => {

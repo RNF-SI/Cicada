@@ -24,7 +24,7 @@ from .views_referentiels import (
 from .views_referentiels_admin import EtatReferentielsView, PassageReferentielView
 from .views_referentiels_donnees import ReferentielDonneesCsvView, ReferentielsDonneesView
 from .views_planification_annuelle import (
-    AjustementAnnuelView, AjustementsDuPlanView, ReportAnnuelView,
+    AjustementAnnuelView, AjustementsDuPlanView, ReglagesAnnuelsView, ReportAnnuelView,
     TableauPlanificationAnnuelleView,
 )
 from .views_indicateurs import IndicateurViewSet, MetriqueViewSet, MesureViewSet, IndicateurMesureViewSet
@@ -100,6 +100,8 @@ urlpatterns = [
          name='planification-annuelle-ajustements'),
     path('planification-annuelle/operation/<int:operation_id>/<int:annee>/',
          AjustementAnnuelView.as_view(), name='planification-annuelle-ajustement'),
+    path('planification-annuelle/operation/<int:operation_id>/<int:annee>/reglages/',
+         ReglagesAnnuelsView.as_view(), name='planification-annuelle-reglages'),
     path('planification-annuelle/operation/<int:operation_id>/<int:annee>/report/',
          ReportAnnuelView.as_view(), name='planification-annuelle-report'),
 

@@ -62,6 +62,12 @@ export function anneeAjustee(pg: OperationAnnee | undefined, aj: AjustementDuPla
     ajustee: true,
     statut_annuel: aj.statut,
     annee_report: aj.annee_report ?? null,
+    // Retour 13/11 — réglages de saisie propres à l'année ajustée.
+    reglages_ajustes: {
+      declinaison_par_type_cout: aj.declinaison_par_type_cout ?? null,
+      cout_salarial_auto: aj.cout_salarial_auto ?? null,
+      declinaison_par_poste: aj.declinaison_par_poste ?? null,
+    },
   };
   for (const champ of CHAMPS_ANNEE) {
     annee[champ] = planifiee ? (aj as unknown as Record<string, unknown>)[champ] ?? null

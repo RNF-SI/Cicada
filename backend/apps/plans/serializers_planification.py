@@ -81,6 +81,16 @@ class ContenuAnnuelSerializer(_CoutsSerializer):
     organismes = OrganismeAjusteSerializer(many=True, required=False, default=list)
     rh_lignes = RhAjusteSerializer(many=True, required=False, default=list)
     financeurs = FinanceurAjusteSerializer(many=True, required=False, default=list)
+    # Réglages de saisie propres à l'année (retour 13/11) ; null = ceux de l'action.
+    declinaison_par_type_cout = serializers.BooleanField(
+        required=False, allow_null=True, default=None,
+        help_text="Déclinaison par type de coût pour l'année (null : celle de l'action).")
+    cout_salarial_auto = serializers.BooleanField(
+        required=False, allow_null=True, default=None,
+        help_text="Coût salarial calculé (jours × coût jour) pour l'année ; faux : saisi.")
+    declinaison_par_poste = serializers.BooleanField(
+        required=False, allow_null=True, default=None,
+        help_text="Temps de travail par type de poste pour l'année (null : celui de l'action).")
 
     def validate_periodicite_mensuelle(self, valeur):
         inconnus = sorted(set(valeur) - {str(m) for m in range(1, 13)})
@@ -157,6 +167,31 @@ class ReglagesActionSerializer(serializers.Serializer):
     temps_par_poste = serializers.BooleanField()
 
 
+class ReglagesAnneeSerializer(serializers.Serializer):
+    """Réglages effectifs de l'année (ceux de l'action à défaut)."""
+    declinaison_par_type_cout = serializers.BooleanField()
+    cout_salarial_auto = serializers.BooleanField()
+    declinaison_par_poste = serializers.BooleanField()
+
+
+class ReglagesPartielsSerializer(serializers.Serializer):
+    declinaison_par_type_cout = serializers.BooleanField(required=False)
+    cout_salarial_auto = serializers.BooleanField(required=False)
+    declinaison_par_poste = serializers.BooleanField(required=False)
+
+
+class ConversionDemandeSerializer(serializers.Serializer):
+    """La saisie en cours et le réglage qui change."""
+    contenu = ContenuAnnuelSerializer()
+    reglages = ReglagesPartielsSerializer()
+
+
+class ConversionSerializer(serializers.Serializer):
+    contenu = ContenuAnnuelSerializer()
+    reglages = ReglagesAnneeSerializer()
+    resume = ResumeAnnuelSerializer()
+
+
 class AjustementLuSerializer(ContenuAnnuelSerializer):
     id_ajustement_annuel = serializers.IntegerField()
     date_revue = serializers.DateTimeField(allow_null=True)
@@ -205,6 +240,8 @@ class DetailAnnuelSerializer(serializers.Serializer):
     ajustement = AjustementLuSerializer(allow_null=True)
     effectif = ContenuAnnuelSerializer()
     effectif_resume = ResumeAnnuelSerializer()
+    effectif_reglages = ReglagesAnneeSerializer(
+        help_text="Réglages de saisie de l'année ajustée (ceux de l'action à défaut).")
     diverge = serializers.BooleanField()
     reports_entrants = ReportEntrantSerializer(many=True)
     realise = RealiseAnnuelSerializer()

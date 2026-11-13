@@ -94,8 +94,16 @@ export interface FinanceurAjuste {
   montant?: string | null;
 }
 
+/** Réglages de saisie propres à une année ajustée (retour 13/11) : `null` ou
+ *  absent = ceux de l'action. Les déclinaisons de la fiche action s'imposent. */
+export interface ReglagesAnnee {
+  declinaison_par_type_cout?: boolean | null;
+  cout_salarial_auto?: boolean | null;
+  declinaison_par_poste?: boolean | null;
+}
+
 /** Programmation d'une année : même forme que l'année d'une action. */
-export interface ContenuAnnuel extends Omit<OrganismeAjuste, 'id_organisme'> {
+export interface ContenuAnnuel extends Omit<OrganismeAjuste, 'id_organisme'>, ReglagesAnnee {
   statut: StatutAnnuel;
   annee_report?: number | null;
   report_de?: number | null;
@@ -156,6 +164,8 @@ export interface DetailAnnuel {
   ajustement: AjustementLu | null;
   effectif: ContenuAnnuel;
   effectif_resume: ResumeAnnuel;
+  /** Réglages de saisie effectifs de l'année (ceux de l'action à défaut). */
+  effectif_reglages: Required<{ [K in keyof ReglagesAnnee]: boolean }>;
   diverge: boolean;
   reports_entrants: ReportEntrant[];
   realise: RealiseAnnuel;
@@ -163,6 +173,13 @@ export interface DetailAnnuel {
   fixe: boolean;
   peut_saisir: boolean;
   choix: ChoixAjustement;
+}
+
+/** Saisie réécrite après le changement d'un réglage de l'année. */
+export interface ConversionReglages {
+  contenu: ContenuAnnuel;
+  reglages: Required<{ [K in keyof ReglagesAnnee]: boolean }>;
+  resume: ResumeAnnuel;
 }
 
 export interface ReportDemande {

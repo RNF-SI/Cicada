@@ -2580,15 +2580,34 @@
           "montantAnnee": "Prévu pour {{annee}}",
           "commentaire": "Commentaire",
           "commentairePlaceholder": "Pourquoi la programmation change-t-elle cette année ?",
-          "revenir": "Revenir au plan de gestion",
-          "revenirTitre": "Revenir au plan de gestion ?",
+          "revenir": "Annuler les modifications de {{annee}}",
+          "revenirTitre": "Annuler les modifications de l'année ?",
           "revenirMessage": "L'ajustement de cette année est supprimé : l'année reprend la programmation du plan de gestion et l'action redevient « à revoir ».",
           "reporter": "Reporter…",
           "enregistrerAvantReport": "Enregistrez d'abord vos modifications.",
           "enregistrer": "Enregistrer (action revue)",
           "enregistrerSuivante": "Enregistrer et passer à la suivante",
           "enregistre": "Ajustement enregistré : action revue.",
-          "erreurEnregistrement": "L'ajustement n'a pas pu être enregistré."
+          "erreurEnregistrement": "L'ajustement n'a pas pu être enregistré.",
+          "revenirAide": "Revenir à la programmation du plan de gestion pour l'année",
+          "synthesePg": "Plan de gestion pour {{annee}}",
+          "lectureAide": "Ajustement de {{annee}} enregistré : cliquez sur « Modifier » pour le reprendre.",
+          "saisieAide": "Ajustez la programmation de {{annee}}, puis enregistrez : l'action sera marquée revue.",
+          "aRepartir": "à répartir par poste",
+          "total": "Total",
+          "totalPart": {
+            "fonctionnement": "Total fonctionnement",
+            "investissement": "Total investissement"
+          },
+          "reglages": {
+            "declinaisonCout": "Déclinaison par type de coût",
+            "declinaisonCoutAide": "Détaille le budget de l'année en coût salarial, coût stage, coût prestataire et autres coûts, même si la fiche action ne le fait pas. Le montant déjà saisi passe en « autres coûts ».",
+            "salaireAuto": "Saisie automatique du coût salarial",
+            "salaireAutoAide": "Calcule le coût salarial de l'année à partir des jours et du coût jour des postes. Décochée, il se saisit : le montant calculé est repris comme point de départ.",
+            "declinaisonPoste": "Déclinaison par type de poste",
+            "declinaisonPosteAide": "Cochée, le temps de l'année se saisit poste par poste. Décochée, il se saisit en un temps total, ou par organisme si le budget est ventilé par organisme ; les jours déjà saisis par poste y sont regroupés.",
+            "imposeParLePlan": "La fiche action l'impose : l'ajustement de l'année le fait aussi."
+          }
         },
         "report": {
           "titre": "Reporter l'action prévue en {{annee}}",

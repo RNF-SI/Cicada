@@ -132,15 +132,23 @@ Le plan de gestion programme les actions sur toute sa durée : c'est la **réfé
 
 ### Ajuster une action pour l'année
 
-Cliquer sur le nom d'une action ouvre son ajustement pour l'année. En tête, son statut, sa revue et deux encadrés : la programmation du **plan de gestion** et la programmation **ajustée** pour l'année, recalculée à chaque saisie. On y ajuste :
+Cliquer sur le nom d'une action ouvre son ajustement pour l'année. En tête, son statut, sa revue et deux encadrés : la programmation du **plan de gestion pour l'année** et la programmation **ajustée** pour l'année, recalculée à chaque saisie. On y ajuste :
 
 - **Le statut** : « Planifiée » ou « Non prévue ». Une année non prévue n'a ni mois ni moyens. Repasser en « Planifiée » une année non prévue reprend la programmation du plan de gestion comme point de départ.
 - **Les mois de réalisation** : les mois du plan de gestion sont encadrés en pointillé.
-- **Le temps de travail** et **le budget**, présentés comme dans la fiche action, selon le mode de ventilation de l'action et ses réglages (déclinaison par poste, par type de coût, coût salarial calculé ou saisi). La valeur du plan de gestion est rappelée à côté de chaque champ. Le coût salarial calculé (jours × coût jour des postes) se met à jour avec le temps saisi. Un poste ou un organisme peut être ajouté ou retiré pour l'année.
+- **Le temps de travail** et **le budget**, présentés comme dans la fiche action, selon le mode de ventilation de l'action et les réglages de l'année (voir ci-dessous). La valeur du plan de gestion est rappelée à côté de chaque champ, et chaque tableau se termine par ses totaux, plan de gestion et ajusté : total fonctionnement, total investissement (si l'action distingue les types de budget) et total. Le budget ventilé par organisme a de plus une colonne « Total » quand l'action compte plusieurs organismes. Le coût salarial calculé (jours × coût jour des postes) se met à jour avec le temps saisi. Un poste ou un organisme peut être ajouté ou retiré pour l'année.
 - **Les financeurs** : un montant prévu pour l'année par financeur (facultatif), en regard du montant prévu par le plan de gestion sur toute l'action.
 - **Un commentaire**, pour garder la raison de l'ajustement.
 
-« **Enregistrer (action revue)** » enregistre l'ajustement et marque l'action revue pour l'année, même si rien n'a changé. « **Enregistrer et passer à la suivante** » enchaîne la revue action par action. « **Revenir au plan de gestion** » supprime l'ajustement de l'année : l'action reprend la programmation du plan et redevient à revoir. Pour une action programmée globalement sur sa période, le plan de gestion n'a pas de montant annuel : les moyens de l'année se saisissent ici.
+Trois cases règlent la saisie **de l'année**, comme au suivi, sans toucher à la fiche action :
+
+- « **Déclinaison par type de poste** », au-dessus du temps de travail : cochée, le temps de l'année se saisit poste par poste ; le temps déjà saisi sans poste reste affiché, « à répartir par poste », jusqu'à ce que vous le retiriez. Décochée, il se saisit en un temps total (ou par organisme si le budget est ventilé par organisme), et les jours saisis par poste y sont regroupés ;
+- « **Déclinaison par type de coût** », au-dessus du budget : détaille le budget de l'année en coût salarial, stage, prestataire et autres coûts. Le montant déjà saisi passe en « autres coûts » ; décochée, les coûts détaillés se regroupent dans le budget (ou les enveloppes fonctionnement et investissement) ;
+- « **Saisie automatique du coût salarial** » (coûts détaillés et temps par poste) : cochée, le coût salarial se calcule (jours × coût jour) ; décochée, il se saisit, en partant du montant calculé.
+
+Changer une case réécrit la saisie en cours sans changer son total, et rien n'est enregistré avant « Enregistrer ». Si la fiche action détaille déjà les types de coût ou le temps par poste, la case correspondante est cochée et ne se décoche pas. Le coût salarial automatique, lui, ne s'impose jamais.
+
+« **Enregistrer (action revue)** » enregistre l'ajustement et marque l'action revue pour l'année, même si rien n'a changé. « **Enregistrer et passer à la suivante** » enchaîne la revue action par action. Une fois enregistrée, la saisie se fige : une action déjà revue s'ouvre en lecture, et le bouton « **Modifier** », en haut à droite, la repasse en saisie, comme au suivi. À côté, « **Annuler les modifications de l'année** » revient à la programmation du plan de gestion : l'ajustement de l'année est supprimé après confirmation, et l'action redevient à revoir ; si rien n'est encore enregistré, la saisie en cours est simplement abandonnée. Pour une action programmée globalement sur sa période, le plan de gestion n'a pas de montant annuel : les moyens de l'année se saisissent ici.
 
 ### Reporter une action
 
@@ -160,4 +168,4 @@ Sans ajustement, l'année reprend la programmation du plan de gestion. Les règl
 - **Une action faite plus tôt que prévu** est simplement planifiée l'année où elle est faite : les autres années ne bougent pas, à vous de les ajuster.
 - **Une action absente du plan de gestion** ne s'ajoute pas ici : créez une nouvelle version du plan de gestion.
 
-Comme le reste du suivi, la page est consultable par les utilisateurs liés au plan et l'ajustement est réservé aux référents du plan et aux gestionnaires, une fois le plan validé. Le bouton « **Exporter l'année (Excel)** » télécharge la planification annuelle de l'année affichée : plan de gestion, ajusté et écart, financeurs et calendrier ([§ 4.12](exports.md)).
+Comme le reste du suivi, la page est consultable par les utilisateurs liés au plan et l'ajustement est réservé aux référents du plan et aux gestionnaires, une fois le plan validé. Le bouton « **Exporter l'année (Excel)** » télécharge la planification annuelle de l'année affichée : plan de gestion, ajusté et écart, détail des coûts et du temps de travail de chaque action, financeurs et calendrier ([§ 4.12](exports.md)).

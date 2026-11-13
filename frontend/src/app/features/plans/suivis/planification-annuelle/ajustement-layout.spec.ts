@@ -1,4 +1,6 @@
-import { dispositionAjustement, salaireCalcule, totauxSaisis } from './ajustement-layout';
+import {
+  dispositionAjustement, reglagesDeLAnnee, salaireCalcule, totauxBudget, totauxSaisis,
+} from './ajustement-layout';
 import { ChoixAjustement, ReglagesAction } from '../../../../core/models/planification-annuelle.model';
 
 /** #794 — le formulaire d'ajustement suit les réglages de l'action, comme la fiche. */
@@ -86,5 +88,57 @@ describe('Totaux de la saisie (#794)', () => {
   it('une année non prévue ne pèse rien', () => {
     expect(totauxSaisis({ statut: 'non_prevue', budget: '900' }, choix, reglages({})))
       .toEqual({ budget: 0, jours: 0 });
+  });
+});
+
+describe('Réglages propres à l\'année (#794, retour 13/11)', () => {
+  const choix: ChoixAjustement = {
+    organismes: [{ id_organisme: 1, nom: 'RNF' }, { id_organisme: 2, nom: 'OFB' }],
+    postes: [{ id_poste: 7, libelle: 'Garde', id_organisme: 1, cout_jour: '250.00', finance_par_defaut: true }],
+    financeurs: [],
+  };
+
+  it('l\'année ajoute une déclinaison que la fiche action n\'a pas', () => {
+    const r = reglagesDeLAnnee(reglages({}), { statut: 'planifiee', declinaison_par_type_cout: true,
+      declinaison_par_poste: true });
+    expect([r.declinaison_par_type_cout, r.declinaison_par_poste, r.temps_par_poste]).toEqual([true, true, true]);
+    expect(dispositionAjustement(r).rhMode).toBe('postes');
+    expect(dispositionAjustement(r).lignes.map(l => l.champ)).toContain('cout_stage');
+  });
+
+  it('les déclinaisons de la fiche action s\'imposent, pas le coût salarial calculé', () => {
+    const action = reglages({ ventilation_mode: 'by_org_type_poste', declinaison_par_type_cout: true,
+      temps_par_poste: true });
+    const r = reglagesDeLAnnee(action, { statut: 'planifiee', declinaison_par_type_cout: false,
+      declinaison_par_poste: false, cout_salarial_auto: false });
+    expect([r.declinaison_par_type_cout, r.temps_par_poste, r.cout_salarial_auto]).toEqual([true, true, false]);
+    expect(dispositionAjustement(r).salaireCalcule).toBe(false);
+  });
+
+  it('coût salarial saisi pour l\'année : il remplace le calcul', () => {
+    const contenu = {
+      statut: 'planifiee' as const, cout_salarial_auto: false,
+      organismes: [{ id_organisme: 1, cout_stage: '400', cout_salarial: '2000' }],
+      rh_lignes: [{ id_poste: 7, jours: '4', categorie_depense: 'fonctionnement' as const }],
+    };
+    const action = reglages({ ventilation_mode: 'by_org_type_poste', declinaison_par_type_cout: true,
+      temps_par_poste: true });
+    expect(totauxSaisis(contenu, choix, reglagesDeLAnnee(action, contenu)).budget).toBe(2400);
+  });
+
+  it('totaux du budget par organisme et pour l\'année', () => {
+    const contenu = {
+      statut: 'planifiee' as const,
+      organismes: [
+        { id_organisme: 1, cout_stage: '400', cout_prestataire_invest: '300' },
+        { id_organisme: 2, autre_cout: '100' },
+      ],
+      rh_lignes: [{ id_poste: 7, jours: '4', categorie_depense: 'fonctionnement' as const }],
+    };
+    const r = reglages({ ventilation_mode: 'by_org_type_poste', declinaison_par_type_cout: true,
+      temps_par_poste: true });
+    expect(totauxBudget(contenu, choix, r, 1)).toEqual({ fonctionnement: 1400, investissement: 300, total: 1700 });
+    expect(totauxBudget(contenu, choix, r, 2)).toEqual({ fonctionnement: 100, investissement: 0, total: 100 });
+    expect(totauxBudget(contenu, choix, r)).toEqual({ fonctionnement: 1500, investissement: 300, total: 1800 });
   });
 });

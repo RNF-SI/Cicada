@@ -2,9 +2,10 @@
  * #794 — Disposition du formulaire d'ajustement d'une année, selon les réglages
  * de l'action (mode de ventilation, détail des coûts, coût salarial, temps par
  * poste). Mêmes règles que la fiche action : `shared/utils/operation-budget.ts`.
+ * Retour 13/11 : l'année a ses propres réglages (`reglagesDeLAnnee()`).
  */
 import {
-  hasTypeBudget, rhModeFor, salaryIsComputed, yearBudgetPrev,
+  hasTypeBudget, rhModeFor, salaryIsComputed, tempsParPoste, yearBudgetPrev,
 } from '../../../../shared/utils/operation-budget';
 import { Operation, OperationAnnee } from '../../../../core/models/enjeu.model';
 import {
@@ -43,6 +44,29 @@ export interface DispositionAjustement {
 }
 
 const ORG_MODES = ['by_org', 'by_org_type', 'by_org_type_poste'];
+
+/**
+ * Réglages effectifs de l'année (retour 13/11) : ceux que porte la saisie,
+ * à défaut ceux de l'action. Comme au suivi (#741), les déclinaisons de la
+ * fiche action s'imposent ; le coût salarial calculé, lui, ne s'impose jamais.
+ * Pendant de `reglages_annee()` côté serveur.
+ */
+export function reglagesDeLAnnee(action: ReglagesAction, contenu: ContenuAnnuel | null): ReglagesAction {
+  const detail = action.declinaison_par_type_cout
+    || (contenu?.declinaison_par_type_cout ?? action.declinaison_par_type_cout);
+  const parPoste = action.temps_par_poste
+    || (contenu?.declinaison_par_poste ?? action.declinaison_par_poste);
+  return {
+    ...action,
+    declinaison_par_type_cout: detail,
+    declinaison_par_poste: parPoste,
+    cout_salarial_auto: contenu?.cout_salarial_auto ?? action.cout_salarial_auto,
+    temps_par_poste: tempsParPoste({
+      ventilation_mode: action.ventilation_mode as Operation['ventilation_mode'],
+      declinaison_par_poste: parPoste,
+    }),
+  };
+}
 
 export function dispositionAjustement(reglages: ReglagesAction): DispositionAjustement {
   const mode = reglages.ventilation_mode || 'none';
@@ -122,6 +146,28 @@ function commeAnneeDAction(contenu: ContenuAnnuel, choix: ChoixAjustement): Oper
       poste_cout_jour: choix.postes.find(p => p.id_poste === l.id_poste)?.cout_jour ?? null,
     })),
   } as unknown as OperationAnnee;
+}
+
+/** Totaux du budget (fonctionnement, investissement, total) d'un organisme,
+ *  ou de toute l'année (`organisme` non fourni). Sans type de budget, seul le
+ *  total a un sens : fonctionnement porte alors tout, investissement 0. */
+export function totauxBudget(
+  contenu: ContenuAnnuel, choix: ChoixAjustement, reglages: ReglagesAction, organisme?: number,
+): { fonctionnement: number; investissement: number; total: number } {
+  if (contenu.statut !== 'planifiee') return { fonctionnement: 0, investissement: 0, total: 0 };
+  let partie = contenu;
+  if (organisme !== undefined) {
+    partie = {
+      statut: contenu.statut,
+      organismes: (contenu.organismes ?? []).filter(o => o.id_organisme === organisme),
+      rh_lignes: (contenu.rh_lignes ?? []).filter(l => organismeDeLaLigne(l, choix) === organisme),
+    };
+  }
+  const op = reglages as unknown as Operation;
+  const split = yearBudgetPrev(op, commeAnneeDAction(partie, choix));
+  const total = split.total ?? 0;
+  if (split.fonctionnement === null) return { fonctionnement: total, investissement: 0, total };
+  return { fonctionnement: split.fonctionnement, investissement: split.investissement ?? 0, total };
 }
 
 /** Totaux de l'année en cours de saisie, par les règles de la fiche action. */

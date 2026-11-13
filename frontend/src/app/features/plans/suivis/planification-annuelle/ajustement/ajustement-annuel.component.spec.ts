@@ -51,6 +51,7 @@ function detail(partiel: Partial<DetailAnnuel> = {}): DetailAnnuel {
     pg_global: null, pg_global_resume: null,
     financeurs_pg: [{ id_financeur: 3, nom: 'Région', montant: '6000.00' }],
     ajustement: null, effectif: pg, effectif_resume: resume({ budget: '1000.00', jours: '5.00', mois: [4, 5] }),
+    effectif_reglages: { declinaison_par_type_cout: false, cout_salarial_auto: true, declinaison_par_poste: false },
     diverge: false, reports_entrants: [], realise: { saisi: false, niveau: null }, fixe: false,
     peut_saisir: true,
     choix: { organismes: [], postes: [], financeurs: [{ id_financeur: 3, nom: 'Région' }] },
@@ -60,7 +61,10 @@ function detail(partiel: Partial<DetailAnnuel> = {}): DetailAnnuel {
 
 describe('AjustementAnnuelComponent (#794)', () => {
   let fixture: ComponentFixture<AjustementAnnuelComponent>;
-  let service: { detail: jest.Mock; tableau: jest.Mock; enregistrer: jest.Mock; revenirAuPlan: jest.Mock };
+  let service: {
+    detail: jest.Mock; tableau: jest.Mock; enregistrer: jest.Mock; revenirAuPlan: jest.Mock;
+    convertir: jest.Mock;
+  };
   let router: { navigate: jest.Mock };
   let dialog: { open: jest.Mock };
 
@@ -70,9 +74,10 @@ describe('AjustementAnnuelComponent (#794)', () => {
       tableau: jest.fn().mockReturnValue(of({ actions: [{ id_operation: 12 }, { id_operation: 13 }] })),
       enregistrer: jest.fn().mockReturnValue(of(d)),
       revenirAuPlan: jest.fn().mockReturnValue(of(undefined)),
+      convertir: jest.fn(),
     };
     router = { navigate: jest.fn() };
-    dialog = { open: jest.fn() };
+    dialog = { open: jest.fn().mockReturnValue({ afterClosed: () => of(true) }) };
     const params = convertToParamMap({ slug: 'plan-test', operation_id: '12', annee: '2026' });
     await TestBed.configureTestingModule({
       imports: [
@@ -149,6 +154,61 @@ describe('AjustementAnnuelComponent (#794)', () => {
     fixture.componentInstance.contenu.budget = '1200';
     fixture.detectChanges();
     expect(bouton().disabled).toBe(true);
+  });
+
+  it('la synthèse date la programmation du plan de gestion (retour 13/11)', async () => {
+    const el = await rendre(detail());
+    expect(texte(el.querySelector('[data-testid="ajustement-synthese"]'))).toContain('Plan de gestion pour 2026');
+  });
+
+  it('le budget a sa ligne de total, plan de gestion et ajusté (retour 13/11)', async () => {
+    const el = await rendre(detail());
+    fixture.componentInstance.contenu.budget = '1500';
+    fixture.detectChanges();
+    const total = texte(el.querySelector('[data-testid="budget-total"]'));
+    expect(total).toContain('1 000 €');
+    expect(total).toContain('1 500 €');
+  });
+
+  it('une action revue s\'ouvre en lecture ; « Modifier » rouvre la saisie (retour 13/11)', async () => {
+    const revue = {
+      ...detail().effectif, id_ajustement_annuel: 5, date_revue: '2026-11-13T10:00:00Z',
+      revue_par: 'Sophie', date_maj: '2026-11-13T10:00:00Z',
+    };
+    const el = await rendre(detail({ ajustement: revue }));
+    const champ = () => el.querySelector<HTMLInputElement>('[data-testid="champ-budget"]')!;
+    expect(champ().disabled).toBe(true);
+    expect(el.querySelector('[data-testid="ajustement-enregistrer"]')).toBeNull();
+    el.querySelector<HTMLButtonElement>('[data-testid="ajustement-modifier"]')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(champ().disabled).toBe(false);
+    expect(el.querySelector('[data-testid="ajustement-enregistrer"]')).not.toBeNull();
+  });
+
+  it('« Annuler les modifications » revient au plan de gestion (retour 13/11)', async () => {
+    const revue = {
+      ...detail().effectif, id_ajustement_annuel: 5, date_revue: '2026-11-13T10:00:00Z',
+      revue_par: 'Sophie', date_maj: '2026-11-13T10:00:00Z',
+    };
+    const el = await rendre(detail({ ajustement: revue }));
+    el.querySelector<HTMLButtonElement>('[data-testid="ajustement-revenir"]')!.click();
+    expect(service.revenirAuPlan).toHaveBeenCalledWith(12, 2026);
+  });
+
+  it('cocher la déclinaison par type de coût réécrit la saisie (retour 13/11)', async () => {
+    const el = await rendre(detail());
+    service.convertir.mockReturnValue(of({
+      contenu: { ...detail().effectif, budget: null, autre_cout: '1000.00', declinaison_par_type_cout: true },
+      reglages: { declinaison_par_type_cout: true, cout_salarial_auto: true, declinaison_par_poste: false },
+      resume: resume({ budget: '1000.00' }),
+    }));
+    fixture.componentInstance.changerReglage('declinaison_par_type_cout', true);
+    fixture.detectChanges();
+    const [op, annee, contenu, reglages] = service.convertir.mock.calls[0];
+    expect([op, annee, contenu.budget, reglages]).toEqual([12, 2026, '1000.00', { declinaison_par_type_cout: true }]);
+    expect(el.querySelector<HTMLInputElement>('[data-testid="champ-autre_cout"]')).not.toBeNull();
+    expect(el.querySelector('[data-testid="champ-budget"]')).toBeNull();
   });
 
   it('consultation seule : rien ne se saisit', async () => {

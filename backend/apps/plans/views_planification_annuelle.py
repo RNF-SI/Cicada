@@ -7,6 +7,9 @@ API de la planification annuelle ajustée (#794).
 - ``GET | PUT | DELETE /api/plans/planification-annuelle/operation/{id}/{annee}/``
   ajustement d'une action pour une année. ``PUT`` l'enregistre et marque
   l'action revue ; ``DELETE`` revient à la programmation du plan.
+- ``POST /api/plans/planification-annuelle/operation/{id}/{annee}/reglages/``
+  la saisie en cours réécrite selon un autre réglage de l'année (déclinaisons,
+  coût salarial), total conservé ; rien n'est enregistré.
 - ``POST /api/plans/planification-annuelle/operation/{id}/{annee}/report/``
   report total (décalage de la suite) ou partiel, avec ``apercu: true`` pour
   l'avant / après sans rien écrire.
@@ -31,14 +34,14 @@ from .models_operations import Financeur, Operation, OperationAnneeOrganisme
 from .models_planification import AjustementAnnuel, AjustementAnnuelOrganisme
 from .planification_annuelle import (
     PLANIFIEE, REPORTEE, Planification, ReportImpossible, contenu_ajuste, contenu_pg,
-    ecrire, financeurs_pg,
+    convertir, ecrire, financeurs_pg,
 )
 from .serializers_planification import (
     AjustementsDuPlanSerializer, ApercuReportSerializer, ContenuAnnuelSerializer,
-    DetailAnnuelSerializer,
+    ConversionDemandeSerializer, ConversionSerializer, DetailAnnuelSerializer,
     ReportDemandeSerializer, TableauAnnuelSerializer,
 )
-from .services_export_finance import plan_operations, temps_par_poste
+from .services_export_finance import plan_operations, reglages_annee, temps_par_poste
 
 #: Refus de report qui tiennent à la demande (400) ; les autres tiennent à l'état (409).
 _REPORT_INVALIDE = {'annee_hors_plan', 'annee_report_invalide', 'annee_report_hors_plan'}
@@ -229,6 +232,7 @@ def _detail(request, planif, operation, plan, annee):
         'ajustement': lu,
         'effectif': effectif,
         'effectif_resume': planif.resume(op_id, effectif),
+        'effectif_reglages': reglages_annee(operation, effectif),
         'diverge': planif.diverge(op_id, annee),
         'reports_entrants': planif.reports_entrants(op_id, annee),
         'realise': _realise(planif, op_id, annee),
@@ -263,6 +267,19 @@ def _organismes_admis(plan, operation, planif):
     admis |= set(AjustementAnnuelOrganisme.objects.filter(
         id_ajustement_annuel__id_operation=operation).values_list('id_organisme', flat=True))
     return admis
+
+
+def _controler_reglages(contenu, operation):
+    """Les déclinaisons de la fiche action s'imposent à l'année (comme au suivi)."""
+    erreurs = {}
+    if contenu.get('declinaison_par_type_cout') is False and operation.declinaison_par_type_cout:
+        erreurs['declinaison_par_type_cout'] = (
+            "La fiche action détaille les types de coût : l'année les détaille aussi.")
+    if contenu.get('declinaison_par_poste') is False and temps_par_poste(operation):
+        erreurs['declinaison_par_poste'] = (
+            "La fiche action décline le temps par type de poste : l'année aussi.")
+    if erreurs:
+        raise ValidationError(erreurs)
 
 
 def _controler_references(contenu, plan, operation, planif):
@@ -320,6 +337,7 @@ class AjustementAnnuelView(_AjustementBase):
                 {'detail': "Pour reporter l'action, utiliser le report (aperçu du décalage).",
                  'code': 'report_par_la_route_dediee'}, status=status.HTTP_400_BAD_REQUEST)
         _controler_references(contenu, plan, operation, planif)
+        _controler_reglages(contenu, operation)
         # Le report se pose par sa route ; un changement de statut l'annule.
         garde_report = existant is not None and existant.statut == contenu['statut']
         contenu['annee_report'] = existant.annee_report if garde_report else None
@@ -340,6 +358,38 @@ class AjustementAnnuelView(_AjustementBase):
             return refus
         AjustementAnnuel.objects.filter(id_operation=operation, annee=int(annee)).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ReglagesAnnuelsView(_AjustementBase):
+
+    @extend_schema(
+        summary="Changer un réglage de saisie de l'année (#794)",
+        description=(
+            "Rend la saisie en cours réécrite selon le réglage demandé (déclinaison par "
+            "type de coût, par type de poste, coût salarial calculé ou saisi), total "
+            "conservé autant que possible : enveloppe ↔ « autres coûts », coût salarial "
+            "calculé → saisi, temps par poste regroupé. Rien n'est enregistré : la saisie "
+            "s'enregistre ensuite par `PUT`. Les déclinaisons de la fiche action "
+            "s'imposent."),
+        request=ConversionDemandeSerializer, responses=ConversionSerializer,
+    )
+    def post(self, request, operation_id, annee):
+        operation, plan, planif, refus = self.charger(request, operation_id, annee, lecture=False)
+        if refus:
+            return refus
+        demande = ConversionDemandeSerializer(data=request.data)
+        demande.is_valid(raise_exception=True)
+        contenu = dict(demande.validated_data['contenu'])
+        contenu.setdefault('annee_report', None)
+        contenu.setdefault('report_de', None)
+        _controler_references(contenu, plan, operation, planif)
+        _controler_reglages(demande.validated_data['reglages'], operation)
+        resultat = convertir(operation, contenu, demande.validated_data['reglages'], planif.postes)
+        return Response(ConversionSerializer({
+            'contenu': resultat,
+            'reglages': reglages_annee(operation, resultat),
+            'resume': planif.resume(operation.id_operation, resultat),
+        }).data)
 
 
 class ReportAnnuelView(_AjustementBase):

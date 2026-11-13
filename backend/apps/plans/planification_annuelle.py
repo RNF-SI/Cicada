@@ -21,6 +21,11 @@ Règles :
   planifiée.
 - **Revue** : enregistrer l'ajustement d'une action pour une année, même sans
   rien changer, la marque revue.
+- **Réglages de l'année** (retour 13/11) : déclinaison par type de coût, par
+  type de poste et coût salarial calculé ou saisi, propres à l'année ajustée
+  (``None`` : ceux de l'action). Les déclinaisons de la fiche action
+  s'imposent. Changer un réglage réécrit la saisie, total conservé
+  (``convertir``).
 
 Un « contenu » est un ``dict`` de même forme que la programmation d'une année
 (champs de ``OperationAnnee``, ``organismes``, ``rh_lignes``) plus le statut,
@@ -38,12 +43,13 @@ from .models_operations import (
 )
 from .models_planification import (
     CHAMPS_COMMENTAIRES_COUTS, CHAMPS_COUTS_ANNEE, CHAMPS_COUTS_ORGANISME,
-    AjustementAnnuel, AjustementAnnuelFinanceur, AjustementAnnuelOrganisme,
-    AjustementAnnuelRH, StatutAnnuel,
+    REGLAGES_ANNUELS, AjustementAnnuel, AjustementAnnuelFinanceur,
+    AjustementAnnuelOrganisme, AjustementAnnuelRH, StatutAnnuel,
 )
 from .services_export_finance import (
-    CostCell, _d, ajouter_couts_annee_prevu, ajouter_couts_organisme_prevu,
-    ajouter_temps_prevu, regles_salaire_prevu,
+    ORG_VENTILATION_MODES, CostCell, _d, action_reglee, ajouter_couts_annee_prevu,
+    ajouter_couts_organisme_prevu, ajouter_temps_prevu, has_type_budget, reglages_annee,
+    regles_salaire_prevu,
 )
 
 PLANIFIEE, NON_PREVUE, REPORTEE = (
@@ -109,6 +115,7 @@ def contenu_vide(statut=NON_PREVUE):
     }
     contenu.update({champ: None for champ in CHAMPS_COUTS_ANNEE})
     contenu.update({champ: '' for champ in CHAMPS_COMMENTAIRES_COUTS})
+    contenu.update({nom: None for nom in REGLAGES_ANNUELS})
     return contenu
 
 
@@ -155,6 +162,7 @@ def contenu_ajuste(ajustement):
         annee_report=ajustement.annee_report, report_de=ajustement.report_de,
         periodicite_mensuelle=_mois(ajustement.periodicite_mensuelle),
         commentaire=ajustement.commentaire or '')
+    contenu.update({nom: getattr(ajustement, nom) for nom in REGLAGES_ANNUELS})
     _remplir(contenu, ajustement)
     contenu['financeurs'] = [
         {'id_financeur': f.id_financeur_id, 'montant': f.montant}
@@ -186,8 +194,13 @@ def _cle_rh(ligne):
     return (ligne['id_poste'], ligne['id_organisme'], ligne.get('categorie_depense') or '')
 
 
-def additionner(base, ajout):
-    """Prévu ``base`` augmenté de ``ajout`` (report partiel reçu)."""
+def additionner(base, ajout, op=None, postes=None):
+    """Prévu ``base`` augmenté de ``ajout`` (report partiel reçu).
+
+    Le total garde les réglages de ``base`` : saisi autrement (``op`` fourni),
+    ``ajout`` y est d'abord converti."""
+    if op is not None and reglages_annee(op, ajout) != reglages_annee(op, base):
+        ajout = convertir(op, ajout, reglages_annee(op, base), postes or {})
     total = deepcopy(base)
     for champ in CHAMPS_COUTS_ANNEE:
         total[champ] = _somme(base[champ], ajout[champ])
@@ -232,7 +245,7 @@ def couts(op, contenu, postes, avec_organismes):
     ``postes`` : {id_poste: Poste} du plan (coût jour) ; ``avec_organismes`` :
     l'action porte ses montants par organisme (règle des exports : des lignes
     par organisme dans la programmation)."""
-    auto_salary, manual_salary = regles_salaire_prevu(op)
+    auto_salary, manual_salary = regles_salaire_prevu(action_reglee(op, contenu))
     cellule = CostCell()
     for ligne in contenu['rh_lignes']:
         poste = postes.get(ligne['id_poste'])
@@ -254,6 +267,180 @@ class _Objet:
 
     def __getattr__(self, nom):
         return self._donnees.get(nom)
+
+
+# ---------------------------------------------------------------------------
+# Changement des réglages de l'année : la saisie suit, total conservé
+# ---------------------------------------------------------------------------
+
+_COMPOSANTS = ('cout_salarial', 'cout_salarial_invest', 'cout_stage', 'cout_prestataire',
+               'autre_cout', 'cout_prestataire_invest', 'autre_cout_invest')
+_ENVELOPPES = ('budget', 'budget_fonctionnement', 'budget_investissement')
+_ZERO = Decimal('0')
+
+
+def _montant(valeur):
+    """Montant à écrire : rien plutôt que zéro."""
+    return valeur if valeur else None
+
+
+def _seaux(contenu, par_organisme):
+    """Où se lisent les montants : les organismes, sinon l'année."""
+    return contenu['organismes'] if par_organisme else [contenu]
+
+
+def _seau(contenu, par_organisme, id_organisme):
+    """Le seau d'un organisme (créé s'il manque), l'année à défaut."""
+    if not par_organisme:
+        return contenu
+    if id_organisme is None:
+        return contenu['organismes'][0] if contenu['organismes'] else contenu
+    for org in contenu['organismes']:
+        if org['id_organisme'] == id_organisme:
+            return org
+    org = {'id_organisme': id_organisme}
+    org.update({champ: None for champ in CHAMPS_COUTS_ORGANISME})
+    org.update({champ: '' for champ in CHAMPS_COMMENTAIRES_COUTS})
+    contenu['organismes'].append(org)
+    return org
+
+
+def _salaires_calcules(contenu, postes, par_organisme):
+    """Coût salarial calculé (jours × coût jour), par organisme du poste (ou
+    ``None``) : ``{organisme: [fonctionnement, investissement]}``."""
+    salaires = {}
+    for ligne in contenu['rh_lignes']:
+        poste = postes.get(ligne.get('id_poste'))
+        categorie = ligne.get('categorie_depense') or 'fonctionnement'
+        if poste is None or categorie == 'benevolat_partenariat':
+            continue
+        cle = poste.id_organisme_id if par_organisme else None
+        montant = _d(ligne.get('jours')) * _d(poste.cout_jour)
+        salaires.setdefault(cle, [_ZERO, _ZERO])[categorie == 'investissement'] += montant
+    return salaires
+
+
+def _regrouper_temps(contenu, postes, par_organisme):
+    """Temps décliné par poste → par organisme (ou un total), par catégorie."""
+    lignes, ordre = {}, []
+    for ligne in contenu['rh_lignes']:
+        poste = postes.get(ligne.get('id_poste'))
+        organisme = None
+        if par_organisme:
+            organisme = poste.id_organisme_id if poste is not None else ligne.get('id_organisme')
+        categorie = ligne.get('categorie_depense') or 'fonctionnement'
+        cle = (organisme, categorie)
+        if cle not in lignes:
+            ordre.append(cle)
+            lignes[cle] = {'id_poste': None, 'id_organisme': organisme, 'jours': _ZERO,
+                           'finance': categorie != 'benevolat_partenariat',
+                           'categorie_depense': categorie}
+        lignes[cle]['jours'] += _d(ligne.get('jours'))
+    contenu['rh_lignes'] = [lignes[cle] for cle in ordre]
+
+
+def convertir(op, contenu, vers, postes):
+    """``contenu`` réécrit selon d'autres réglages de l'année (``vers``, même
+    partiels), en conservant son total autant que possible :
+
+    - coûts détaillés → enveloppe : l'enveloppe fonctionnement (ou le budget)
+      et l'enveloppe investissement reçoivent la somme de leurs composants,
+      coût salarial compris ;
+    - enveloppe → coûts détaillés : l'enveloppe passe en « autres coûts »,
+      moins le coût salarial s'il devient calculé (elle le contenait) ;
+    - coût salarial calculé → saisi : le montant calculé devient la saisie ;
+      saisi → calculé : la saisie s'efface ;
+    - temps par poste → sans poste : les jours se regroupent par organisme
+      (ventilation par organisme) ou en un total, par catégorie de dépense ;
+      sans poste → par poste : les lignes restent, à répartir par poste.
+
+    Un réglage égal à celui de l'action est rangé à ``None``."""
+    de = reglages_annee(op, contenu)
+    resultat = deepcopy(contenu)
+    for nom in REGLAGES_ANNUELS:
+        if nom in vers and vers[nom] is not None:
+            resultat[nom] = bool(vers[nom])
+    vers = reglages_annee(op, resultat)
+    action = reglages_annee(op)
+    for nom in REGLAGES_ANNUELS:
+        resultat[nom] = vers[nom] if vers[nom] != action[nom] else None
+    if resultat['statut'] != PLANIFIEE:
+        return resultat
+
+    par_organisme = op.ventilation_mode in ORG_VENTILATION_MODES
+    type_budget = has_type_budget(op)
+    total_direct = op.ventilation_mode == 'none'
+
+    def automatique(reglages):
+        return (reglages['declinaison_par_type_cout'] and reglages['declinaison_par_poste']
+                and reglages['cout_salarial_auto'])
+
+    # Coût salarial tel que compté avant le changement.
+    if automatique(de):
+        salaires_de = _salaires_calcules(resultat, postes, par_organisme)
+    else:
+        salaires_de = {}
+        if de['declinaison_par_type_cout']:
+            for seau in _seaux(resultat, par_organisme):
+                salaires_de[seau.get('id_organisme')] = [
+                    _d(seau.get('cout_salarial')), _d(seau.get('cout_salarial_invest'))]
+
+    if de['declinaison_par_poste'] and not vers['declinaison_par_poste']:
+        _regrouper_temps(resultat, postes, par_organisme)
+
+    if de['declinaison_par_type_cout'] and not vers['declinaison_par_type_cout']:
+        # Composants (salaire compris) repliés dans l'enveloppe.
+        for cle, (sal_f, sal_i) in salaires_de.items():
+            _seau(resultat, par_organisme, cle)
+        for seau in _seaux(resultat, par_organisme):
+            sal_f, sal_i = salaires_de.get(seau.get('id_organisme') if par_organisme else None,
+                                           (_ZERO, _ZERO))
+            composants = any(_d(seau.get(c)) for c in _COMPOSANTS)
+            fonct = (sal_f + _d(seau.get('cout_stage')) + _d(seau.get('cout_prestataire'))
+                     + _d(seau.get('autre_cout')) + _d(seau.get('budget_fonctionnement')))
+            if seau is resultat and total_direct and not composants:
+                fonct += _d(seau.get('budget'))
+            invest = (sal_i + _d(seau.get('cout_prestataire_invest'))
+                      + _d(seau.get('autre_cout_invest')) + _d(seau.get('budget_investissement')))
+            for champ in _COMPOSANTS + _ENVELOPPES:
+                seau[champ] = None
+            for champ in CHAMPS_COMMENTAIRES_COUTS:
+                seau[champ] = ''
+            if type_budget:
+                seau['budget_fonctionnement'] = _montant(fonct)
+                seau['budget_investissement'] = _montant(invest)
+            elif seau is resultat and total_direct:
+                seau['budget'] = _montant(fonct + invest)
+            else:
+                seau['budget_fonctionnement'] = _montant(fonct + invest)
+    elif vers['declinaison_par_type_cout'] and not de['declinaison_par_type_cout']:
+        # Enveloppe → « autres coûts », moins le salaire s'il se calcule désormais.
+        calcules = (_salaires_calcules(resultat, postes, par_organisme)
+                    if automatique(vers) else {})
+        for seau in _seaux(resultat, par_organisme):
+            sal_f, sal_i = calcules.get(seau.get('id_organisme') if par_organisme else None,
+                                        (_ZERO, _ZERO))
+            fonct = _d(seau.get('budget_fonctionnement'))
+            if seau is resultat and total_direct:
+                fonct += _d(seau.get('budget'))
+            invest = _d(seau.get('budget_investissement'))
+            for champ in _ENVELOPPES:
+                seau[champ] = None
+            seau['autre_cout'] = _montant(_d(seau.get('autre_cout')) + max(fonct - sal_f, _ZERO))
+            seau['autre_cout_invest'] = _montant(
+                _d(seau.get('autre_cout_invest')) + max(invest - sal_i, _ZERO))
+    elif vers['declinaison_par_type_cout']:
+        if automatique(de) and not automatique(vers):
+            for cle, (sal_f, sal_i) in salaires_de.items():
+                seau = _seau(resultat, par_organisme, cle)
+                seau['cout_salarial'] = _montant(_d(seau.get('cout_salarial')) + sal_f)
+                seau['cout_salarial_invest'] = _montant(
+                    _d(seau.get('cout_salarial_invest')) + sal_i)
+        elif automatique(vers) and not automatique(de):
+            for seau in _seaux(resultat, par_organisme):
+                seau['cout_salarial'] = None
+                seau['cout_salarial_invest'] = None
+    return resultat
 
 
 def resume(op, contenu, postes, avec_organismes):
@@ -406,6 +593,7 @@ class Planification:
         realisation = self.realisation(op_id, annee)
         reste = contenu_vide(PLANIFIEE)
         reste['periodicite_mensuelle'] = dict(prevu['periodicite_mensuelle'])
+        reste.update({nom: prevu.get(nom) for nom in REGLAGES_ANNUELS})
         for champ in CHAMPS_COUTS_ANNEE:
             reste[champ] = _reste(prevu[champ], getattr(realisation, _REALISE[champ], None))
         oa = self.operation_annee(op_id, annee)
@@ -479,7 +667,8 @@ class Planification:
 
         if partiel:
             apres[annee]['annee_report'] = annee_report
-            recu = additionner(self.effectif(op_id, annee_report), self.reste_a_faire(op_id, annee))
+            recu = additionner(self.effectif(op_id, annee_report), self.reste_a_faire(op_id, annee),
+                               self.operations[op_id], self.postes)
             recu.update(statut=PLANIFIEE, report_de=annee, annee_report=None)
             apres[annee_report] = recu
         else:
@@ -567,6 +756,8 @@ def ecrire(operation, annee, contenu, user, revue=True, ajustement=None):
     ajustement.report_de = contenu.get('report_de')
     ajustement.periodicite_mensuelle = _mois(contenu.get('periodicite_mensuelle'))
     ajustement.commentaire = contenu.get('commentaire') or ''
+    for nom in REGLAGES_ANNUELS:
+        setattr(ajustement, nom, contenu.get(nom))
     for champ in CHAMPS_COUTS_ANNEE:
         setattr(ajustement, champ, _decimal(contenu.get(champ)))
     for champ in CHAMPS_COMMENTAIRES_COUTS:

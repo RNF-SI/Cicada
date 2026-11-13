@@ -712,6 +712,14 @@ export interface OperationAnneeOrganisme {
 export interface OperationAnnee {
   id_operation_annee?: number;
   annee: number;
+  /** #794 (retour 13/11) — année ajustée de la planification annuelle : ses
+   *  propres réglages de saisie (`null` = ceux de l'action), que les calculs
+   *  du prévu (`operation-budget.ts`) appliquent à cette seule année. */
+  reglages_ajustes?: {
+    declinaison_par_type_cout?: boolean | null;
+    cout_salarial_auto?: boolean | null;
+    declinaison_par_poste?: boolean | null;
+  } | null;
   periodicite: boolean;
   budget: number | null;
   etp: number | null;

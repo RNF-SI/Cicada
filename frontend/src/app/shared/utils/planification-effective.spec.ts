@@ -84,3 +84,21 @@ describe('Année ajustée rappelée à la saisie du suivi (#794)', () => {
       statut: 'reportee', anneeReport: 2027, budget: 0 }));
   });
 });
+
+describe('Réglages propres à une année ajustée (#794, retour 13/11)', () => {
+  it('le prévu d\'une année détaillée et à coût salarial saisi suit ses réglages', () => {
+    const action = {
+      id_operation: 2, ventilation_mode: 'by_org_type_poste', declinaison_par_type_cout: true,
+      cout_salarial_auto: true, declinaison_par_poste: true, operation_annees: [],
+    } as unknown as Operation;
+    const ajustee = operationAjustee(action, ranger([ajustement({
+      id_operation: 2, cout_salarial_auto: false,
+      organismes: [{ id_organisme: 10, organisme_nom: 'RNF', cout_salarial: '2000.00', cout_stage: '500.00' }],
+      rh_lignes: [{ id_poste: 7, jours: '4.00', categorie_depense: 'fonctionnement',
+        poste_cout_jour: '250.00', poste_id_organisme: 10 }],
+    })]));
+    const oa = ajustee.operation_annees!.find(a => a.annee === 2026)!;
+    // Coût salarial saisi (2 000 €) et non 4 j × 250 €.
+    expect(yearBudgetPrev(ajustee, oa).total).toBe(2500);
+  });
+});

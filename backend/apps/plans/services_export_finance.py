@@ -222,9 +222,10 @@ def poste_entry_factory():
     }
 
 
-def _org_of_rh_line(op, line):
+def _org_of_rh_line(op, line, par_poste=None):
     poste = line.id_poste
-    if temps_par_poste(op) and poste and poste.id_organisme_id:
+    par_poste = temps_par_poste(op) if par_poste is None else par_poste
+    if par_poste and poste and poste.id_organisme_id:
         return poste.id_organisme
     return line.id_organisme
 
@@ -291,6 +292,43 @@ def regles_salaire_prevu(op):
     auto_salary = bool(has_cost_detail and temps_par_poste(op)
                        and getattr(op, "cout_salarial_auto", True))
     return auto_salary, bool(has_cost_detail and not auto_salary)
+
+
+def reglages_annee(op, source=None):
+    """#794 (retour 13/11) — réglages de saisie effectifs d'une année ajustée.
+
+    ``source`` : ``AjustementAnnuel`` ou contenu (dict) portant les réglages
+    propres à l'année (``None`` = ceux de l'action). Comme au suivi (#741), les
+    déclinaisons de la fiche action s'imposent : l'année peut en ajouter, pas
+    en retirer. Le coût salarial automatique, lui, se règle librement."""
+    from .models_planification import REGLAGES_ANNUELS
+
+    if source is None:
+        valeurs = {}
+    elif isinstance(source, dict):
+        valeurs = source
+    else:
+        valeurs = {nom: getattr(source, nom, None) for nom in REGLAGES_ANNUELS}
+
+    def choix(nom, defaut):
+        valeur = valeurs.get(nom)
+        return defaut if valeur is None else bool(valeur)
+
+    detail = bool(getattr(op, "declinaison_par_type_cout", True))
+    poste = temps_par_poste(op)
+    return {
+        "declinaison_par_type_cout": detail or choix("declinaison_par_type_cout", detail),
+        "declinaison_par_poste": poste or choix("declinaison_par_poste", poste),
+        "cout_salarial_auto": choix("cout_salarial_auto",
+                                    bool(getattr(op, "cout_salarial_auto", True))),
+    }
+
+
+def action_reglee(op, source=None):
+    """L'action vue avec les réglages de l'année (``reglages_annee``) : ce que
+    ``regles_salaire_prevu`` / ``temps_par_poste`` attendent."""
+    from types import SimpleNamespace
+    return SimpleNamespace(ventilation_mode=op.ventilation_mode, **reglages_annee(op, source))
 
 
 def ajouter_temps_prevu(c, line, cout_jour, auto_salary, pj=None):
@@ -375,6 +413,12 @@ def build_action_finance(op, org_names, poste_jours, ajustements=None) -> Action
     af.has_type_budget = has_type_budget(op)
     af.has_cost_detail = bool(getattr(op, "declinaison_par_type_cout", True))
     af.par_poste = temps_par_poste(op)
+    # #794 — une année ajustée peut détailler ce que le plan ne détaille pas.
+    for (op_id, _annee), aj in (ajustements or {}).items():
+        if op_id == op.pk and aj.statut == "planifiee":
+            reglages = reglages_annee(op, aj)
+            af.has_cost_detail |= reglages["declinaison_par_type_cout"]
+            af.par_poste |= reglages["declinaison_par_poste"]
     af.par_poste_realise = op.get_declinaison_par_poste_realise()
     af.is_global = bool(getattr(op, "programmation_globale", False))
 
@@ -405,8 +449,8 @@ def build_action_finance(op, org_names, poste_jours, ajustements=None) -> Action
                         "id_organisme")
         .prefetch_related(_poste_fonctions_prefetch())
     )
-    def ajouter_ligne_temps(line, year):
-        org = _org_of_rh_line(op, line)
+    def ajouter_ligne_temps(line, year, auto=auto_salary, par_poste=None):
+        org = _org_of_rh_line(op, line, par_poste)
         oid = _org_key(org, org_names)
         poste = line.id_poste
         cout_jour = _d(getattr(poste, "cout_jour", None)) if poste else _ZERO
@@ -414,7 +458,13 @@ def build_action_finance(op, org_names, poste_jours, ajustements=None) -> Action
         pj = poste_jours[(oid, label, year)]
         if cout_jour and "cout_jour" not in pj:
             pj["cout_jour"] = cout_jour
-        ajouter_temps_prevu(cell(oid, year), line, cout_jour, auto_salary, pj)
+        ajouter_temps_prevu(cell(oid, year), line, cout_jour, auto, pj)
+
+    # Règles de calcul propres à chaque année ajustée (réglages de l'année).
+    regles_ajustees = {}
+    for year, aj in ajustees.items():
+        reglee = action_reglee(op, aj)
+        regles_ajustees[year] = regles_salaire_prevu(reglee) + (temps_par_poste(reglee),)
 
     for line in rh:
         year = line.id_operation_annee.annee
@@ -422,8 +472,9 @@ def build_action_finance(op, org_names, poste_jours, ajustements=None) -> Action
             ajouter_ligne_temps(line, year)
     for year, aj in ajustees.items():
         if aj.statut == "planifiee":
+            auto, _manuel, par_poste = regles_ajustees[year]
             for line in aj.rh_lignes.all():
-                ajouter_ligne_temps(line, year)
+                ajouter_ligne_temps(line, year, auto, par_poste)
 
     # --- RH réalisé : jours + salarial ---
     rrh = (
@@ -525,14 +576,15 @@ def build_action_finance(op, org_names, poste_jours, ajustements=None) -> Action
     for year, aj in ajustees.items():
         if aj.statut != "planifiee":
             continue
+        _auto, manuel, _par_poste = regles_ajustees[year]
         organismes = list(aj.organismes.all())
         if organismes:
             for line in organismes:
                 ajouter_couts_organisme_prevu(
-                    cell(_org_key(line.id_organisme, org_names), year), line, manual_salary)
+                    cell(_org_key(line.id_organisme, org_names), year), line, manuel)
         else:
             c = cell(0, year)
-            ajouter_couts_annee_prevu(c, op, aj, manual_salary)
+            ajouter_couts_annee_prevu(c, op, aj, manuel)
             if c.tot:
                 org_names.setdefault(0, "Non ventilé")
 

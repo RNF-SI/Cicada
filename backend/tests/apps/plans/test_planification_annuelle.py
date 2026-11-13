@@ -295,6 +295,132 @@ class TestReportPartiel:
         assert monde.reporter(Y, Y + 1, partiel=True).status_code == 409
 
 
+class TestReglagesDeLAnnee:
+    """Retour 13/11 : l'ajustement d'une année a ses propres réglages de
+    saisie, comme le suivi — déclinaison par type de coût et par type de poste
+    proposées même si la fiche action ne les a pas, coût salarial jamais
+    imposé en calcul automatique. Les totaux (tableau, Bilan, exports) suivent
+    les réglages de l'année."""
+
+    def _poste(self, monde, cout_jour='200.00'):
+        from apps.plans.models_operations import Poste
+        return Poste.objects.create(id_pg=monde.plan, nom_local='Garde', nombre=1,
+                                    cout_jour=Decimal(cout_jour))
+
+    def test_cout_salarial_saisi_pour_l_annee(self):
+        pc = construire_plan_complet(statut='valide')
+        client = _client(pc.referent)
+        url = f'{BASE}/operation/{pc.action.pk}/{pc.annee + 1}/'
+        contenu = client.get(url).json()['effectif']
+        assert contenu['cout_salarial_auto'] is None
+        contenu['cout_salarial_auto'] = False
+        org_a = next(o for o in contenu['organismes'] if o['id_organisme'] == pc.org_a.pk)
+        org_a['cout_salarial'] = '2000.00'
+        reponse = client.put(url, contenu, format='json')
+        assert reponse.status_code == 200, reponse.content[:300]
+        # Stage 4 500 € + coût salarial saisi 2 000 € (et non 14 j × 250 €).
+        assert Decimal(reponse.json()['effectif_resume']['budget']) == Decimal('6500')
+        assert reponse.json()['effectif']['cout_salarial_auto'] is False
+        from apps.plans.planification_annuelle import ajustements_par_annee
+        af = build_action_finance(pc.action, {}, defaultdict(poste_entry_factory),
+                                  ajustements=ajustements_par_annee([pc.action.pk]))
+        assert af.year_total(pc.annee + 1).tot == Decimal('6500')
+        # Le plan de gestion, lui, garde son calcul automatique.
+        assert af.year_total(pc.annee).tot == Decimal('9000')
+
+    def test_declinaison_par_type_de_cout_proposee(self, monde):
+        reponse = monde.client.put(monde.url(Y), {
+            'statut': 'planifiee', 'declinaison_par_type_cout': True,
+            'cout_stage': '300.00', 'autre_cout': '900.00'}, format='json')
+        assert reponse.status_code == 200, reponse.content[:300]
+        assert reponse.json()['effectif']['declinaison_par_type_cout'] is True
+        assert Decimal(monde.ligne(Y)['ajuste']['budget']) == Decimal('1200')
+        monde.action.refresh_from_db()
+        assert monde.action.declinaison_par_type_cout is False
+
+    def test_les_reglages_du_plan_s_imposent(self):
+        """Déclinaisons du plan de gestion : l'année ne peut pas s'en défaire."""
+        pc = construire_plan_complet(statut='valide')
+        client = _client(pc.referent)
+        url = f'{BASE}/operation/{pc.action.pk}/{pc.annee + 1}/'
+        contenu = client.get(url).json()['effectif']
+        for champ in ('declinaison_par_type_cout', 'declinaison_par_poste'):
+            reponse = client.put(url, dict(contenu, **{champ: False}), format='json')
+            assert reponse.status_code == 400, champ
+            assert champ in reponse.json()
+
+    def test_convertir_le_contenu_garde_les_totaux(self, monde):
+        """Cocher / décocher une case réécrit la saisie de l'année sans en
+        changer le total : enveloppe ↔ autres coûts."""
+        pg = monde.client.get(monde.url(Y)).json()['pg']
+        reponse = monde.client.post(monde.url(Y, 'reglages/'), {
+            'contenu': pg, 'reglages': {'declinaison_par_type_cout': True}}, format='json')
+        assert reponse.status_code == 200, reponse.content[:300]
+        detaille = reponse.json()['contenu']
+        assert detaille['declinaison_par_type_cout'] is True
+        assert (detaille['budget'], Decimal(detaille['autre_cout'])) == (None, Decimal('1000'))
+        assert Decimal(reponse.json()['resume']['budget']) == Decimal('1000')
+        retour = monde.client.post(monde.url(Y, 'reglages/'), {
+            'contenu': detaille, 'reglages': {'declinaison_par_type_cout': False}},
+            format='json').json()['contenu']
+        assert retour['declinaison_par_type_cout'] is None
+        assert (Decimal(retour['budget']), retour['autre_cout']) == (Decimal('1000'), None)
+
+    def test_convertir_le_salaire_calcule_en_saisie(self):
+        pc = construire_plan_complet(statut='valide')
+        client = _client(pc.referent)
+        url = f'{BASE}/operation/{pc.action.pk}/{pc.annee}/'
+        pg = client.get(url).json()['pg']
+        reponse = client.post(url + 'reglages/', {
+            'contenu': pg, 'reglages': {'cout_salarial_auto': False}}, format='json').json()
+        org_a = next(o for o in reponse['contenu']['organismes'] if o['id_organisme'] == pc.org_a.pk)
+        # 12 j × 250 € du poste de l'organisme A deviennent un coût salarial saisi.
+        assert Decimal(org_a['cout_salarial']) == Decimal('3000')
+        assert Decimal(reponse['resume']['budget']) == Decimal('9000')
+
+    def test_temps_par_poste_propose_puis_retire(self, monde):
+        poste = self._poste(monde)
+        pg = monde.client.get(monde.url(Y)).json()['pg']
+        par_poste = monde.client.post(monde.url(Y, 'reglages/'), {
+            'contenu': pg, 'reglages': {'declinaison_par_poste': True}},
+            format='json').json()['contenu']
+        assert par_poste['declinaison_par_poste'] is True
+        par_poste['rh_lignes'] = [{'id_poste': poste.pk, 'jours': '4.00'},
+                                  {'id_poste': poste.pk, 'jours': '2.00',
+                                   'categorie_depense': 'benevolat_partenariat', 'finance': False}]
+        reponse = monde.client.put(monde.url(Y), par_poste, format='json')
+        assert reponse.status_code == 200, reponse.content[:300]
+        assert Decimal(reponse.json()['effectif_resume']['jours']) == Decimal('6')
+        total = monde.client.post(monde.url(Y, 'reglages/'), {
+            'contenu': reponse.json()['effectif'], 'reglages': {'declinaison_par_poste': False}},
+            format='json').json()['contenu']
+        lignes = sorted((l['id_poste'], Decimal(l['jours']), l['categorie_depense'])
+                        for l in total['rh_lignes'])
+        assert lignes == [(None, Decimal('2'), 'benevolat_partenariat'),
+                          (None, Decimal('4'), 'fonctionnement')]
+
+    def test_le_bilan_lit_le_detail_de_l_annee(self, monde):
+        monde.realiser(Y, budget_realise=Decimal('600'))
+        monde.client.put(monde.url(Y), {
+            'statut': 'planifiee', 'declinaison_par_type_cout': True,
+            'cout_stage': '300.00', 'autre_cout': '900.00'}, format='json')
+        bilan = monde.client.get(f'/api/plans/realisations/bilan/{monde.plan.pk}/', {'annee': Y}).json()
+        assert bilan['budget']['total']['previsionnel'] == 1200
+
+    def test_report_partiel_entre_reglages_differents(self, monde):
+        """Le reste à faire d'une année détaillée rejoint une année en
+        enveloppe : il y est replié, le total est conservé."""
+        monde.client.put(monde.url(Y), {
+            'statut': 'planifiee', 'declinaison_par_type_cout': True,
+            'cout_stage': '300.00', 'autre_cout': '900.00'}, format='json')
+        monde.realiser(Y, niveau='EN_COURS')
+        assert monde.reporter(Y, Y + 1, partiel=True).status_code == 200
+        cible = monde.client.get(monde.url(Y + 1)).json()
+        assert Decimal(cible['effectif_resume']['budget']) == Decimal('3200')
+        assert Decimal(cible['effectif']['budget']) == Decimal('3200')
+        assert cible['effectif']['autre_cout'] is None
+
+
 class TestAjustementsDuPlan:
     """Tous les ajustements d'un plan, pour que le suivi calcule son prévu sur
     la planification ajustée (icônes, budget / RH, planification mensuelle)."""
@@ -409,6 +535,9 @@ class TestDroits:
         assert client.put(monde.url(Y), {'statut': 'non_prevue'}, format='json').status_code == 403
         assert client.post(monde.url(Y, 'report/'), {'annee_report': Y + 1},
                            format='json').status_code == 403
+        assert client.post(monde.url(Y, 'reglages/'), {
+            'contenu': {'statut': 'planifiee'}, 'reglages': {'declinaison_par_type_cout': True}},
+            format='json').status_code == 403
 
     def test_ni_redacteur_externe_ni_etranger(self, monde):
         redacteur = RoleFactory(role_level='redacteur')

@@ -116,7 +116,8 @@
             }
           </div>
           <div class="synthese-bloc synthese-pg">
-            <span class="synthese-titre">{{ 'plans.suivis.planificationAnnuelle.colonnes.pg' | translate }}</span>
+            <span class="synthese-titre">{{ (d.pg_global_resume ? 'plans.suivis.planificationAnnuelle.colonnes.pg'
+              : 'plans.suivis.planificationAnnuelle.ajustement.synthesePg') | translate:{ annee: annee() } }}</span>
             @if (d.pg_global_resume; as g) {
               <span class="synthese-valeur">
                 {{ 'plans.suivis.planificationAnnuelle.surLaPeriode' | translate:{
@@ -135,6 +136,34 @@
           </div>
         </div>
 
+        <!-- Retour 13/11 — comme la saisie du suivi (#762) : une action revue
+             s'affiche en lecture, « Modifier » rouvre la saisie ; « Annuler les
+             modifications » revient au plan de gestion pour l'année. -->
+        @if (!lectureSeule()) {
+          <div class="saisie-head">
+            <p class="text-mention">
+              {{ (enLecture() ? 'plans.suivis.planificationAnnuelle.ajustement.lectureAide'
+                 : 'plans.suivis.planificationAnnuelle.ajustement.saisieAide') | translate:{ annee: annee() } }}
+            </p>
+            <div class="saisie-toolbar">
+              @if (enLecture()) {
+                <button mat-flat-button color="primary" type="button" (click)="modifier()"
+                        data-testid="ajustement-modifier">
+                  <i class="fi fi-rr-pencil"></i>
+                  {{ 'common.actions.edit' | translate }}
+                </button>
+              }
+              @if (d.ajustement || modifie()) {
+                <button mat-stroked-button type="button" (click)="revenirAuPlan()" data-testid="ajustement-revenir"
+                        [matTooltip]="'plans.suivis.planificationAnnuelle.ajustement.revenirAide' | translate">
+                  <i class="fi fi-rr-undo"></i>
+                  {{ 'plans.suivis.planificationAnnuelle.ajustement.revenir' | translate:{ annee: annee() } }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
         <form class="ajustement-form" (ngSubmit)="enregistrer()">
           <!-- Statut de l'année -->
           <section class="bloc">
@@ -147,17 +176,17 @@
             }
             <div class="statuts" role="radiogroup">
               <label class="radio">
-                <input type="radio" name="statut" [checked]="planifiee()" [disabled]="lectureSeule()"
+                <input type="radio" name="statut" [checked]="planifiee()" [disabled]="verrouille()"
                        (change)="choisirStatut('planifiee')" data-testid="statut-planifiee">
                 <span>{{ 'plans.suivis.planificationAnnuelle.statut.planifiee' | translate }}</span>
               </label>
               <label class="radio">
-                <input type="radio" name="statut" [checked]="contenu.statut === 'non_prevue'" [disabled]="lectureSeule()"
+                <input type="radio" name="statut" [checked]="contenu.statut === 'non_prevue'" [disabled]="verrouille()"
                        (change)="choisirStatut('non_prevue')" data-testid="statut-non-prevue">
                 <span>{{ 'plans.suivis.planificationAnnuelle.statut.non_prevue' | translate }}</span>
               </label>
             </div>
-            @if (reportee() && !lectureSeule()) {
+            @if (reportee() && !verrouille()) {
               <p class="aide">{{ 'plans.suivis.planificationAnnuelle.ajustement.annulerReportAide' | translate }}</p>
             }
           </section>
@@ -170,7 +199,7 @@
               <div class="mois" data-testid="ajustement-mois">
                 @for (m of mois; track m) {
                   <button type="button" class="mois-btn" [class.actif]="moisActif(m)" [class.pg]="moisPg(m)"
-                          [disabled]="lectureSeule()" [attr.aria-pressed]="moisActif(m)"
+                          [disabled]="verrouille()" [attr.aria-pressed]="moisActif(m)"
                           (click)="basculerMois(m)">
                     {{ moisCourt(m) }}
                   </button>
@@ -188,6 +217,17 @@
             <!-- Temps de travail -->
             <section class="bloc">
               <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.ajustement.tempsTitre' | translate }}</h2>
+              <div class="reglages" data-testid="ajustement-reglage-poste">
+                <app-checkbox
+                  [checked]="disp.rhMode === 'postes'"
+                  (checkedChange)="changerReglage('declinaison_par_poste', $event)"
+                  [disabled]="verrouille() || reglageImpose('declinaison_par_poste') || conversion()"
+                  [label]="'plans.suivis.planificationAnnuelle.ajustement.reglages.declinaisonPoste' | translate"
+                  [mention]="(reglageImpose('declinaison_par_poste')
+                    ? 'plans.suivis.planificationAnnuelle.ajustement.reglages.imposeParLePlan'
+                    : 'plans.suivis.planificationAnnuelle.ajustement.reglages.declinaisonPosteAide') | translate">
+                </app-checkbox>
+              </div>
               <table class="saisie-table" data-testid="ajustement-temps">
                 <thead>
                   <tr>
@@ -207,6 +247,12 @@
                         <ng-container *ngTemplateOutlet="ligneTemps; context: { $implicit: ligne,
                           libelle: libellePoste(ligne.id_poste), sous: organismeDuPoste(ligne), retirable: true }"></ng-container>
                       }
+                      <!-- Temps saisi avant de décliner par poste : à répartir. -->
+                      @for (ligne of lignesSansPoste(); track $index) {
+                        <ng-container *ngTemplateOutlet="ligneTemps; context: { $implicit: ligne,
+                          libelle: libelleSansPoste(ligne),
+                          sous: ('plans.suivis.planificationAnnuelle.ajustement.aRepartir' | translate), retirable: true }"></ng-container>
+                      }
                     }
                     @case ('organismes') {
                       @for (ligne of lignesParOrganisme(); track $index) {
@@ -222,8 +268,17 @@
                     }
                   }
                 </tbody>
+                <tfoot>
+                  <tr class="ligne-total" data-testid="temps-total">
+                    <td class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.total' | translate }}</td>
+                    <td class="col-pg">{{ joursTotaux('pg') | number:'1.0-1':'fr-FR' }} j</td>
+                    <td class="col-saisie">{{ joursTotaux('ajuste') | number:'1.0-1':'fr-FR' }} j</td>
+                    @if (disp.categorieTemps) { <td></td> }
+                    <td class="col-actions"></td>
+                  </tr>
+                </tfoot>
               </table>
-              @if (disp.rhMode === 'postes' && !lectureSeule() && postesDisponibles().length) {
+              @if (disp.rhMode === 'postes' && !verrouille() && postesDisponibles().length) {
                 <label class="ajout">
                   <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.ajouterPoste' | translate }}</span>
                   <select #choixPoste (change)="ajouterPoste(choixPoste.value); choixPoste.value = ''">
@@ -239,8 +294,28 @@
             <!-- Budget -->
             <section class="bloc">
               <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.ajustement.budgetTitre' | translate }}</h2>
+              <div class="reglages" data-testid="ajustement-reglages-budget">
+                <app-checkbox
+                  [checked]="disp.detail"
+                  (checkedChange)="changerReglage('declinaison_par_type_cout', $event)"
+                  [disabled]="verrouille() || reglageImpose('declinaison_par_type_cout') || conversion()"
+                  [label]="'plans.suivis.planificationAnnuelle.ajustement.reglages.declinaisonCout' | translate"
+                  [mention]="(reglageImpose('declinaison_par_type_cout')
+                    ? 'plans.suivis.planificationAnnuelle.ajustement.reglages.imposeParLePlan'
+                    : 'plans.suivis.planificationAnnuelle.ajustement.reglages.declinaisonCoutAide') | translate">
+                </app-checkbox>
+                @if (optionSalaire()) {
+                  <app-checkbox
+                    [checked]="disp.salaireCalcule"
+                    (checkedChange)="changerReglage('cout_salarial_auto', $event)"
+                    [disabled]="verrouille() || conversion()"
+                    [label]="'plans.suivis.planificationAnnuelle.ajustement.reglages.salaireAuto' | translate"
+                    [mention]="'plans.suivis.planificationAnnuelle.ajustement.reglages.salaireAutoAide' | translate">
+                  </app-checkbox>
+                }
+              </div>
               @if (disp.parOrganisme) {
-                @if (!lectureSeule() && organismesDisponibles().length) {
+                @if (!verrouille() && organismesDisponibles().length) {
                   <label class="ajout">
                     <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.ajouterOrganisme' | translate }}</span>
                     <select #choixOrg (change)="ajouterOrganisme(choixOrg.value); choixOrg.value = ''">
@@ -259,7 +334,7 @@
                         @for (org of contenu.organismes; track org.id_organisme) {
                           <th class="col-org">
                             {{ nomOrganisme(org.id_organisme) }}
-                            @if (!lectureSeule()) {
+                            @if (!verrouille()) {
                               <button type="button" class="icon-btn-flat" (click)="retirerOrganisme(org)"
                                       [attr.aria-label]="'plans.suivis.planificationAnnuelle.ajustement.retirer' | translate">
                                 <i class="fi fi-rr-cross-small"></i>
@@ -267,12 +342,15 @@
                             }
                           </th>
                         }
+                        @if ((contenu.organismes?.length ?? 0) > 1) {
+                          <th class="col-org">{{ 'plans.suivis.planificationAnnuelle.ajustement.total' | translate }}</th>
+                        }
                       </tr>
                     </thead>
                     <tbody>
                       @for (ligne of disp.lignes; track ligne.champ) {
                         @if (disp.typeBudget && (ligne === lignesFonct()[0] || ligne === lignesInvest()[0])) {
-                          <tr class="sous-titre"><td [attr.colspan]="(contenu.organismes?.length ?? 0) + 1">
+                          <tr class="sous-titre"><td [attr.colspan]="(contenu.organismes?.length ?? 0) + 2">
                             {{ 'plans.suivis.planificationAnnuelle.ajustement.budget.' + (ligne.invest ? 'blocInvest' : 'blocFonct') | translate }}
                           </td></tr>
                         }
@@ -285,15 +363,54 @@
                                 <span class="pg">{{ 'plans.suivis.planificationAnnuelle.ajustement.pgCourt' | translate }} {{ salairePg(ligne, org.id_organisme) | number:'1.0-0':'fr-FR' }} €</span>
                               } @else {
                                 <input type="number" min="0" step="0.01" [name]="ligne.champ + '-' + org.id_organisme"
-                                       [(ngModel)]="$any(org)[ligne.champ]" [disabled]="lectureSeule()">
+                                       [(ngModel)]="$any(org)[ligne.champ]" [disabled]="verrouille()">
                                 <span class="pg">{{ 'plans.suivis.planificationAnnuelle.ajustement.pgCourt' | translate }}
                                   {{ (valeurPg(ligne.champ, org.id_organisme) ?? 0) | number:'1.0-0':'fr-FR' }} €</span>
                               }
                             </td>
                           }
+                          @if ((contenu.organismes?.length ?? 0) > 1) {
+                            <td class="col-saisie col-total-org">{{ totalLigne(ligne) | number:'1.0-0':'fr-FR' }} €</td>
+                          }
                         </tr>
                       }
                     </tbody>
+                    <tfoot>
+                      @if (disp.typeBudget) {
+                        @for (part of ['fonctionnement', 'investissement']; track part) {
+                          <tr class="ligne-sous-total">
+                            <td class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.totalPart.' + part | translate }}</td>
+                            @for (org of contenu.organismes; track org.id_organisme) {
+                              <td class="col-saisie">
+                                <span class="valeur-total">{{ $any(totalAjuste(org.id_organisme))[part] | number:'1.0-0':'fr-FR' }} €</span>
+                                <span class="pg">{{ 'plans.suivis.planificationAnnuelle.ajustement.pgCourt' | translate }}
+                                  {{ $any(totalPg(org.id_organisme))[part] | number:'1.0-0':'fr-FR' }} €</span>
+                              </td>
+                            }
+                            @if ((contenu.organismes?.length ?? 0) > 1) {
+                              <td class="col-saisie col-total-org">{{ $any(totalAjuste())[part] | number:'1.0-0':'fr-FR' }} €</td>
+                            }
+                          </tr>
+                        }
+                      }
+                      <tr class="ligne-total" data-testid="budget-total">
+                        <td class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.total' | translate }}</td>
+                        @for (org of contenu.organismes; track org.id_organisme) {
+                          <td class="col-saisie">
+                            <span class="valeur-total">{{ totalAjuste(org.id_organisme).total | number:'1.0-0':'fr-FR' }} €</span>
+                            <span class="pg">{{ 'plans.suivis.planificationAnnuelle.ajustement.pgCourt' | translate }}
+                              {{ totalPg(org.id_organisme).total | number:'1.0-0':'fr-FR' }} €</span>
+                          </td>
+                        }
+                        @if ((contenu.organismes?.length ?? 0) > 1) {
+                          <td class="col-saisie col-total-org">
+                            <span class="valeur-total">{{ totalAjuste().total | number:'1.0-0':'fr-FR' }} €</span>
+                            <span class="pg">{{ 'plans.suivis.planificationAnnuelle.ajustement.pgCourt' | translate }}
+                              {{ totalPg().total | number:'1.0-0':'fr-FR' }} €</span>
+                          </td>
+                        }
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               } @else {
@@ -324,18 +441,34 @@
                             </span>
                           } @else {
                             <input type="number" min="0" step="0.01" [name]="ligne.champ"
-                                   [(ngModel)]="$any(contenu)[ligne.champ]" [disabled]="lectureSeule()"
+                                   [(ngModel)]="$any(contenu)[ligne.champ]" [disabled]="verrouille()"
                                    [attr.data-testid]="'champ-' + ligne.champ">
                           }
                           @if (ligne.commentaire) {
                             <input type="text" class="commentaire" maxlength="255" [name]="ligne.commentaire"
-                                   [(ngModel)]="$any(contenu)[ligne.commentaire]" [disabled]="lectureSeule()"
+                                   [(ngModel)]="$any(contenu)[ligne.commentaire]" [disabled]="verrouille()"
                                    [placeholder]="'plans.suivis.planificationAnnuelle.ajustement.precisez' | translate">
                           }
                         </td>
                       </tr>
                     }
                   </tbody>
+                  <tfoot>
+                    @if (disp.typeBudget) {
+                      @for (part of ['fonctionnement', 'investissement']; track part) {
+                        <tr class="ligne-sous-total">
+                          <td class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.totalPart.' + part | translate }}</td>
+                          <td class="col-pg">{{ $any(totalPg())[part] | number:'1.0-0':'fr-FR' }} €</td>
+                          <td class="col-saisie">{{ $any(totalAjuste())[part] | number:'1.0-0':'fr-FR' }} €</td>
+                        </tr>
+                      }
+                    }
+                    <tr class="ligne-total" data-testid="budget-total">
+                      <td class="col-libelle">{{ 'plans.suivis.planificationAnnuelle.ajustement.total' | translate }}</td>
+                      <td class="col-pg">{{ totalPg().total | number:'1.0-0':'fr-FR' }} €</td>
+                      <td class="col-saisie">{{ totalAjuste().total | number:'1.0-0':'fr-FR' }} €</td>
+                    </tr>
+                  </tfoot>
                 </table>
               }
             </section>
@@ -363,10 +496,10 @@
                         </td>
                         <td class="col-saisie">
                           <input type="number" min="0" step="0.01" [name]="'financeur-' + f.id_financeur"
-                                 [(ngModel)]="f.montant" [disabled]="lectureSeule()">
+                                 [(ngModel)]="f.montant" [disabled]="verrouille()">
                         </td>
                         <td class="col-actions">
-                          @if (!lectureSeule()) {
+                          @if (!verrouille()) {
                             <button type="button" class="icon-btn-flat" (click)="retirerFinanceur(f.id_financeur)"
                                     [attr.aria-label]="'plans.suivis.planificationAnnuelle.ajustement.retirer' | translate">
                               <i class="fi fi-rr-trash"></i>
@@ -378,7 +511,7 @@
                   </tbody>
                 </table>
               }
-              @if (!lectureSeule() && financeursDisponibles().length) {
+              @if (!verrouille() && financeursDisponibles().length) {
                 <label class="ajout">
                   <span>{{ 'plans.suivis.planificationAnnuelle.ajustement.ajouterFinanceur' | translate }}</span>
                   <select #choixFin (change)="ajouterFinanceur(choixFin.value); choixFin.value = ''">
@@ -395,19 +528,13 @@
           <!-- Commentaire -->
           <section class="bloc">
             <h2 class="bloc-titre">{{ 'plans.suivis.planificationAnnuelle.ajustement.commentaire' | translate }}</h2>
-            <textarea name="commentaire" rows="3" [(ngModel)]="contenu.commentaire" [disabled]="lectureSeule()"
+            <textarea name="commentaire" rows="3" [(ngModel)]="contenu.commentaire" [disabled]="verrouille()"
                       [placeholder]="'plans.suivis.planificationAnnuelle.ajustement.commentairePlaceholder' | translate"></textarea>
           </section>
 
           @if (!lectureSeule()) {
             <div class="barre-actions">
               <div class="barre-gauche">
-                @if (d.ajustement) {
-                  <button mat-button type="button" (click)="revenirAuPlan()" data-testid="ajustement-revenir">
-                    <i class="fi fi-rr-undo"></i>
-                    {{ 'plans.suivis.planificationAnnuelle.ajustement.revenir' | translate }}
-                  </button>
-                }
                 @if (planifiee() && anneesReport().length) {
                   <button mat-stroked-button type="button" (click)="reporter()" [disabled]="modifie()"
                           [matTooltip]="modifie() ? ('plans.suivis.planificationAnnuelle.ajustement.enregistrerAvantReport' | translate) : ''"
@@ -418,16 +545,18 @@
                 }
               </div>
               <div class="barre-droite">
+                @if (!enLecture()) {
                 @if (suivante()) {
                   <button mat-stroked-button type="button" [disabled]="enregistrement()" (click)="enregistrer(true)"
                           data-testid="ajustement-enregistrer-suivante">
                     {{ 'plans.suivis.planificationAnnuelle.ajustement.enregistrerSuivante' | translate }}
                   </button>
                 }
-                <button mat-flat-button color="primary" type="submit" [disabled]="enregistrement()"
+                <button mat-flat-button color="primary" type="submit" [disabled]="enregistrement() || conversion()"
                         data-testid="ajustement-enregistrer">
                   {{ 'plans.suivis.planificationAnnuelle.ajustement.enregistrer' | translate }}
                 </button>
+                }
               </div>
             </div>
           }
@@ -444,12 +573,12 @@
             </td>
             <td class="col-saisie">
               <input type="number" min="0" step="0.5" [(ngModel)]="ligne.jours"
-                     [ngModelOptions]="{ standalone: true }" [disabled]="lectureSeule()">
+                     [ngModelOptions]="{ standalone: true }" [disabled]="verrouille()">
             </td>
             @if (disposition()?.categorieTemps) {
               <td>
                 <select [(ngModel)]="ligne.categorie_depense" [ngModelOptions]="{ standalone: true }"
-                        [disabled]="lectureSeule()">
+                        [disabled]="verrouille()">
                   <option value="fonctionnement">{{ 'plans.suivis.planificationAnnuelle.ajustement.categories.fonctionnement' | translate }}</option>
                   <option value="investissement">{{ 'plans.suivis.planificationAnnuelle.ajustement.categories.investissement' | translate }}</option>
                   <option value="benevolat_partenariat">{{ 'plans.suivis.planificationAnnuelle.ajustement.categories.benevolat_partenariat' | translate }}</option>
@@ -457,7 +586,7 @@
               </td>
             }
             <td class="col-actions">
-              @if (retirable && !lectureSeule()) {
+              @if (retirable && !verrouille()) {
                 <button type="button" class="icon-btn-flat" (click)="retirerLigne(ligne)"
                         [attr.aria-label]="'plans.suivis.planificationAnnuelle.ajustement.retirer' | translate">
                   <i class="fi fi-rr-trash"></i>

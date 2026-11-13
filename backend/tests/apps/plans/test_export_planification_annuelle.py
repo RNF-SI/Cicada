@@ -115,3 +115,29 @@ def test_fiche_de_suivi_trois_colonnes(pc):
     assert (total[3], total[5], total[7]) == ('9 000 €', '8 000 €', '/')
     planif = next(r for r in rows if r[0] == 'Planification ajustée')
     assert any(isinstance(v, str) and f'Planifiée en {pc.annee + 1}' in v for v in planif)
+
+
+def _lignes_detail(ws, libelle):
+    """(détail, plan de gestion, ajusté, écart) des lignes d'une action."""
+    return [(row[4], *row[5:8]) for row in ws.iter_rows(min_row=4, values_only=True)
+            if row[3] == libelle]
+
+
+def test_detail_budget_par_type_de_cout(pc):
+    """Retour 13/11 : le détail du coût de chaque action (déclinaison par
+    type de coût), plan de gestion / ajusté / écart."""
+    annee = pc.annee + 1
+    lignes = _lignes_detail(_classeur(pc, annee)[f'Détail budget {annee}'], 'Action PC-01')
+    valeurs = {d: tuple(Decimal(str(v)) for v in (p, a, e)) for d, p, a, e in lignes}
+    # 12 j × 250 € au plan, 14 j ajustés ; stage 4 000 + 2 000 € au plan, 4 500 € ajustés.
+    assert valeurs['Coût salarial — fonctionnement'] == (Decimal('3000'), Decimal('3500'), Decimal('500'))
+    assert valeurs['Coût stage — fonctionnement'] == (Decimal('6000'), Decimal('4500'), Decimal('-1500'))
+    assert valeurs['Total action'] == (Decimal('9000'), Decimal('8000'), Decimal('-1000'))
+
+
+def test_detail_rh_par_type_de_poste(pc):
+    annee = pc.annee + 1
+    lignes = _lignes_detail(_classeur(pc, annee)[f'Détail RH {annee}'], 'Action PC-01')
+    valeurs = {d: tuple(Decimal(str(v)) for v in (p, a, e)) for d, p, a, e in lignes}
+    assert valeurs['Garde technicien'] == (Decimal('12'), Decimal('14'), Decimal('2'))
+    assert valeurs['Total action'] == (Decimal('12'), Decimal('14'), Decimal('2'))

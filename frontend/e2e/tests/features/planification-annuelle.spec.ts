@@ -57,6 +57,10 @@ test.describe('#794 — Ajustement de la planification annuelle', () => {
       await expect(referentPage.getByTestId('ajustement-total')).toContainText('6');
       await referentPage.getByTestId('ajustement-enregistrer').click();
       await expect(referentPage.getByText('Ajustement enregistré')).toBeVisible();
+      // Retour 13/11 — enregistrée, la saisie se fige ; « Modifier » la rouvre.
+      await expect(budget).toBeDisabled();
+      await referentPage.getByTestId('ajustement-modifier').click();
+      await expect(budget).toBeEnabled();
 
       const apres = await action(referentPage, plan.id_pg, 'PA1');
       expect([Number(apres.pg.budget), Number(apres.ajuste.budget), apres.revue]).toEqual([5300, 6100, true]);
@@ -66,6 +70,23 @@ test.describe('#794 — Ajustement de la planification annuelle', () => {
     } finally {
       await apiDelete(referentPage, `plans/planification-annuelle/operation/${pa1.id_operation}/${ANNEE}/`);
     }
+  });
+
+  test('l\'année se détaille par type de coût sans changer son total', async ({ referentPage }) => {
+    const plan = await planValide(referentPage, 'aucune ventilation');
+    const pa1 = await action(referentPage, plan.id_pg, 'PA1');
+    await referentPage.goto(`/plans/${plan.slug}/planification-annuelle/${pa1.id_operation}/${ANNEE}`);
+    await expect(referentPage.getByTestId('champ-budget')).toHaveValue(/5300/, { timeout: 15000 });
+    await expect(referentPage.getByTestId('budget-total')).toContainText('5');
+    await referentPage.getByTestId('ajustement-reglages-budget')
+      .getByText('Déclinaison par type de coût').click();
+    // Le montant saisi passe en « autres coûts », le total ne bouge pas.
+    await expect(referentPage.getByTestId('champ-autre_cout')).toHaveValue(/5300/);
+    await expect(referentPage.getByTestId('champ-budget')).toHaveCount(0);
+    expect(NOMBRE(await referentPage.getByTestId('budget-total').textContent() ?? '')).toContain('5300€5300€');
+    // Rien n'est enregistré tant qu'on n'enregistre pas.
+    const apres = await action(referentPage, plan.id_pg, 'PA1');
+    expect(apres.ajustee).toBe(false);
   });
 
   test('le report montre son aperçu avant d\'écrire quoi que ce soit', async ({ referentPage }) => {

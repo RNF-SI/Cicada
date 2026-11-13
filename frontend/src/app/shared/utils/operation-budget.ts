@@ -259,6 +259,23 @@ export function salaryIsComputedReal(op: OpMode): boolean {
   );
 }
 
+/**
+ * #794 (retour 13/11) — une année ajustée de la planification annuelle porte
+ * ses propres réglages de saisie (déclinaisons, coût salarial calculé ou
+ * saisi) : le prévu de cette année se calcule avec eux. Pendant de
+ * `reglages_annee()` côté serveur, qui impose déjà les déclinaisons du plan.
+ */
+function reglesDeLAnnee(op: OpMode, oa: OperationAnnee): OpMode {
+  const r = oa.reglages_ajustes;
+  if (!r) return op;
+  return {
+    ...op,
+    declinaison_par_type_cout: r.declinaison_par_type_cout ?? op.declinaison_par_type_cout,
+    cout_salarial_auto: r.cout_salarial_auto ?? op.cout_salarial_auto,
+    declinaison_par_poste: r.declinaison_par_poste ?? op.declinaison_par_poste,
+  };
+}
+
 /** Coût salarial SAISI à la main sur l'année / les organismes (#600). */
 function manualSalary(op: OpMode, oa: OperationAnnee, invest: boolean): number {
   if (!hasCostDetail(op) || derivesSalary(op)) return 0;
@@ -306,6 +323,7 @@ function hasMonetaryDetail(oa: OperationAnnee): boolean {
 
 /** Composants du budget de fonctionnement PRÉVU d'une année (#613). */
 export function fonctDetailPrev(op: OpMode, oa: OperationAnnee): CostDetail {
+  op = reglesDeLAnnee(op, oa);
   const detail = {
     salarial: derivesSalary(op)
       ? salarialCost(oa.rh_lignes, 'fonctionnement')
@@ -326,6 +344,7 @@ export function fonctDetailPrev(op: OpMode, oa: OperationAnnee): CostDetail {
 
 /** Composants du budget d'investissement PRÉVU d'une année (#613). */
 export function investDetailPrev(op: OpMode, oa: OperationAnnee): CostDetail {
+  op = reglesDeLAnnee(op, oa);
   const detail = {
     salarial: derivesSalary(op)
       ? salarialCost(oa.rh_lignes, 'investissement')
@@ -347,6 +366,7 @@ export function investDetailPrev(op: OpMode, oa: OperationAnnee): CostDetail {
  * `null` partout quand rien n'est saisi (l'appelant affiche « — »).
  */
 export function yearBudgetPrev(op: OpMode, oa: OperationAnnee): BudgetSplit {
+  op = reglesDeLAnnee(op, oa);
   // Ni montant ventilé ni coût salarial dérivé : c'est une saisie en total
   // direct (ou une année non programmée).
   if (!hasMonetaryDetail(oa) && !derivesSalary(op)) {

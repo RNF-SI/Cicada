@@ -9,8 +9,13 @@ programmation ajustée de l'année et l'écart.
   quand une action ventile son budget par organisme) — plan de gestion, ajusté,
   écart, et la part fonctionnement / investissement de l'ajusté quand une
   action distingue les types de budget ;
+- ``Détail budget`` (retour 13/11) : le coût de chaque action décliné par
+  type de coût (salarial, stage, prestataire, autres ; fonctionnement /
+  investissement), plan / ajusté / écart ;
 - ``RH`` : temps de travail des agents (jours), même découpage, et le temps
   bénévole ou partenaire à part ;
+- ``Détail RH`` (retour 13/11) : le temps de chaque action par type de poste
+  (ou par organisme, ou en un total, selon la saisie), plan / ajusté / écart ;
 - ``Financeurs`` : montant prévu par le plan (global sur l'action, #790) et
   montant de l'année ajustée ;
 - ``Calendrier`` : statut de l'année et mois de réalisation, ajustés (●) et du
@@ -61,39 +66,46 @@ def statut_libelle(resume) -> str:
 class _Feuille:
     """Une feuille : titre, en-tête, lignes d'action, total."""
 
-    def __init__(self, wb, used, nom, plan, sous_titre, colonnes):
+    def __init__(self, wb, used, nom, plan, sous_titre, colonnes, entetes=None):
         self.ws = wb.create_sheet(br._title(nom, used))
         self.colonnes = colonnes
-        n = len(_IDENT) + len(colonnes)
-        widths = {1: 18, 2: 12, 3: 14, 4: 44, 5: 18}
+        self.entetes = entetes or _IDENT
+        n = len(self.entetes) + len(colonnes)
+        widths = {1: 18, 2: 12, 3: 14, 4: 44, 5: 30 if entetes else 18}
         for c in range(1, n + 1):
             self.ws.column_dimensions[get_column_letter(c)].width = widths.get(c, 14)
         self.ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=n)
         br._set(self.ws, 1, 1, br._plan_title(plan), font=br._F_TITLE, align=br._AL_L)
         self.ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=n)
         br._set(self.ws, 2, 1, sous_titre, font=br._F_SUB, align=br._AL_L)
-        for c, titre in enumerate(_IDENT + [t for t, _f in colonnes], start=1):
+        for c, titre in enumerate(self.entetes + [t for t, _f in colonnes], start=1):
             br._set(self.ws, 3, c, titre, fill=br._HDR_FILL, font=br._F_HDR, align=br._AL_C)
         self.r = 4
         self.totaux = [_ZERO] * len(colonnes)
-        self.ws.freeze_panes = self.ws.cell(4, len(_IDENT) + 1).coordinate
+        self.ws.freeze_panes = self.ws.cell(4, len(self.entetes) + 1).coordinate
         self.ws.sheet_view.showGridLines = False
 
-    def ligne(self, ident, valeurs):
+    def ligne(self, ident, valeurs, sous_total=False, compter=True):
+        """Une ligne ; ``sous_total`` : total d'une action, mis en relief et
+        hors du total de la feuille (ses lignes de détail y comptent déjà) ;
+        ``compter=False`` : ligne hors du total (bénévolat)."""
+        style = {'fill': br._TOTAL_FILL, 'font': br._F_TOTAL} if sous_total else {}
         for c, v in enumerate(ident, start=1):
-            br._set(self.ws, self.r, c, v, align=br._AL_C if c in (2, 3) else br._AL_L)
+            br._set(self.ws, self.r, c, v, align=br._AL_C if c in (2, 3) else br._AL_L, **style)
         for i, (v, (_t, fmt)) in enumerate(zip(valeurs, self.colonnes)):
-            cell = br._set(self.ws, self.r, len(_IDENT) + 1 + i, v)
+            cell = br._set(self.ws, self.r, len(self.entetes) + 1 + i, v, **style)
             if isinstance(v, Decimal):
                 cell.number_format = fmt
-                self.totaux[i] += v
+                if compter and not sous_total:
+                    self.totaux[i] += v
         self.r += 1
 
     def total(self, libelle="TOTAL"):
-        self.ws.merge_cells(start_row=self.r, start_column=1, end_row=self.r, end_column=len(_IDENT))
+        self.ws.merge_cells(start_row=self.r, start_column=1, end_row=self.r,
+                            end_column=len(self.entetes))
         br._set(self.ws, self.r, 1, libelle, fill=br._TOTAL_FILL, font=br._F_TOTAL, align=br._AL_L)
         for i, (v, (_t, fmt)) in enumerate(zip(self.totaux, self.colonnes)):
-            cell = br._set(self.ws, self.r, len(_IDENT) + 1 + i, v,
+            cell = br._set(self.ws, self.r, len(self.entetes) + 1 + i, v,
                            fill=br._TOTAL_FILL, font=br._F_TOTAL)
             cell.number_format = fmt
 
@@ -132,7 +144,9 @@ def build_planification_annuelle_workbook(plan, annee) -> bytes:
     wb.remove(wb.active)
     used = set()
     _feuilles_budget(wb, used, plan, pf, ajustees, statuts, annee, org_names)
+    _feuille_detail_budget(wb, used, plan, pf, ajustees, annee)
     _feuille_rh(wb, used, plan, pf, ajustees, statuts, annee)
+    _feuille_detail_rh(wb, used, plan, pf, planif, annee)
     _feuille_financeurs(wb, used, plan, pf, planif, annee)
     _feuille_calendrier(wb, used, plan, pf, planif, statuts, annee)
     return br._save(wb)
@@ -194,6 +208,110 @@ def _feuille_rh(wb, used, plan, pf, ajustees, statuts, annee):
         feuille.ligne(_ident(af, statuts[af.op.pk]),
                       [prevu, aj.jours, _ecart(prevu, aj.jours), aj.j_benevole])
     feuille.total()
+
+
+_IDENT_DETAIL = _IDENT[:4]
+
+
+def _feuille_detail_budget(wb, used, plan, pf, ajustees, annee):
+    """Coût de chaque action par type de coût : plan de gestion / ajusté /
+    écart, puis le total de l'action. Mêmes postes de dépense que la feuille
+    « Détail par action » du suivi budgétaire (``_budget_postes``)."""
+    colonnes = [("Plan de gestion", _EURO), (f"Ajusté {annee}", _EURO), ("Écart", _EURO)]
+    feuille = _Feuille(wb, used, f"Détail budget {annee}", plan,
+                       f"BUDGET {annee} (€) — détail des coûts de chaque action, plan de "
+                       "gestion et planification ajustée", colonnes,
+                       entetes=_IDENT_DETAIL + ["Poste de dépense"])
+    for af in pf.actions:
+        ajuste = ajustees[af.op.pk]
+        pg_cell = af.year_total(GLOBAL_YEAR if af.is_global else annee)
+        aj_cell = ajuste.year_total(annee)
+        ident = _ident(af, "")[:4]
+        lignes = 0
+        # Les postes de l'ajusté : ses réglages peuvent détailler plus que le plan.
+        for libelle, prevu_de, _real in br._budget_postes(ajuste):
+            pg, aj = prevu_de(pg_cell), prevu_de(aj_cell)
+            if not pg and not aj:
+                continue
+            if af.is_global:
+                feuille.ligne(ident + [libelle], [f"{br._fmt_euro(pg)} sur la période", aj, None])
+            else:
+                feuille.ligne(ident + [libelle], [pg, aj, aj - pg])
+            lignes += 1
+        if lignes:
+            pg = (f"{br._fmt_euro(pg_cell.tot)} sur la période" if af.is_global else pg_cell.tot)
+            feuille.ligne(ident + ["Total action"], [pg, aj_cell.tot, _ecart(pg, aj_cell.tot)],
+                          sous_total=True)
+    feuille.total()
+
+
+def _libelles_rh(planif):
+    from apps.users.models import BibOrganismes
+
+    organismes = dict(BibOrganismes.objects.values_list("pk", "nom_organisme"))
+
+    def libelle(ligne):
+        poste = planif.postes.get(ligne.get("id_poste"))
+        if poste is not None:
+            texte = poste.libelle or f"Poste {poste.pk}"
+        elif ligne.get("id_organisme"):
+            texte = organismes.get(ligne["id_organisme"]) or f"Organisme {ligne['id_organisme']}"
+        else:
+            texte = "Temps de travail total"
+        if (ligne.get("categorie_depense") == "benevolat_partenariat"
+                or ligne.get("finance") is False):
+            return texte + " (bénévolat / partenariat)", True
+        return texte, False
+    return libelle
+
+
+def _feuille_detail_rh(wb, used, plan, pf, planif, annee):
+    """Temps de chaque action par type de poste (ou organisme, ou total) :
+    plan de gestion / ajusté / écart, puis le total des agents (#774 : le
+    bénévolat et le partenariat n'y comptent pas)."""
+    from .planification_annuelle import contenu_pg
+
+    colonnes = [("Plan de gestion (j)", _JOURS), (f"Ajusté {annee} (j)", _JOURS),
+                ("Écart (j)", _JOURS)]
+    feuille = _Feuille(wb, used, f"Détail RH {annee}", plan,
+                       f"RESSOURCES HUMAINES {annee} (jours) — détail par type de poste, plan "
+                       "de gestion et planification ajustée", colonnes,
+                       entetes=_IDENT_DETAIL + ["Poste / temps de travail"])
+    libelle = _libelles_rh(planif)
+    for af in pf.actions:
+        op_id = af.op.pk
+        globale = planif.annee_globale(op_id) if af.is_global else None
+        pg_contenu = contenu_pg(globale) if globale is not None else planif.pg(op_id, annee)
+        jours, ordre, benevoles = {}, [], set()
+        for source, contenu in ((0, pg_contenu), (1, planif.effectif(op_id, annee))):
+            for ligne in contenu["rh_lignes"]:
+                texte, benevole = libelle(ligne)
+                if texte not in jours:
+                    jours[texte] = [_ZERO, _ZERO]
+                    ordre.append(texte)
+                if benevole:
+                    benevoles.add(texte)
+                jours[texte][source] += Decimal(str(ligne.get("jours") or 0))
+        if not ordre:
+            continue
+        ident = _ident(af, "")[:4]
+        for texte in ordre:
+            pg, aj = jours[texte]
+            compter = texte not in benevoles
+            if af.is_global:
+                feuille.ligne(ident + [texte], [f"{br._fmt_jours(pg)} sur la période", aj, None],
+                              compter=compter)
+            else:
+                feuille.ligne(ident + [texte], [pg, aj, aj - pg], compter=compter)
+        agents = [t for t in ordre if t not in benevoles]
+        pg = sum((jours[t][0] for t in agents), _ZERO)
+        aj = sum((jours[t][1] for t in agents), _ZERO)
+        if af.is_global:
+            pg = f"{br._fmt_jours(pg)} sur la période"
+        feuille.ligne(
+            ident + ["Total action (hors bénévolat / partenariat)" if benevoles else "Total action"],
+            [pg, aj, _ecart(pg, aj)], sous_total=True)
+    feuille.total("TOTAL (hors bénévolat / partenariat)")
 
 
 def _feuille_financeurs(wb, used, plan, pf, planif, annee):

@@ -3,7 +3,8 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import {
-  AjustementDuPlan, ApercuReport, ContenuAnnuel, DetailAnnuel, ReportDemande, TableauAnnuel,
+  AjustementDuPlan, ApercuReport, ContenuAnnuel, ConversionReglages, DetailAnnuel, ReglagesAnnee,
+  ReportDemande, TableauAnnuel,
 } from '../models/planification-annuelle.model';
 
 /**
@@ -42,6 +43,17 @@ export class PlanificationAnnuelleService {
   /** Revient à la programmation du plan de gestion pour l'année. */
   revenirAuPlan(operationId: number, annee: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/operation/${operationId}/${annee}/`);
+  }
+
+  /**
+   * Saisie en cours réécrite selon un autre réglage de l'année (déclinaisons,
+   * coût salarial), total conservé. Rien n'est enregistré.
+   */
+  convertir(
+    operationId: number, annee: number, contenu: ContenuAnnuel, reglages: ReglagesAnnee,
+  ): Observable<ConversionReglages> {
+    return this.http.post<ConversionReglages>(
+      `${this.apiUrl}/operation/${operationId}/${annee}/reglages/`, { contenu, reglages });
   }
 
   reporter(operationId: number, annee: number, demande: ReportDemande): Observable<ApercuReport> {

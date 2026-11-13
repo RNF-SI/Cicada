@@ -1320,8 +1320,17 @@ class RealisationOperationAnneeViewSet(viewsets.ModelViewSet):
         # #794 — l'ajustement d'une action globale, lui, a un prévu annuel.
         if op.programmation_globale and oa.annee is not None and not isinstance(oa, AjustementAnnuel):
             return fonct, invest, Decimal('0'), Decimal('0')
-        mode = op.ventilation_mode
-        if mode == 'none':
+        if isinstance(oa, AjustementAnnuel):
+            # #794 (retour 13/11) — l'année a ses propres réglages (coûts
+            # détaillés, coût salarial saisi) : calcul de la planification.
+            from .planification_annuelle import contenu_ajuste, couts
+            postes = {l.id_poste_id: l.id_poste for l in oa.rh_lignes.all() if l.id_poste_id}
+            cellule = couts(op, contenu_ajuste(oa), postes, bool(oa.organismes.all()))
+            fonct, invest = cellule.tot_fonct, cellule.tot_invest
+        mode = None if isinstance(oa, AjustementAnnuel) else op.ventilation_mode
+        if mode is None:
+            pass
+        elif mode == 'none':
             fonct += (oa.budget or 0)
         elif mode == 'by_type':
             fonct += (oa.budget_fonctionnement or 0)
