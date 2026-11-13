@@ -3,6 +3,7 @@ Handler de log personnalise pour enregistrer les erreurs en base de donnees.
 Utilise une queue et un thread worker pour eviter d'impacter les performances.
 """
 import logging
+import os
 import queue
 import threading
 import traceback
@@ -43,14 +44,32 @@ class DatabaseLogHandler(logging.Handler):
             return
 
         super().__init__()
-        self._queue: queue.Queue = queue.Queue()
-        self._worker_thread = threading.Thread(
-            target=self._worker_loop,
-            daemon=True,
-            name='DatabaseLogHandler-Worker'
-        )
-        self._worker_thread.start()
+        self._pid = None
+        self._assurer_le_fil()
         self._initialized = True
+
+    def _assurer_le_fil(self) -> None:
+        """Démarre le fil d'écriture du processus courant.
+
+        #848 — Le worker Celery (prefork) configure les journaux avant de créer
+        ses processus : le fil du parent n'existe pas dans les enfants, et leurs
+        erreurs s'empilaient sans jamais être écrites. Un processus qui n'a pas
+        encore son fil (nouveau PID) en démarre un, avec sa propre file.
+        """
+        pid = os.getpid()
+        if self._pid == pid and self._worker_thread.is_alive():
+            return
+        with self._lock:
+            if self._pid == pid and self._worker_thread.is_alive():
+                return
+            self._queue = queue.Queue()
+            self._worker_thread = threading.Thread(
+                target=self._worker_loop,
+                daemon=True,
+                name='DatabaseLogHandler-Worker'
+            )
+            self._worker_thread.start()
+            self._pid = pid
 
     def emit(self, record: logging.LogRecord) -> None:
         """
@@ -68,6 +87,7 @@ class DatabaseLogHandler(logging.Handler):
 
             # Preparer les donnees a envoyer
             log_data = self._prepare_log_data(record)
+            self._assurer_le_fil()
             self._queue.put(log_data)
 
         except Exception:

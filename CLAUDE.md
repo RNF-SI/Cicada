@@ -631,6 +631,8 @@ docker compose logs -f web
 - `error.log` : Erreurs uniquement
 - `audit.log` : Actions utilisateur (POST/PUT/DELETE)
 
+Les erreurs (`apps`, `django.request`, `celery`) vont **aussi** en base (`ErrorLog`, handler `db_errors`), lue par la page *Administration › Logs d'erreur* — y compris en production (#848 : `production.py` remplaçait les listes de handlers et la page restait vide). Le fil d'écriture du handler renaît dans chaque processus (workers Celery en prefork).
+
 **Correlation ID** : Chaque requête HTTP reçoit un UUID unique (`X-Correlation-ID`) propagé dans tous les logs pour faciliter le debugging.
 
 ### ⚠️ Architecture Seeders (Pour Développeurs)

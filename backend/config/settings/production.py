@@ -57,22 +57,24 @@ LOGGING = deepcopy(LOGGING)
 # En production, utiliser JSON sur la console aussi
 LOGGING['handlers']['console']['formatter'] = 'json'
 
-# Ajouter les fichiers de logs en production
+# Ajouter les fichiers de logs en production.
+# #848 — `db_errors` reste rattaché aux loggers qui le portaient en base : il
+# alimente la page « Logs d'erreur » de l'administration, vide sans lui.
 LOGGING['loggers']['root']['handlers'] = ['console_json', 'file', 'error_file']
 LOGGING['loggers']['root']['level'] = 'WARNING'
 
-LOGGING['loggers']['apps']['handlers'] = ['console_json', 'file', 'error_file']
+LOGGING['loggers']['apps']['handlers'] = ['console_json', 'file', 'error_file', 'db_errors']
 LOGGING['loggers']['apps']['level'] = 'INFO'
 
 LOGGING['loggers']['django']['handlers'] = ['console_json', 'file', 'error_file']
 LOGGING['loggers']['django']['level'] = 'WARNING'
 
-LOGGING['loggers']['django.request']['handlers'] = ['console_json', 'file', 'error_file']
+LOGGING['loggers']['django.request']['handlers'] = ['console_json', 'file', 'error_file', 'db_errors']
 LOGGING['loggers']['django.request']['level'] = 'WARNING'
 
 LOGGING['loggers']['django.server']['handlers'] = ['console_json', 'file', 'error_file']
 
-LOGGING['loggers']['celery']['handlers'] = ['console_json', 'file', 'error_file']
+LOGGING['loggers']['celery']['handlers'] = ['console_json', 'file', 'error_file', 'db_errors']
 LOGGING['loggers']['celery']['level'] = 'INFO'
 
 LOGGING['loggers']['audit']['handlers'] = ['console_json', 'audit_file']
