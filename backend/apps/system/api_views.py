@@ -255,6 +255,9 @@ class SystemTriggerUpdateView(APIView):
             400: OpenApiResponse(ERREUR_SYSTEME, description="Version manquante."),
             401: REPONSE_401,
             403: REPONSE_403,
+            409: OpenApiResponse(ERREUR_SYSTEME,
+                                 description="Une mise à jour est déjà programmée, ou la version "
+                                             "demandée est déjà en service."),
             500: OpenApiResponse(ERREUR_SYSTEME,
                                  description="Impossible d'écrire le déclencheur."),
         },
@@ -266,6 +269,20 @@ class SystemTriggerUpdateView(APIView):
             return Response(
                 {'error': 'Version requise'},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+        # Une seule demande à la fois, et jamais la version qui tourne déjà : une
+        # deuxième demande (second onglet, page rechargée pendant la coupure)
+        # relançait l'updater juste après la mise à jour, et son « déjà à jour »
+        # remplaçait le compte rendu de la vraie mise à jour sur cette page.
+        if UPDATE_TRIGGER_FILE.exists():
+            return Response(
+                {'error': 'Une mise à jour est déjà programmée.'},
+                status=status.HTTP_409_CONFLICT
+            )
+        if str(version) == __version__:
+            return Response(
+                {'error': f'CICADA {version} est déjà en service.'},
+                status=status.HTTP_409_CONFLICT
             )
         trigger_file = UPDATE_TRIGGER_FILE
         try:

@@ -343,6 +343,14 @@ class Instance:
         tmp.write_text(json.dumps(t, indent=1, ensure_ascii=False))
         os.replace(tmp, self._fichier_tentative())
 
+    def resultat_affiche(self):
+        """Compte rendu actuellement lu par la page (update_result.json), ou None."""
+        try:
+            r = json.loads(lire_echange(self.c.echanges / 'update_result.json'))
+        except (OSError, ValueError):
+            return None
+        return r if isinstance(r, dict) else None
+
     def ecrire_resultat(self, t):
         """Résultat lu par la page Administration › Mise à jour (dossier
         d'échange monté dans le conteneur web)."""
@@ -916,7 +924,14 @@ class Instance:
         if installe == version:
             if self.version_en_service() == version:
                 t = {'statut': A_JOUR, 'cible': version, 'depart': version, 'fin': horodatage()}
-                self.ecrire_resultat(t)
+                # Demande arrivée pendant ou juste après la mise à jour vers cette
+                # version (second onglet, page rechargée) : son compte rendu
+                # (réussite, avertissement, sauvegarde) reste celui de la page.
+                precedent = self.resultat_affiche() or {}
+                if (precedent.get('cible') or precedent.get('version')) == version:
+                    self.dire(f"CICADA {version} déjà en service : compte rendu de la mise à jour conservé")
+                else:
+                    self.ecrire_resultat(t)
                 return t
             return self.deployer(version, origine=origine, forcer=True)
         env = dict(os.environ, CICADA_UPDATER_V2='1', DEBIAN_FRONTEND='noninteractive')

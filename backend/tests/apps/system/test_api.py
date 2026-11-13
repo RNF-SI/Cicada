@@ -325,6 +325,32 @@ class TestSystemTriggerUpdateEndpoint:
         assert written_content['data']['version'] == '0.2.0'
         assert written_content['data']['requested_by'] == admin.email
 
+    def test_refuse_si_une_mise_a_jour_est_deja_programmee(self, api_client, tmp_path):
+        """Second onglet, page rechargée pendant la coupure : pas de deuxième
+        demande, qui relancerait l'updater juste après la première."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+        declencheur = tmp_path / 'update_trigger.json'
+        declencheur.write_text('{"version": "0.2.0", "requested_by": "x"}')
+        with patch('apps.system.api_views.UPDATE_TRIGGER_FILE', declencheur):
+            response = api_client.post('/api/system/trigger-update/', {'version': '0.2.0'}, format='json')
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert 'déjà programmée' in response.json()['error']
+        assert json.loads(declencheur.read_text())['requested_by'] == 'x'
+
+    def test_refuse_la_version_deja_en_service(self, api_client, tmp_path):
+        """Demander la version qui tourne remplaçait le compte rendu de la vraie
+        mise à jour par « déjà à jour » (constaté sur le staging, 0.1.69 → 0.1.72)."""
+        admin = SuperAdminFactory()
+        api_client.force_authenticate(user=admin)
+        declencheur = tmp_path / 'update_trigger.json'
+        with patch('apps.system.api_views.UPDATE_TRIGGER_FILE', declencheur), \
+                patch('apps.system.api_views.__version__', '0.2.0'):
+            response = api_client.post('/api/system/trigger-update/', {'version': '0.2.0'}, format='json')
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert 'déjà en service' in response.json()['error']
+        assert not declencheur.exists()
+
     def test_trigger_update_file_write_error(self, api_client):
         """When trigger file cannot be written, returns 500."""
         admin = SuperAdminFactory()

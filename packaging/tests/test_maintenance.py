@@ -547,6 +547,30 @@ def test_bouton_paquet_deja_installe_apres_un_echec(instance):
     assert version_env(instance) == '1.1.0'
 
 
+def test_bouton_redemande_la_version_en_service_garde_le_compte_rendu(instance):
+    """Staging 13/11 (0.1.69 → 0.1.72) : une 2e demande du bouton, arrivée pendant
+    la mise à jour, a relancé l'updater juste après ; son « déjà à jour » a
+    remplacé la réussite et l'avertissement du worker sur la page."""
+    brancher_postinst(instance)
+    instance.serveur.paquet = '1.0.0'
+    assert instance.installer('1.1.0')['statut'] == cm.REUSSIE
+    avant = resultat(instance)
+    assert avant['statut'] == 'reussie'
+
+    t = instance.installer('1.1.0')
+
+    assert t['statut'] == cm.A_JOUR
+    assert resultat(instance) == avant
+
+
+def test_bouton_version_en_service_sans_compte_rendu_ecrit_a_jour(instance):
+    instance.ecrire_version('1.1.0')
+    instance.serveur.paquet = '1.1.0'
+
+    assert instance.installer('1.1.0')['statut'] == cm.A_JOUR
+    assert resultat(instance)['statut'] == 'a_jour'
+
+
 # --- Sauvegardes et restauration ---------------------------------------------------
 
 def test_conservation_limitee_sauf_la_sauvegarde_de_la_derniere_mise_a_jour(instance):
