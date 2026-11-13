@@ -153,7 +153,9 @@
           </div>
 
           <!-- #375 — saisie des résultats verrouillée tant que le plan n'est pas validé. -->
-          @if (lectureSeule()) {
+          @if (suiteSuivi()) {
+            <app-suivi-poursuivi-banner [suite]="suiteSuivi()" page="tableau-de-bord"></app-suivi-poursuivi-banner>
+          } @else if (lectureSeule()) {
             <!-- #740 — utilisateur lié au plan : consultation seule -->
             <div class="readonly-banner" data-testid="suivi-lecture-seule">
               <i class="fi fi-rr-eye"></i>

@@ -169,3 +169,31 @@ Sans ajustement, l'année reprend la programmation du plan de gestion. Les règl
 - **Une action absente du plan de gestion** ne s'ajoute pas ici : créez une nouvelle version du plan de gestion.
 
 Comme le reste du suivi, la page est consultable par les utilisateurs liés au plan et l'ajustement est réservé aux référents du plan et aux gestionnaires, une fois le plan validé. Le bouton « **Exporter l'année (Excel)** » télécharge la planification annuelle de l'année affichée : plan de gestion, ajusté et écart, détail des coûts et du temps de travail de chaque action, financeurs et calendrier ([§ 4.12](exports.md)).
+
+## 4.9.5. Le suivi d'une version à l'autre
+
+Une nouvelle version d'un plan de gestion **au même rang** (« Modifier ce plan de gestion », prolongation, évaluation à mi-parcours) est le même plan de gestion, qui continue. Il n'a donc qu'**un seul suivi**, porté par sa dernière version validée.
+
+- **Pendant la rédaction** de la nouvelle version (brouillon), le suivi continue de se saisir sur la version en vigueur : rien n'est à ressaisir, rien n'est perdu.
+- **À la validation** de la nouvelle version, tout le suivi déjà saisi y passe : réalisation des actions (niveau, budget, temps de travail, ventilation par organisme, financeurs, commentaires, emprise réalisée), niveau de réalisation global et réglages du suivi, ajustements de la planification annuelle ([§ 4.9.4](#494-lajustement-de-la-planification-annuelle)), mesures et scores des indicateurs. Le suivi est **déplacé**, pas copié : il n'existe qu'à un endroit.
+- **Les versions antérieures du rang** affichent, sur chaque page du menu « Suivis », le bandeau « **Le suivi se poursuit dans une version plus récente** », avec un lien vers la même page de la version qui le porte. Leur suivi ne se saisit plus.
+
+Ce que devient le suivi d'une action qui a changé entre les deux versions :
+
+| Dans la nouvelle version, l'action est… | Son suivi |
+|---|---|
+| **inchangée ou modifiée** (libellé, code, budget, mode de ventilation…) | la suit |
+| **sans une année** qui avait été suivie | la suit : l'année est gardée, sans prévu |
+| **sans un organisme** qui avait du réalisé | la suit : l'organisme est gardé pour cette année |
+| **sans le poste** qui portait du temps réalisé | la suit : ce temps reste, sans poste (temps non affecté) |
+| **avec un financeur renommé** | la suit : le financeur réalisé garde son nom |
+| **supprimée** | reste sur l'ancienne version, consultable |
+| **ajoutée** | part sans suivi |
+
+Si une même année d'une action a été saisie sur les deux versions, c'est la saisie de la nouvelle version qui est gardée ; celle de l'ancienne version reste sur celle-ci.
+
+Supprimer la version qui porte le suivi le rend à la version précédente du rang. **Un nouveau rang** (plan de gestion suivant) n'est pas concerné : il démarre son propre suivi.
+
+!!! tip "Versions créées avant cette règle"
+
+    Les versions d'un même rang créées auparavant ont été rapprochées à la mise à jour de CICADA : chaque action est retrouvée d'une version à l'autre par son code et son libellé, et le suivi a rejoint la dernière version validée du rang. Une action qui n'a pas pu être retrouvée sans ambiguïté garde son suivi sur sa version.

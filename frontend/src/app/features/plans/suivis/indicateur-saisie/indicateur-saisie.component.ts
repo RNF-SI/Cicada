@@ -10,6 +10,8 @@
  *  - 'edit-auto'     : saisie des valeurs des métriques, score auto calculé
  *  - 'edit-override' : override manuel du score, message info + textarea raisons
  */
+import { SuiviPoursuiviBannerComponent } from '../suivi-poursuivi-banner/suivi-poursuivi-banner.component';
+import { SuiviPoursuiviDans } from '../../../../core/models/admin.model';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -44,6 +46,7 @@ const SCORE_LEVELS: ScoreLevel[] = ['very-bad', 'bad', 'neutral', 'good', 'very-
   selector: 'app-indicateur-saisie',
   standalone: true,
   imports: [
+    SuiviPoursuiviBannerComponent,
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule, MatTooltipModule, MatDialogModule, TranslateModule,
     HeaderComponent, PlanSidebarComponent, CheckboxComponent,
@@ -53,6 +56,9 @@ const SCORE_LEVELS: ScoreLevel[] = ['very-bad', 'bad', 'neutral', 'good', 'very-
   styleUrl: './indicateur-saisie.component.scss',
 })
 export class IndicateurSaisieComponent implements OnInit {
+  /** #803 — version du même rang qui porte désormais le suivi (renvoi). */
+  suiteSuivi = signal<SuiviPoursuiviDans | null>(null);
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -483,6 +489,7 @@ export class IndicateurSaisieComponent implements OnInit {
     // Plan
     this.adminService.getPlanBySlug(slug).subscribe({
       next: (plan) => {
+        this.suiteSuivi.set(plan.suivi_poursuivi_dans ?? null);  // #803
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set((plan as any).statut ?? null);

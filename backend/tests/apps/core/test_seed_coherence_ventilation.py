@@ -263,3 +263,34 @@ def test_jeu_d_essai_coherent_et_idempotent():
         if attendu.get('declinaison_par_poste'):
             assert contenu['rh_lignes'] and all(l['id_poste'] for l in contenu['rh_lignes'])
     assert len(resumes) == 1
+
+    # #803 — un seul suivi par rang : deux chaînes v1 → v2 au même rang.
+    from apps.plans.access import plan_operation_ids
+
+    def _suivi(plan, fin_du_code):
+        op = Operation.objects.get(
+            pk__in=plan_operation_ids(plan), code_operation__endswith=fin_du_code)
+        return dict(RealisationOperationAnnee.objects.filter(
+            id_operation_annee__id_operation=op).values_list(
+                'id_operation_annee__annee', 'commentaires'))
+
+    prefixe = 'Suivi entre versions — '
+    assert PlanGestion.objects.filter(nom__startswith=prefixe).count() == 4  # idempotent
+    a1 = PlanGestion.objects.get(nom=f'{prefixe}à valider (v1)')
+    a2 = PlanGestion.objects.get(nom=f'{prefixe}à valider (v2)')
+    assert (a1.statut, a2.statut, a2.plan_parent_id) == ('valide', 'draft', a1.pk)
+    assert a1.suivi_poursuivi_dans_id is None and _suivi(a1, '-CS1') and _suivi(a1, '-PA1')
+    assert not _suivi(a2, '-CS1')
+    assert not Operation.objects.filter(
+        pk__in=plan_operation_ids(a2), code_operation__endswith='-PA1').exists()
+
+    b1 = PlanGestion.objects.get(nom=f'{prefixe}déjà basculé (v1)')
+    b2 = PlanGestion.objects.get(nom=f'{prefixe}déjà basculé (v2)')
+    assert (b1.statut, b2.statut, b1.suivi_poursuivi_dans_id) == ('archive', 'modifie', b2.pk)
+    cs1_v2 = _suivi(b2, '-CS1')
+    assert annee - 2 in cs1_v2                         # année retirée de la programmation
+    assert cs1_v2[annee - 1].startswith('Ressaisi')    # la saisie de la v2 prime
+    assert list(_suivi(b1, '-CS1')) == [annee - 1]     # … celle de la v1 y reste
+    assert list(_suivi(b1, '-PA1')) == [annee - 1]     # action supprimée : reste sur la v1
+    assert _suivi(b2, '-IP1')                          # action renommée : suit
+    assert not _suivi(b2, 'NEW1')                      # action ajoutée : vide

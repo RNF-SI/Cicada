@@ -28,6 +28,8 @@ Selon le statut et vos droits, vous disposez d'**actions de cycle de vie** :
 - **Évaluation mi-parcours** : crée (ou lie) un nouveau brouillon, copié sur le plan précédent, afin de permettre d'intégrer les modifications issues de l'évaluation. Une seule version évaluation mi-parcours est possible par plan ;
 - **Terminer / Réactiver le plan.**
 
+**Le suivi suit le plan d'une version à l'autre.** Au même rang, une nouvelle version est le même plan de gestion : à sa validation, le suivi déjà saisi (réalisation des actions, mesures des indicateurs, planification annuelle) y passe, et la version précédente renvoie vers elle. Voir [§ 4.9.5](suivi.md#495-le-suivi-dune-version-à-lautre).
+
 Les validations administratives (avis du CSRPN, validation par le comité consultatif, arrêté préfectoral pour les réserves naturelles nationales) ne concernent que les réserves naturelles. Pour ces plans, un badge « Validations administratives » s'affiche à côté du statut : cliquez dessus pour enregistrer, modifier ou effacer chaque validation (date, et numéro pour l'arrêté). Ces validations ne bloquent pas le changement de statut du plan.
 
 Une chronologie des versions (encadré « Cycle de vie ») retrace l'historique du plan et de ses révisions, regroupées par rang ; un clic sur une version l'ouvre.

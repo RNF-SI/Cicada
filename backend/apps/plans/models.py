@@ -336,6 +336,16 @@ class PlanGestion(models.Model):
         help_text=_("Plan correspondant au rang suivant (en cours d'élaboration).")
     )
 
+    # #803 — Un seul suivi par rang : à la validation d'une nouvelle version du
+    # même rang, le suivi y est déplacé et les versions antérieures renvoient
+    # vers elle (lecture seule de leur suivi). NULL = cette version porte son suivi.
+    suivi_poursuivi_dans = models.ForeignKey(
+        'self', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='suivis_anterieurs',
+        verbose_name=_("Suivi poursuivi dans"),
+        help_text=_("Version du même rang qui porte désormais le suivi de ce plan.")
+    )
+
     id_type_document = models.ForeignKey(
         'core.Nomenclature', on_delete=models.PROTECT,
         null=True, blank=True, related_name='plans_type_document',

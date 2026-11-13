@@ -346,6 +346,13 @@ class PlanDuplicationService:
             new.id_utilisateur_ajout = user
         if 'id_utilisateur_maj' in concrete:
             new.id_utilisateur_maj = user
+        # #803 — Une copie n'hérite pas du lien de l'original vers SA propre
+        # origine : seule la copie d'une version la pose (override explicite).
+        # Une action copiée dans le même plan (element_copy) part sans suivi.
+        if 'origine' in concrete:
+            new.origine = None
+        if 'suivi_poursuivi_dans' in concrete:
+            new.suivi_poursuivi_dans = None
         for key, value in overrides.items():
             setattr(new, key, value)
         return new
@@ -393,7 +400,9 @@ class PlanDuplicationService:
         enjeu_map = {}
 
         def _copy_indicateur(old_ind, **parent_override):
-            new_ind = dup(old_ind, user, **parent_override)
+            # #803 — `origine` relie la copie à l'original : le suivi (mesures,
+            # scores) suit ainsi le plan d'une version à l'autre au même rang.
+            new_ind = dup(old_ind, user, origine=old_ind, **parent_override)
             new_ind.save()
             indicateur_map[old_ind.id_indicateur] = new_ind
 
@@ -404,7 +413,7 @@ class PlanDuplicationService:
 
             # Métriques + blocs de score complémentaires (#247)
             for old_met in Metrique.objects.filter(id_indicateur=old_ind):
-                new_met = dup(old_met, user, id_indicateur=new_ind)
+                new_met = dup(old_met, user, id_indicateur=new_ind, origine=old_met)
                 new_met.save()
                 metrique_map[old_met.id_metrique] = new_met
                 for blk in MetriqueScoreBlock.objects.filter(id_metrique=old_met):
@@ -541,7 +550,7 @@ class PlanDuplicationService:
 
         poste_map = {}
         for old_poste in Poste.objects.filter(id_pg_id=source_plan_id):
-            new_poste = dup(old_poste, user, id_pg=new_plan)
+            new_poste = dup(old_poste, user, id_pg=new_plan, origine=old_poste)  # #803
             new_poste.save()
             poste_map[old_poste.id_poste] = new_poste
             for old_fonction in PosteFonction.objects.filter(id_poste=old_poste):
@@ -614,7 +623,9 @@ class PlanDuplicationService:
                 overrides['id_indicateur'] = indicateur_map.get(old_op.id_indicateur_id)
             if old_op.id_suivi_id:
                 overrides['id_suivi'] = suivi_map.get(old_op.id_suivi_id)
-            new_op = dup(old_op, user, **overrides)
+            # #803 — lien durable action ↔ copie : le suivi de l'action la suit
+            # à la validation de la nouvelle version (apps/plans/suivi_version.py).
+            new_op = dup(old_op, user, origine=old_op, **overrides)
             new_op.save()
 
             # M2M métriques (via through) — remappées vers les nouvelles métriques.

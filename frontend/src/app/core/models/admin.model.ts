@@ -508,6 +508,10 @@ export interface AdminPlan {
   /** #740 — volet Suivis : consultation (utilisateurs liés au plan), saisie (référents, gestionnaires). */
   peut_voir_suivis?: boolean;
   peut_saisir_suivis?: boolean;
+  /** #803 — version du même rang qui porte désormais le suivi (null = celle-ci). */
+  suivi_poursuivi_dans?: SuiviPoursuiviDans | null;
+  /** #803 — réponse de `change-status` : ce que la validation a repris des versions antérieures. */
+  suivi_repris?: { actions?: number; annees?: number; ajustements?: number; mesures?: number };
   /** Exports du plan, dont ceux du volet Suivis : référents et gestionnaires. */
   peut_exporter?: boolean;
   surface?: number;
@@ -903,4 +907,13 @@ export interface PlanAccesRecherche {
   organismes_gestionnaires: string[];
   acces: boolean;
   demande_en_attente: boolean;
+}
+
+/** #803 — Un seul suivi par rang : la version qui le porte. */
+export interface SuiviPoursuiviDans {
+  id_pg: number;
+  slug: string;
+  nom: string;
+  version: string;
+  statut: string;
 }

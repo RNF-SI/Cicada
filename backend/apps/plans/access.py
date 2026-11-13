@@ -313,7 +313,13 @@ def scope_suivi_by_plan(queryset, user, paths='', extra=None, lecture=False):
 
 
 def user_can_access_suivi(user, plan, lecture=False) -> bool:
-    """Vrai si ``user`` peut saisir les suivis du plan (#610) — ou les lire (#740)."""
+    """Vrai si ``user`` peut saisir les suivis du plan (#610) — ou les lire (#740).
+
+    #803 — le suivi d'une version dont le rang se poursuit dans une version plus
+    récente (``suivi_poursuivi_dans``) n'est plus saisissable : il se lit, et ses
+    pages renvoient vers la version qui le porte."""
+    if not lecture and plan is not None and getattr(plan, 'suivi_poursuivi_dans_id', None):
+        return False
     if has_global_plan_access(user):
         return True
     if plan is None:
@@ -324,6 +330,11 @@ def user_can_access_suivi(user, plan, lecture=False) -> bool:
 
 def assert_suivi_access(user, plan, lecture=False):
     """Lève une 403 si ``user`` n'a pas accès aux suivis du plan (#610, #740)."""
+    if not lecture and plan is not None and getattr(plan, 'suivi_poursuivi_dans_id', None):
+        suite = plan.suivi_poursuivi_dans
+        raise PermissionDenied(
+            f"Le suivi de ce plan se poursuit dans la version {suite.version} "
+            f"(« {suite.nom} ») : c'est là qu'il se saisit.")
     if not user_can_access_suivi(user, plan, lecture):
         raise PermissionDenied(
             "Les suivis de ce plan sont réservés aux utilisateurs liés au plan."

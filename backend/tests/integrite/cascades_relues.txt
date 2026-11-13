@@ -172,3 +172,13 @@ users.CorRoleSite.id_role -> users.Role : CASCADE
 users.CorRoleSite.id_site -> users.Site : CASCADE
 users.Role.deactivated_by -> users.Role : SET_NULL
 users.Role.id_organisme -> users.BibOrganismes : SET_NULL
+# #803 — lien d'une copie (version suivante) vers son original : supprimer
+# l'original ne perd aucune saisie, la copie perd seulement le lien qui ferait
+# suivre un suivi déjà parti avec la version supprimée.
+plans.Indicateur.origine -> plans.Indicateur : SET_NULL
+plans.Metrique.origine -> plans.Metrique : SET_NULL
+plans.Operation.origine -> plans.Operation : SET_NULL
+plans.Poste.origine -> plans.Poste : SET_NULL
+# #803 — version qui porte le suivi du rang : avant de la supprimer, `rendre_suivi()`
+# (destroy, delete-version) rend le suivi à la précédente, qui redevient saisissable.
+plans.PlanGestion.suivi_poursuivi_dans -> plans.PlanGestion : SET_NULL

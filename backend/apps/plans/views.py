@@ -264,7 +264,11 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         org_ids = list(plan.organismes_redacteurs.values_list('uuid_og', flat=True))
 
-        plan.delete()
+        from django.db import transaction
+        from .suivi_version import rendre_suivi
+        with transaction.atomic():
+            rendre_suivi(plan)  # #803 — le suivi du rang revient à la version précédente
+            plan.delete()
 
         NotificationService.notify_plan_deleted(
             plan_name=plan_name,
@@ -2328,7 +2332,15 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         # administratives (dates CSRPN/comité/arrêté). Elles sont orthogonales au
         # statut plateforme et conservées telles quelles.
 
-        plan.save(update_fields=update_fields)
+        from django.db import transaction
+        from .suivi_version import transferer_suivi
+        with transaction.atomic():
+            plan.save(update_fields=update_fields)
+            # #803 — Un seul suivi par rang : à la validation d'une nouvelle
+            # version, le suivi des versions antérieures du même rang y passe.
+            suivi_repris = {}
+            if old_status == 'draft' and new_status in ('valide', 'modifie'):
+                suivi_repris = transferer_suivi(plan)
 
         # Log activity
         try:
@@ -2345,7 +2357,8 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             pass
 
         serializer = PlanGestionDetailSerializer(plan)
-        return Response(serializer.data)
+        # #803 — ce qui a été repris des versions antérieures (actions, années…).
+        return Response({**serializer.data, 'suivi_repris': suivi_repris})
 
     @action(detail=True, methods=['post'], url_path='csrpn-step',
             permission_classes=[permissions.IsAuthenticated, IsReferent])
@@ -2969,6 +2982,10 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
             # Re-rattacher les enfants au parent du plan supprimé pour garder la
             # chaîne connectée (plan_parent est SET_NULL : sans cela les enfants
             # deviendraient des racines orphelines).
+            # #803 — La version qui porte le suivi du rang le rend à la
+            # précédente au lieu de l'emporter dans la cascade.
+            from .suivi_version import rendre_suivi
+            rendre_suivi(plan)
             plan.children.update(plan_parent=parent)
             plan.delete()
             # Renuméroter les versions restantes de la chaîne, par rang.

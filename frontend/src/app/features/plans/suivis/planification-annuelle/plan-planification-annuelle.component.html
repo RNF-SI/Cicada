@@ -35,7 +35,9 @@
       </div>
     </section>
 
-    @if (planNonValide()) {
+    @if (suiteSuivi()) {
+      <app-suivi-poursuivi-banner [suite]="suiteSuivi()" page="planification-annuelle"></app-suivi-poursuivi-banner>
+    } @else if (planNonValide()) {
       <div class="lock-banner" role="status">
         <i class="fi fi-rr-info"></i>
         <div class="lock-banner-content">

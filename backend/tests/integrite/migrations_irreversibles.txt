@@ -85,3 +85,6 @@ search.0002_contenuindexe_rattachements_and_more : RemoveField contenuindexe.sea
 search.0002_contenuindexe_rattachements_and_more : RemoveField contenuindexe.search_titre
 search.0006_contenu_annees_extension : RunPython au retour vide
 search.0007_ascendance_portees : RemoveField contenuindexe.search_full
+# #803 — le suivi des versions d'un même rang est déplacé sur la dernière
+# validée ; au retour il y reste (rien n'est perdu, seules ses pages changent).
+plans.0153_suivi_version_rattrapage : RunPython au retour vide

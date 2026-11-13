@@ -1,3 +1,5 @@
+import { SuiviPoursuiviBannerComponent } from './suivi-poursuivi-banner/suivi-poursuivi-banner.component';
+import { SuiviPoursuiviDans } from '../../../core/models/admin.model';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -65,6 +67,7 @@ interface IndicatorRow {
   selector: 'app-plan-tableau-de-bord',
   standalone: true,
   imports: [
+    SuiviPoursuiviBannerComponent,
     PlanGenerateMenuComponent,
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
@@ -77,6 +80,9 @@ interface IndicatorRow {
   styleUrl: './plan-tableau-de-bord.component.scss'
 })
 export class PlanTableauDeBordComponent implements OnInit {
+  /** #803 — version du même rang qui porte désormais le suivi (renvoi). */
+  suiteSuivi = signal<SuiviPoursuiviDans | null>(null);
+
   private readonly route = inject(ActivatedRoute);
   private readonly adminService = inject(AdminService);
   private readonly enjeuService = inject(EnjeuService);
@@ -246,6 +252,7 @@ export class PlanTableauDeBordComponent implements OnInit {
       this.planSlug.set(slug);
       this.adminService.getPlanBySlug(slug).subscribe({
         next: (plan) => {
+        this.suiteSuivi.set(plan.suivi_poursuivi_dans ?? null);  // #803
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.planStatut.set(plan.statut ?? null);

@@ -1,3 +1,5 @@
+import { SuiviPoursuiviBannerComponent } from '../suivi-poursuivi-banner/suivi-poursuivi-banner.component';
+import { SuiviPoursuiviDans } from '../../../../core/models/admin.model';
 import {
   ChangeDetectionStrategy, Component, OnInit, computed, inject, signal,
 } from '@angular/core';
@@ -69,6 +71,7 @@ function sansAccents(texte: string): string {
   selector: 'app-plan-planification-annuelle',
   standalone: true,
   imports: [
+    SuiviPoursuiviBannerComponent,
     CommonModule, RouterModule, MatButtonModule, MatMenuModule, MatProgressSpinnerModule, MatTooltipModule,
     TranslateModule, HeaderComponent, PlanSidebarComponent, SearchBarComponent, TagComponent,
   ],
@@ -77,6 +80,9 @@ function sansAccents(texte: string): string {
   changeDetection: ChangeDetectionStrategy.Eager,
 })
 export class PlanPlanificationAnnuelleComponent implements OnInit {
+  /** #803 — version du même rang qui porte désormais le suivi (renvoi). */
+  suiteSuivi = signal<SuiviPoursuiviDans | null>(null);
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
@@ -149,6 +155,7 @@ export class PlanPlanificationAnnuelleComponent implements OnInit {
     const annee = Number(this.route.snapshot.queryParamMap.get('annee')) || null;
     this.adminService.getPlanBySlug(slug).subscribe({
       next: (plan) => {
+        this.suiteSuivi.set(plan.suivi_poursuivi_dans ?? null);  // #803
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);

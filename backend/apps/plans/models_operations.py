@@ -432,6 +432,12 @@ class Operation(models.Model):
     """
 
     id_operation = models.AutoField(primary_key=True)
+    # #803 — Objet dont celui-ci est la copie dans la version précédente du
+    # plan (posé par PlanDuplicationService) : c'est ce lien qui fait suivre le
+    # suivi saisi d'une version à l'autre au même rang (apps/plans/suivi_version.py).
+    origine = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name='copies',
+        db_column='id_operation_origine', verbose_name=_("Copié de"))
     libelle = models.CharField(
         _("Libellé"),
         max_length=500,
@@ -2050,6 +2056,12 @@ class Poste(models.Model):
     """
 
     id_poste = models.AutoField(primary_key=True)
+    # #803 — Objet dont celui-ci est la copie dans la version précédente du
+    # plan (posé par PlanDuplicationService) : c'est ce lien qui fait suivre le
+    # suivi saisi d'une version à l'autre au même rang (apps/plans/suivi_version.py).
+    origine = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name='copies',
+        db_column='id_poste_origine', verbose_name=_("Copié de"))
     id_pg = models.ForeignKey(
         'plans.PlanGestion',
         on_delete=models.CASCADE,

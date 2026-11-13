@@ -1246,9 +1246,13 @@ export class PlanDetailComponent implements OnInit, OnDestroy {
       : null;
 
     this.adminService.changePlanStatus(p.id_pg, newStatus, options).subscribe({
-      next: () => {
+      next: (resultat) => {
+        // #803 — au même rang, le suivi des versions antérieures a suivi le plan.
+        const repris = resultat?.suivi_repris?.actions ?? 0;
         this.snackBar.open(
-          this.translate.instant('plans.lifecycle.messages.statusChanged'),
+          repris
+            ? this.translate.instant('plans.lifecycle.messages.statusChangedSuiviRepris', { count: repris })
+            : this.translate.instant('plans.lifecycle.messages.statusChanged'),
           this.translate.instant('common.actions.close'),
           { duration: 3000 }
         );

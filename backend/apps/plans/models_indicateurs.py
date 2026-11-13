@@ -18,6 +18,12 @@ class Indicateur(models.Model):
     """
 
     id_indicateur = models.AutoField(primary_key=True)
+    # #803 — Objet dont celui-ci est la copie dans la version précédente du
+    # plan (posé par PlanDuplicationService) : c'est ce lien qui fait suivre le
+    # suivi saisi d'une version à l'autre au même rang (apps/plans/suivi_version.py).
+    origine = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name='copies',
+        db_column='id_indicateur_origine', verbose_name=_("Copié de"))
     # #585 — Un indicateur peut être PARTAGÉ entre plusieurs parents de MÊME
     # nature : un indicateur d'état entre plusieurs niveaux d'exigence, un
     # indicateur de pression entre plusieurs résultats attendus. C'est le même
@@ -333,6 +339,12 @@ class Metrique(models.Model):
     """
 
     id_metrique = models.AutoField(primary_key=True)
+    # #803 — Objet dont celui-ci est la copie dans la version précédente du
+    # plan (posé par PlanDuplicationService) : c'est ce lien qui fait suivre le
+    # suivi saisi d'une version à l'autre au même rang (apps/plans/suivi_version.py).
+    origine = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name='copies',
+        db_column='id_metrique_origine', verbose_name=_("Copié de"))
     id_indicateur = models.ForeignKey(
         Indicateur,
         on_delete=models.CASCADE,

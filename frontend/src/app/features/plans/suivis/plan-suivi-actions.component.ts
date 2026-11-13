@@ -1,3 +1,5 @@
+import { SuiviPoursuiviBannerComponent } from './suivi-poursuivi-banner/suivi-poursuivi-banner.component';
+import { SuiviPoursuiviDans } from '../../../core/models/admin.model';
 import { Component, OnInit, inject, signal, computed, effect, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -92,6 +94,7 @@ interface FlatOperation {
   selector: 'app-plan-suivi-actions',
   standalone: true,
   imports: [
+    SuiviPoursuiviBannerComponent,
     PlanGenerateMenuComponent,
     CommonModule, RouterModule, MatButtonModule, MatMenuModule,
     MatProgressSpinnerModule, MatTooltipModule, TranslateModule,
@@ -104,6 +107,9 @@ interface FlatOperation {
   styleUrl: './plan-suivi-actions.component.scss'
 })
 export class PlanSuiviActionsComponent implements OnInit {
+  /** #803 — version du même rang qui porte désormais le suivi (renvoi). */
+  suiteSuivi = signal<SuiviPoursuiviDans | null>(null);
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly adminService = inject(AdminService);
@@ -564,6 +570,7 @@ export class PlanSuiviActionsComponent implements OnInit {
       this.planSlug.set(slug);
       this.adminService.getPlanBySlug(slug).subscribe({
         next: (plan) => {
+        this.suiteSuivi.set(plan.suivi_poursuivi_dans ?? null);  // #803
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.planStatut.set(plan.statut ?? null);

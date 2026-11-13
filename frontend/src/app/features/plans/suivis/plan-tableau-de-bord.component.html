@@ -58,7 +58,9 @@
       </section>
 
       <!-- #375 — Bannière : pas de saisie tant que le plan n'est pas validé -->
-      @if (planNotValidated()) {
+      @if (suiteSuivi()) {
+        <app-suivi-poursuivi-banner [suite]="suiteSuivi()" page="tableau-de-bord"></app-suivi-poursuivi-banner>
+      } @else if (planNotValidated()) {
         <div class="lock-banner" role="status">
           <i class="fi fi-rr-info"></i>
           <div class="lock-banner-content">

@@ -51,6 +51,7 @@ Authentification, permissions, API publique des métadonnées des plans et réf�
 | saisir une action, son budget et son temps de travail | [Les actions de gestion](referent/actions.md) |
 | saisir le réalisé d'une année | [Le suivi des actions](referent/suivi.md#492-le-suivi-des-actions-de-gestion) |
 | ajuster la planification de l'année | [La planification annuelle](referent/suivi.md#494-lajustement-de-la-planification-annuelle) |
+| retrouver le suivi après une nouvelle version | [Le suivi d'une version à l'autre](referent/suivi.md#495-le-suivi-dune-version-à-lautre) |
 | télécharger le plan, les fiches, le budget | [Les exports](referent/exports.md) |
 | gérer les comptes de mon organisme | [Gérer les utilisateurs](admin-organisme/utilisateurs.md) |
 | installer CICADA sur un serveur | [Installation](administration/installation.md) |

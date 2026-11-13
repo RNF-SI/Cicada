@@ -26,16 +26,20 @@ Les statuts : `draft` (seul statut modifiable), `avis_csrpn`, `comite_consultati
 
 | Endpoint | Rôle |
 |----------|------|
-| `POST …/{id_pg}/change-status/` | `{ "new_status": "valide" \| "draft" \| "archive" \| …, "is_mi_parcours"?: bool }`. `draft → valide` est routé automatiquement vers `modifie` quand le parent est validé |
+| `POST …/{id_pg}/change-status/` | `{ "new_status": "valide" \| "draft" \| "archive" \| …, "is_mi_parcours"?: bool }`. `draft → valide` est routé automatiquement vers `modifie` quand le parent est validé. À la validation d'une version, le suivi des versions antérieures du même rang y est déplacé ; la réponse porte `suivi_repris` (actions, années, ajustements, mesures repris) (#803) |
 | `POST …/{id_pg}/csrpn-step/`, `…/admin-validation/` | Étapes CSRPN (avis, comité, arrêté) et validations administratives indépendantes |
 | `POST …/{id_pg}/duplicate/` | Nouvelle version en brouillon, copie sélective du contenu |
 | `POST …/{id_pg}/create-evaluation/` | Brouillon d'évaluation mi-parcours (plan source validé) |
 | `POST …/{id_pg}/create-next-rang/` | Brouillon du rang suivant, version 1 |
 | `POST …/{id_pg}/extend-duration/` `{ "years": 1 \| 2 }`, `…/remove-extension/` | Prolongation : crée un brouillon de version étendue (cumul maximal de 2 ans) |
 | `POST …/{id_pg}/start-revision/`, `…/end-revision/` | Marquer en cours de révision, éventuellement lié à un brouillon du rang suivant |
-| `POST …/{id_pg}/delete-version/` | Suppression définitive d'une version, renumérotation des suivantes |
+| `POST …/{id_pg}/delete-version/` | Suppression définitive d'une version, renumérotation des suivantes. Si elle portait le suivi du rang, il revient à la version précédente (#803) |
 
 Règles : **un seul brouillon enfant par parent** ; un brouillon ne se crée que sur un plan `valide`, `modifie` ou `archive` ; le retour en brouillon n'est possible que sur la feuille de la chaîne ; valider un brouillon valide en cascade ses parents encore en brouillon. Ces actions sont réservées aux référents du plan, à l'administrateur d'organisme, au rédacteur général et au super administrateur ; les autres écritures exigent le statut `draft`.
+
+### Un seul suivi par rang (#803)
+
+Le suivi (réalisations, niveau global et réglages, ajustements annuels, mesures, scores d'indicateur) n'existe qu'une fois par rang : sur la dernière version validée. Le détail d'un plan expose `suivi_poursuivi_dans` (`{id_pg, slug, nom, version, statut}`, `null` si la version porte son suivi) ; quand il est renseigné, `peut_saisir_suivis` est faux et toute écriture de suivi sur cette version répond **403**. Les objets copiés d'une version à l'autre (action, indicateur, métrique, poste) sont reliés à leur original : c'est ce lien qui fait suivre le suivi d'une action modifiée. Règles : `apps/plans/suivi_version.py`.
 
 ## Imports Excel
 

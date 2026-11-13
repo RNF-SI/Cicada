@@ -12,6 +12,8 @@
  *
  * La carte SIG et les indicateurs de réponse seront ajoutés en itération suivante.
  */
+import { SuiviPoursuiviBannerComponent } from '../suivi-poursuivi-banner/suivi-poursuivi-banner.component';
+import { SuiviPoursuiviDans } from '../../../../core/models/admin.model';
 import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -73,6 +75,7 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
   selector: 'app-suivi-saisie',
   standalone: true,
   imports: [
+    SuiviPoursuiviBannerComponent,
     CommonModule, RouterModule, FormsModule, ReactiveFormsModule,
     MatButtonModule, MatProgressSpinnerModule, MatSnackBarModule,
     MatSelectModule, MatDialogModule,
@@ -86,6 +89,9 @@ type ActionStatus = 'planned' | 'planned-realized' | 'planned-partial' | 'realiz
   styleUrl: './suivi-saisie.component.scss',
 })
 export class SuiviSaisieComponent implements OnInit {
+  /** #803 — version du même rang qui porte désormais le suivi (renvoi). */
+  suiteSuivi = signal<SuiviPoursuiviDans | null>(null);
+
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);
@@ -1115,6 +1121,7 @@ export class SuiviSaisieComponent implements OnInit {
     // Plan (pour breadcrumb + sidebar) — slug → plan via AdminService
     this.adminService.getPlanBySlug(slug).subscribe({
       next: (plan) => {
+        this.suiteSuivi.set(plan.suivi_poursuivi_dans ?? null);  // #803
         this.planId.set(plan.id_pg);
         this.planNom.set(plan.nom);
         this.planStatut.set(plan.statut ?? null);

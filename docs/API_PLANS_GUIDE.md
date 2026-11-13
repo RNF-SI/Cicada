@@ -44,6 +44,8 @@ Guide complet de l'API REST pour la gestion des Plans de Gestion des espaces nat
 | POST | `/api/plans/plans/{id}/delete-version/` | Supprimer une version de la chaîne (#348) |
 
 > **Copie du contenu et des métadonnées (#377)** : `duplicate`, `create-evaluation` et `create-next-rang` copient **tout** le contenu du plan source (enjeux + hiérarchie complète, suivis/inventaires, opérations, blocs de score) **et toutes ses métadonnées** (dont les validations administratives CSRPN), afin que la nouvelle version soit éditable **sans impacter** les versions précédentes. Seul le `statut` n'est pas copié (repart en `draft`). Données empiriques (mesures, réalisations) exclues. Voir §15.
+>
+> **Un seul suivi par rang (#803)** : les données empiriques ne sont pas copiées, elles **suivent** le plan. À la validation d'une version (`change-status`), le suivi des versions antérieures du **même rang** (réalisations, niveau global et réglages, ajustements annuels, mesures, scores d'indicateur) y est déplacé ; la réponse porte `suivi_repris`. Les versions antérieures exposent `suivi_poursuivi_dans` et refusent toute saisie de suivi (403). Correspondance par le champ `origine` des objets copiés (action, indicateur, métrique, poste) : une action supprimée garde son suivi sur l'ancienne version, une action ajoutée part vide. Supprimer la version porteuse rend le suivi à la précédente. Règles : `apps/plans/suivi_version.py`.
 
 ### Statuts et attributs orthogonaux
 

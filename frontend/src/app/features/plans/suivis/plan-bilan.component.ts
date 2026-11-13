@@ -14,6 +14,8 @@
  * défaut), changer de portée ou d'année ne changeait donc rien à l'écran, et
  * « Mi-parcours » n'envoyait aucun filtre du tout.
  */
+import { SuiviPoursuiviBannerComponent } from './suivi-poursuivi-banner/suivi-poursuivi-banner.component';
+import { SuiviPoursuiviDans } from '../../../core/models/admin.model';
 import { Component, ElementRef, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
@@ -82,6 +84,7 @@ type Scope = 'global' | 'mi_parcours' | 'annuel';
   selector: 'app-plan-bilan',
   standalone: true,
   imports: [
+    SuiviPoursuiviBannerComponent,
     PlanGenerateMenuComponent,
     CommonModule, RouterModule, FormsModule, TranslateModule,
     MatProgressSpinnerModule, MatMenuModule,
@@ -96,6 +99,9 @@ type Scope = 'global' | 'mi_parcours' | 'annuel';
   styleUrl: './plan-bilan.component.scss',
 })
 export class PlanBilanComponent implements OnInit {
+  /** #803 — version du même rang qui porte désormais le suivi (renvoi). */
+  suiteSuivi = signal<SuiviPoursuiviDans | null>(null);
+
   private readonly route = inject(ActivatedRoute);
   private readonly adminService = inject(AdminService);
   private readonly realisationService = inject(RealisationService);
@@ -748,6 +754,7 @@ export class PlanBilanComponent implements OnInit {
 
       this.adminService.getPlanBySlug(slug).subscribe({
         next: (plan) => {
+        this.suiteSuivi.set(plan.suivi_poursuivi_dans ?? null);  // #803
           this.planId.set(plan.id_pg);
           this.planNom.set(plan.nom);
           this.peutExporter.set(plan.peut_exporter === true);

@@ -33,6 +33,7 @@ from .minimal_plans_seeder import MinimalPlansSeeder
 from .realisations_seeder import RealisationsSeeder
 from .rh_seeder import RhSeeder
 from .ventilation_plans_seeder import VentilationPlansSeeder
+from .suivi_versions_seeder import SuiviVersionsSeeder
 from .pending_users_seeder import PendingUsersSeeder
 from .validation_requests_seeder import ValidationRequestsSeeder
 from .notifications_seeder import NotificationsSeeder
@@ -59,6 +60,9 @@ SEEDER_CLASSES: List[Type[BaseSeeder]] = [
     # 1 plan par mode de ventilation, entièrement programmé. Après
     # `realisations` : ce seeder pose lui-même son suivi, cohérent avec le mode.
     VentilationPlansSeeder,  # deps: plans
+    # #803 — chaînes de versions au même rang, construites à partir d'un plan
+    # « Ventilation validée » : le suivi passe d'une version à l'autre.
+    SuiviVersionsSeeder,     # deps: ventilation_plans
     PendingUsersSeeder,  # deps: organismes
 
     # Phase 3: Seeders complexes

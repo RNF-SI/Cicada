@@ -407,6 +407,8 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     peut_voir_suivis = serializers.SerializerMethodField()
     peut_saisir_suivis = serializers.SerializerMethodField()
     peut_exporter = serializers.SerializerMethodField()
+    # #803 — version du même rang qui porte désormais le suivi de ce plan
+    suivi_poursuivi_dans = serializers.SerializerMethodField()
     next_rang_plan_id = serializers.IntegerField(source='next_rang_plan.id_pg', read_only=True, allow_null=True)
     next_rang_plan_nom = serializers.CharField(source='next_rang_plan.nom', read_only=True, allow_null=True)
     next_rang_plan_slug = serializers.SlugField(source='next_rang_plan.slug', read_only=True, allow_null=True)
@@ -452,6 +454,23 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
     def get_peut_voir_suivis(self, obj):
         """#740 — l'utilisateur consulte le volet Suivis (bilan, suivi des actions, tableau de bord)."""
         return self._suivi_access(obj, lecture=True)
+
+    @extend_schema_field({
+        'type': 'object', 'nullable': True,
+        'properties': {
+            'id_pg': {'type': 'integer'}, 'slug': {'type': 'string'},
+            'nom': {'type': 'string'}, 'version': {'type': 'string'},
+            'statut': {'type': 'string'},
+        },
+    })
+    def get_suivi_poursuivi_dans(self, obj):
+        """#803 — un seul suivi par rang : la version qui le porte, si ce n'est
+        pas celle-ci (ses pages de suivi y renvoient, sa saisie est fermée)."""
+        suite = obj.suivi_poursuivi_dans
+        if suite is None:
+            return None
+        return {'id_pg': suite.id_pg, 'slug': suite.slug, 'nom': suite.nom,
+                'version': str(suite.version), 'statut': suite.statut}
 
     @extend_schema_field(OpenApiTypes.BOOL)
     def get_peut_saisir_suivis(self, obj):
@@ -600,7 +619,7 @@ class PlanGestionDetailSerializer(serializers.ModelSerializer):
             'validation_step', 'validation_step_display', 'is_in_csrpn_workflow',
             'date_validation_comite', 'date_arrete_pref', 'numero_arrete_pref',
             'has_draft_child', 'can_create_modification',
-            'peut_voir_suivis', 'peut_saisir_suivis', 'peut_exporter',
+            'peut_voir_suivis', 'peut_saisir_suivis', 'peut_exporter', 'suivi_poursuivi_dans',
             'next_rang_plan_id', 'next_rang_plan_nom', 'next_rang_plan_slug',
             'surface', 'gestion_partagee', 'ct88', 'risque_incendie',
             'date_avis_csrpn', 'id_docgestion_fcen',

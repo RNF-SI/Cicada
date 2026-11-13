@@ -2185,6 +2185,7 @@
       },
       "messages": {
         "statusChanged": "Le statut du plan a été modifié avec succès.",
+        "statusChangedSuiviRepris": "Statut mis à jour. Le suivi de {{count}} action(s) a rejoint cette version : il se poursuit ici.",
         "statusError": "Erreur lors du changement de statut.",
         "evaluationCreated": "L'évaluation mi-parcours a été créée avec succès.",
         "evaluationError": "Erreur lors de la création de l'évaluation.",
@@ -2451,6 +2452,11 @@
       "reassignError": "Erreur lors de la réassignation"
     },
     "suivis": {
+      "poursuiviBanner": {
+        "title": "Le suivi se poursuit dans une version plus récente",
+        "text": "Ce plan a été remplacé par sa version {{version}} (« {{nom}} »), validée au même rang. Le suivi déjà saisi l'y a suivi : c'est là qu'il se consulte et se saisit.",
+        "link": "Ouvrir le suivi de la version {{version}}"
+      },
       "readOnlyBanner": {
         "title": "Consultation seule",
         "text": "Vous consultez le suivi de ce plan. Sa saisie est réservée aux référents du plan et aux gestionnaires."
