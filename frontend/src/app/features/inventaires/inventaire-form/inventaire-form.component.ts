@@ -84,6 +84,8 @@ export class InventaireFormComponent implements OnInit {
   form!: FormGroup;
   isLoading = signal(false);
   isLoadingData = signal(true);
+  /** #858 — le suivi à modifier n'a pas pu être lu : pas de formulaire vide enregistrable. */
+  chargementEchoue = signal(false);
   errorMessage = signal<string | null>(null);
 
   suiviId = signal<number | null>(null);
@@ -603,6 +605,8 @@ export class InventaireFormComponent implements OnInit {
   }
 
   private loadSuivi(id: number): void {
+    this.isLoadingData.set(true);
+    this.chargementEchoue.set(false);
     this.inventaireService.getInventaire(id).subscribe({
       next: (suivi) => {
         this.existingSuivi.set(suivi);
@@ -610,10 +614,17 @@ export class InventaireFormComponent implements OnInit {
         this.isLoadingData.set(false);
       },
       error: () => {
-        this.errorMessage.set(this.translate.instant('inventaires.errors.loadFailed'));
+        // #858 — pas de formulaire vide : l'enregistrer écraserait le suivi.
+        this.chargementEchoue.set(true);
         this.isLoadingData.set(false);
       }
     });
+  }
+
+  /** #858 — relance la lecture du suivi après un échec. */
+  reessayerChargement(): void {
+    const id = this.suiviId();
+    if (id) this.loadSuivi(id);
   }
 
   private populateForm(suivi: SuiviInventaireDetail): void {
@@ -968,6 +979,11 @@ export class InventaireFormComponent implements OnInit {
   }
 
   save(): void {
+    // #858 — jamais de modification sans le suivi lu.
+    if (this.isEditMode() && !this.existingSuivi()) {
+      this.chargementEchoue.set(true);
+      return;
+    }
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       this.showValidationErrorMessage();

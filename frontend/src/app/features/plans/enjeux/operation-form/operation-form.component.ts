@@ -180,6 +180,9 @@ export class OperationFormComponent implements OnInit {
   form!: FormGroup;
   isLoading = signal(false);
   isLoadingData = signal(true);
+  /** #858 — l'action à modifier n'a pas pu être lue : aucun formulaire, rien
+   *  d'enregistrable (un formulaire vide écrasait l'action). */
+  chargementEchoue = signal(false);
   errorMessage = signal<string | null>(null);
 
   planId = signal<number | null>(null);
@@ -1506,6 +1509,12 @@ export class OperationFormComponent implements OnInit {
       return;
     }
 
+    this.chargerAction(opId);
+  }
+
+  private chargerAction(opId: number): void {
+    this.isLoadingData.set(true);
+    this.chargementEchoue.set(false);
     this.enjeuService.getOperation(opId).subscribe({
       next: (operation) => {
         this.existingOperation.set(operation);
@@ -1518,10 +1527,18 @@ export class OperationFormComponent implements OnInit {
         this.isLoadingData.set(false);
       },
       error: () => {
-        this.errorMessage.set(this.translate.instant('enjeux.messages.loadError'));
+        // #858 — pas de formulaire vide : « Enregistrer » y écrasait l'action
+        // (financeurs, types, réglages remis à zéro).
+        this.chargementEchoue.set(true);
         this.isLoadingData.set(false);
       }
     });
+  }
+
+  /** #858 — relance la lecture de l'action après un échec. */
+  reessayerChargement(): void {
+    const opId = this.operationId();
+    if (opId) this.chargerAction(opId);
   }
 
   /**
@@ -2532,6 +2549,12 @@ export class OperationFormComponent implements OnInit {
     payload: OperationCreatePayload,
     opts: { stayOnForm: boolean; statut: OperationStatut },
   ): void {
+    // #858 — jamais de modification sans l'action lue : le formulaire serait
+    // celui d'une action vide.
+    if (this.isEditMode() && !this.existingOperation()) {
+      this.chargementEchoue.set(true);
+      return;
+    }
     this.isLoading.set(true);
     this.errorMessage.set(null);
     // #452 — flush des grilles d'indicateurs de réponse en attente (auto-save

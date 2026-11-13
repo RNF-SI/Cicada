@@ -5011,6 +5011,7 @@
       "indicateursRemoveError": "Erreur lors de la suppression du lien.",
       "createSuccess": "Action créée avec succès",
       "updateSuccess": "Action mise à jour avec succès",
+      "chargementEchoue": "Cette action n'a pas pu être chargée. Rien n'a été modifié : réessayez, ou revenez à la page précédente.",
       "saveSuccess": "Modifications enregistrées",
       "saveDraftLabel": "Enregistrer le brouillon",
       "saveTooltip": "Sauvegarde l'action en l'état (sans contrôler les champs requis). Reste sur le formulaire — l'action apparaîtra comme « Brouillon » dans les listes.",
@@ -5549,6 +5550,7 @@
       "deleteSuccess": "Suivi / inventaire supprimé avec succès"
     },
     "errors": {
+      "chargementEchoue": "Ce suivi n'a pas pu être chargé. Rien n'a été modifié : réessayez, ou revenez à la liste.",
       "loadFailed": "Erreur lors du chargement des données",
       "saveFailed": "Erreur lors de l'enregistrement",
       "validationFailed": "Le formulaire contient des erreurs. Veuillez compléter les champs obligatoires marqués d'un *.",

@@ -1544,3 +1544,22 @@ app-protocole-action + app-protocole-action {
     .action-label { flex: 1; }
   }
 }
+
+// #858 — action illisible : panneau d'erreur à la place du formulaire.
+.chargement-echoue {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  margin: $spacing-lg auto;
+  max-width: 720px;
+
+  p {
+    margin: 0;
+  }
+
+  .chargement-echoue-actions {
+    display: flex;
+    gap: $spacing-sm;
+  }
+}

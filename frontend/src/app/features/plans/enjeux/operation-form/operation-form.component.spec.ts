@@ -2087,3 +2087,77 @@ describe('OperationFormComponent — intitulé repris du type d\'action (#784)',
     expect((c as any).buildPayload().libelle).toBe('Veille réglementaire du site');
   });
 });
+
+// ===========================================================================
+// #858 — Chargement de l'action en échec : rien d'enregistrable
+// ===========================================================================
+
+describe('OperationFormComponent — chargement en échec (#858)', () => {
+  function makeInstance(opts: { edition: boolean; existante: any; reponse?: any }) {
+    const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+    const enjeuService = {
+      getOperation: jest.fn(() => opts.reponse ?? throwError(() => ({ status: 500 }))),
+      updateOperation: jest.fn(() => of({})),
+      createOperation: jest.fn(() => of({ id_operation: 1 })),
+    };
+    (comp as any).enjeuService = enjeuService;
+    (comp as any).translate = { instant: (k: string) => k };
+    (comp as any).snackBar = { open: jest.fn() };
+    (comp as any).isEditMode = signal(opts.edition);
+    (comp as any).operationId = signal(opts.edition ? 42 : null);
+    (comp as any).existingOperation = signal(opts.existante);
+    (comp as any).isLoading = signal(false);
+    (comp as any).isLoadingData = signal(true);
+    (comp as any).chargementEchoue = signal(false);
+    (comp as any).errorMessage = signal<string | null>(null);
+    (comp as any).flushResponseGrids = jest.fn(() => of(undefined));
+    (comp as any).scrollToError = jest.fn();
+    (comp as any).populateForm = jest.fn();
+    (comp as any).isReadOnly = signal(false);
+    return { comp, enjeuService };
+  }
+
+  it("une lecture en échec n'affiche pas le formulaire et le signale", () => {
+    const { comp } = makeInstance({ edition: true, existante: null });
+
+    (comp as any).chargerAction(42);
+
+    expect((comp as any).chargementEchoue()).toBe(true);
+    expect((comp as any).isLoadingData()).toBe(false);
+  });
+
+  it("« Enregistrer » sans action chargée n'envoie rien", () => {
+    const { comp, enjeuService } = makeInstance({ edition: true, existante: null });
+
+    (comp as any).submitToApi({ libelle: 'x' }, { stayOnForm: true, statut: 'draft' });
+
+    expect(enjeuService.updateOperation).not.toHaveBeenCalled();
+    expect((comp as any).isLoading()).toBe(false);
+  });
+
+  it('« Réessayer » relance la lecture et rouvre le formulaire', () => {
+    const { comp, enjeuService } = makeInstance({ edition: true, existante: null });
+    (comp as any).chargerAction(42);
+    enjeuService.getOperation.mockReturnValue(of({ id_operation: 42 }));
+
+    (comp as any).reessayerChargement();
+
+    expect(enjeuService.getOperation).toHaveBeenCalledTimes(2);
+    expect((comp as any).chargementEchoue()).toBe(false);
+    expect((comp as any).existingOperation()).toEqual({ id_operation: 42 });
+  });
+
+  it('une action chargée se modifie normalement', () => {
+    const { comp, enjeuService } = makeInstance({ edition: true, existante: { id_operation: 42 } });
+
+    (comp as any).submitToApi({ libelle: 'x' }, { stayOnForm: true, statut: 'draft' });
+
+    expect(enjeuService.updateOperation).toHaveBeenCalledWith(42, expect.objectContaining({ libelle: 'x' }));
+  });
+
+  it('le gabarit masque le formulaire quand le chargement a échoué', () => {
+    const html = readFileSync(join(__dirname, 'operation-form.component.html'), 'utf8');
+    expect(html).toContain('chargementEchoue()');
+    expect(html).toMatch(/\(click\)="reessayerChargement\(\)"/);
+  });
+});

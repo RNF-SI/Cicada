@@ -19,8 +19,24 @@
     </div>
   }
 
+  <!-- #858 — suivi illisible : pas de formulaire (il serait vide) -->
+  @if (!isLoadingData() && chargementEchoue()) {
+    <div class="info-block info-block-error chargement-echoue" role="alert">
+      <i class="fi fi-rr-exclamation"></i>
+      <p>{{ 'inventaires.errors.chargementEchoue' | translate }}</p>
+      <div class="chargement-echoue-actions">
+        <button mat-stroked-button type="button" (click)="cancel()">
+          {{ 'common.actions.back' | translate }}
+        </button>
+        <button mat-flat-button color="primary" type="button" (click)="reessayerChargement()">
+          {{ 'common.retry' | translate }}
+        </button>
+      </div>
+    </div>
+  }
+
   <!-- Form Content -->
-  @if (!isLoadingData()) {
+  @if (!isLoadingData() && !chargementEchoue()) {
     <div class="form-container">
       <form [formGroup]="form" (ngSubmit)="save()">
         <!-- Error Banner -->

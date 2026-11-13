@@ -206,6 +206,9 @@ describe('InventaireFormComponent — aligné sur la fiche action (#715)', () =>
     (comp as any).errorMessage = signal(null);
     (comp as any).isEditMode = signal(true);
     (comp as any).suiviId = signal(5);
+    // #858 — en modification, l'enregistrement exige le suivi lu.
+    (comp as any).existingSuivi = signal(suiviVenuDUneAction);
+    (comp as any).chargementEchoue = signal(false);
     (comp as any).elRef = { nativeElement: { querySelectorAll: () => [], querySelector: () => null } };
     (comp as any).snackBar = { open: jest.fn() };
     (comp as any).router = { navigate: jest.fn() };
@@ -254,5 +257,51 @@ describe('InventaireFormComponent — aligné sur la fiche action (#715)', () =>
     expect(sent.habitats).toEqual([]);
     expect(sent.habitat_ref).toBe('');
     expect(sent.commentaires).toBe('');
+  });
+});
+
+describe('InventaireFormComponent — chargement en échec (#858)', () => {
+  function instance(reponse: any) {
+    const comp = Object.create(InventaireFormComponent.prototype) as InventaireFormComponent;
+    const inventaireService = {
+      getInventaire: jest.fn(() => reponse),
+      updateInventaire: jest.fn(() => of({})),
+      createInventaire: jest.fn(() => of({})),
+    };
+    (comp as any).inventaireService = inventaireService;
+    (comp as any).translate = { instant: (k: string) => k };
+    (comp as any).isEditMode = signal(true);
+    (comp as any).suiviId = signal(7);
+    (comp as any).existingSuivi = signal(null);
+    (comp as any).isLoading = signal(false);
+    (comp as any).isLoadingData = signal(true);
+    (comp as any).chargementEchoue = signal(false);
+    (comp as any).errorMessage = signal<string | null>(null);
+    (comp as any).populateForm = jest.fn();
+    (comp as any).form = { invalid: false, value: {} };
+    return { comp, inventaireService };
+  }
+
+  it("une lecture en échec ne montre pas de formulaire et « Enregistrer » n'envoie rien", () => {
+    const { throwError } = require('rxjs');
+    const { comp, inventaireService } = instance(throwError(() => ({ status: 500 })));
+
+    (comp as any).loadSuivi(7);
+    comp.save();
+
+    expect((comp as any).chargementEchoue()).toBe(true);
+    expect(inventaireService.updateInventaire).not.toHaveBeenCalled();
+  });
+
+  it('« Réessayer » relit le suivi', () => {
+    const { throwError } = require('rxjs');
+    const { comp, inventaireService } = instance(throwError(() => ({ status: 500 })));
+    (comp as any).loadSuivi(7);
+    inventaireService.getInventaire.mockReturnValue(of({ id_suivi: 7 }));
+
+    (comp as any).reessayerChargement();
+
+    expect((comp as any).chargementEchoue()).toBe(false);
+    expect((comp as any).existingSuivi()).toEqual({ id_suivi: 7 });
   });
 });

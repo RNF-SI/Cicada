@@ -25,8 +25,25 @@
     </div>
   }
 
+  <!-- #858 — action illisible : pas de formulaire (il serait vide et
+       « Enregistrer » écraserait l'action) -->
+  @if (!isLoadingData() && chargementEchoue()) {
+    <div class="info-block info-block-error chargement-echoue" role="alert">
+      <i class="fi fi-rr-exclamation"></i>
+      <p>{{ 'enjeux.operations.chargementEchoue' | translate }}</p>
+      <div class="chargement-echoue-actions">
+        <button mat-stroked-button type="button" (click)="goBack()">
+          {{ 'common.actions.back' | translate }}
+        </button>
+        <button mat-flat-button color="primary" type="button" (click)="reessayerChargement()">
+          {{ 'common.retry' | translate }}
+        </button>
+      </div>
+    </div>
+  }
+
   <!-- Form Content -->
-  @if (!isLoadingData()) {
+  @if (!isLoadingData() && !chargementEchoue()) {
     <div class="form-container">
       <form [formGroup]="form">
         <!-- Error Message -->
