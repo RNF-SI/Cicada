@@ -223,6 +223,34 @@ class TestExports:
         assert "Région — Fonds régional spécial (non prévu)" in texte
         assert "450" in texte
 
+    def test_fiche_de_suivi_ligne_financeurs_liste_ceux_de_l_annee(self, donnees, op):
+        """Retour 09/11 : la ligne « Financeurs » de la rubrique « Réalisation »
+        restait à « — » alors que des montants par financeur étaient saisis.
+        Elle liste les financeurs saisis au suivi de l'année, non prévus
+        compris, sans les montants (rendus juste en dessous)."""
+        from apps.plans.services_export_fiche_suivi import build_fiche_suivi_workbook
+        wb, _ = self._textes(build_fiche_suivi_workbook(donnees["plan"], self.annee))
+        valeurs = []
+        for ws in wb:
+            for row in ws.iter_rows():
+                cells = [c.value for c in row if c.value is not None]
+                if cells and cells[0] == "Financeurs":
+                    valeurs.append(cells[1:])
+        assert valeurs == [["Agence RMC, Région"]], valeurs
+
+    def test_fiche_de_suivi_ligne_financeurs_reprend_la_saisie_libre(self, donnees, op):
+        """Le texte libre « financeurs réalisés » (saisie antérieure à #790)
+        reste rendu, à la suite des financeurs saisis, sans doublon."""
+        from apps.plans.models_operations import RealisationOperationAnnee
+        from apps.plans.services_export_fiche_suivi import build_fiche_suivi_workbook
+        RealisationOperationAnnee.objects.filter(
+            id_operation_annee__id_operation=op).update(financeurs_realises="Région, Mécène X")
+        wb, _ = self._textes(build_fiche_suivi_workbook(donnees["plan"], self.annee))
+        valeurs = [[c.value for c in row if c.value is not None][1:]
+                   for ws in wb for row in ws.iter_rows()
+                   if [c.value for c in row if c.value is not None][:1] == ["Financeurs"]]
+        assert valeurs == [["Agence RMC, Région, Mécène X"]], valeurs
+
     def test_onglet_par_financeur_des_budgets(self, donnees, op):
         from apps.plans.services_export_budget_rh import (
             build_budget_previsionnel_workbook, build_budget_suivi_workbook)

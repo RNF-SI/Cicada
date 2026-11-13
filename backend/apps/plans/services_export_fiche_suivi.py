@@ -25,6 +25,7 @@ Point d'entrée public : :func:`build_fiche_suivi_workbook`.
 from __future__ import annotations
 
 import io
+import re
 from collections import defaultdict
 from decimal import Decimal
 
@@ -212,6 +213,24 @@ def _cmp3(w, label, pg, ajuste, realise, *, total=False):
     w.r += 1
 
 
+
+def _financeurs_de_l_annee(real, bilan) -> str:
+    """Ligne « Financeurs » de la rubrique « Réalisation » : les financeurs
+    saisis au suivi de l'année (#790), dans l'ordre du bilan (prévus d'abord),
+    puis la saisie libre « financeurs réalisés » antérieure, sans doublon."""
+    if real is None:
+        return ""
+    saisis = {r.id_financeur_id for r in real.financeurs.all()}
+    noms = [fa._txt(l["nom"]) for l in bilan["lignes"] if l["id_financeur"] in saisis]
+    vus = {n.casefold() for n in noms}
+    for part in re.split(r"[,;\n]", fa._txt(getattr(real, "financeurs_realises", "")) or ""):
+        part = part.strip()
+        if part and part.casefold() not in vus:
+            noms.append(part)
+            vus.add(part.casefold())
+    return ", ".join(n for n in noms if n)
+
+
 def _cmp3_header(w, label, annee):
     ws = w.ws
     ws.merge_cells(start_row=w.r, start_column=1, end_row=w.r, end_column=3)
@@ -349,7 +368,12 @@ def _render(ws, plan, op, annee, code):
     # #727 (retour 30/10) — opérateurs et financeurs : le réalisé seul, la
     # colonne « Prévu » est retirée (le prévu reste sur la fiche action).
     w.kv("Opérateurs", fa._txt(getattr(real, "operateurs_realises", "")) or "—")
-    w.kv("Financeurs", fa._txt(getattr(real, "financeurs_realises", "")) or "—")
+    # #790 (retour 09/11) — les financeurs saisis au suivi de l'année (non
+    # prévus compris), dans l'ordre du bilan ; les montants suivent dans
+    # « Financement par financeur ».
+    from .financeurs import bilan_financeurs
+    bilan = bilan_financeurs(op)
+    w.kv("Financeurs", _financeurs_de_l_annee(real, bilan) or "—")
 
     # --- Temps de travail ---
     w.section("Temps de travail (jours)")
@@ -382,8 +406,6 @@ def _render(ws, plan, op, annee, code):
           fa._euro(cell.rtot), total=True)
 
     # --- Financeurs (#790) : prévu global sur l'action, réalisé de l'année ---
-    from .financeurs import bilan_financeurs
-    bilan = bilan_financeurs(op)
     if bilan["lignes"]:
         w.section("Financement par financeur (€)")
         _cmp_header(w, "Financeur", "Prévu (période)", f"Réalisé {annee}")
