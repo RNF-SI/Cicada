@@ -40,3 +40,12 @@ def test_le_cache_de_chaque_conteneur_porte_le_mot_de_passe_de_redis():
                                      else [services['redis']['command']])
     for nom in SERVICES_DJANGO:
         assert '${REDIS_PASSWORD}' in url_cache(_environnement(services[nom])), nom
+
+
+def test_le_planificateur_connait_l_identite_de_l_instance():
+    """#847 — le créneau de publication de nuit est calculé par beat, au
+    chargement des réglages. Sans l'identifiant, beat voit « local » et toutes
+    les instances publient à la même heure."""
+    services = _services()
+    for nom in SERVICES_DJANGO:
+        assert 'CICADA_INSTANCE_ID' in _environnement(services[nom]), nom

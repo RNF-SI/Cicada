@@ -228,6 +228,10 @@ services:
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
       - DJANGO_SETTINGS_MODULE=config.settings.production
+      # #847 — le créneau de publication de nuit se calcule ici (réglages
+      # chargés par beat) : sans l'identifiant, toutes les instances
+      # publient à la même heure.
+      - CICADA_INSTANCE_ID=${CICADA_INSTANCE_ID:-}
       # --- API de suivi RNF (#696) ---
       # Sans ces deux lignes, ni l'URL de l'API de suivi ni le jeton de
       # l'instance n'atteignaient le conteneur : l'encart RGPD de la page

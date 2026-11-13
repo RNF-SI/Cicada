@@ -99,6 +99,23 @@ class TestHubIndisponible:
                 commande._appel('POST', '/api/federation/lots/', {})
         assert exc.value.retry_after is None
 
+    @pytest.mark.parametrize('cause', [
+        type('R', (), {'status_code': 200, 'headers': {}, 'content': b'<html>maintenance</html>',
+                       'text': '<html>maintenance</html>',
+                       'json': lambda self: (_ for _ in ()).throw(ValueError('Expecting value'))})(),
+        type('R', (), {'status_code': 302, 'headers': {'Location': '/maintenance'}, 'content': b'',
+                       'text': '', 'json': lambda self: {}})(),
+    ])
+    def test_une_reponse_inattendue_est_une_indisponibilite(self, hub, cause):
+        """#847 — page de maintenance en 200, redirection : le hub (ou son
+        proxy) n'est pas en état de recevoir ; réessayer plus tard a un sens."""
+        from apps.search.management.commands.push_federation import Command, HubIndisponible
+        commande = Command()
+        commande.hub, commande.jeton = 'http://hub:8000', 'jeton'
+        with patch('requests.request', return_value=cause):
+            with pytest.raises(HubIndisponible):
+                commande._appel('POST', '/api/federation/lots/', {})
+
     def test_une_requete_refusee_n_est_pas_une_indisponibilite(self, hub):
         """400 / 403 : réessayer ne changera rien."""
         from apps.search.management.commands.push_federation import Command, HubIndisponible
@@ -120,7 +137,23 @@ class TestRelance:
              patch.object(publier_vers_le_hub, 'retry', side_effect=Retry()) as relance:
             with pytest.raises(Retry):
                 publier_vers_le_hub()
-        assert relance.call_args.kwargs['countdown'] == 600
+        # #847 — délai demandé, plus un aléa qui désynchronise les instances.
+        assert 600 <= relance.call_args.kwargs['countdown'] <= 660
+
+    def test_les_relances_de_deux_instances_ne_tombent_pas_ensemble(self):
+        """#847 — toutes renvoyées par le même 429 (Retry-After: 600), elles
+        revenaient à la même seconde et resaturaient le hub."""
+        from apps.search.tasks import delai_avant_relance
+        delais = {delai_avant_relance(600, 0) for _ in range(20)}
+        assert len(delais) > 1
+        assert all(600 <= d <= 660 for d in delais)
+
+    def test_un_delai_demande_trop_long_reste_sous_la_visibilite_du_broker(self):
+        """#847 — au-delà d'une heure, Redis redistribue la tâche : deux
+        dépôts simultanés de la même instance (voir #853)."""
+        from apps.search.tasks import DELAI_RELANCE_PLAFOND, delai_avant_relance
+        assert all(delai_avant_relance(86400, 0) < 3600 for _ in range(20))
+        assert DELAI_RELANCE_PLAFOND < 3600
 
     def test_sans_retry_after_le_delai_croit(self, hub):
         from apps.search.management.commands.push_federation import HubIndisponible
@@ -132,7 +165,7 @@ class TestRelance:
              patch.object(publier_vers_le_hub, 'retry', side_effect=Retry()) as relance:
             with pytest.raises(Retry):
                 publier_vers_le_hub()
-        assert relance.call_args.kwargs['countdown'] == delai_relance(0)
+        assert delai_relance(0) <= relance.call_args.kwargs['countdown'] <= delai_relance(0) * 1.1
 
     def test_une_relance_s_inscrit_comme_telle(self, hub):
         publier_vers_le_hub.push_request(retries=2)

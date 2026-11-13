@@ -69,10 +69,27 @@ DELAI_RELANCE_MIN = 300
 DELAI_RELANCE_MAX = 3600
 
 
+#: #847 — Plafond d'un délai demandé par le hub. Au-delà du délai de
+#: visibilité du broker Redis (1 h par défaut), une tâche programmée est
+#: redistribuée et s'exécute deux fois : deux dépôts simultanés (#853).
+DELAI_RELANCE_PLAFOND = 3000
+#: #847 — Aléa ajouté à chaque délai : des instances renvoyées ensemble par
+#: un même 429 ne doivent pas revenir à la même seconde.
+ALEA_RELANCE = 0.10
+
+
 def delai_relance(tentative):
     """Délai avant la relance n° ``tentative`` (0 = première) : backoff
     exponentiel plafonné, quand le hub n'a pas dit combien attendre."""
     return min(DELAI_RELANCE_MIN * 2 ** min(tentative, 10), DELAI_RELANCE_MAX)
+
+
+def delai_avant_relance(retry_after, tentative):
+    """Délai effectif : celui que le hub demande (sinon le backoff), plafonné
+    sous la visibilité du broker, plus un aléa d'au plus 10 %."""
+    import random
+    base = min(retry_after or delai_relance(tentative), DELAI_RELANCE_PLAFOND)
+    return int(base + random.uniform(0, base * ALEA_RELANCE))
 
 
 # Deux heures, contre trente minutes pour les autres tâches : une publication
@@ -123,7 +140,7 @@ def publier_vers_le_hub(self):
     except HubIndisponible as erreur:
         # Le lot éventuel est déjà abandonné par la commande. Le hub a peut-être
         # dit combien attendre ; sinon, on espace de plus en plus.
-        delai = erreur.retry_after or delai_relance(tentative)
+        delai = delai_avant_relance(erreur.retry_after, tentative)
         logger.warning(
             "Hub indisponible (tentative %s/%s), relance dans %s s : %s",
             tentative + 1, RELANCES_MAX + 1, delai, erreur,

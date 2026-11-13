@@ -283,7 +283,19 @@ class Command(BaseCommand):
             raise RuntimeError(
                 f"{methode} {chemin} → {reponse.status_code} : {reponse.text[:500]}"
             )
-        return reponse.json() if reponse.content else {}
+        # #847 — une redirection ou une page HTML (maintenance du hub ou de son
+        # proxy) n'est pas un refus : le hub n'est pas en état de recevoir.
+        if reponse.status_code >= 300:
+            raise HubIndisponible(
+                f"{methode} {chemin} → redirection {reponse.status_code} "
+                f"vers {reponse.headers.get('Location', '?')}")
+        if not reponse.content:
+            return {}
+        try:
+            return reponse.json()
+        except ValueError as erreur:
+            raise HubIndisponible(
+                f"{methode} {chemin} → réponse illisible : {reponse.text[:200]}") from erreur
 
     def _ouvrir(self):
         # L'instance se nomme à l'ouverture du lot, en plus de s'authentifier.
