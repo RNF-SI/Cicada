@@ -1,282 +1,153 @@
 # 🌿 CICADA
 
-**CICADA** - Application web de gestion des plans de gestion d'espaces naturels développée pour le **CEN** (Conservatoire d'Espaces Naturels) et **RNF** (Réserves Naturelles de France).
+**CICADA** est une application web open source pour **saisir, suivre et partager les plans de gestion des aires protégées** selon la méthodologie CT88. Elle est développée par **Réserves Naturelles de France (RNF)** et la **Fédération des Conservatoires d'espaces naturels (FCEN)**, dans le cadre du programme européen LIFE Biodiv'France.
 
-> 📄 Pour une présentation détaillée du projet, consultez le document [Présentation_projet_CICADA_VF.pdf](docs/Présentation_projet_CICADA_VF.pdf), qui contient davantage d'informations sur le contexte, les objectifs et le périmètre fonctionnel.
+<p align="center">
+  <img src="documentation/docs/assets/figures/fig01.webp" alt="Page d'accueil de CICADA" width="780" />
+</p>
 
-## 🎯 Objectif
+> 📄 Présentation du projet (contexte, objectifs, périmètre) : [Présentation_projet_CICADA_VF.pdf](docs/Présentation_projet_CICADA_VF.pdf)
+> 📚 Documentation complète : servie par chaque instance sous `/aide/` — en local, `docker compose up docs` puis http://localhost:8001. Point d'entrée dans le dépôt : [docs/README.md](docs/README.md).
 
-Centraliser et standardiser la gestion des plans de gestion des aires protégées françaises avec :
-- Gestion des utilisateurs et organismes gestionnaires
-- Référencement des sites naturels avec cartographie
-- CRUD des plans de gestion multi-sites  
-- API publique pour l'interopérabilité
-- Interface moderne et intuitive
+---
 
-## 🚀 Installation et lancement rapide
+## Ce que fait CICADA
 
-### Prérequis
+| | |
+|---|---|
+| **Structurer un plan de gestion** | Enjeux et facteurs clés de réussite, objectifs à long terme et opérationnels, indicateurs avec grilles de scores, actions de gestion. |
+| **Programmer les actions** | Calendrier, budget et temps de travail par année ou sur la période, ventilés par organisme, type de budget ou poste ; financeurs. |
+| **Suivre la réalisation** | Saisie annuelle du réalisé, planification de l'année ajustée, tableau de bord et Bilan graphique. |
+| **Produire les documents** | Fiche du plan (Word), fiches action (Excel / Word), budget et RH, fiches de suivi ; classeurs réimportables. |
+| **Explorer** | Recherche dans le contenu des plans validés, sur son instance ou sur toutes les instances reliées au hub. |
+| **Administrer** | Organismes, sites (avec cartographie), comptes et rôles, demandes d'accès, référentiels nationaux versionnés. |
 
-- [Docker](https://docs.docker.com/get-docker/) (version 20.10+)
-- [Docker Compose](https://docs.docker.com/compose/install/) (version 2.0+)
-- Git
+<table>
+<tr>
+<td width="50%"><img src="documentation/docs/assets/figures/fig46.webp" alt="Formulaire de saisie d'une action de gestion" /><br/><sub>Saisie d'une action de gestion</sub></td>
+<td width="50%"><img src="documentation/docs/assets/figures/fig53.webp" alt="Bilan de la gestion" /><br/><sub>Bilan de la gestion</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="documentation/docs/assets/figures/fig51.webp" alt="Suivi des actions" /><br/><sub>Suivi des actions, année par année</sub></td>
+<td width="50%"><img src="documentation/docs/assets/figures/fig24.webp" alt="Exploration des données" /><br/><sub>Exploration des données</sub></td>
+</tr>
+</table>
 
-### Installation
+### Un plan de gestion dans CICADA
 
-1. **Cloner le repository**
-   ```bash
-   git clone https://github.com/RNF-SI/Cicada.git
-   cd Cicada
-   ```
+```mermaid
+flowchart TD
+    PG[Plan de gestion] --> E[Enjeu]
+    PG --> F[Facteur clé de réussite]
+    E --> OLT[Objectif à long terme] --> NE[Niveau d'exigence] --> IE[Indicateur d'état]
+    F --> P[Facteur d'influence / pression] --> OO[Objectif opérationnel] --> RA[Résultat attendu] --> IP[Indicateur de pression]
+    IE --> A[Actions de gestion]
+    IP --> A
+    A --> S[Suivi annuel : réalisé, Bilan]
+```
 
-2. **(Optionnel) Configurer l'environnement**
-   ```bash
-   cp .env.example .env
-   # Éditez le fichier .env pour personnaliser ports, mots de passe, etc.
-   ```
-   > Les valeurs par défaut permettent de démarrer sans `.env` en développement.
+---
 
-3. **Lancer l'application**
-   ```bash
-   docker compose up -d
-   ```
+## Architecture
 
-4. **Attendre l'initialisation** (~30 secondes pour les migrations)
-   ```bash
-   docker compose logs -f web
-   # Attendre "Starting development server at http://0.0.0.0:8000/"
-   ```
+```mermaid
+flowchart LR
+    subgraph Instance CICADA
+        NAV[Navigateur] --> FRONT[Frontend Angular<br/>Apache]
+        FRONT -->|/api| WEB[Backend Django REST]
+        FRONT -->|/aide| DOCS[Documentation MkDocs]
+        WEB --> DB[(PostgreSQL + PostGIS)]
+        WEB --> REDIS[(Redis)]
+        REDIS --> CELERY[Celery worker + beat<br/>e-mails, tâches planifiées]
+    end
+    WEB -.->|publication des plans validés, si la structure y consent| HUB[Hub d'exploration fédérée]
+    WEB -.->|connexion, optionnelle| UH[(UsersHub / GeoNature)]
+```
 
-5. **Accéder à l'application**
-   - Backend Django API : http://localhost:8000
-   - Interface d'administration : http://localhost:8000/admin (login: `admin` / `admin`)
-   - Frontend Angular : http://localhost:4200
-   - **Mailpit** (emails de test) : http://localhost:8025
+| Couche | Technologies |
+|--------|--------------|
+| Backend | Django 5.2, Django REST Framework, Celery, JWT |
+| Frontend | Angular 22, Angular Material, Leaflet, design system maison ([DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)) |
+| Données | PostgreSQL 17 / PostGIS 3.5, Redis ; référentiels INPN (TaxRef, HabRef, CAMPanule), GestRef, PressRef |
+| Livraison | Images Docker (GHCR), paquet Debian avec installeur web et mise à jour par bouton |
 
-### Commandes essentielles
+Plusieurs instances (RNF, un CEN, une DREAL…) gardent chacune leur base ; le **hub** rassemble leurs index pour une exploration nationale. Chaque instance décide de partager ou non. Détail : [docs/fonctionnalites/21-federation.md](docs/fonctionnalites/21-federation.md).
+
+---
+
+## Lancer CICADA en local
+
+**Prérequis** : Docker 20.10+ avec Docker Compose v2, Git.
 
 ```bash
-# Démarrer l'application
-docker compose up -d
-
-# Arrêter l'application
-docker compose down
-
-# Voir les logs
-docker compose logs -f
-
-# Reconstruire après modifications
-docker compose build
+git clone https://github.com/RNF-SI/Cicada.git
+cd Cicada
+docker compose up -d                                       # ~1 min au premier lancement
+docker compose exec web python manage.py seed_testdata     # jeu d'essai (facultatif)
 ```
 
-### Configuration des variables d'environnement
+| Service | Adresse |
+|---------|---------|
+| Application | http://localhost:4200 |
+| API | http://localhost:8000/api/ — documentation interactive : http://localhost:8000/api/docs/ |
+| Administration Django | http://localhost:8000/admin/ (`admin` / `admin`) |
+| E-mails de test (Mailpit) | http://localhost:8025 |
+| Documentation | http://localhost:8001 (`docker compose up docs`) |
 
-Le fichier `.env` est **optionnel en développement** grâce aux valeurs par défaut cohérentes définies dans `docker compose.yml`.
+Comptes du jeu d'essai : `admin@test.fr`, `referent.camargue@test.fr`, `user.rnf@test.fr`… mot de passe `Test123!` (liste complète dans [CLAUDE.md](CLAUDE.md#test-data-available-via-python-managepy-seed_testdata)).
 
-#### Valeurs par défaut (sans .env)
-
-| Variable | Valeur par défaut | Description |
-|----------|-------------------|-------------|
-| `POSTGRES_DB` | `cicada` | Nom de la base de données |
-| `POSTGRES_USER` | `cicada_user` | Utilisateur PostgreSQL |
-| `POSTGRES_PASSWORD` | `cicada_password` | Mot de passe PostgreSQL |
-| `DJANGO_PORT` | `8000` | Port du backend |
-| `FRONTEND_PORT` | `4200` | Port du frontend |
-| `REDIS_PASSWORD` | `redis_password` | Mot de passe Redis |
-
-#### Quand utiliser un fichier .env ?
-
-- **Développement local** : Pas nécessaire, les défauts fonctionnent
-- **Personnalisation** : Pour changer les ports ou mots de passe
-- **Production** : **Obligatoire** - utilisez des mots de passe sécurisés et `DEBUG=False`
-
-Pour personnaliser :
-```bash
-cp .env.example .env
-# Éditez .env selon vos besoins
-```
-
-> ⚠️ **Production** : Ne jamais utiliser les valeurs par défaut. Générez des mots de passe forts et une nouvelle `SECRET_KEY`.
-
-### Sécurité
-
-Les identifiants présents dans ce dépôt (docker-compose.yml, .env.example) sont **exclusivement destinés au développement local**. Pour tout déploiement en production :
-
-- Générez une nouvelle `SECRET_KEY` Django (ex: `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`)
-- Définissez des mots de passe forts pour PostgreSQL et Redis
-- Configurez `DEBUG=False` et `ALLOWED_HOSTS` correctement
-- Utilisez HTTPS et configurez les en-têtes de sécurité
-- Ne réutilisez jamais les valeurs par défaut de développement
-
-## 🏗️ Architecture
-
-### État actuel du projet (v0.1.25)
-
-- Backend Django complet : API REST (utilisateurs, organismes, sites, plans, enjeux, opérations, suivis)
-- Frontend Angular 22 avec Design System custom (Kit UI CICADA)
-- Authentification JWT, rôles hiérarchiques, permissions objet
-- Référentiels INPN intégrés : nomenclatures, TaxRef, HabRef, CAMPanule
-- Cycle de vie des plans : brouillon, validé, archivé, évaluation mi-parcours
-- Notifications, validations, historique d'activité
-- Inscription publique avec workflow de validation
-- Import en masse de sites (GeoJSON/CSV)
-- Package Debian (.deb) avec installeur web et mise à jour automatique
-- PostgreSQL 17 + PostGIS, Redis, Celery
-
-### Services Docker
-
-- **web** : Application Django backend (port 8000)
-- **frontend** : Application Angular en mode développement (port 4200)
-- **db** : PostgreSQL 17 avec PostGIS 3.5 (port 5432)
-- **redis** : Cache et broker Celery (port 6379)
-- **celery-worker** : Worker Celery pour tâches asynchrones (emails, etc.)
-- **celery-beat** : Planificateur de tâches périodiques
-- **mailpit** : Serveur SMTP de test - capture les emails (port 8025)
-
-### Structure du projet
-
-```
-Cicada/
-├── backend/              # Application Django
-│   ├── Dockerfile
-│   └── docker/
-│       └── entrypoint.sh
-├── frontend/             # Application Angular
-│   └── Dockerfile
-├── docker/              # Configuration Docker
-│   └── postgres/        # Scripts d'initialisation PostgreSQL
-├── docker compose.yml   # Configuration des services
-├── .env.example        # Variables d'environnement exemple
-└── README.md
-```
-
-## ⚡ Démarrage rapide
-
-1. **Cloner :** `git clone https://github.com/RNF-SI/Cicada.git && cd Cicada`
-2. **Lancer :** `docker compose up -d`
-3. **Attendre** que les migrations s'exécutent (~30 secondes) : `docker compose logs -f web`
-4. **Accéder :** http://localhost:8000/admin/ (`admin` / `admin`)
-
-> **Note :** Le fichier `.env` est **optionnel** pour le développement. Les valeurs par défaut permettent de démarrer immédiatement. Pour personnaliser (ports, mots de passe), copiez `.env.example` vers `.env`.
-
-L'interface d'administration permet de gérer utilisateurs, organismes, sites et nomenclatures avec des données de test pré-chargées.
-
-### 🔗 API REST
-
-L'API d'authentification JWT est opérationnelle :
-- **Login :** `POST /api/auth/login/` avec email/password
-- **Token refresh :** `POST /api/auth/refresh/`  
-- **User info :** `GET /api/auth/me/`
-
-L'API REST complète est disponible :
-
-**Utilisateurs :**
-- **Liste :** `GET /api/users/` (pagination, filtres, recherche)
-- **Détail :** `GET /api/users/{id}/` 
-- **CRUD :** POST, PUT/PATCH, DELETE avec permissions
-- **Actions :** changement mot de passe, assignation sites, statistiques
-
-**Plans de Gestion :**
-- **Plans :** `GET /api/plans/plans/` avec filtres avancés et GeoJSON
-- **Fichiers :** `POST /api/plans/fichiers/` upload et téléchargement sécurisé
-- **Actions :** Assignation sites/référents, statistiques, exports
-
-**Organismes et Sites :**
-- **Organismes :** `GET /api/users/organismes/` avec hiérarchie et relations
-- **Sites :** `GET /api/users/sites/` avec support GeoJSON complet
-- **GeoJSON :** `/sites/geojson_list/` pour cartes interactives
-- **Relations :** Assignations organismes ↔ sites ↔ utilisateurs
-
-**Documentation API complète :** 
-- **[API_PLANS_GUIDE.md](docs/API_PLANS_GUIDE.md)** - Guide API Plans de Gestion
-- **[API_USERS_GUIDE.md](docs/API_USERS_GUIDE.md)** - Guide API Utilisateurs
-- **[API_ORGANISMES_SITES_GUIDE.md](docs/API_ORGANISMES_SITES_GUIDE.md)** - Guide API Organismes/Sites
-- **[NOMENCLATURES.md](documentation/docs/administration/referentiels.md)** - Référentiels et nomenclatures
-
-Test avec curl :
-```bash
-curl -X POST http://localhost:8000/api/auth/login/ \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin", "password": "admin"}'
-```
-
-## 📖 Documentation
-
-- **[📚 Index Documentation](docs/README.md)** - Index complet de toute la documentation
-- **[Présentation du projet (PDF)](docs/Présentation_projet_CICADA_VF.pdf)** - Présentation générale du projet CICADA
-- **[Guide Développeur](docs/GUIDE_DEVELOPPEUR.md)** - Commandes, permissions, logs, i18n, styles
-- **[Configuration Email](documentation/docs/administration/email.md)** - Mailpit (dev), SMTP (prod), notifications
-- **[Tests](docs/TESTING.md)** - Guide des tests (pytest, Jest)
-- **[Release Pipeline](docs/RELEASE_PIPELINE.md)** - Conventional commits, versioning, Docker, deploiement
-- **[Infrastructure](documentation/docs/administration/infrastructure.md)** - Les serveurs et leurs liens (instance, base, dépôt APT, API de suivi, hub), cycle d'une release
-- **[CLAUDE.md](CLAUDE.md)** - Référence technique pour Claude Code
-
-## Installation en production
-
-Le déploiement se fait via un package Debian (.deb) avec un installeur web intégré.
+Le fichier `.env` est **facultatif en développement** : les valeurs par défaut de `docker-compose.yml` suffisent. Pour changer un port déjà pris (80, 5432, 8000…), copiez `.env.example` en `.env` et modifiez `FRONTEND_PORT`, `POSTGRES_EXTERNAL_PORT`, `DJANGO_PORT`…
 
 ```bash
-# 1. Installer (dépôts Docker et CICADA, paquet) — Debian 12+ / Ubuntu 22.04+
+docker compose logs -f web      # suivre le backend
+docker compose down             # arrêter
+docker compose build            # reconstruire après un changement de dépendances
+```
+
+> ⚠️ Les identifiants du dépôt (`docker-compose.yml`, `.env.example`) sont **réservés au développement**. En production, l'installeur génère une `SECRET_KEY` et des mots de passe propres à l'instance.
+
+---
+
+## Installer une instance en production
+
+Le déploiement passe par un **paquet Debian** et un **installeur web** (Debian 12+ / Ubuntu 22.04+) :
+
+```bash
 curl -fsSL https://apt.cicada.reserves-naturelles.org/install.sh | sudo bash
-
-# 2. Ouvrir l'installeur web et suivre le formulaire
-# http://votre-serveur:4567
-# (base sur un serveur PostgreSQL existant : le formulaire donne la commande
-#  à lancer sur ce serveur)
+# puis ouvrir http://votre-serveur:4567 et suivre le formulaire
 ```
 
-**[Guide d'installation complet](documentation/docs/administration/installation.md)** - Prérequis, configuration Apache/Nginx, base externe, mise à jour
-**[Infrastructure](documentation/docs/administration/infrastructure.md)** - Vue d'ensemble des serveurs (dépôt APT, API de suivi, hub) et de leurs liens
+La mise à jour se fait ensuite **par un bouton** dans *Administration › Mise à jour* : sauvegarde vérifiée de la base, puis retour automatique à la version précédente si l'application ne redémarre pas.
 
-## Technologies
-
-- **Backend** : Django 5.0+, DRF, PostgreSQL 17+ / PostGIS, Redis, Celery
-- **Frontend** : Angular 22, Angular Material, Leaflet
-- **Infrastructure** : Docker, package Debian (.deb), systemd
-
-## 🚢 Release et deploiement
-
-Le projet utilise un pipeline automatise : **conventional commits** → **release-please** → **images Docker sur GHCR** → **docker-compose.prod.yml**.
-
-- Les messages de commit suivent la convention [Conventional Commits](https://www.conventionalcommits.org/) (`feat(plans): ...`, `fix(auth): ...`)
-- Le versioning et le CHANGELOG sont generes automatiquement par [release-please](https://github.com/googleapis/release-please)
-- Chaque release publie des images Docker sur `ghcr.io/rnf-si/cicada-{backend,frontend}`
-
-**[Documentation complete du pipeline de release](docs/RELEASE_PIPELINE.md)**
-
-### Inventaire des dependances (SBOM)
-
-Chaque tag de version `v*` genere les SBOM CycloneDX du depot (workflow `.github/workflows/sbom.yml`) et les envoie au serveur [Dependency-Track](https://dependencytrack.reserves-naturelles.org) de RNF, qui suit les vulnerabilites connues. Quatre projets : `cicada-backend`, `cicada-frontend` (dependances de production uniquement), `cicada-hub`, `cicada-tracking-api`.
-
-```bash
-./scripts/generate-sbom.sh            # genere sbom/*.cdx.json
-./scripts/generate-sbom.sh --envoi    # genere puis envoie (cle dans ~/.config/dependency-track/api.key)
+```mermaid
+flowchart LR
+    A[Images téléchargées] --> B[Sauvegarde vérifiée] --> C[Nouvelle version] --> D{Démarre ?}
+    D -- oui --> OK[Mise à jour réussie]
+    D -- non --> R[Retour automatique<br/>base restaurée]
 ```
 
-| Variable | Defaut | Role |
-|---|---|---|
-| `DT_VERSION` | `prod` | version des projets Dependency-Track — **fixe**, c'est l'environnement deploye |
-| `APP_VERSION` | dernier tag Git | version applicative inscrite dans les SBOM |
+Guides : [installation](documentation/docs/administration/installation.md), [infrastructure](documentation/docs/administration/infrastructure.md), [releases](documentation/docs/administration/releases.md).
 
-`DT_VERSION` reste fixe volontairement : une version de projet par release creerait des projets neufs a chaque publication, a re-tagger a la main. Le numero de release est trace par le composant racine du SBOM.
+---
 
-> En local, `frontend/node_modules` est souvent le point de montage vide du volume Docker : le script le croit installe et `npm ls` echoue. Lancer `npm ci` dans `frontend/` (hors conteneur) avant de generer.
+## Développer
 
-## 🤝 Contribution
+| Je veux… | Lire |
+|----------|------|
+| comprendre une fonctionnalité | [docs/FONCTIONNALITES.md](docs/FONCTIONNALITES.md) |
+| connaître les conventions et commandes | [docs/GUIDE_DEVELOPPEUR.md](docs/GUIDE_DEVELOPPEUR.md), [CLAUDE.md](CLAUDE.md) |
+| toucher à l'interface | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) (obligatoire) |
+| écrire ou lancer des tests | [docs/TESTING.md](docs/TESTING.md) |
+| publier une version | [docs/RELEASE_PIPELINE.md](docs/RELEASE_PIPELINE.md) |
 
-1. Creer une branche depuis `develop`
-2. Faire vos modifications en respectant les [conventional commits](docs/RELEASE_PIPELINE.md#1-conventional-commits)
-3. Tester localement
-4. Creer une Pull Request vers `develop`
+**Contribuer** : branche depuis `develop`, commits au format [Conventional Commits](https://www.conventionalcommits.org/) (`feat(plans): …`, `fix(auth): …`), tests verts, Pull Request vers `develop`. Chaque tag `v*` publie les images Docker et envoie l'inventaire des dépendances au Dependency-Track de RNF ([RELEASE_PIPELINE.md, § 6](docs/RELEASE_PIPELINE.md#6-inventaire-des-dépendances-sbom)).
 
-## 📄 Licence
+---
 
-Ce projet est sous licence GPL-3.0. Voir le fichier `LICENSE` pour plus de détails.
+## Licence et contact
 
-## 📞 Support
-
-- **Issues** : https://github.com/RNF-SI/Cicada/issues
-- **Project Board** : https://github.com/RNF-SI/Cicada/projects/1
+- Licence **GPL-3.0** — voir `LICENSE`.
+- Issues : https://github.com/RNF-SI/Cicada/issues
 
 ---
 
@@ -290,5 +161,3 @@ Ce projet est sous licence GPL-3.0. Voir le fichier `LICENSE` pour plus de déta
 >
 > Réalisé dans le cadre du projet LIFE BIODIV’FRANCE<br>
 > Coordonné par l’Office Français de la Biodiversité, ce projet rassemble un consortium de 31 participants. Il accompagne la mise en œuvre de la stratégie nationale pour la biodiversité en travaillant sur 5 cibles : les territoires, aires protégées, filières, citoyens et acteurs de la formation.
-
----

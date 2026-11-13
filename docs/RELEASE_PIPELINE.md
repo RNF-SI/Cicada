@@ -255,3 +255,23 @@ docker compose -f docker-compose.prod.yml logs -f web
 | `docker-publish.yml` | Push d'un tag `v*` | Build et push des images GHCR |
 
 > **Note** : Les tests E2E Playwright (`e2e-tests` dans `tests.yml`) se declenchent aussi sur les tags `v*`, ce qui signifie que les tests E2E complets s'executent avant/pendant la publication des images Docker. Le job E2E depend de `backend-tests` pour ne pas gaspiller de ressources si les tests unitaires echouent.
+
+## 6. Inventaire des dépendances (SBOM)
+
+Chaque tag de version `v*` génère les SBOM CycloneDX du dépôt (workflow `.github/workflows/sbom.yml`) et les envoie au serveur [Dependency-Track](https://dependencytrack.reserves-naturelles.org) de RNF, qui suit les vulnérabilités connues. Quatre projets : `cicada-backend`, `cicada-frontend` (dépendances de production uniquement), `cicada-hub`, `cicada-tracking-api`.
+
+```bash
+./scripts/generate-sbom.sh            # génère sbom/*.cdx.json
+./scripts/generate-sbom.sh --envoi    # génère puis envoie (clé dans ~/.config/dependency-track/api.key)
+```
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `DT_VERSION` | `prod` | version des projets Dependency-Track — **fixe**, c'est l'environnement déployé |
+| `APP_VERSION` | dernier tag Git | version applicative inscrite dans les SBOM |
+
+`DT_VERSION` reste fixe volontairement : une version de projet par release créerait des projets neufs à chaque publication, à re-tagger à la main. Le numéro de release est tracé par le composant racine du SBOM.
+
+> En local, `frontend/node_modules` est souvent le point de montage vide du volume Docker : le script le croit installé et `npm ls` échoue. Lancer `npm ci` dans `frontend/` (hors conteneur) avant de générer.
+
+Entre deux releases, Dependabot (`.github/dependabot.yml`) propose les nouvelles versions des dépendances et le workflow « Audit des dépendances » signale les vulnérabilités connues à chaque PR et chaque lundi.
