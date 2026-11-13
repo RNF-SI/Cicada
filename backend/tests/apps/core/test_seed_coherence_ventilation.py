@@ -40,6 +40,15 @@ from tests.factories.plans import PlanGestionFactory
 
 pytestmark = [pytest.mark.django_db]
 
+#: #794 (retour 13/11) — réglages propres à l'année en cours de CS1, par plan
+#: « Ventilation validée — … » (les deux autres plans gardent ceux de l'action).
+REGLAGES_CS1_ANNEE = {
+    'aucune ventilation': {'declinaison_par_type_cout': True},
+    'par organisme': {'declinaison_par_type_cout': True},
+    'par type de budget': {'declinaison_par_poste': True},
+    'par type de budget et type de poste': {'cout_salarial_auto': False},
+}
+
 ORG_MODES = ('by_org', 'by_org_type', 'by_org_type_poste')
 TYPE_MODES = ('by_type', 'by_org_type', 'by_type_poste', 'by_org_type_poste')
 ENVELOPPES = ('budget_fonctionnement', 'budget_investissement')
@@ -237,4 +246,20 @@ def test_jeu_d_essai_coherent_et_idempotent():
         assert planif.reports_entrants(par['IP1'], annee + 1) == [{'annee': annee, 'partiel': False}]
         assert planif.ajustement(par['PA1'], annee) is None
         resumes.add((cs['budget'], cs['jours']))
+        # Retour 13/11 — réglages propres à l'année, totaux inchangés : CS1 est
+        # détaillée par type de coût (sans ventilation, par organisme), par poste
+        # (par type de budget), à coût salarial saisi (type de budget + poste).
+        contenu = planif.effectif(par['CS1'], annee)
+        reglages = {nom: contenu[nom] for nom in (
+            'declinaison_par_type_cout', 'declinaison_par_poste', 'cout_salarial_auto')}
+        attendu = REGLAGES_CS1_ANNEE.get(plan.nom.removeprefix('Ventilation validée — '), {})
+        assert {k: v for k, v in reglages.items() if v is not None} == attendu, plan.nom
+        if attendu.get('declinaison_par_type_cout'):
+            # L'enveloppe est passée en « autres coûts » là où elle compte :
+            # sur les organismes (ventilation par organisme), sinon l'année.
+            seaux = contenu['organismes'] or [contenu]
+            assert not any(x.get('budget_fonctionnement') or x.get('budget') for x in seaux)
+            assert any(x.get('autre_cout') for x in seaux)
+        if attendu.get('declinaison_par_poste'):
+            assert contenu['rh_lignes'] and all(l['id_poste'] for l in contenu['rh_lignes'])
     assert len(resumes) == 1

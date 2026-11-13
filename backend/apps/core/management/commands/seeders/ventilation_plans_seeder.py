@@ -119,6 +119,18 @@ _MODES = [
 _PLAN_PREFIX = 'Ventilation — '
 _PLAN_PREFIX_VALIDE = 'Ventilation validée — '
 
+# #794 (retour 13/11) — réglages propres à l'année en cours de CS1 dans les
+# plans validés, par mode : chacun montre un réglage que la fiche action n'a
+# pas, sans changer les totaux (identiques d'un plan à l'autre). Les modes
+# « par organisme et type de budget » et « … et type de poste » gardent ceux
+# de l'action.
+_REGLAGES_CS1_ANNEE = {
+    'none': {'declinaison_par_type_cout': True},
+    'by_org': {'declinaison_par_type_cout': True},
+    'by_type': {'declinaison_par_poste': True},
+    'by_type_poste': {'cout_salarial_auto': False},
+}
+
 # #720 — chaque mode existe en deux exemplaires au contenu identique :
 # - le brouillon, pour modifier la fiche action (programmation) ;
 # - le plan validé (programmation figée, verrou #248), dont le suivi est EN COURS
@@ -1487,6 +1499,10 @@ class VentilationPlansSeeder(BaseSeeder):
         « Ventilation validée — … » (même scénario dans les 6 modes) :
 
         - CS1 revue : coûts et temps réévalués de +10 %, mois décalés à l'automne ;
+          retour 13/11, avec des réglages propres à l'année, totaux inchangés
+          (``_REGLAGES_CS1_ANNEE``) : coûts détaillés (aucune ventilation, par
+          organisme), temps par poste (par type de budget), coût salarial
+          saisi (type de budget + type de poste) ;
         - IP1 reportée en année + 1 : la suite de sa programmation est décalée ;
         - PA1 pas encore revue (« 2 / 3 actions revues »).
 
@@ -1496,7 +1512,7 @@ class VentilationPlansSeeder(BaseSeeder):
         from apps.plans.models_planification import (
             CHAMPS_COUTS_ANNEE, CHAMPS_COUTS_ORGANISME, AjustementAnnuel,
         )
-        from apps.plans.planification_annuelle import Planification, ecrire
+        from apps.plans.planification_annuelle import Planification, convertir, ecrire
 
         def _majorer(valeur):
             return None if valeur is None else _q(_dec(valeur) * Decimal('1.10'))
@@ -1520,6 +1536,20 @@ class VentilationPlansSeeder(BaseSeeder):
                 contenu['periodicite_mensuelle'] = {'9': True, '10': True}
                 contenu['commentaire'] = (
                     "Coûts réévalués (+10 %) ; relevés décalés à l'automne (crue printanière).")
+                reglages = _REGLAGES_CS1_ANNEE.get(cs.ventilation_mode)
+                if reglages:
+                    postes = {p.pk: p for p in Poste.objects.filter(id_pg=plan)}
+                    if reglages.get('declinaison_par_poste'):
+                        # Le temps total de l'année passe sur les postes du plan :
+                        # agents sur un poste financé, bénévolat sur un bénévole.
+                        finance = next(p for p in postes.values() if p.is_finance_par_defaut())
+                        benevole = next(p for p in postes.values() if not p.is_finance_par_defaut())
+                        for ligne in contenu['rh_lignes']:
+                            ligne['id_poste'] = (
+                                benevole if ligne['categorie_depense'] == 'benevolat_partenariat'
+                                else finance).pk
+                            ligne['id_organisme'] = None
+                    contenu = convertir(cs, contenu, reglages, postes)
                 ecrire(cs, current_year, contenu, admin)
             if ip is not None:
                 Planification(plan, operations).reporter(
