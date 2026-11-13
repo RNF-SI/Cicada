@@ -30,6 +30,7 @@ import { debounceTime, distinctUntilChanged, filter, switchMap, groupBy, mergeMa
 import { HeaderComponent } from '../../../../shared/components/header/header.component';
 import { ReferenceItemListComponent } from '../../../../shared/components/reference-item-list/reference-item-list.component';
 import { CheckboxComponent } from '../../../../shared/components/checkbox/checkbox.component';
+import { TagComponent } from '../../../../shared/components/tag/tag.component';
 import { EmpriseEditorComponent } from '../../../../shared/components/emprise-editor/emprise-editor.component';
 import { AccordionComponent } from '../../../../shared/components/accordion/accordion.component';
 import { FormFieldComponent } from '../../../../shared/components/form-field/form-field.component';
@@ -128,6 +129,7 @@ export function buildGridTypeMetriqueOptions(
   selector: 'app-operation-form',
   standalone: true,
   imports: [
+    TagComponent,
     CommonModule,
     ProtocoleActionComponent,
     RouterLink,
@@ -338,13 +340,39 @@ export class OperationFormComponent implements OnInit {
   typeActionSearchText = signal('');
   selectedTypeAction = signal<NomenclatureOption | null>(null);
 
-  /** Vrai si le type d'action sélectionné est un code CS (Connaissance et Suivi) */
-  isCSAction = computed(() => {
-    const selected = this.selectedTypeAction();
-    if (!selected) return false;
-    const code = selected.cd_nomenclature || selected.mnemonique || '';
-    return code.startsWith('CS');
+  /** #792 — types d'action complémentaires (le principal reste `selectedTypeAction`). */
+  typesComplementaires = signal<NomenclatureOption[]>([]);
+  typeComplementaireSearchCtrl = new FormControl<string | NomenclatureOption>('');
+  typeComplementaireSearchText = signal('');
+  /** Types proposés en complément : ni le principal, ni ceux déjà choisis. */
+  typeComplementaireGroups = computed<NomenclatureGroup[]>(() => {
+    const exclus = new Set<number | undefined>([
+      this.selectedTypeAction()?.id_nomenclature,
+      ...this.typesComplementaires().map(t => t.id_nomenclature),
+    ]);
+    return this.buildActionGroups(
+      this.typeActionOptions().filter(o => !exclus.has(o.id_nomenclature)),
+      this.typeComplementaireSearchText(),
+    );
   });
+
+  /**
+   * #792 (Q3 → a) — type CS qui fait porter un suivi à l'action : le principal
+   * s'il est CS, sinon le premier type complémentaire CS.
+   */
+  typeDeSuivi = computed<NomenclatureOption | null>(() =>
+    [this.selectedTypeAction(), ...this.typesComplementaires()]
+      .find(t => !!t && (t.cd_nomenclature || t.mnemonique || '').startsWith('CS')) ?? null,
+  );
+
+  /** Vrai si un des types d'action est un code CS (Connaissance et Suivi, #792). */
+  isCSAction = computed(() => this.typeDeSuivi() !== null);
+
+  /** #792 — un type complémentaire d'une version antérieure du référentiel. */
+  estTypeAncien(t: NomenclatureOption): boolean {
+    const actifs = this.typeActionOptions();
+    return actifs.length > 0 && !actifs.some(o => o.id_nomenclature === t.id_nomenclature);
+  }
 
   // #228 — Catégorie d'action réserve (CT88, 9 entrées avec code 2 lettres).
   categorieActionReserveOptions = signal<NomenclatureOption[]>([]);
@@ -1603,11 +1631,21 @@ export class OperationFormComponent implements OnInit {
       this.setSuiviFieldsEnabled(false);
     }
 
+    // #792 — types d'action complémentaires.
+    this.typesComplementaires.set((op.types_action_complementaires || []).map(t => ({
+      id_nomenclature: t.id_nomenclature, mnemonique: t.code, cd_nomenclature: t.code, label: t.label,
+    })));
+
     // For CS actions, libelle is synced with inventaire title
-    if (op.id_type_action) {
+    // (#792 : un type complémentaire CS suffit).
+    if (op.id_type_action || this.typesComplementaires().length) {
       const opts = this.typeActionOptions();
       const match = opts.find(o => o.id_nomenclature === op.id_type_action);
-      const code = match?.cd_nomenclature || match?.mnemonique || '';
+      let code = match?.cd_nomenclature || match?.mnemonique || '';
+      if (!code.startsWith('CS')) {
+        code = this.typesComplementaires().find(t => (t.cd_nomenclature || '').startsWith('CS'))
+          ?.cd_nomenclature || code;
+      }
       if (code.startsWith('CS')) {
         this.form.get('libelle')?.disable();
         this.libelleDisplay.set(op.libelle || '');
@@ -1866,7 +1904,25 @@ export class OperationFormComponent implements OnInit {
    * cliqué sur « Valider », l'action est considérée comme brouillon (chip dans les listes).
    */
   saveDraft(): void {
+    // #792 (Q2 → c) — même en brouillon, une action à plusieurs types a un libellé.
+    if (this.libelleManquant()) {
+      const ctrl = this.form.get('libelle');
+      ctrl?.markAsTouched();
+      ctrl?.updateValueAndValidity();
+      this.snackBar.open(
+        this.translate.instant('enjeux.operations.typesComplementaires.libelleObligatoire'),
+        this.translate.instant('common.actions.close'),
+        { duration: 5000 },
+      );
+      return;
+    }
     this.submitToApi(this.buildPayload(), { stayOnForm: true, statut: 'draft' });
+  }
+
+  /** #792 — plusieurs types d'action et aucun libellé (ni intitulé de suivi). */
+  libelleManquant(): boolean {
+    return this.typesComplementaires().length > 0
+      && !(this.form.getRawValue().libelle || '').trim();
   }
 
   // ===========================================================================
@@ -2106,17 +2162,21 @@ export class OperationFormComponent implements OnInit {
 
     // Use rawFv for libelle since it may be disabled (auto-filled from inventaire)
     let libelle = rawFv.libelle?.trim() || '';
-    if (!libelle) {
+    // #792 (Q2 → c) — avec plusieurs types, le libellé est obligatoire : il
+    // ne reprend pas celui du type principal (refus du serveur sinon).
+    const plusieursTypes = this.typesComplementaires().length > 0;
+    if (!libelle && !plusieursTypes) {
       // #784 — l'intitulé reprend le libellé du type, sans son code (déjà
       // affiché à côté de l'action).
       libelle = this.selectedTypeAction()?.label?.trim() || '';
     }
-    if (!libelle) {
+    if (!libelle && !plusieursTypes) {
       libelle = this.translate.instant('enjeux.operations.draftPlaceholderLibelle');
     }
 
     const payload: OperationCreatePayload = {
       libelle,
+      types_action_complementaires_ids: this.typesComplementaires().map(t => t.id_nomenclature),
     };
 
     if (fv.id_type_action) payload.id_type_action = fv.id_type_action;
@@ -2160,7 +2220,9 @@ export class OperationFormComponent implements OnInit {
       // Intitulé de l'inventaire (requis pour les nouveaux)
       if (fv.intitule_suivi?.trim()) suiviData['intitule'] = fv.intitule_suivi.trim();
       // Propager le type d'action CS sélectionné
-      if (fv.id_type_action) suiviData['id_type_action'] = fv.id_type_action;
+      // #792 — le suivi prend le type CS de l'action (principal ou complémentaire).
+      const typeSuivi = this.typeDeSuivi()?.id_nomenclature ?? fv.id_type_action;
+      if (typeSuivi) suiviData['id_type_action'] = typeSuivi;
       // #715 — chaque champ est envoyé, vide compris : un champ omis gardait sa
       // valeur précédente, ce qui empêchait d'effacer une saisie.
       suiviData['objectif_principal'] = (rawFv.objectif_principal || '').trim();
@@ -2641,6 +2703,16 @@ export class OperationFormComponent implements OnInit {
   private syncConditionalValidators(): void {
     const requireForCS = this.isCSAction() && !this.estSuiviExistant();
 
+    // #792 (Q2 → c) — libellé obligatoire dès que l'action a plusieurs types.
+    const libelle = this.form.get('libelle');
+    if (libelle) {
+      libelle.setValidators([
+        Validators.maxLength(500),
+        ...(this.typesComplementaires().length > 0 ? [Validators.required] : []),
+      ]);
+      libelle.updateValueAndValidity({ emitEvent: false });
+    }
+
     this.applyRequiredValidator('intitule_suivi', requireForCS);
     // #461 — objectif principal + cible principale obligatoires pour une
     // action de type suivi (CS, nouveau suivi).
@@ -2933,6 +3005,11 @@ export class OperationFormComponent implements OnInit {
         this.typeActionSearchText.set(val);
       }
     });
+    this.typeComplementaireSearchCtrl.valueChanges.subscribe((val) => {
+      if (typeof val === 'string') {
+        this.typeComplementaireSearchText.set(val);
+      }
+    });
   }
 
   displayTypeActionFn = displayNomenclatureFn;
@@ -2955,12 +3032,39 @@ export class OperationFormComponent implements OnInit {
     // l'état CS précédent pour savoir si l'on franchit la frontière CS / non-CS.
     const wasCS = this.isCSAction();
     this.selectedTypeAction.set(option);
+    // #792 — le principal n'est pas aussi un type complémentaire.
+    this.typesComplementaires.update(l => l.filter(t => t.id_nomenclature !== option.id_nomenclature));
     this.form.get('id_type_action')?.setValue(option.id_nomenclature);
     this.preremplirCategorieReserve(option);
+    this.appliquerModeSuivi(wasCS);
+  }
 
-    // Si c'est un code CS, charger les inventaires correspondants et griser le libellé
-    const code = option.cd_nomenclature || option.mnemonique || '';
-    if (code.startsWith('CS')) {
+  /** #792 — ajoute un type d'action complémentaire. */
+  ajouterTypeComplementaire(option: NomenclatureOption): void {
+    const wasCS = this.isCSAction();
+    const dejaLa = option.id_nomenclature === this.selectedTypeAction()?.id_nomenclature
+      || this.typesComplementaires().some(t => t.id_nomenclature === option.id_nomenclature);
+    if (!dejaLa) this.typesComplementaires.update(l => [...l, option]);
+    this.typeComplementaireSearchCtrl.setValue('', { emitEvent: false });
+    this.typeComplementaireSearchText.set('');
+    this.appliquerModeSuivi(wasCS);
+  }
+
+  /** #792 — retire un type d'action complémentaire. */
+  retirerTypeComplementaire(id: number): void {
+    const wasCS = this.isCSAction();
+    this.typesComplementaires.update(l => l.filter(t => t.id_nomenclature !== id));
+    this.appliquerModeSuivi(wasCS);
+  }
+
+  /**
+   * Mode « action CS » (suivi, libellé piloté par l'intitulé du suivi) ou non,
+   * selon les types de l'action — un seul type CS suffit (#792).
+   */
+  private appliquerModeSuivi(wasCS: boolean): void {
+    const typeCs = this.typeDeSuivi();
+    if (typeCs) {
+      const code = typeCs.cd_nomenclature || typeCs.mnemonique || '';
       this.loadInventairesByTypeAction(code);
       this.form.get('libelle')?.disable();
       // #483 — non-CS → CS : le libellé déjà saisi devient l'intitulé du suivi
@@ -3005,13 +3109,11 @@ export class OperationFormComponent implements OnInit {
   }
 
   clearTypeAction(): void {
+    const wasCS = this.isCSAction();
     this.typeActionSearchCtrl.setValue('');
     this.selectedTypeAction.set(null);
     this.form.get('id_type_action')?.setValue(null);
-    this.availableInventaires.set([]);
-    this.estSuiviExistant.set(false);
-    this.form.get('libelle')?.enable();
-    this.syncConditionalValidators();
+    this.appliquerModeSuivi(wasCS);
   }
 
   /** Charge les inventaires existants filtrés par préfixe du type d'action CS */

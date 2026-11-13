@@ -100,6 +100,58 @@
             }
           </mat-form-field>
 
+          <!-- #792 — types d'action complémentaires (le type principal reste celui
+               du Bilan, des totaux et du code de l'action). -->
+          <div class="types-complementaires" data-testid="types-complementaires">
+            <label class="app-mat-label">{{ 'enjeux.operations.typesComplementaires.label' | translate }}</label>
+            @if (typesComplementaires().length) {
+              <ul class="types-complementaires__liste">
+                @for (t of typesComplementaires(); track t.id_nomenclature) {
+                  <li class="types-complementaires__item" data-testid="type-complementaire">
+                    <span class="action-code">{{ t.cd_nomenclature || t.mnemonique }}</span>
+                    <span class="action-label">{{ t.label }}</span>
+                    @if (estTypeAncien(t)) {
+                      <app-tag variant="warning" size="sm"
+                               [label]="'enjeux.operations.typesComplementaires.ancien' | translate"></app-tag>
+                    }
+                    @if (!isReadOnly()) {
+                      <button type="button" class="icon-btn-flat" (click)="retirerTypeComplementaire(t.id_nomenclature)"
+                              [attr.aria-label]="'enjeux.operations.typesComplementaires.retirer' | translate"
+                              [title]="'enjeux.operations.typesComplementaires.retirer' | translate">
+                        <i class="fi fi-rr-cross-small"></i>
+                      </button>
+                    }
+                  </li>
+                }
+              </ul>
+            }
+            @if (!isReadOnly()) {
+              <mat-form-field class="app-mat-form-field full-width" appearance="outline">
+                <mat-label></mat-label>
+                <input matInput
+                  data-testid="type-complementaire-input"
+                  [formControl]="typeComplementaireSearchCtrl"
+                  [matAutocomplete]="autoTypeComplementaire"
+                  [placeholder]="'enjeux.operations.typesComplementaires.placeholder' | translate">
+                <mat-autocomplete #autoTypeComplementaire="matAutocomplete"
+                  (optionSelected)="ajouterTypeComplementaire($event.option.value)"
+                  class="type-action-autocomplete">
+                  @for (group of typeComplementaireGroups(); track group.groupLabel) {
+                    <mat-optgroup [label]="group.groupLabel">
+                      @for (action of group.options; track action.id_nomenclature) {
+                        <mat-option [value]="action" [class]="'action-depth-' + getActionDepth(action)">
+                          <span class="action-code">{{ action.cd_nomenclature || action.mnemonique }}</span>
+                          <span class="action-label">{{ action.label }}</span>
+                        </mat-option>
+                      }
+                    </mat-optgroup>
+                  }
+                </mat-autocomplete>
+                <mat-hint>{{ 'enjeux.operations.typesComplementaires.hint' | translate }}</mat-hint>
+              </mat-form-field>
+            }
+          </div>
+
           <!-- Catégorie d'action réserve (CT88) — optionnel, prend le pas sur le préfixe du type d'action -->
           <label class="app-mat-label">{{ 'enjeux.operations.categorieActionReserveLabel' | translate }}</label>
       <mat-form-field class="app-mat-form-field full-width" appearance="outline">
@@ -140,7 +192,10 @@
 
           <!-- Intitulé de l'action : contrôle formulaire (caché quand CS, affiché en position basse) -->
           <div [style.display]="isCSAction() ? 'none' : ''">
-            <app-form-field [label]="'enjeux.operations.libelleLabel' | translate" [helpText]="'enjeux.operations.libelleHint' | translate">
+            <app-form-field [label]="'enjeux.operations.libelleLabel' | translate"
+                            [required]="typesComplementaires().length > 0"
+                            [helpText]="(typesComplementaires().length > 0 ? 'enjeux.operations.typesComplementaires.libelleHint' : 'enjeux.operations.libelleHint') | translate"
+                            [error]="form.get('libelle')?.touched && form.get('libelle')?.hasError('required') ? ('enjeux.operations.typesComplementaires.libelleObligatoire' | translate) : null">
   <input formControlName="libelle"
                      [placeholder]="'enjeux.operations.libellePlaceholder' | translate">
               

@@ -1518,3 +1518,29 @@ app-protocole-action + app-protocole-action {
   flex-wrap: wrap;
   gap: $spacing-xs;
 }
+
+// #792 — types d'action complémentaires.
+.types-complementaires {
+  margin-top: $spacing-sm;
+
+  &__liste {
+    list-style: none;
+    margin: 0 0 $spacing-xs;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-xxs;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-xxs $spacing-xs;
+    border: 1px solid $gray-light;
+    border-radius: $border-radius-sm;
+    color: $black;
+
+    .action-label { flex: 1; }
+  }
+}

@@ -25,6 +25,9 @@ import {
 function createComponentInstance(): OperationFormComponent {
   // On instancie "à la main" pour tester la logique sans le template
   const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+  // #792 — types d'action complémentaires (aucun par défaut).
+  (comp as any).typesComplementaires = signal<any[]>([]);
+  (comp as any).typeDeSuivi = signal(null);
 
   // Reproduire les propriétés de state utilisées par les helpers
   comp.operationAnnees = [];
@@ -881,6 +884,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('#452 applyPlanReadOnly', () => {
     function comp(initial = false): OperationFormComponent {
       const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (c as any).typesComplementaires = signal<any[]>([]);
+      (c as any).typeDeSuivi = signal(null);
       (c as any).isReadOnly = signal(initial);
       return c;
     }
@@ -913,6 +919,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('#452 handlePlanLocked', () => {
     function comp() {
       const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (c as any).typesComplementaires = signal<any[]>([]);
+      (c as any).typeDeSuivi = signal(null);
       (c as any).isReadOnly = signal(false);
       const opened: unknown[] = [];
       (c as any).snackBar = { open: (...a: unknown[]) => opened.push(a) };
@@ -945,6 +954,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('#452 flushResponseGrids', () => {
     function comp(fail = false) {
       const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (c as any).typesComplementaires = signal<any[]>([]);
+      (c as any).typeDeSuivi = signal(null);
       (c as any).typeMetriqueOptions = signal([
         { id_nomenclature: 1351, mnemonique: 'CHIFFRE', label: 'Chiffre' },
       ]);
@@ -1013,6 +1025,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('#452 suppression d\'indicateur de réponse', () => {
     it('removeResponseIndicator : supprime l\'indicateur et le retire de l\'action', () => {
       const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (c as any).typesComplementaires = signal<any[]>([]);
+      (c as any).typeDeSuivi = signal(null);
       (c as any).operationId = signal(2653);
       (c as any).existingOperation = signal({
         id_operation: 2653,
@@ -1034,6 +1049,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
 
     it('removePendingResponseIndicator : retire l\'élément à l\'index donné', () => {
       const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (c as any).typesComplementaires = signal<any[]>([]);
+      (c as any).typeDeSuivi = signal(null);
       (c as any).pendingResponseIndicators = [
         { nom_indicateur: 'A' }, { nom_indicateur: 'B' }, { nom_indicateur: 'C' },
       ];
@@ -1049,6 +1067,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     const DEFAULT_NAME = 'Nouvel indicateur de réponse';
     function comp(saved: any[], pending: any[]): OperationFormComponent {
       const c = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (c as any).typesComplementaires = signal<any[]>([]);
+      (c as any).typeDeSuivi = signal(null);
       (c as any).responseIndicators = () => saved;
       (c as any).pendingResponseIndicators = pending;
       (c as any).translate = {
@@ -1086,12 +1107,19 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('#483 — onTypeActionSelected conserve les saisies', () => {
     function makeComp(): OperationFormComponent {
       const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (comp as any).typesComplementaires = signal<any[]>([]);
+      (comp as any).typeDeSuivi = signal(null);
       const selected = signal<any>(null);
       (comp as any).selectedTypeAction = selected;
-      (comp as any).isCSAction = computed(() => {
-        const s = selected();
-        return !!s && String(s.cd_nomenclature || '').startsWith('CS');
-      });
+      // #792 — un type CS parmi le principal et les complémentaires.
+      const compl = signal<any[]>([]);
+      (comp as any).typesComplementaires = compl;
+      (comp as any).typeComplementaireSearchCtrl = new FormControl('');
+      (comp as any).typeComplementaireSearchText = signal('');
+      (comp as any).typeDeSuivi = computed(() =>
+        [selected(), ...compl()].find(t => !!t && String(t.cd_nomenclature || '').startsWith('CS')) ?? null);
+      (comp as any).isCSAction = computed(() => (comp as any).typeDeSuivi() !== null);
       (comp as any).estSuiviExistant = signal(false);
       (comp as any).availableInventaires = signal<any[]>([]);
       (comp as any).libelleDisplay = signal('');
@@ -1146,6 +1174,48 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
     const GA = { id_nomenclature: 1, cd_nomenclature: 'GA1' } as any;
     const CS1 = { id_nomenclature: 2, cd_nomenclature: 'CS1' } as any;
     const CS2 = { id_nomenclature: 3, cd_nomenclature: 'CS2' } as any;
+
+    describe('#792 — types d\'action complémentaires', () => {
+      const PA = { id_nomenclature: 4, cd_nomenclature: 'PA.1', label: 'Animation' } as any;
+
+      it('un complémentaire CS fait passer l\'action en mode suivi, le retirer l\'en sort', () => {
+        const c = makeComp();
+        const form = (c as any).form as FormGroup;
+        c.onTypeActionSelected(GA);
+        form.get('libelle')?.setValue('Fauche et suivi');
+        c.ajouterTypeComplementaire(CS2);
+        expect(c.isCSAction()).toBe(true);
+        expect((c as any).loadInventairesByTypeAction).toHaveBeenLastCalledWith('CS2');
+        expect(form.get('libelle')?.disabled).toBe(true);
+        expect(form.get('intitule_suivi')?.value).toBe('Fauche et suivi');
+
+        c.retirerTypeComplementaire(CS2.id_nomenclature);
+        expect(c.isCSAction()).toBe(false);
+        expect(form.get('libelle')?.enabled).toBe(true);
+      });
+
+      it('ni doublon, ni le type principal parmi les complémentaires', () => {
+        const c = makeComp();
+        c.onTypeActionSelected(GA);
+        c.ajouterTypeComplementaire(PA);
+        c.ajouterTypeComplementaire(PA);
+        c.ajouterTypeComplementaire(GA);
+        expect(c.typesComplementaires().map(t => t.id_nomenclature)).toEqual([4]);
+        // Le complémentaire devenu principal quitte la liste.
+        c.onTypeActionSelected(PA);
+        expect(c.typesComplementaires()).toEqual([]);
+      });
+
+      it('Q2 → c : plusieurs types sans libellé = libellé manquant', () => {
+        const c = makeComp();
+        c.onTypeActionSelected(GA);
+        expect(c.libelleManquant()).toBe(false);
+        c.ajouterTypeComplementaire(PA);
+        expect(c.libelleManquant()).toBe(true);
+        (c as any).form.get('libelle')?.setValue('Fauche et animation');
+        expect(c.libelleManquant()).toBe(false);
+      });
+    });
 
     it('non-CS → CS : le libellé saisi devient l\'intitulé du suivi', () => {
       const c = makeComp();
@@ -1228,6 +1298,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('#561 — « Respectez-vous strictement le protocole ? » facultatif', () => {
     function makeComp(campanule: boolean): OperationFormComponent {
       const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (comp as any).typesComplementaires = signal<any[]>([]);
+      (comp as any).typeDeSuivi = signal(null);
       (comp as any).isCSAction = () => true;
       (comp as any).estSuiviExistant = () => false;
       (comp as any).fb = new FormBuilder();
@@ -1253,6 +1326,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe("#588 — type d'action obligatoire", () => {
     function makeForm(): FormGroup {
       const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (comp as any).typesComplementaires = signal<any[]>([]);
+      (comp as any).typeDeSuivi = signal(null);
       (comp as any).fb = new FormBuilder();
       (comp as any).initForm();
       return (comp as any).form as FormGroup;
@@ -1274,6 +1350,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
   describe('#663 — action de restauration obligatoire, non précochée', () => {
     function makeForm(): FormGroup {
       const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+      // #792 — types d'action complémentaires (aucun par défaut).
+      (comp as any).typesComplementaires = signal<any[]>([]);
+      (comp as any).typeDeSuivi = signal(null);
       (comp as any).fb = new FormBuilder();
       (comp as any).initForm();
       return (comp as any).form as FormGroup;
@@ -1479,6 +1558,9 @@ describe('OperationFormComponent — ventilation budgétaire', () => {
 describe('OperationFormComponent — lien vers le suivi de l\'action (#531)', () => {
   function makeInstance(router: { navigate: jest.Mock }): OperationFormComponent {
     const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+    // #792 — types d'action complémentaires (aucun par défaut).
+    (comp as any).typesComplementaires = signal<any[]>([]);
+    (comp as any).typeDeSuivi = signal(null);
     (comp as any).router = router;
     (comp as any).planSlug = signal<string | null>(null);
     (comp as any).operationId = signal<number | null>(null);
@@ -1542,6 +1624,9 @@ describe('OperationFormComponent — paramétrage de ventilation par défaut (#6
     syncRhLines: jest.Mock;
   } {
     const comp = Object.create(OperationFormComponent.prototype) as OperationFormComponent;
+    // #792 — types d'action complémentaires (aucun par défaut).
+    (comp as any).typesComplementaires = signal<any[]>([]);
+    (comp as any).typeDeSuivi = signal(null);
     const getVentilationDefaults = jest.fn().mockReturnValue(of(defaults));
     const syncRhLines = jest.fn();
     (comp as any).planId = signal<number | null>(planId);

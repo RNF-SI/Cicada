@@ -568,7 +568,7 @@ class PlanDuplicationService:
         from .models_operations import (
             SuiviInventaire, Operation, OperationAnnee,
             OperationAnneeOrganisme, OperationAnneeRH, FinanceOperation,
-            CorOperationSite, CorOperationMetrique, Financeur,
+            CorOperationSite, CorOperationMetrique, CorOperationTypeAction, Financeur,
         )
 
         poste_map = poste_map or {}
@@ -627,6 +627,8 @@ class PlanDuplicationService:
             # M2M sites (via through) — mêmes sites (entités indépendantes du plan).
             for site in old_op.sites.all():
                 CorOperationSite.objects.create(id_operation=new_op, id_site=site)
+            # #792 — types d'action complémentaires (nomenclatures communes).
+            CorOperationTypeAction.copier(old_op, new_op)
 
             # Années de programmation (+ ventilation par organisme).
             # #735 — `tous` : la ligne globale (sans année) est copiée aussi.

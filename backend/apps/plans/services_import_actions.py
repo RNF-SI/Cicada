@@ -54,6 +54,7 @@ from .models_indicateurs import Indicateur
 from .models_operations import (
     CategorieDepense,
     CorOperationSite,
+    CorOperationTypeAction,
     Operation,
     OperationAnnee,
     OperationAnneeOrganisme,
@@ -372,6 +373,17 @@ _ACTION_COLUMNS = [
         "selon la table de correspondance.",
         _TYPE_ACTION,
         26,
+    ),
+    (
+        # #792 — types complémentaires (le type principal reste « type d'action »).
+        "types_action_complementaires",
+        "types d'action complémentaires",
+        False,
+        "Autres types d'action de l'action (facultatif), avec leur code, "
+        "séparés par « ; ». Le type principal reste celui de la colonne "
+        "« type d'action ».",
+        None,
+        30,
     ),
     ("priorite", "priorité", False, "Priorité de l'action.", _PRIORITE, 18),
     ("annee_min", "année début", False, "Première année (ex : 2024).", None, 14),
@@ -1330,6 +1342,8 @@ def _extract_actions(plan, code_by_id, extra=None) -> list[dict]:
                 "indicateur": code_by_id.get(_op_indicateur_id(op, code_by_id), ""),
                 "libelle": op.libelle,
                 "type_action": libelle_type_action(op.id_type_action),
+                "types_action_complementaires": " ; ".join(
+                    libelle_type_action(t) for t in op.complementaires()),
                 "priorite": op.id_priorite.label if op.id_priorite else "",
                 "annee_min": op.annee_min if op.annee_min is not None else "",
                 "annee_max": op.annee_max if op.annee_max is not None else "",
@@ -1842,7 +1856,12 @@ def _mode_phrase(settings) -> str:
 _CONFIANCE_LIBELLE = {"sure": "sûre", "probable": "probable"}
 
 
-def _valider_type_action(report, resolver, r, value) -> None:
+def _types_complementaires_cellule(value) -> list[str]:
+    """#792 — « CODE — libellé ; CODE — libellé » → valeurs."""
+    return [v.strip() for v in (value or "").split(";") if v.strip()]
+
+
+def _valider_type_action(report, resolver, r, value, colonne="type_action") -> None:
     """#786 — un type d'une ancienne version du référentiel n'est pas une
     erreur : il suit les règles du passage (#751 / #776)."""
     if not value:
@@ -1852,7 +1871,7 @@ def _valider_type_action(report, resolver, r, value) -> None:
     importe = resolver.type_action(value)
     if importe is None:
         report.add(
-            "Actions", r, "type_action", ERROR,
+            "Actions", r, colonne, ERROR,
             f"Type d'action « {value} » inconnu du référentiel en service "
             f"({resolver.libelle_version_types_action()}) : choisissez un type dans "
             "la liste proposée, ou indiquez son code.",
@@ -1860,7 +1879,7 @@ def _valider_type_action(report, resolver, r, value) -> None:
     elif importe.converti:
         confiance = _CONFIANCE_LIBELLE.get(importe.corr.confiance, importe.corr.confiance)
         report.add(
-            "Actions", r, "type_action", WARNING,
+            "Actions", r, colonne, WARNING,
             f"Type « {libelle_type_action(importe.ancien)} » d'une version antérieure du "
             "référentiel : remplacé par "
             f"« {libelle_type_action(importe.type)} » (correspondance {confiance}). "
@@ -1870,7 +1889,7 @@ def _valider_type_action(report, resolver, r, value) -> None:
         options = (importe.corr.options if importe.corr else []) or []
         proposes = f" Équivalents proposés : {', '.join(options)}." if options else ""
         report.add(
-            "Actions", r, "type_action", WARNING,
+            "Actions", r, colonne, WARNING,
             f"Type « {libelle_type_action(importe.ancien)} » d'une version antérieure du "
             "référentiel, sans "
             "équivalent unique : il est conservé et l'action sera « à actualiser »."
@@ -1954,6 +1973,9 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
                 )
 
         _valider_type_action(report, resolver, r, _cell_str(row.get("type_action")))
+        for valeur in _types_complementaires_cellule(
+                _cell_str(row.get("types_action_complementaires"))):
+            _valider_type_action(report, resolver, r, valeur, "types_action_complementaires")
         for col, type_mnemo, label in (
             ("priorite", _PRIORITE, "priorité"),
         ):
@@ -2389,6 +2411,18 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         )
         op_by_code[code] = operation
         n_actions += 1
+        # #792 — types complémentaires, convertis comme le type principal
+        # (un type à arbitrer est gardé, à remplacer dans la fiche action).
+        complementaires = []
+        for valeur in _types_complementaires_cellule(
+                _cell_str(row.get("types_action_complementaires"))):
+            importe = resolver.type_action(valeur)
+            if importe is not None and importe.type not in complementaires \
+                    and importe.type != operation.id_type_action:
+                complementaires.append(importe.type)
+        CorOperationTypeAction.objects.bulk_create([
+            CorOperationTypeAction(id_operation=operation, id_type_action=t, ordre=k)
+            for k, t in enumerate(complementaires)])
         if amin is not None and amax is not None:
             for annee in range(amin, amax + 1):
                 oa = OperationAnnee.objects.create(id_operation=operation, annee=annee)

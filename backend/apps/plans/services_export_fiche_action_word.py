@@ -247,10 +247,14 @@ def _render_action(d: _Doc, op, years, *, is_cs, code_local=""):
 
     code = code_local or _txt(op.code_operation) or (
         f"n° {op.numero_manuel}" if op.numero_manuel else "")
-    d.kv([
+    lignes = [
         ("Code action (local)", code),
         ("Code action (référentiel Gestref)", fiche.code_referentiel(op)),
-    ])
+    ]
+    complementaires = fiche.types_complementaires_txt(op)
+    if complementaires:
+        lignes.append(("Types d'action complémentaires", complementaires))
+    d.kv(lignes)
 
     # ---- 1) Cadre de l'action ----
     d.section("1) Cadre de l'action")

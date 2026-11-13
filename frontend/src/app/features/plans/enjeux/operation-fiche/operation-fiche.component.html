@@ -74,6 +74,10 @@
           <app-priority-badge [label]="op.priorite_label"></app-priority-badge>
           @if (op.categorie_action_reserve_label) { <span class="fiche-tag">{{ op.categorie_action_reserve_label }}</span> }
           @if (op.type_action_label) { <span class="fiche-tag fiche-tag--type">{{ op.type_action_label }}</span> }
+          @for (t of op.types_action_complementaires || []; track t.id_nomenclature) {
+            <span class="fiche-tag fiche-tag--type fiche-tag--complementaire" data-testid="type-complementaire"
+                  [title]="'enjeux.operations.typesComplementaires.tagTitle' | translate">{{ t.code }} — {{ t.label }}</span>
+          }
         </div>
       </header>
 

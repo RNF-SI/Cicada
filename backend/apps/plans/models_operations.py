@@ -473,6 +473,19 @@ class Operation(models.Model):
         help_text=_("DOMAINES D'ACTIVITÉ réserve CT88"),
         limit_choices_to={'id_type__mnemonique': 'CATEGORIE_ACTION_RESERVE'},
     )
+    # #792 — types d'action complémentaires (Q1 → b) : le type principal
+    # (`id_type_action`) reste celui du Bilan, des totaux, du code d'affichage
+    # et des exports par catégorie ; les complémentaires s'affichent sur la
+    # fiche, dans les exports et sont trouvés par l'exploration. Un seul d'entre
+    # eux de type CS suffit à faire porter un suivi à l'action (Q3 → a).
+    types_action_complementaires = models.ManyToManyField(
+        'core.Nomenclature',
+        through='CorOperationTypeAction',
+        through_fields=('id_operation', 'id_type_action'),
+        related_name='operations_type_complementaire',
+        blank=True,
+        verbose_name=_("Types d'action complémentaires"),
+    )
     id_referentiel_operations = models.CharField(
         _("Référentiel opérations"),
         max_length=100,
@@ -794,6 +807,21 @@ class Operation(models.Model):
                 pass
         return None
 
+    def complementaires(self):
+        """#792 — types complémentaires, dans l'ordre de saisie."""
+        return [c.id_type_action for c in sorted(
+            self.types_complementaires_lignes.all(), key=lambda c: (c.ordre, c.pk))]
+
+    def type_de_suivi(self):
+        """#792 (Q3 → a) — type CS qui fait porter un suivi à l'action : le
+        principal s'il est CS, sinon le premier complémentaire CS ; None si
+        aucun de ses types n'est CS."""
+        from .referentiel_actions import est_cs
+        for t in [self.id_type_action, *(self.complementaires() if self.pk else [])]:
+            if est_cs(t):
+                return t
+        return None
+
     @property
     def code_prefix(self):
         """
@@ -991,6 +1019,49 @@ class Operation(models.Model):
         """Commentaire global de l'action (page globale) ou None (#356)."""
         ov = self.realisation_globale_override
         return ov.commentaire_override if ov else None
+
+
+class CorOperationTypeAction(models.Model):
+    """#792 — type d'action complémentaire d'une action (Gestref).
+
+    ``type_avant_passage`` / ``passage`` : type remplacé par un passage de
+    référentiel (correspondance sûre ou probable), pour pouvoir l'annuler. Une
+    correspondance à arbitrer garde l'ancien type, que le gestionnaire remplace
+    dans la fiche action.
+    """
+
+    id = models.AutoField(primary_key=True)
+    id_operation = models.ForeignKey(
+        Operation, on_delete=models.CASCADE, db_column='id_operation',
+        related_name='types_complementaires_lignes', verbose_name=_("Opération"))
+    id_type_action = models.ForeignKey(
+        'core.Nomenclature', on_delete=models.CASCADE, db_column='id_type_action',
+        related_name='+', verbose_name=_("Type d'action"),
+        limit_choices_to={'id_type__mnemonique': 'TYPE_ACTION'})
+    ordre = models.PositiveSmallIntegerField(_("Ordre"), default=0)
+    type_avant_passage = models.ForeignKey(
+        'core.Nomenclature', on_delete=models.SET_NULL, null=True, blank=True,
+        db_column='id_type_avant_passage', related_name='+',
+        verbose_name=_("Type avant le passage de référentiel"))
+    passage = models.ForeignKey(
+        'plans.PassageReferentielActions', on_delete=models.SET_NULL, null=True, blank=True,
+        db_column='id_passage', related_name='types_complementaires',
+        verbose_name=_("Passage de référentiel"))
+
+    @classmethod
+    def copier(cls, ancienne, nouvelle):
+        """Copie d'une action (nouvelle version du plan, copie d'élément)."""
+        cls.objects.bulk_create([
+            cls(id_operation=nouvelle, id_type_action_id=l.id_type_action_id, ordre=l.ordre)
+            for l in cls.objects.filter(id_operation=ancienne)])
+
+    class Meta:
+        db_table = '"general"."cor_operation_type_action"'
+        db_table_comment = "Types d'action complémentaires d'une opération (#792)"
+        verbose_name = _("Type d'action complémentaire")
+        verbose_name_plural = _("Types d'action complémentaires")
+        unique_together = ['id_operation', 'id_type_action']
+        ordering = ['ordre', 'id']
 
 
 class CorOperationSite(models.Model):

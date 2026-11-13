@@ -536,6 +536,7 @@ def appliquer(definition: DefinitionVersion, *, envoyer_email=True) -> PassageRe
                     else PassageReferentielObjet.STATUT_A_ACTUALISER),
         ))
     PassageReferentielObjet.objects.bulk_create(journal)
+    _convertir_complementaires(definition, passage, types_cible)
 
     activer(cible)
     passage.resume = dict(Counter(o.confiance for o in journal if o.operation_id))
@@ -564,12 +565,51 @@ def annuler(definition: DefinitionVersion) -> PassageReferentielActions:
         if objet is not None:
             objet.id_type_action = obj.ancien_type
             objet.save(update_fields=['id_type_action'])
+    _annuler_complementaires(passage)
     activer(passage.source)
     passage.statut = PassageReferentielActions.STATUT_ANNULE
     passage.date_annulation = timezone.now()
     passage.save(update_fields=['statut', 'date_annulation'])
     _retirer_notifications(passage)
     return passage
+
+
+def _convertir_complementaires(definition, passage, types_cible) -> None:
+    """#792 — chaque type complémentaire d'une action est converti séparément :
+    correspondance sûre ou probable → son équivalent (l'ancien est noté pour
+    l'annulation) ; à arbitrer → gardé, le gestionnaire le remplace dans la
+    fiche action. Un équivalent déjà présent sur l'action n'est pas doublé."""
+    from .models_operations import CorOperationTypeAction
+
+    lignes = list(CorOperationTypeAction.objects.select_related('id_type_action', 'id_operation')
+                  .order_by('id_operation_id', 'ordre', 'pk'))
+    presents = {}
+    for ligne in lignes:
+        presents.setdefault(ligne.id_operation_id, set()).add(ligne.id_type_action_id)
+    for ligne in lignes:
+        corr = _correspondance(definition, ligne.id_type_action)
+        nouveau = (types_cible.get(corr.nouveau_code)
+                   if corr.confiance in CONFIANCES_APPLIQUEES else None)
+        if nouveau is None or nouveau.pk == ligne.id_type_action_id:
+            continue
+        deja = presents[ligne.id_operation_id]
+        if nouveau.pk in deja or nouveau.pk == ligne.id_operation.id_type_action_id:
+            ligne.delete()
+            continue
+        deja.add(nouveau.pk)
+        ligne.type_avant_passage = ligne.id_type_action
+        ligne.id_type_action = nouveau
+        ligne.passage = passage
+        ligne.save(update_fields=['type_avant_passage', 'id_type_action', 'passage'])
+
+
+def _annuler_complementaires(passage) -> None:
+    """#792 — rend leur ancien type aux types complémentaires convertis."""
+    for ligne in passage.types_complementaires.filter(type_avant_passage__isnull=False):
+        ligne.id_type_action_id = ligne.type_avant_passage_id
+        ligne.type_avant_passage = None
+        ligne.passage = None
+        ligne.save(update_fields=['id_type_action', 'type_avant_passage', 'passage'])
 
 
 def _journaliser(passage) -> None:
@@ -762,7 +802,13 @@ def devient_cs(op, nouveau_type) -> bool:
     """L'action passe d'un type hors CS à un type CS sans avoir de suivi : il
     faut alors poser les questions du suivi (#776). Une action déjà CS garde
     son état, avec ou sans suivi."""
-    return est_cs(nouveau_type) and not est_cs(op.id_type_action) and not op.id_suivi_id
+    return (est_cs(nouveau_type) and not est_cs(op.id_type_action) and not op.id_suivi_id
+            and not _complementaire_cs(op))
+
+
+def _complementaire_cs(op) -> bool:
+    """#792 (Q3 → a) — un type complémentaire CS fait porter un suivi à l'action."""
+    return any(est_cs(t) for t in op.complementaires())
 
 
 def _rattacher_suivi(op, nouveau_type, suivi, user) -> None:
@@ -808,8 +854,9 @@ def actualiser_type(operation, nouveau_type, user, *, type_attendu_id,
                 raise SuiviRequis()
             _rattacher_suivi(op, nouveau_type, suivi, user)
             champs += ['id_suivi', 'est_suivi_existant']
-        elif not est_cs(nouveau_type) and op.id_suivi_id:
-            # #715 — une action qui n'est plus CS se détache de son suivi.
+        elif not est_cs(nouveau_type) and op.id_suivi_id and not _complementaire_cs(op):
+            # #715 — une action qui n'est plus CS se détache de son suivi
+            # (#792 : sauf si un de ses types complémentaires est CS).
             op.id_suivi = None
             op.est_suivi_existant = False
             champs += ['id_suivi', 'est_suivi_existant']

@@ -920,6 +920,8 @@ export interface Operation {
   type_action_label?: string;
   /** #751 — type à choisir après un passage du référentiel des types d'action. */
   type_action_a_actualiser?: TypeActionAActualiser | null;
+  /** #792 — types d'action complémentaires (le principal reste `id_type_action`). */
+  types_action_complementaires?: TypeActionComplementaire[];
   // #228 — Catégorie d'action réserve CT88 (optionnel)
   id_categorie_action_reserve?: number | null;
   categorie_action_reserve_label?: string;
@@ -1003,8 +1005,19 @@ export interface Operation {
 /**
  * Payload for creating an Operation
  */
+/** #792 — type d'action complémentaire d'une action. */
+export interface TypeActionComplementaire {
+  id_nomenclature: number;
+  code: string;
+  label: string;
+  /** Faux pour un type d'une version antérieure du référentiel (à remplacer). */
+  actif: boolean;
+}
+
 export interface OperationCreatePayload {
   libelle: string;
+  /** #792 — types d'action complémentaires, dans l'ordre (le libellé devient obligatoire). */
+  types_action_complementaires_ids?: number[];
   /** #751 — type affiché à l'ouverture d'une action à actualiser (refus si changé depuis). */
   id_type_action_attendu?: number | null;
   /** #251 — Statut envoyé selon le bouton utilisé : 'valide' pour Valider, 'draft' pour Enregistrer. */

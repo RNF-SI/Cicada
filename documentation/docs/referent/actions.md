@@ -5,8 +5,13 @@
 Une action se saisit via son formulaire dédié (bouton « Ajouter une action » ou de modification). Vous y renseignez notamment :
 
 - Le type d'action (obligatoire) choisi dans le référentiel GestRef ; et facultativement la catégorie d'action réserve (l'un des 9 domaines d'activité CT88 : SP, CS, EI, IP, CI, MS, PR, PA, CC). Elle est pré-remplie quand le type choisi a un équivalent évident (type CS… → catégorie CS) et reste modifiable ;
+- Des **types d'action complémentaires** (facultatifs), quand l'action relève de plusieurs types GestRef (une fauche qui sert aussi de suivi, par exemple) :
+    - le type principal reste celui du Bilan, des totaux par catégorie et du code de l'action ; les types complémentaires s'affichent sur la fiche action et dans les exports, et l'exploration des données les retrouve ;
+    - un seul type CS parmi eux suffit pour que l'action porte un suivi ;
+    - dès qu'un type complémentaire est choisi, l'**intitulé devient obligatoire** ;
+    - au passage à une nouvelle version du référentiel, chacun est converti comme le type principal. S'il n'a pas d'équivalent unique, il est gardé et signalé « Ancienne version du référentiel, à remplacer » dans le formulaire ;
 - Le code de l'action, calculé automatiquement (ex. CS1) et affiché en direct ; le champ « Numéro fixé » permet d'imposer son numéro ;
-- L'intitulé (s'il reste vide, il est rempli automatiquement avec le libellé du type d'action GestRef à l'enregistrement, sans son code, déjà affiché à côté de l'action), les métriques associées et la priorité ;
+- L'intitulé (s'il reste vide et que l'action n'a qu'un type, il est rempli automatiquement avec le libellé du type d'action GestRef à l'enregistrement, sans son code, déjà affiché à côté de l'action), les métriques associées et la priorité ;
 - Pour une action d'inventaire ou de suivi : les détails de l'inventaire ou du suivi (objectif, cible, taxons ou habitats rattachés), les protocoles et la bancarisation de la donnée ;
 - La programmation : sites concernés, années, temps de travail, budget et mois prévus ; opérateurs, partenaires et financeurs. Pour chaque financeur :
     - son nom : ceux du plan sont proposés à la saisie, et un nom nouveau crée le financeur du plan ;

@@ -157,8 +157,14 @@ arbitrer → ancien type gardé (avertissement). À l'exécution,
 l'instance → erreur qui nomme la version en service. Même résolution pour le
 type d'action de l'onglet `Suivis`.
 
+**Types d'action complémentaires (#792)** — colonne `types d'action
+complémentaires` de l'onglet `Actions` : `CODE — libellé` séparés par `;`,
+chacun résolu comme le type principal (erreur s'il est inconnu, converti s'il
+vient d'une version antérieure ; un type à arbitrer est gardé, sans entrer dans
+« Actions à actualiser »). Le type principal ou un doublon est ignoré.
+
 - `Actions` — une action par ligne : `code`, `indicateur` (code de référence),
-  `libellé`, `type d'action`, `priorité`, `année début` / `année fin`, puis le
+  `libellé`, `type d'action`, `types d'action complémentaires`, `priorité`, `année début` / `année fin`, puis le
   **paramétrage budgétaire de la fiche action (#600)** : `mode de ventilation`,
   `déclinaison par type de coût`, `saisie automatique du coût salarial` ; enfin
   `opérateurs`, `financeurs`. Les années créent la programmation annuelle

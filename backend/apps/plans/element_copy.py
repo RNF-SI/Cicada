@@ -42,7 +42,7 @@ class ElementCopyService:
         from .models_operations import (
             Operation, OperationAnnee, OperationAnneeOrganisme,
             OperationAnneeRH, FinanceOperation, CorOperationSite,
-            CorOperationMetrique,
+            CorOperationMetrique, CorOperationTypeAction,
         )
 
         dup = PlanDuplicationService._dup
@@ -53,6 +53,8 @@ class ElementCopyService:
             CorOperationMetrique.objects.create(id_operation=new_op, id_metrique=new_met)
         for site in old_op.sites.all():
             CorOperationSite.objects.create(id_operation=new_op, id_site=site)
+        # #792 — types d'action complémentaires.
+        CorOperationTypeAction.copier(old_op, new_op)
 
         # #735 — ligne globale (sans année) comprise.
         for old_oa in OperationAnnee.tous.filter(id_operation=old_op):

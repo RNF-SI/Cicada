@@ -59,6 +59,10 @@ plans.CorOperationMetrique.id_metrique -> plans.Metrique : CASCADE
 plans.CorOperationMetrique.id_operation -> plans.Operation : CASCADE
 plans.CorOperationSite.id_operation -> plans.Operation : CASCADE
 plans.CorOperationSite.id_site -> users.Site : CASCADE
+plans.CorOperationTypeAction.id_operation -> plans.Operation : CASCADE
+plans.CorOperationTypeAction.id_type_action -> core.Nomenclature : CASCADE  # #792 — les types d'action ne se suppriment pas (désactivés au passage de référentiel), comme le type principal (SET_NULL)
+plans.CorOperationTypeAction.passage -> plans.PassageReferentielActions : SET_NULL
+plans.CorOperationTypeAction.type_avant_passage -> core.Nomenclature : SET_NULL
 plans.CorPgFichier.plan_de_gestion -> plans.PlanGestion : CASCADE
 plans.CorRaOo.id_oo -> plans.ObjectifOperationnel : CASCADE
 plans.CorRaOo.id_ra -> plans.ResultatAttendu : CASCADE

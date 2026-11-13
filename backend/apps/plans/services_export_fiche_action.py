@@ -530,6 +530,13 @@ def code_referentiel(op) -> str:
     return code_ref or _txt(op.id_referentiel_operations)
 
 
+def types_complementaires_txt(op) -> str:
+    """#792 — types d'action complémentaires (« CODE — libellé » séparés par
+    « ; »), ou ``""``. Partagé par les fiches action Excel et Word."""
+    from .referentiel_actions import libelle_type_action
+    return " ; ".join(libelle_type_action(t) for t in op.complementaires()) if op.pk else ""
+
+
 def _cadre(op):
     """Renvoie les libellés du cadre (métriques, indicateur, NE/RA, OLT/OO, enjeu).
 
@@ -1052,6 +1059,9 @@ def _render_action(ws, op, years, *, is_cs, code_local=""):
         f"n° {op.numero_manuel}" if op.numero_manuel else "")
     w.kv("Code action (local)", code)
     w.kv("Code action (référentiel Gestref)", code_referentiel(op))
+    complementaires = types_complementaires_txt(op)
+    if complementaires:
+        w.kv("Types d'action complémentaires", complementaires)
 
     # ---- 1) Cadre de l'action ----
     w.section("1) Cadre de l'action")
@@ -1276,6 +1286,7 @@ def actions_a_exporter(plan, operation_ids=None):
         .select_related("id_priorite", "id_categorie_action_reserve", "id_indicateur",
                         "id_suivi", "id_type_action")
         .prefetch_related(
+            "types_complementaires_lignes__id_type_action",
             "metriques__id_indicateur__id_ne__id_olt__id_enjeu",
             "metriques__id_indicateur__id_resultat_attendu__id_oo",
             "metriques__id_indicateur__id_ne__indicateurs__metriques__score_blocks",

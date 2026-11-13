@@ -497,7 +497,8 @@ def _documents_actions(plan, facettes, branche):
             'id_categorie_action_reserve', 'id_type_action',
             'id_suivi', 'id_indicateur',
         )
-        .prefetch_related('metriques', 'id_suivi__protocoles')
+        .prefetch_related('metriques', 'id_suivi__protocoles',
+                          'types_complementaires_lignes__id_type_action')
     )
     documents = []
     for operation in operations:
@@ -566,10 +567,12 @@ def _documents_actions(plan, facettes, branche):
             sous_type_libelle=(
                 f"{categorie.mnemonique} - {categorie.label}" if categorie else None
             ),
-            codes_referentiel=(
-                [f'TYPE_ACTION:{operation.id_type_action.cd_nomenclature}']
-                if operation.id_type_action_id else []
-            ),
+            # #792 — types complémentaires compris : l'exploration les trouve.
+            codes_referentiel=[
+                f'TYPE_ACTION:{t.cd_nomenclature}'
+                for t in [operation.id_type_action, *operation.complementaires()]
+                if t is not None and t.cd_nomenclature
+            ],
             **facettes,
         ))
     return documents

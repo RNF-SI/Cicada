@@ -1277,6 +1277,24 @@ def _annee_globale_data(operation, context):
     return OperationAnneeSerializer(globale, context=context).data if globale else None
 
 
+class TypeActionComplementaireSerializer(serializers.Serializer):
+    """#792 — un type d'action complémentaire d'une action."""
+    id_nomenclature = serializers.IntegerField()
+    code = serializers.CharField()
+    label = serializers.CharField()
+    actif = serializers.BooleanField()
+
+
+def types_complementaires_json(op) -> list[dict]:
+    """#792 — types complémentaires d'une action (lecture)."""
+    if not op.pk:
+        return []
+    return [{
+        'id_nomenclature': t.pk, 'code': t.cd_nomenclature or t.mnemonique or '',
+        'label': t.label or '', 'actif': bool(t.actif),
+    } for t in op.complementaires()]
+
+
 class OperationSerializer(serializers.ModelSerializer):
     """Serializer détaillé pour une Opération."""
     priorite_label = serializers.CharField(source='id_priorite.label', read_only=True)
@@ -1305,6 +1323,8 @@ class OperationSerializer(serializers.ModelSerializer):
         source='get_declinaison_par_poste_realise', read_only=True)
     # #751 — type d'action à actualiser après un passage de référentiel.
     type_action_a_actualiser = serializers.SerializerMethodField()
+    # #792 — types d'action complémentaires, dans l'ordre de saisie.
+    types_action_complementaires = serializers.SerializerMethodField()
     # #761 — sinon, le suivi propose les réglages du 1er suivi du plan.
     reglages_suivi_definis = serializers.BooleanField(read_only=True)
     finances = FinanceOperationSerializer(many=True, read_only=True)
@@ -1340,6 +1360,7 @@ class OperationSerializer(serializers.ModelSerializer):
             'id_operation', 'libelle', 'ordre', 'statut',
             'id_priorite', 'priorite_label',
             'id_type_action', 'type_action_label', 'type_action_a_actualiser',
+            'types_action_complementaires',
             'id_categorie_action_reserve', 'categorie_action_reserve_label',
             'categorie_action_reserve_code',
             'code_prefix', 'code_affichage', 'numero_manuel',
@@ -1405,6 +1426,10 @@ class OperationSerializer(serializers.ModelSerializer):
         if obj.id_type_action:
             return obj.id_type_action.label
         return None
+
+    @extend_schema_field(TypeActionComplementaireSerializer(many=True))
+    def get_types_action_complementaires(self, obj):
+        return types_complementaires_json(obj)
 
     @extend_schema_field(serializers.CharField(allow_null=True))
     def get_categorie_action_reserve_label(self, obj):
@@ -1811,6 +1836,9 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
     # d'écraser son choix.
     id_type_action_attendu = serializers.IntegerField(
         required=False, allow_null=True, write_only=True)
+    # #792 — types d'action complémentaires (identifiants, dans l'ordre).
+    types_action_complementaires_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, write_only=True)
 
     class Meta:
         model = Operation
@@ -1837,7 +1865,7 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
             'geom_geojson', 'emprise_suit_sites',
             'metrique_ids', 'site_ids',
             'operation_annees', 'finances',
-            'id_type_action_attendu',
+            'id_type_action_attendu', 'types_action_complementaires_ids',
         ]
         read_only_fields = ['id_operation']
         extra_kwargs = {
@@ -1872,17 +1900,71 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
         """Use the read serializer for the response."""
         return OperationSerializer(instance, context=self.context).data
 
+    def validate_types_action_complementaires_ids(self, value):
+        """#792 — types du référentiel des types d'action, sans doublon."""
+        from apps.core.models import Nomenclature
+        from .referentiel_actions import TYPE_ACTION
+        ids = list(dict.fromkeys(value or []))
+        types = {n.pk: n for n in Nomenclature.objects.filter(
+            pk__in=ids, id_type__mnemonique=TYPE_ACTION)}
+        inconnus = [i for i in ids if i not in types]
+        if inconnus:
+            raise serializers.ValidationError(
+                _("Type d'action inconnu : {ids}.").format(ids=", ".join(map(str, inconnus))))
+        return [types[i] for i in ids]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        # #792 (Q2 → c) — le libellé est obligatoire dès que l'action a
+        # plusieurs types : sans lui, elle prendrait le nom de son seul type
+        # principal.
+        instance = self.instance
+        principal = attrs.get('id_type_action', getattr(instance, 'id_type_action', None))
+        if 'types_action_complementaires_ids' in attrs:
+            compl = [t for t in attrs['types_action_complementaires_ids']
+                     if principal is None or t.pk != principal.pk]
+            attrs['types_action_complementaires_ids'] = compl
+        else:
+            compl = instance.complementaires() if instance is not None else []
+            if principal is not None:
+                compl = [t for t in compl if t.pk != principal.pk]
+        libelle = attrs.get('libelle', getattr(instance, 'libelle', '') or '')
+        if compl and not (libelle or '').strip():
+            raise serializers.ValidationError({'libelle': [_(
+                "Le libellé est obligatoire pour une action qui a plusieurs types d'action.")]})
+        attrs['_types_complementaires'] = compl
+        return attrs
+
     @staticmethod
-    def _accepte_un_suivi(type_action):
-        """Seules les actions CS (Connaissance et Suivi, GestRef) portent un suivi.
+    def _type_de_suivi(type_action, complementaires):
+        """#792 (Q3 → a) — type CS qui fait porter un suivi à l'action : le
+        principal s'il est CS, sinon le premier complémentaire CS."""
+        from .referentiel_actions import est_cs
+        for t in [type_action, *complementaires]:
+            if est_cs(t):
+                return t
+        return None
+
+    @classmethod
+    def _accepte_un_suivi(cls, type_action, complementaires=()):
+        """Seules les actions CS (Connaissance et Suivi, GestRef) portent un
+        suivi — un seul de leurs types CS suffit (#792).
 
         Une action sans type (import, saisie ancienne) garde le comportement
         antérieur : le type est obligatoire dans le formulaire depuis #588.
         """
-        if type_action is None:
+        if type_action is None and not complementaires:
             return True
-        code = type_action.cd_nomenclature or type_action.mnemonique or ''
-        return code.startswith('CS')
+        return cls._type_de_suivi(type_action, complementaires) is not None
+
+    @staticmethod
+    def _enregistrer_complementaires(operation, types):
+        """#792 — remplace les types complémentaires de l'action."""
+        from .models_operations import CorOperationTypeAction
+        CorOperationTypeAction.objects.filter(id_operation=operation).delete()
+        CorOperationTypeAction.objects.bulk_create([
+            CorOperationTypeAction(id_operation=operation, id_type_action=t, ordre=i)
+            for i, t in enumerate(types)])
 
     def _save_annee_globale(self, operation, globale_data):
         """#735 — remplace la ligne globale ; aucune pour une action annuelle."""
@@ -2042,6 +2124,8 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
     @transaction.atomic
     def create(self, validated_data):
         validated_data.pop('id_type_action_attendu', None)
+        validated_data.pop('types_action_complementaires_ids', None)
+        complementaires = validated_data.pop('_types_complementaires', [])
         site_ids = validated_data.pop('site_ids', [])
         metrique_ids = validated_data.pop('metrique_ids', [])
         annees_data = validated_data.pop('operation_annees', [])
@@ -2067,7 +2151,7 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
                 validated_data['id_indicateur'] = first_met.id_indicateur
 
         type_action = validated_data.get('id_type_action')
-        if not self._accepte_un_suivi(type_action):
+        if not self._accepte_un_suivi(type_action, complementaires):
             suivi_data = None
             validated_data['id_suivi'] = None
             validated_data['est_suivi_existant'] = False
@@ -2077,8 +2161,10 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
             user = validated_data.get('id_utilisateur_ajout')
             protocoles_data = pop_protocoles_data(suivi_data)
             # #715 — sans type, le suivi n'est plus proposé aux autres actions.
+            # #792 — le suivi prend le type CS de l'action (principal ou complémentaire).
             if not suivi_data.get('id_type_action'):
-                suivi_data['id_type_action'] = type_action
+                suivi_data['id_type_action'] = (
+                    self._type_de_suivi(type_action, complementaires) or type_action)
 
             suivi = SuiviInventaire.objects.create(
                 id_utilisateur_ajout=user,
@@ -2088,6 +2174,7 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
             validated_data['id_suivi'] = suivi
 
         operation = Operation.objects.create(**validated_data)
+        self._enregistrer_complementaires(operation, complementaires)
 
         # M2M sites
         if site_ids:
@@ -2143,11 +2230,14 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
         globale_data = validated_data.pop('operation_annee_globale', None)
         finances_data = validated_data.pop('finances', None)
         suivi_data = validated_data.pop('suivi_inventaire', None)
+        complementaires_recus = 'types_action_complementaires_ids' in validated_data
+        validated_data.pop('types_action_complementaires_ids', None)
+        complementaires = validated_data.pop('_types_complementaires', [])
 
         self._verifier_type_attendu(instance, validated_data)
         type_avant = instance.id_type_action_id
         type_action = validated_data.get('id_type_action', instance.id_type_action)
-        if not self._accepte_un_suivi(type_action):
+        if not self._accepte_un_suivi(type_action, complementaires):
             # #715 — une action qui n'est plus CS se détache de son suivi (le
             # suivi reste, pour les autres actions et le module Inventaires).
             suivi_data = None
@@ -2167,7 +2257,8 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
             user = validated_data.get('id_utilisateur_maj') or instance.id_utilisateur_ajout
             protocoles_data = pop_protocoles_data(suivi_data)
             if not suivi_data.get('id_type_action'):
-                suivi_data['id_type_action'] = type_action
+                suivi_data['id_type_action'] = (
+                    self._type_de_suivi(type_action, complementaires) or type_action)
 
             if instance.id_suivi and not quitte_le_suivi_existant:
                 # Update existing SuiviInventaire
@@ -2188,6 +2279,8 @@ class OperationCreateSerializer(SansValeurParDefautEnMiseAJourMixin, serializers
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        if complementaires_recus:
+            self._enregistrer_complementaires(instance, complementaires)
         # #751 / #776 — type choisi (ou changement automatique corrigé).
         if instance.id_type_action_id != type_avant:
             from .referentiel_actions import noter_actualisation

@@ -78,6 +78,7 @@ from apps.plans.models_operations import (
     CategorieDepense,
     CorOperationMetrique,
     CorOperationSite,
+    CorOperationTypeAction,
     FinanceOperation,
     Financeur,
     RealisationFinanceur,
@@ -830,6 +831,12 @@ class VentilationPlansSeeder(BaseSeeder):
         self._create_suivi(op, plan, prefixe, action, admin, nomenclatures)
         CorOperationMetrique.objects.get_or_create(id_operation=op, id_metrique=metrique)
         CorOperationSite.objects.get_or_create(id_operation=op, id_site=site)
+        # #792 — l'action IP (entretien) a un type complémentaire, l'animation
+        # (PA) : le type principal reste celui du Bilan et des totaux.
+        if action['cat'] == 'IP' and nomenclatures['type_action'].get('PA'):
+            CorOperationTypeAction.objects.get_or_create(
+                id_operation=op, id_type_action=nomenclatures['type_action']['PA'],
+                defaults={'ordre': 0})
         # #790 — financeurs du plan (même nom + même catégorie = un seul) ;
         # montants posés après la programmation (``_financer``).
         for libelle, categorie in action['finances']:

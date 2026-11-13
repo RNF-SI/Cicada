@@ -5041,7 +5041,17 @@
       "objectifProtocole": "Détails de l'objectif du protocole",
       "periodeEchantillonnage": "Période d'échantillonnage",
       "periodeEchantillonnagePlaceholder": "Ex: Avril - Juin",
-      "bancarisationTitle": "Bancarisation et stockage de la donnée"
+      "bancarisationTitle": "Bancarisation et stockage de la donnée",
+      "typesComplementaires": {
+        "label": "Types d'action complémentaires (facultatif)",
+        "placeholder": "Ajouter un type d'action complémentaire…",
+        "hint": "Le type principal reste celui du Bilan, des totaux et du code de l'action. Un type complémentaire CS suffit pour que l'action porte un suivi.",
+        "retirer": "Retirer ce type",
+        "ancien": "Ancienne version du référentiel, à remplacer",
+        "libelleHint": "Obligatoire pour une action qui a plusieurs types d'action.",
+        "libelleObligatoire": "Le libellé est obligatoire pour une action qui a plusieurs types d'action.",
+        "tagTitle": "Type d'action complémentaire"
+      }
     },
     "share": {
       "linkOption": "Lier",
