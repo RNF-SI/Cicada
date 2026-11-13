@@ -10,6 +10,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { Subscription } from 'rxjs';
 
 import { CheckboxComponent } from '../../../../../shared/components/checkbox/checkbox.component';
 import { HeaderComponent } from '../../../../../shared/components/header/header.component';
@@ -100,6 +101,8 @@ export class AjustementAnnuelComponent implements OnInit {
 
   /** Actions du plan dans l'ordre du tableau, pour passer à la suivante. */
   ordre = signal<number[]>([]);
+  /** #857 — lecture en cours : annulée quand l'adresse change avant sa réponse. */
+  private chargement?: Subscription;
 
   disposition = computed<DispositionAjustement | null>(() => {
     const r = this.reglagesAnnee();
@@ -131,8 +134,15 @@ export class AjustementAnnuelComponent implements OnInit {
     const slug = params.get('slug');
     this.planSlug.set(slug);
     this.route.paramMap.subscribe(p => {
-      this.operationId.set(Number(p.get('operation_id')));
-      this.annee.set(Number(p.get('annee')));
+      const op = Number(p.get('operation_id')), annee = Number(p.get('annee'));
+      if (op !== this.operationId() || annee !== this.annee()) {
+        // #857 — l'action affichée n'est plus celle de l'adresse : rien ne doit
+        // pouvoir être saisi ni enregistré avant la réponse de la nouvelle.
+        this.chargement?.unsubscribe();
+        this.detail.set(null);
+      }
+      this.operationId.set(op);
+      this.annee.set(annee);
       if (this.planId()) this.charger();
     });
     if (!slug) return;
@@ -153,10 +163,20 @@ export class AjustementAnnuelComponent implements OnInit {
     if (!op || !annee) return;
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    this.service.detail(op, annee).subscribe({
-      next: (detail) => this.afficher(detail),
+    // #857 — une seule lecture à la fois : la réponse d'une action quittée
+    // ne s'affiche jamais sous l'adresse d'une autre.
+    this.chargement?.unsubscribe();
+    this.chargement = this.service.detail(op, annee).subscribe({
+      next: (detail) => {
+        if (this.estAffichable(detail)) this.afficher(detail);
+      },
       error: (err) => this.echec(err?.status),
     });
+  }
+
+  /** #857 — la réponse concerne bien l'action et l'année de l'adresse. */
+  private estAffichable(detail: DetailAnnuel): boolean {
+    return detail.id_operation === this.operationId() && detail.annee === this.annee();
   }
 
   private chargerOrdre(): void {
@@ -519,8 +539,11 @@ export class AjustementAnnuelComponent implements OnInit {
 
   /** Enregistre l'ajustement (l'action est revue) ; `ensuite` : action suivante. */
   enregistrer(ensuite = false): void {
-    const op = this.operationId(), annee = this.annee();
-    if (!op || !annee || this.verrouille()) return;
+    // #857 — l'action enregistrée est celle AFFICHÉE (pas celle de l'adresse,
+    // qui peut déjà désigner la suivante) ; rien pendant un chargement.
+    const affichee = this.detail();
+    if (!affichee || !this.estAffichable(affichee) || this.verrouille() || this.enregistrement()) return;
+    const op = affichee.id_operation, annee = affichee.annee;
     this.enregistrement.set(true);
     this.service.enregistrer(op, annee, this.contenuAEnvoyer()).subscribe({
       next: (detail) => {
@@ -530,7 +553,7 @@ export class AjustementAnnuelComponent implements OnInit {
         const suivante = this.suivante();
         if (ensuite && suivante) {
           this.allerA(suivante);
-        } else {
+        } else if (this.estAffichable(detail)) {
           this.afficher(detail);
         }
       },

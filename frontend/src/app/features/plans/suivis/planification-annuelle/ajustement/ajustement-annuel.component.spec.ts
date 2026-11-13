@@ -1,13 +1,13 @@
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { ActivatedRoute, Router, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, ParamMap, Router, convertToParamMap } from '@angular/router';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { Observable, firstValueFrom, of, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, firstValueFrom, of, throwError } from 'rxjs';
 // Format des nombres en français (« 1 500 € ») sans module ESM.
 import '@angular/common/locales/global/fr';
 
@@ -216,6 +216,90 @@ describe('AjustementAnnuelComponent (#794)', () => {
     expect(el.querySelector('[data-testid="ajustement-lecture-seule"]')).not.toBeNull();
     expect(el.querySelector('[data-testid="ajustement-enregistrer"]')).toBeNull();
     expect(el.querySelector<HTMLInputElement>('[data-testid="champ-budget"]')!.disabled).toBe(true);
+  });
+});
+
+describe('AjustementAnnuelComponent — navigation sur réseau lent (#857)', () => {
+  let fixture: ComponentFixture<AjustementAnnuelComponent>;
+  let reponses: Record<number, Subject<DetailAnnuel>>;
+  let service: { detail: jest.Mock; tableau: jest.Mock; enregistrer: jest.Mock };
+  let params: BehaviorSubject<ParamMap>;
+
+  const route = (op: number) => convertToParamMap({ slug: 'plan-test', operation_id: String(op), annee: '2026' });
+
+  beforeEach(async () => {
+    reponses = {};
+    service = {
+      detail: jest.fn((op: number) => (reponses[op] = new Subject<DetailAnnuel>())),
+      tableau: jest.fn().mockReturnValue(of({ actions: [{ id_operation: 12 }, { id_operation: 13 }, { id_operation: 14 }] })),
+      enregistrer: jest.fn((op: number) => of(detail({ id_operation: op }))),
+    };
+    params = new BehaviorSubject<ParamMap>(route(12));
+    await TestBed.configureTestingModule({
+      imports: [
+        AjustementAnnuelComponent, NoopAnimationsModule,
+        TranslateModule.forRoot({ loader: { provide: TranslateLoader, useClass: FrLoader } }),
+      ],
+      providers: [
+        { provide: ActivatedRoute, useValue: { snapshot: { paramMap: route(12) }, paramMap: params } },
+        { provide: Router, useValue: { navigate: jest.fn() } },
+        { provide: AdminService, useValue: { getPlanBySlug: () => of({ id_pg: 10, nom: 'Plan', statut: 'valide' }) } },
+        { provide: PlanificationAnnuelleService, useValue: service },
+        { provide: MatSnackBar, useValue: { open: jest.fn() } },
+        { provide: MatDialog, useValue: { open: jest.fn() } },
+      ],
+    })
+      .overrideComponent(AjustementAnnuelComponent, {
+        remove: { imports: [HeaderComponent, PlanSidebarComponent] },
+        add: { schemas: [CUSTOM_ELEMENTS_SCHEMA] },
+      })
+      .compileComponents();
+    await firstValueFrom(TestBed.inject(TranslateService).use('fr'));
+    fixture = TestBed.createComponent(AjustementAnnuelComponent);
+    fixture.detectChanges();
+    reponses[12].next(detail({ id_operation: 12 }));
+    fixture.detectChanges();
+  });
+
+  afterEach(() => TestBed.resetTestingModule());
+
+  it("pendant le chargement de l'action suivante, rien de l'action précédente ne s'enregistre", () => {
+    const c = fixture.componentInstance;
+    c.contenu.budget = '9999';
+    params.next(route(13));            // « suivante » : l'adresse change avant la réponse
+    fixture.detectChanges();
+
+    c.enregistrer();
+
+    expect(service.enregistrer).not.toHaveBeenCalled();
+    expect(c.detail()).toBeNull();
+  });
+
+  it("des réponses reçues dans le désordre n'affichent pas une autre action que celle de l'adresse", () => {
+    const c = fixture.componentInstance;
+    params.next(route(13));
+    params.next(route(14));
+    reponses[14].next(detail({ id_operation: 14 }));
+    reponses[13].next(detail({ id_operation: 13 }));   // arrive en dernier
+    fixture.detectChanges();
+
+    expect(c.detail()!.id_operation).toBe(14);
+  });
+
+  it("l'action enregistrée est celle affichée", () => {
+    const c = fixture.componentInstance;
+    c.enregistrer();
+    expect(service.enregistrer.mock.calls[0][0]).toBe(12);
+  });
+
+  it('précédente / suivante sont grisées pendant un enregistrement', () => {
+    const c = fixture.componentInstance;
+    c.enregistrement.set(true);
+    fixture.detectChanges();
+    const boutons = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('.nav-voisines button'));
+    expect(boutons.length).toBe(2);
+    expect(boutons.every(b => b.disabled)).toBe(true);
   });
 });
 

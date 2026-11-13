@@ -81,11 +81,11 @@
             {{ 'plans.suivis.planificationAnnuelle.ajustement.retourTableau' | translate }}
           </button>
           <div class="nav-voisines">
-            <button mat-button type="button" [disabled]="!precedente()" (click)="allerA(precedente()!)">
+            <button mat-button type="button" [disabled]="!precedente() || enregistrement()" (click)="allerA(precedente()!)">
               <i class="fi fi-rr-angle-small-left"></i>
               {{ 'plans.suivis.planificationAnnuelle.ajustement.precedente' | translate }}
             </button>
-            <button mat-button type="button" [disabled]="!suivante()" (click)="allerA(suivante()!)">
+            <button mat-button type="button" [disabled]="!suivante() || enregistrement()" (click)="allerA(suivante()!)">
               {{ 'plans.suivis.planificationAnnuelle.ajustement.suivante' | translate }}
               <i class="fi fi-rr-angle-small-right"></i>
             </button>
