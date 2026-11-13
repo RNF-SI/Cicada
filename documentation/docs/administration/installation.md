@@ -477,6 +477,8 @@ cicada_compose ps               # tous les services doivent être « Up » ou «
 cicada_compose logs -f web      # journaux de l'application (Ctrl+C pour quitter)
 ```
 
+**Journaux et ressources** (#846) : chaque conteneur garde au plus 5 fichiers de 10 Mo de journaux Docker ; les fichiers de `/var/log/cicada/` (`django.log`, `error.log`, `audit.log`) tournent chaque nuit par `logrotate` (`/etc/logrotate.d/cicada` : 14 jours, 26 semaines pour `audit.log`). Le worker Celery tourne sur 2 processus (`CELERY_CONCURRENCY` dans `.env` pour en changer), recyclés après 100 tâches ou 1 Go de mémoire ; à l'arrêt (mise à jour), une tâche en cours a une minute pour finir.
+
 > N'utilisez pas `docker compose` sans ces fichiers (`down` puis `up -d` depuis `/usr/share/cicada`, par exemple) : en mode Apache, le frontend perdrait son port et le site tomberait ; en mode Traefik, il ne serait plus routé.
 
 La plupart des réglages fonctionnels (textes d'accueil, logo, mesure d'audience, exploration fédérée, raccordement au hub) ne sont **pas** dans ce fichier mais dans *Administration > Paramètres*, sans redémarrage.

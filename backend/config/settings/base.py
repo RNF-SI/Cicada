@@ -597,28 +597,22 @@ LOGGING = {
         },
         'file': {
             'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.handlers.WatchedFileHandler',
             'filename': os.path.join(LOG_DIR, 'django.log'),
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
-            'backupCount': 10,
             'formatter': 'json',
             'filters': ['correlation_id'],
         },
         'error_file': {
             'level': 'ERROR',
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.handlers.WatchedFileHandler',
             'filename': os.path.join(LOG_DIR, 'error.log'),
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
-            'backupCount': 10,
             'formatter': 'json',
             'filters': ['correlation_id'],
         },
         'audit_file': {
             'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.handlers.WatchedFileHandler',
             'filename': os.path.join(LOG_DIR, 'audit.log'),
-            'maxBytes': 10 * 1024 * 1024,  # 10 MB
-            'backupCount': 20,
             'formatter': 'json',
             'filters': ['correlation_id'],
         },

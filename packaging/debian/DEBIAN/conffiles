@@ -1,1 +1,2 @@
 /etc/cicada/cicada.conf
+/etc/logrotate.d/cicada

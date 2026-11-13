@@ -627,9 +627,11 @@ docker compose logs -f web
 - `LOG_SQL` : Activer les logs SQL (true/false) - défaut: false
 
 **Fichiers de logs** (production uniquement) :
-- `django.log` : Logs généraux (rotation 10x10MB)
+- `django.log` : Logs généraux
 - `error.log` : Erreurs uniquement
 - `audit.log` : Actions utilisateur (POST/PUT/DELETE)
+
+Ces fichiers sont écrits par plusieurs processus (gunicorn, Celery) : la rotation se fait sur l'hôte (`/etc/logrotate.d/cicada`, `copytruncate`), les handlers sont des `WatchedFileHandler` (#846 — chaque `RotatingFileHandler` faisait sa propre rotation). Journaux Docker bornés par l'ancre `x-journaux` des compose livrés (5 × 10 Mo), worker Celery borné (`CELERY_CONCURRENCY`, défaut 2 ; 100 tâches / 1 Go par processus), `stop_grace_period` 60 s (worker) / 30 s (web, base) — vérifié par `packaging/tests/test_compose_paquet.py`.
 
 Les erreurs (`apps`, `django.request`, `celery`) vont **aussi** en base (`ErrorLog`, handler `db_errors`), lue par la page *Administration › Logs d'erreur* — y compris en production (#848 : `production.py` remplaçait les listes de handlers et la page restait vide). Le fil d'écriture du handler renaît dans chaque processus (workers Celery en prefork).
 

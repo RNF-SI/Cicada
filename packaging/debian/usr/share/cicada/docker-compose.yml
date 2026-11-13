@@ -3,11 +3,21 @@
 # Avec base existante : docker compose --env-file /var/lib/cicada/.env up -d
 # Avec base intégrée  : docker compose -f docker-compose.yml -f docker-compose.db.yml --env-file /var/lib/cicada/.env up -d
 
+# #846 — Journaux Docker bornés : le pilote json-file par défaut n'a pas de
+# taille maximale (un conteneur qui redémarre en boucle remplit le disque, et
+# la base s'arrête). 5 fichiers de 10 Mo par conteneur.
+x-journaux: &journaux
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   # Cache Redis
   redis:
     image: redis:7-alpine
     container_name: cicada_prod_redis
+    logging: *journaux
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     volumes:
       - redis_data:/data
@@ -24,6 +34,8 @@ services:
   web:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
     container_name: cicada_prod_web
+    logging: *journaux
+    stop_grace_period: 30s
     # PostgreSQL installé sur ce serveur (hors Docker) : joint par ce nom,
     # « localhost » désignant le conteneur. Sans effet sinon.
     extra_hosts:
@@ -130,6 +142,7 @@ services:
   frontend:
     image: ghcr.io/rnf-si/cicada-frontend:${CICADA_VERSION:-latest}
     container_name: cicada_prod_frontend
+    logging: *journaux
     depends_on:
       web:
         condition: service_healthy
@@ -141,6 +154,7 @@ services:
   celery-worker:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
     container_name: cicada_prod_celery_worker
+    logging: *journaux
     # PostgreSQL installé sur ce serveur (hors Docker) : joint par ce nom,
     # « localhost » désignant le conteneur. Sans effet sinon.
     extra_hosts:
@@ -204,13 +218,22 @@ services:
         condition: service_healthy
     networks:
       - cicada_network
-    command: ["celery", "-A", "config", "worker", "-l", "info"]
+    # #846 — worker borné : 2 processus par défaut (et non un par cœur du
+    # serveur), recyclés après 100 tâches ou 1 Go de mémoire (en Ko).
+    command: ["celery", "-A", "config", "worker", "-l", "info",
+              "--concurrency=${CELERY_CONCURRENCY:-2}",
+              "--max-tasks-per-child=100",
+              "--max-memory-per-child=1048576"]
+    # #846 — une tâche en cours (import, publication) a une minute pour finir
+    # à l'arrêt (mise à jour) au lieu d'être tuée après 10 s.
+    stop_grace_period: 60s
     restart: unless-stopped
 
   # Celery Beat
   celery-beat:
     image: ghcr.io/rnf-si/cicada-backend:${CICADA_VERSION:-latest}
     container_name: cicada_prod_celery_beat
+    logging: *journaux
     # PostgreSQL installé sur ce serveur (hors Docker) : joint par ce nom,
     # « localhost » désignant le conteneur. Sans effet sinon.
     extra_hosts:

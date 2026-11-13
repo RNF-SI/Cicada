@@ -1,0 +1,28 @@
+# CICADA — rotation des journaux de l'application (#846).
+#
+# Les fichiers sont écrits par plusieurs processus à la fois (gunicorn, Celery),
+# depuis les conteneurs : la rotation se fait ici, sur l'hôte, et non par chaque
+# processus (qui divisait d'autant la profondeur gardée). `copytruncate` garde
+# le fichier ouvert par les conteneurs : ni signal ni redémarrage à envoyer.
+/var/log/cicada/django.log /var/log/cicada/error.log {
+    daily
+    maxsize 50M
+    rotate 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+}
+
+# audit.log : actions des utilisateurs, gardées plus longtemps.
+/var/log/cicada/audit.log {
+    weekly
+    maxsize 50M
+    rotate 26
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+}

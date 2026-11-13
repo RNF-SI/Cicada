@@ -1,10 +1,22 @@
 # CICADA - Option base de données intégrée (conteneur PostgreSQL/PostGIS)
 # À utiliser avec : docker compose -f docker-compose.yml -f docker-compose.db.yml --env-file /var/lib/cicada/.env up -d
 
+# #846 — Journaux Docker bornés : le pilote json-file par défaut n'a pas de
+# taille maximale (un conteneur qui redémarre en boucle remplit le disque, et
+# la base s'arrête). 5 fichiers de 10 Mo par conteneur.
+x-journaux: &journaux
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   db:
     image: postgis/postgis:17-3.5-alpine
     container_name: cicada_prod_db
+    logging: *journaux
+    # #846 — arrêt propre de PostgreSQL (point de contrôle) avant SIGKILL.
+    stop_grace_period: 30s
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}

@@ -4,10 +4,20 @@
 # Compatible Apache/Nginx : si 80/443 sont pris, définir TRAEFIK_HTTP_PORT et TRAEFIK_HTTPS_PORT (ex. 8080, 8443)
 # puis configurer votre Apache/Nginx pour proxy vers http://127.0.0.1:TRAEFIK_HTTP_PORT ou https://127.0.0.1:TRAEFIK_HTTPS_PORT
 
+# #846 — Journaux Docker bornés : le pilote json-file par défaut n'a pas de
+# taille maximale (un conteneur qui redémarre en boucle remplit le disque, et
+# la base s'arrête). 5 fichiers de 10 Mo par conteneur.
+x-journaux: &journaux
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   traefik:
     image: traefik:v3.2
     container_name: cicada_traefik
+    logging: *journaux
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

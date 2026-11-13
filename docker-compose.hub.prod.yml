@@ -15,10 +15,20 @@
 # CICADA présent sur la même machine.
 name: cicada_hub
 
+# #846 — Journaux Docker bornés : le pilote json-file par défaut n'a pas de
+# taille maximale (un conteneur qui redémarre en boucle remplit le disque, et
+# la base s'arrête). 5 fichiers de 10 Mo par conteneur.
+x-journaux: &journaux
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   db:
     image: postgis/postgis:17-3.5-alpine
     container_name: cicada_hub_db
+    logging: *journaux
     environment:
       POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB est requis}
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER est requis}
@@ -48,6 +58,7 @@ services:
       context: .
       dockerfile: hub/Dockerfile.prod
     container_name: cicada_hub_api
+    logging: *journaux
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY est requis}
