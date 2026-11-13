@@ -58,6 +58,10 @@ APPLICATION = ['frontend', 'celery-beat', 'celery-worker', 'web']
 IMAGES_CICADA = ('ghcr.io/rnf-si/cicada-backend', 'ghcr.io/rnf-si/cicada-frontend')
 
 COMMANDE_REPRISE = 'sudo cicada-update rollback'
+# Que faire après un échec : la page d'aide de l'instance (/aide/) est servie par
+# l'application, qui peut ne plus répondre — d'où le guide sur GitHub.
+GUIDE_MAJ = ("https://github.com/RNF-SI/Cicada/blob/main/documentation/docs/administration/installation.md"
+             " — § 6 « Une mise à jour s'est mal passée »")
 RETOUR_VERSION = 'retour_version'  # origine d'une tentative lancée par cicada-restore --avec-sa-version
 
 
@@ -1130,11 +1134,17 @@ def afficher_etat(e, sortie=sys.stdout):
             p(f"  sauvegarde d'avant : {t['sauvegarde']}")
         if t.get('journal'):
             p(f"  journal : {t['journal']}")
+        if t.get('avertissement'):
+            p(f"  ! {t['avertissement']}")
         if t.get('statut') == SANS_RETOUR:
             p(f"  → reprendre : {COMMANDE_REPRISE}")
     else:
         p("  aucune")
     afficher_sauvegardes(e['sauvegardes'], e['dossier_sauvegardes'], sortie)
+    en_echec = [nom for nom, etat in e['conteneurs'].items() if not etat.startswith('running')
+                or 'unhealthy' in etat]
+    if en_echec or (t and (t.get('statut') not in (REUSSIE, A_JOUR) or t.get('avertissement'))):
+        p(f"Que faire : {GUIDE_MAJ}")
 
 
 def afficher_sauvegardes(liste, dossier, sortie=sys.stdout):

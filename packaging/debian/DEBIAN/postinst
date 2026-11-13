@@ -113,7 +113,9 @@ if [ -f "$ENV_FILE" ]; then
         echo ""
         echo "  État et reprise, sans passer par l'application :"
         echo "    sudo cicada-update status"
-        echo "  Procédure : /aide/administration/installation/ (« Une mise à jour s'est mal passée »)"
+        # L'aide de l'instance (/aide/) est servie par l'application, peut-être arrêtée
+        echo "  Que faire : https://github.com/RNF-SI/Cicada/blob/main/documentation/docs/administration/installation.md"
+        echo "              (§ 6 « Une mise à jour s'est mal passée »)"
         # Mise à jour lancée par le bouton d'une version antérieure : son
         # service (cicada-updater d'avant #796) réécrit la version dans .env
         # et relance les conteneurs APRÈS apt, ce qui défairait le retour

@@ -94,6 +94,16 @@ describe('AdminUpdateComponent', () => {
     expect(bloc?.querySelector('code')?.textContent).toBe('sudo cicada-update rollback');
   });
 
+  it("renvoie au guide d'administration après un échec", () => {
+    const page = creer(info({ last_update: ECHEC_RETOUR_FAIT }));
+
+    const lien = page.querySelector<HTMLAnchorElement>(
+      '[data-testid="update-last-failure"] [data-testid="update-help-link"]'
+    );
+    expect(lien?.getAttribute('href')).toBe('/aide/administration/installation/#maj-mal-passee');
+    expect(lien?.textContent).toContain('Une mise à jour s\'est mal passée');
+  });
+
   it("n'affiche plus l'échec une fois la version en service", () => {
     const page = creer(info({ current_version: '0.1.70', update_available: false, last_update: ECHEC_RETOUR_FAIT }));
     expect(page.querySelector('[data-testid="update-last-failure"]')).toBeNull();

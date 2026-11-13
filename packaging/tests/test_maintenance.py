@@ -801,6 +801,18 @@ def test_etat_lisible_sans_l_application(instance):
     assert 'sudo cicada-update retry' in texte
     assert 'retour à la version précédente effectué' in texte
     assert 'avant-maj-1.0.0-vers-1.1.0' in texte
+    assert "Que faire : https://github.com/RNF-SI/Cicada/" in texte
+    assert "Une mise à jour s'est mal passée" in texte
+
+
+def test_etat_sans_souci_ne_renvoie_pas_au_guide(instance):
+    instance.deployer()
+    sortie = io.StringIO()
+
+    cm.afficher_etat(instance.etat(), sortie)
+
+    assert 'réussie' in sortie.getvalue()
+    assert 'Que faire' not in sortie.getvalue()
 
 
 def test_codes_de_sortie_de_cicada_update(instance):

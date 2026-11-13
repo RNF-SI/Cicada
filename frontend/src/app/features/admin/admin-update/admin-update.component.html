@@ -44,6 +44,7 @@
               <div class="progress-text">
                 <p class="progress-title">{{ 'admin.update.outcome.avertissement' | translate }}</p>
                 <p class="progress-hint">{{ avertissement }}</p>
+                <p class="progress-hint"><a class="link-default" href="/aide/administration/installation/#maj-mal-passee" target="_blank" rel="noopener" data-testid="update-help-link">{{ 'admin.update.outcome.aide' | translate }}</a></p>
               </div>
             </div>
           }
@@ -59,6 +60,7 @@
                   <p class="progress-hint">{{ 'admin.update.outcome.commande' | translate }} <code>{{ echec.commande }}</code></p>
                 }
                 <p class="progress-hint">{{ 'admin.update.outcome.date' | translate:{ date: formatDate(echec.timestamp) } }}</p>
+                <p class="progress-hint"><a class="link-default" href="/aide/administration/installation/#maj-mal-passee" target="_blank" rel="noopener" data-testid="update-help-link">{{ 'admin.update.outcome.aide' | translate }}</a></p>
               </div>
             </div>
           }
@@ -86,6 +88,7 @@
               }
               @if (phase() === 'failed' || phase() === 'unknown') {
                 <p class="progress-hint">{{ 'admin.update.progress.checkLogs' | translate }}</p>
+                <p class="progress-hint"><a class="link-default" href="/aide/administration/installation/#maj-mal-passee" target="_blank" rel="noopener" data-testid="update-help-link">{{ 'admin.update.outcome.aide' | translate }}</a></p>
               }
             </div>
           </div>
