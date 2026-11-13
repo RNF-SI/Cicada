@@ -190,10 +190,25 @@ sudo apt install cicada
 | 1 | Développement sur `develop`, CI verte. |
 | 2 | Bumper `version.txt`, commiter, **mettre tout `develop` sur `main`**, puis créer et pousser le tag `vX.Y.Z` → la CI construit les images Docker et le .deb. |
 | 3 | Attendre que **Docker Build & Push** et **Build Debian package** soient verts (le workflow `Tests` rejoue aussi la suite sur le tag). |
-| 4 | Créer la release GitHub avec le `.deb` en pièce jointe (`gh run download <run_id> -n cicada-deb-X.Y.Z`, puis `gh release create`). |
+| 4 | Créer la release GitHub avec le `.deb` en pièce jointe et ses [notes de version](#notes-de-version) (`gh run download <run_id> -n cicada-deb-X.Y.Z`, puis `gh release create … --notes-file`). |
 | 5 | Publier le `.deb` dans le dépôt APT (`publish.sh`, qui vérifie l'index publié) puis mettre l'API de suivi à la version (`tracking-api/mettre-a-jour.sh`, qui annonce `LATEST_VERSION` seulement si le paquet est publié — §4). |
 | 5 bis | Sur chaque instance : bouton « Mettre à jour », `sudo apt install cicada`, ou `sudo dpkg -i` du .deb — le `postinst` fait le reste (voir §7). |
 | 6 | Vérifier les tags d’images et les logs de démarrage (voir §7.4). |
+
+### Notes de version {#notes-de-version}
+
+Chaque release GitHub dit ce qui change et comment mettre à jour : c'est là qu'un administrateur d'instance regarde avant de cliquer, et où il cherche quoi faire si ça se passe mal (l'aide `/aide/` de son instance est servie par l'application, qui peut alors ne plus répondre).
+
+```bash
+# Nouveautés (feat), corrections (fix), le reste replié ; depuis la dernière release publiée
+scripts/notes-de-version.py vX.Y.Z > release.md
+# Avec un texte rédigé à la main en tête : problème connu, comportement qui change…
+scripts/notes-de-version.py vX.Y.Z --a-savoir a-savoir.md > release.md
+
+gh release create vX.Y.Z cicada_X.Y.Z_amd64.deb --title vX.Y.Z --notes-file release.md
+```
+
+Relire avant de publier : un sujet de commit est écrit pour les développeurs. Une version taguée mais jamais publiée (0.1.70, 0.1.71) n'a pas de release : ses changements sont annoncés avec la suivante.
 
 ## 6. Variables utiles pour le build du .deb
 
