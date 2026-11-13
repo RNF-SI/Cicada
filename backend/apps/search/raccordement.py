@@ -893,9 +893,27 @@ def retirer_du_hub(origine=PublicationHub.ORIGINE_MANUELLE, hub=None, jeton=None
                 'hub_injoignable',
                 f"{methode} {chemin} → {reponse.status_code} : {reponse.text[:300]}", 502,
             )
-        return reponse.json() if reponse.content else {}
+        # #852 — redirection, page de maintenance, JSON inattendu : le hub (ou
+        # son proxy) n'est pas en état de répondre. Un retrait qui ne peut pas
+        # aboutir est mis en attente, jamais avalé.
+        if reponse.status_code >= 300:
+            raise ErreurRaccordement(
+                'hub_injoignable', f"{methode} {chemin} → redirection {reponse.status_code}", 502)
+        if not reponse.content:
+            return {}
+        try:
+            corps = reponse.json()
+        except ValueError:
+            corps = None
+        if not isinstance(corps, dict):
+            raise ErreurRaccordement(
+                'hub_injoignable', f"{methode} {chemin} → réponse illisible : {reponse.text[:200]}", 502)
+        return corps
 
-    lot = appel('POST', '/api/federation/lots/', {'format_version': FORMAT_VERSION})['lot_id']
+    lot = appel('POST', '/api/federation/lots/', {'format_version': FORMAT_VERSION}).get('lot_id')
+    if not lot:
+        raise ErreurRaccordement(
+            'hub_injoignable', "Le hub n'a pas ouvert de lot (réponse sans « lot_id »).", 502)
     resultat = appel('POST', f'/api/federation/lots/{lot}/bascule/')
     purges = resultat.get('plans_purges', 0) or 0
 
@@ -938,14 +956,20 @@ def partage_retire():
         return True
     except ErreurRaccordement as erreur:
         logger.warning("Retrait du hub impossible, relancé plus tard : %s", erreur.message)
-        ligne = raccordement()
-        ligne.retrait_en_attente = True
-        ligne.save()
-        PublicationHub.enregistrer(
-            PublicationHub.ORIGINE_MANUELLE, PublicationHub.RESULTAT_ECHEC,
-            message=f"Retrait : {erreur.message}",
-        )
-        return False
+        message = erreur.message
+    except Exception as erreur:  # noqa: BLE001 — #852 : « ne lève jamais »
+        # Une erreur imprévue ne doit ni faire échouer l'enregistrement des
+        # paramètres ni laisser les plans publiés sans que rien ne relance.
+        logger.exception("Retrait du hub en échec, relancé plus tard")
+        message = f"erreur inattendue ({type(erreur).__name__})"
+    ligne = raccordement()
+    ligne.retrait_en_attente = True
+    ligne.save()
+    PublicationHub.enregistrer(
+        PublicationHub.ORIGINE_MANUELLE, PublicationHub.RESULTAT_ECHEC,
+        message=f"Retrait : {message}",
+    )
+    return False
 
 
 def partage_accorde():

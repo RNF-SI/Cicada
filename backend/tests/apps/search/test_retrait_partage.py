@@ -167,6 +167,39 @@ class TestHubInjoignable:
             decocher(admin_client)
         assert RaccordementHub.objects.get().retrait_en_attente is True
 
+    @pytest.mark.parametrize('reponse', [
+        # Page de maintenance du hub ou de son proxy, en 200.
+        dict(status_code=200, content=b'<html>maintenance</html>', text='<html>maintenance</html>',
+             json=ValueError('Expecting value')),
+        # Redirection (non suivie).
+        dict(status_code=302, content=b'', text='', json={}, headers={'Location': '/maintenance'}),
+        # JSON sans lot.
+        dict(status_code=201, content=b'{"x": 1}', text='{"x": 1}', json={'x': 1}),
+    ], ids=['html-200', 'redirection', 'json-sans-lot'])
+    def test_une_reponse_inattendue_met_aussi_en_attente(self, admin_client, raccordee, reponse):
+        """#852 — elle traversait le retrait : 500, case décochée, aucun drapeau,
+        aucune trace, et les plans restaient publiés sans que rien ne relance."""
+        r = MagicMock(status_code=reponse['status_code'], content=reponse['content'],
+                      text=reponse['text'], headers=reponse.get('headers', {}))
+        if isinstance(reponse['json'], Exception):
+            r.json.side_effect = reponse['json']
+        else:
+            r.json.return_value = reponse['json']
+        with patch('apps.search.raccordement.requests.request', return_value=r):
+            rep = decocher(admin_client)
+        assert rep.status_code == 200
+        assert SiteConfiguration.get_instance().federation_partage is False
+        assert RaccordementHub.objects.get().retrait_en_attente is True
+        assert PublicationHub.objects.get().resultat == 'echec'
+
+    def test_une_erreur_imprevue_met_aussi_en_attente(self, admin_client, raccordee):
+        """#852 — quelle que soit la cause, le consentement retiré reste honoré
+        et le retrait est relancé."""
+        with patch('apps.search.raccordement.retirer_du_hub', side_effect=RuntimeError('bogue')):
+            rep = decocher(admin_client)
+        assert rep.status_code == 200
+        assert RaccordementHub.objects.get().retrait_en_attente is True
+
     def test_la_tache_relance_et_leve_le_drapeau(self, admin_client, raccordee):
         self._decocher_hub_muet(admin_client)
 
