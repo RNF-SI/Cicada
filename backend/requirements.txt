@@ -20,6 +20,11 @@ drf-nested-routers==0.95.3
 # Task queue (pour V1)
 celery==5.3.4
 redis==5.0.1
+# Fixé (#827) : celery ne borne kombu qu'à <6.0, et kombu 5.7.0 exige redis-py
+# >= 6.1 — l'image 0.1.72 l'a tiré, le worker sortait en code 1 dès la connexion
+# au broker (erreur VersionMismatch avalée par la journalisation). Monter kombu
+# avec redis-py, jamais seul ; tests/apps/core/test_celery_broker.py le vérifie.
+kombu==5.6.2
 
 # Production
 gunicorn==22.0.0
