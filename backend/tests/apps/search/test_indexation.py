@@ -430,6 +430,86 @@ class TestIndexPerime:
         assert ContenuIndexe.objects.count() == 0
 
 
+@pytest.fixture
+def deux_plans_perimes(plan_indexe):
+    """Deux plans validés, indexés par une version antérieure des extracteurs."""
+    autre = PlanGestionFactory(statut='valide', annee_debut=2020, annee_fin=2030)
+    EnjeuFactory(id_pg=autre, libelle='Tourbières actives')
+    index_plan(autre)
+    ContenuIndexe.objects.update(index_version=0)
+    return [plan_indexe['plan'], autre]
+
+
+@pytest.mark.integration
+class TestReconstructionInterrompue:
+    """#839 — `--if-stale` vidait tout l'index avant de réindexer : interrompu en
+    route (redémarrage, erreur sur un plan), il laissait un index partiel à la
+    version courante, que le démarrage suivant tenait pour à jour."""
+
+    def test_une_reconstruction_interrompue_est_reprise_au_demarrage_suivant(
+        self, deux_plans_perimes, monkeypatch,
+    ):
+        from apps.search.management.commands import rebuild_search_index as commande
+        vrai, vus = commande.index_plan, []
+
+        def puis_coupure(plan):
+            if vus:
+                raise KeyboardInterrupt  # conteneur arrêté en plein travail
+            vus.append(plan)
+            return vrai(plan)
+
+        monkeypatch.setattr(commande, 'index_plan', puis_coupure)
+        with pytest.raises(KeyboardInterrupt):
+            call_command('rebuild_search_index', '--if-stale', verbosity=0)
+
+        assert index_est_perime() is True
+        monkeypatch.setattr(commande, 'index_plan', vrai)
+        call_command('rebuild_search_index', '--if-stale', verbosity=0)
+
+        for plan in deux_plans_perimes:
+            assert set(ContenuIndexe.objects.filter(id_pg=plan)
+                       .values_list('index_version', flat=True)) == {INDEX_VERSION}
+        assert index_est_perime() is False
+
+    def test_l_index_reste_interrogeable_pendant_la_reconstruction(
+        self, deux_plans_perimes, monkeypatch,
+    ):
+        from apps.search.management.commands import rebuild_search_index as commande
+        vrai, comptes = commande.index_plan, []
+
+        def compter(plan):
+            comptes.append(ContenuIndexe.objects.count())
+            return vrai(plan)
+
+        monkeypatch.setattr(commande, 'index_plan', compter)
+        call_command('rebuild_search_index', '--if-stale', verbosity=0)
+        assert all(n > 0 for n in comptes)
+
+    def test_un_plan_en_echec_n_empeche_pas_les_autres_et_est_nomme(
+        self, deux_plans_perimes, monkeypatch,
+    ):
+        from django.core.management.base import CommandError
+        from apps.search.management.commands import rebuild_search_index as commande
+        vrai = commande.index_plan
+        fautif, sain = deux_plans_perimes
+
+        def echoue_sur(plan):
+            if plan.pk == fautif.pk:
+                raise ValueError('extracteur en échec')
+            return vrai(plan)
+
+        monkeypatch.setattr(commande, 'index_plan', echoue_sur)
+        with pytest.raises(CommandError, match=str(fautif.pk)):
+            call_command('rebuild_search_index', '--if-stale', verbosity=0)
+
+        assert set(ContenuIndexe.objects.filter(id_pg=sain)
+                   .values_list('index_version', flat=True)) == {INDEX_VERSION}
+        # Le plan en échec garde ses anciennes lignes : l'index reste « périmé »
+        # et le démarrage suivant le réessaie.
+        assert ContenuIndexe.objects.filter(id_pg=fautif).exists()
+        assert index_est_perime() is True
+
+
 # --------------------------------------------------------------------------- #
 # Objets rattachés (#634)
 # --------------------------------------------------------------------------- #

@@ -393,6 +393,17 @@ docker compose exec web python manage.py rebuild_search_index --purge
 rattraper un plan dont l'indexation automatique aurait échoué. La commande est
 idempotente.
 
+Au démarrage, l'entrypoint lance `rebuild_search_index --if-stale` : rien si
+l'index est à la version courante (`INDEX_VERSION`), sinon reconstruction
+**sans vider l'index d'abord** (#839) — il reste interrogeable pendant le
+travail. Chaque plan est réécrit en une transaction ; un plan en échec garde
+ses lignes précédentes, n'empêche pas les autres, et la commande sort en
+erreur en le nommant. Les lignes d'une version antérieure ne sont retirées
+qu'en fin de reconstruction réussie : une reconstruction interrompue (conteneur
+arrêté) ou partielle laisse donc l'index « périmé », et le démarrage suivant
+reprend. Pour une nouvelle version des extracteurs, incrémenter
+`INDEX_VERSION` suffit.
+
 ---
 
 ## Facettes et référentiels associés
@@ -417,7 +428,8 @@ idempotente.
 2. L'ajouter au tuple `EXTRACTEURS` (les enjeux doivent rester en premier :
    ils alimentent `contexte_branche` pour toute la branche).
 3. Ajouter la constante de type dans `ContenuIndexe.TYPE_CHOICES`.
-4. `rebuild_search_index --purge` pour reconstruire.
+4. Incrémenter `INDEX_VERSION` : chaque instance reconstruit son index au
+   démarrage qui suit la mise à jour.
 
 ---
 
