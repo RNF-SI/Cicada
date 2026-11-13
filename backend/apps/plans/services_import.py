@@ -1815,6 +1815,9 @@ class ImportReport:
     def __init__(self):
         self.issues: list[dict] = []
         self.summary: dict[str, int] = {}
+        # Données propres à un import, ajoutées telles quelles à la réponse
+        # (#770 : appariements du référentiel de la structure).
+        self.extra: dict = {}
 
     def add(self, sheet, row, column, level, message):
         self.issues.append(
@@ -1846,6 +1849,7 @@ class ImportReport:
             "n_warnings": len(self.warnings),
             "issues": self.issues,
             "summary": self.summary,
+            **self.extra,
         }
 
 

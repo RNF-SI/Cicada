@@ -157,6 +157,19 @@ arbitrer → ancien type gardé (avertissement). À l'exécution,
 l'instance → erreur qui nomme la version en service. Même résolution pour le
 type d'action de l'onglet `Suivis`.
 
+**Référentiel de la structure (#770)** — colonne `type d'action (référentiel
+de la structure)` : quand `type d'action` (Gestref) est vide, la valeur est
+appariée à un type Gestref. Le rapport de validation renvoie `appariements`
+(une ligne par valeur distincte, comparaison sans casse ni accents : `valeur`,
+`lignes`, `id_type_action`, `origine` = `saisi` / `enregistre` / vide) et
+`organisme_appariement` ; une valeur sans équivalent est une **erreur**. Les
+choix reviennent dans le champ `appariements` (JSON `{valeur: id}`) de
+`import-actions/validate/` et `import-actions/`. À l'exécution, ils sont gardés
+dans `AppariementTypeAction` (`general.t_appariements_types_action`) pour
+l'organisme gestionnaire du site principal du plan
+(`organisme_gestionnaire_principal()`, à défaut celui de l'utilisateur) et
+proposés aux imports suivants. Règles : `apps/plans/appariements_types_action.py`.
+
 **Types d'action complémentaires (#792)** — colonne `types d'action
 complémentaires` de l'onglet `Actions` : `CODE — libellé` séparés par `;`,
 chacun résolu comme le type principal (erreur s'il est inconnu, converti s'il
@@ -164,7 +177,7 @@ vient d'une version antérieure ; un type à arbitrer est gardé, sans entrer da
 « Actions à actualiser »). Le type principal ou un doublon est ignoré.
 
 - `Actions` — une action par ligne : `code`, `indicateur` (code de référence),
-  `libellé`, `type d'action`, `types d'action complémentaires`, `priorité`, `année début` / `année fin`, puis le
+  `libellé`, `type d'action`, `type d'action (référentiel de la structure)`, `types d'action complémentaires`, `priorité`, `année début` / `année fin`, puis le
   **paramétrage budgétaire de la fiche action (#600)** : `mode de ventilation`,
   `déclinaison par type de coût`, `saisie automatique du coût salarial` ; enfin
   `opérateurs`, `financeurs`. Les années créent la programmation annuelle

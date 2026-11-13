@@ -100,6 +100,20 @@ PLAN_GEOJSON_FEATURE = geojson_feature_schema(PLAN_GEOJSON_PROPERTIES, name='Pla
 PLAN_GEOJSON_FEATURE_COLLECTION = geojson_feature_collection_schema(
     PLAN_GEOJSON_PROPERTIES, name='PlanGeoJSONFeatureCollection')
 
+# #770 — classeur d'actions + appariements du référentiel de la structure.
+IMPORT_ACTIONS_REQUEST = {
+    'multipart/form-data': inline_serializer(
+        name='ImportActionsUpload',
+        fields={
+            'file': drf_serializers.FileField(help_text='Classeur .xlsx'),
+            'appariements': drf_serializers.CharField(
+                required=False,
+                help_text="JSON {type du référentiel de la structure: id du type Gestref}, "
+                          "choisis à l'étape « Correspondance avec Gestref » (#770). "
+                          "Le rapport renvoie `appariements` et `organisme_appariement`."),
+        },
+    ),
+}
 RAPPORT_IMPORT_RESPONSE = OpenApiResponse(
     response=OpenApiTypes.OBJECT,
     description="Rapport de validation : anomalies par onglet / ligne et décompte de ce qui serait créé.",
@@ -2113,7 +2127,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         )
         return response
 
-    @extend_schema(summary="Valider un classeur d'actions (sans écrire)", request=FICHIER_XLSX_REQUEST, responses={200: RAPPORT_IMPORT_RESPONSE, 400: REPONSE_400, 403: REPONSE_403, 404: REPONSE_404})
+    @extend_schema(summary="Valider un classeur d'actions (sans écrire)", request=IMPORT_ACTIONS_REQUEST, responses={200: RAPPORT_IMPORT_RESPONSE, 400: REPONSE_400, 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='import-actions/validate',
             parser_classes=[MultiPartParser, FormParser])
     def import_actions_validate(self, request, pk=None):
@@ -2123,7 +2137,7 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         """
         return self._run_actions_import(request, execute=False)
 
-    @extend_schema(summary="Importer un classeur d'actions", description='Crée les actions du plan dans une transaction (création seule). Plan en brouillon uniquement.', request=FICHIER_XLSX_REQUEST, responses={201: IMPORT_CREE_RESPONSE, 400: IMPORT_ECHEC_RESPONSE, 403: REPONSE_403, 404: REPONSE_404})
+    @extend_schema(summary="Importer un classeur d'actions", description='Crée les actions du plan dans une transaction (création seule). Plan en brouillon uniquement. Les appariements utilisés sont gardés pour l\'organisme gestionnaire du plan (#770).', request=IMPORT_ACTIONS_REQUEST, responses={201: IMPORT_CREE_RESPONSE, 400: IMPORT_ECHEC_RESPONSE, 403: REPONSE_403, 404: REPONSE_404})
     @action(detail=True, methods=['post'], url_path='import-actions',
             parser_classes=[MultiPartParser, FormParser])
     def import_actions(self, request, pk=None):
@@ -2146,12 +2160,25 @@ class PlanGestionViewSet(LectureExplorationMixin, viewsets.ModelViewSet):
         except ArborescenceImportError as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+        # #770 — appariements choisis à l'étape « Correspondance avec Gestref » :
+        # champ « appariements », JSON {type de la structure: id du type Gestref}.
+        appariements = request.data.get('appariements') or None
+        if isinstance(appariements, str):
+            try:
+                appariements = json_module.loads(appariements)
+            except ValueError:
+                return Response({'error': "Champ « appariements » : JSON attendu."},
+                                status=status.HTTP_400_BAD_REQUEST)
+        if appariements is not None and not isinstance(appariements, dict):
+            return Response({'error': "Champ « appariements » : objet {valeur: id} attendu."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
         if not execute:
-            report = validate_actions_import(plan, parsed)
+            report = validate_actions_import(plan, parsed, appariements, request.user)
             return Response(report.as_dict(), status=status.HTTP_200_OK)
 
         try:
-            counts = execute_actions_import(plan, parsed, request.user)
+            counts = execute_actions_import(plan, parsed, request.user, appariements)
         except ValueError as exc:
             report = exc.args[0] if exc.args else None
             payload = report.as_dict() if hasattr(report, 'as_dict') else {'error': str(exc)}

@@ -6,6 +6,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 
 import { HttpErrorResponse } from '@angular/common/http';
@@ -20,7 +22,13 @@ import {
   ArborescenceImportIssue,
   ImportSheet,
   ImportMode,
+  AppariementTypeActionImport,
 } from '../../core/models/admin.model';
+import {
+  NomenclatureGroup,
+  NomenclatureOption,
+  buildNomenclatureGroups,
+} from '../../shared/utils/nomenclature-autocomplete.utils';
 import { HeaderComponent } from '../../shared/components/header/header.component';
 import { PlanSidebarComponent } from './shared/plan-sidebar/plan-sidebar.component';
 import { ImportGridComponent } from './import-grid/import-grid.component';
@@ -50,6 +58,8 @@ import {
     MatProgressSpinnerModule,
     MatDialogModule,
     MatTooltipModule,
+    MatFormFieldModule,
+    MatSelectModule,
     TranslateModule,
     HeaderComponent,
     PlanSidebarComponent,
@@ -434,6 +444,26 @@ export class PlanSettingsComponent {
   readonly downloadingActionsExample = signal(false);
   readonly actionsFile = signal<File | null>(null);
   readonly actionsReport = signal<ArborescenceImportReport | null>(null);
+
+  // ---- #770 — Correspondance avec Gestref (référentiel de la structure) ----
+  /** Types Gestref proposés, chargés à la 1re correspondance à faire. */
+  readonly typesGestref = signal<NomenclatureOption[]>([]);
+  readonly typesGestrefGroupes = computed<NomenclatureGroup[]>(
+    () => buildNomenclatureGroups(this.typesGestref(), ''),
+  );
+  /** Choix de l'étape « Correspondance » : {type de la structure: id Gestref}. */
+  readonly appariementsChoisis = signal<Record<string, number | null>>({});
+  readonly appariements = computed<AppariementTypeActionImport[]>(
+    () => this.actionsReport()?.appariements ?? [],
+  );
+  /** Tous les types de la structure ont un équivalent Gestref choisi. */
+  readonly appariementsComplets = computed(() =>
+    this.appariements().every(a => this.appariementsChoisis()[a.valeur] != null),
+  );
+  /** Des choix diffèrent de ceux que le rapport affiché a pris en compte. */
+  readonly appariementsModifies = computed(() =>
+    this.appariements().some(a => (this.appariementsChoisis()[a.valeur] ?? null) !== a.id_type_action),
+  );
   readonly actionsValidating = signal(false);
   readonly actionsImporting = signal(false);
 
@@ -482,6 +512,7 @@ export class PlanSettingsComponent {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     this.actionsReport.set(null);
+    this.appariementsChoisis.set({});
     this.actionsFile.set(file);
     if (file) {
       this.validateActionsImport(file);
@@ -492,10 +523,11 @@ export class PlanSettingsComponent {
     const p = this.plan();
     if (!p) return;
     this.actionsValidating.set(true);
-    this.adminService.validateActionsImport(p.id_pg, file).subscribe({
+    this.adminService.validateActionsImport(p.id_pg, file, this.appariementsEnvoyes()).subscribe({
       next: report => {
         this.actionsValidating.set(false);
         this.actionsReport.set(report);
+        this.preparerAppariements(report);
       },
       error: err => {
         this.actionsValidating.set(false);
@@ -508,6 +540,42 @@ export class PlanSettingsComponent {
   clearActionsImport(): void {
     this.actionsFile.set(null);
     this.actionsReport.set(null);
+    this.appariementsChoisis.set({});
+  }
+
+  /** #770 — reprend les choix du rapport (saisis ou gardés pour l'organisme). */
+  private preparerAppariements(report: ArborescenceImportReport): void {
+    const liste = report.appariements ?? [];
+    if (!liste.length) return;
+    const choix = { ...this.appariementsChoisis() };
+    for (const a of liste) {
+      if (choix[a.valeur] == null) choix[a.valeur] = a.id_type_action;
+    }
+    this.appariementsChoisis.set(choix);
+    if (!this.typesGestref().length) {
+      this.adminService.getNomenclaturesByType('TYPE_ACTION').subscribe({
+        next: options => this.typesGestref.set(options),
+        error: () => this.typesGestref.set([]),
+      });
+    }
+  }
+
+  choisirAppariement(valeur: string, idType: number | null): void {
+    this.appariementsChoisis.update(c => ({ ...c, [valeur]: idType }));
+  }
+
+  /** Revalide le classeur avec les correspondances choisies. */
+  appliquerAppariements(): void {
+    const file = this.actionsFile();
+    if (file) this.validateActionsImport(file);
+  }
+
+  private appariementsEnvoyes(): Record<string, number> {
+    const envoyes: Record<string, number> = {};
+    for (const [valeur, id] of Object.entries(this.appariementsChoisis())) {
+      if (id != null) envoyes[valeur] = id;
+    }
+    return envoyes;
   }
 
   runActionsImport(): void {
@@ -516,7 +584,7 @@ export class PlanSettingsComponent {
     const report = this.actionsReport();
     if (!p || !file || !report?.can_import) return;
     this.actionsImporting.set(true);
-    this.adminService.importActions(p.id_pg, file).subscribe({
+    this.adminService.importActions(p.id_pg, file, this.appariementsEnvoyes()).subscribe({
       next: result => {
         this.actionsImporting.set(false);
         this.snackBar.open(

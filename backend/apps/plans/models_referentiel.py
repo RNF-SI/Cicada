@@ -176,3 +176,41 @@ class PassageReferentielObjet(models.Model):
         ]
         verbose_name = _("Objet d'un passage de référentiel")
         verbose_name_plural = _("Objets d'un passage de référentiel")
+
+
+class AppariementTypeAction(models.Model):
+    """#770 — correspondance entre un type d'action du référentiel propre à une
+    structure (colonne « type d'action (référentiel de la structure) » du
+    classeur d'import des actions) et un type Gestref.
+
+    Saisie à l'import, gardée **par organisme** (l'organisme gestionnaire du
+    plan importé) et proposée aux imports suivants de cet organisme.
+    """
+
+    id = models.AutoField(primary_key=True)
+    organisme = models.ForeignKey(
+        'users.BibOrganismes', on_delete=models.CASCADE, db_column='id_organisme',
+        related_name='appariements_types_action', verbose_name=_("Organisme"))
+    valeur = models.CharField(_("Type dans le référentiel de la structure"), max_length=255)
+    cle = models.CharField(_("Clé de comparaison"), max_length=255,
+                           help_text=_("Valeur normalisée (casse, accents, espaces)."))
+    id_type_action = models.ForeignKey(
+        'core.Nomenclature', on_delete=models.CASCADE, db_column='id_type_action',
+        related_name='+', verbose_name=_("Type d'action Gestref"),
+        limit_choices_to={'id_type__mnemonique': 'TYPE_ACTION'})
+    date_maj = models.DateTimeField(_("Dernière modification"), auto_now=True)
+    id_utilisateur_maj = models.ForeignKey(
+        'users.Role', on_delete=models.SET_NULL, null=True, blank=True,
+        db_column='id_utilisateur_maj', related_name='+',
+        verbose_name=_("Modifié par"))
+
+    class Meta:
+        db_table = '"general"."t_appariements_types_action"'
+        db_table_comment = "Appariement d'un référentiel de structure vers Gestref (#770)"
+        unique_together = ['organisme', 'cle']
+        ordering = ['organisme', 'valeur']
+        verbose_name = _("Appariement de type d'action")
+        verbose_name_plural = _("Appariements de types d'action")
+
+    def __str__(self):
+        return f"{self.valeur} → {self.id_type_action}"

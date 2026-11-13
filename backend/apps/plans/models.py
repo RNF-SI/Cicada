@@ -65,6 +65,7 @@ from .models_referentiel import (  # noqa: F401 — #751
     VersionReferentielActions,
     PassageReferentielActions,
     PassageReferentielObjet,
+    AppariementTypeAction,
 )
 
 

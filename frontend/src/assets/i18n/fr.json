@@ -3508,7 +3508,18 @@
       "downloadActionsExampleHint": "L'exemple d'actions est fictif et entièrement rempli : il montre des actions rattachées à leurs indicateurs, avec budgets et temps de travail (RH), et illustre les liens entre onglets. À consulter pour comprendre le format ; à ne pas importer tel quel.",
       "actionsReadySummary": "Fichier valide : {{actions}} action(s), {{budgets}} ligne(s) de budget et {{rh}} ligne(s) de RH seront créées.",
       "doImportActions": "Importer les actions",
-      "actionsImportSuccess": "Import réussi : {{total}} action(s) créée(s)."
+      "actionsImportSuccess": "Import réussi : {{total}} action(s) créée(s).",
+      "appariements": {
+        "title": "Correspondance avec Gestref",
+        "help": "Le classeur indique des types d'action de votre propre référentiel. Choisissez l'équivalent Gestref de chacun, puis appliquez : la correspondance sera reprise à vos prochains imports.",
+        "organisme": "Correspondances gardées pour l'organisme {{nom}}.",
+        "colValeur": "Type de votre référentiel",
+        "colLignes": "Lignes",
+        "colGestref": "Type d'action Gestref",
+        "choisir": "Choisir un type Gestref…",
+        "dejaConnu": "Déjà apparié",
+        "apply": "Appliquer les correspondances"
+      }
     },
     "financeurs": {
       "title": "Financeurs",

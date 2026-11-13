@@ -450,7 +450,7 @@ def test_import_actions_creates_with_budget_and_rh():
         format="multipart",
     )
     assert resp.status_code == 201, resp.json()
-    assert resp.json()["created"] == {"actions": 1, "annees": 2, "budgets": 1, "rh": 1}
+    assert resp.json()["created"] == {"actions": 1, "annees": 2, "budgets": 1, "rh": 1, "appariements": 0}
     op = Operation.objects.get(libelle="Fauche")
     assert (op.ventilation_mode, op.declinaison_par_type_cout) == ("by_type", False)
     oa = OperationAnnee.objects.get(id_operation=op, annee=2024)

@@ -375,6 +375,18 @@ _ACTION_COLUMNS = [
         26,
     ),
     (
+        # #770 — type du référentiel propre à la structure, apparié à Gestref
+        # pendant l'import quand la colonne « type d'action » est vide.
+        "type_action_structure",
+        "type d'action (référentiel de la structure)",
+        False,
+        "Type d'action dans le référentiel de votre structure, à remplir si "
+        "vous n'indiquez pas le type Gestref. Il est apparié à un type Gestref "
+        "pendant l'import, et l'appariement est gardé pour vos imports suivants.",
+        None,
+        30,
+    ),
+    (
         # #792 — types complémentaires (le type principal reste « type d'action »).
         "types_action_complementaires",
         "types d'action complémentaires",
@@ -1897,9 +1909,15 @@ def _valider_type_action(report, resolver, r, value, colonne="type_action") -> N
         )
 
 
-def validate_actions_import(plan, parsed: dict) -> ImportReport:
+def validate_actions_import(plan, parsed: dict, appariements: dict | None = None,
+                            user=None) -> ImportReport:
+    """``appariements`` (#770) : {type de la structure: id du type Gestref},
+    choisis à l'étape « Correspondance avec Gestref »."""
+    from .appariements_types_action import COLONNE, Appariements
+
     report = ImportReport()
     resolver = _NomenclatureResolver()
+    app = Appariements(plan, user, appariements)
     # #786 — codes du classeur rattachés au plan cible par leur nom.
     parsed = fiche.resoudre_references(plan, parsed, report)
 
@@ -1972,7 +1990,17 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
                     "d'abord l'arborescence du plan d'origine.",
                 )
 
-        _valider_type_action(report, resolver, r, _cell_str(row.get("type_action")))
+        gestref = _cell_str(row.get("type_action"))
+        _valider_type_action(report, resolver, r, gestref)
+        # #770 — la colonne Gestref l'emporte ; sinon, le type de la structure
+        # passe par l'appariement (choisi à cet import ou gardé pour l'organisme).
+        structure = _cell_str(row.get(COLONNE))
+        if structure and not gestref and app.type_pour(structure, r) is None:
+            report.add(
+                "Actions", r, COLONNE, ERROR,
+                f"Type « {structure} » de votre référentiel sans correspondance Gestref : "
+                "choisissez-la à l'étape « Correspondance avec Gestref ».",
+            )
         for valeur in _types_complementaires_cellule(
                 _cell_str(row.get("types_action_complementaires"))):
             _valider_type_action(report, resolver, r, valeur, "types_action_complementaires")
@@ -2296,6 +2324,12 @@ def validate_actions_import(plan, parsed: dict) -> ImportReport:
         "budgets": len(parsed.get("budgets", [])),
         "rh": len(parsed.get("rh", [])),
     }
+    # #770 — étape « Correspondance avec Gestref » : une ligne par type de la
+    # structure rencontré, avec le type choisi ou gardé pour l'organisme.
+    report.extra = {
+        "appariements": app.resume(),
+        "organisme_appariement": app.organisme_dict(),
+    }
     return report
 
 
@@ -2356,10 +2390,13 @@ def _year_total(op, oa, org_lines, rh_lines) -> Decimal | None:
 
 
 @transaction.atomic
-def execute_actions_import(plan, parsed: dict, user) -> dict:
-    report = validate_actions_import(plan, parsed)
+def execute_actions_import(plan, parsed: dict, user, appariements: dict | None = None) -> dict:
+    from .appariements_types_action import COLONNE, Appariements
+
+    report = validate_actions_import(plan, parsed, appariements, user)
     if not report.can_import:
         raise ValueError(report)
+    app = Appariements(plan, user, appariements)
     # #786 — mêmes rattachements que la validation, postes absents créés.
     parsed = fiche.resoudre_references(plan, parsed, ImportReport())
     parsed["postes"] = {**parsed.get("postes", {}), **fiche.creer_postes(plan, parsed)}
@@ -2385,14 +2422,19 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
         amax = _as_int(row.get("annee_max"))
         code = _cell_str(row.get("code"))
         settings = settings_by_code[code]
-        type_importe = resolver.type_action(_cell_str(row.get("type_action")))
+        gestref = _cell_str(row.get("type_action"))
+        type_importe = resolver.type_action(gestref)
         if type_importe is not None and type_importe.ancien is not None:
             types_importes[code] = type_importe
+        type_action = type_importe.type if type_importe else None
+        if type_action is None and not gestref:
+            # #770 — type de la structure, apparié à Gestref.
+            type_action = app.type_pour(_cell_str(row.get(COLONNE)))
         operation = Operation.objects.create(
             id_indicateur=indicateur,
             libelle=_cell_str(row.get("libelle")),
             code_operation=code or None,
-            id_type_action=type_importe.type if type_importe else None,
+            id_type_action=type_action,
             id_priorite=nom(_PRIORITE, row.get("priorite")),
             annee_min=amin,
             annee_max=amax,
@@ -2577,9 +2619,13 @@ def execute_actions_import(plan, parsed: dict, user) -> dict:
             ignore_conflicts=True,
         )
 
+    # #770 — les appariements utilisés sont gardés pour l'organisme du plan.
+    n_appariements = app.enregistrer()
+
     return {
         "actions": n_actions,
         "annees": n_annees,
         "budgets": n_budgets,
         "rh": n_rh,
+        "appariements": n_appariements,
     }

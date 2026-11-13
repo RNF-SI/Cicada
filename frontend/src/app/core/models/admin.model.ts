@@ -821,6 +821,22 @@ export interface ArborescenceImportReport {
   summary: Record<string, number>;
   /** Données parsées (pour la correction interactive #9). */
   data?: ParsedData;
+  /** #770 — import des actions : types du référentiel de la structure à apparier à Gestref. */
+  appariements?: AppariementTypeActionImport[];
+  /** #770 — organisme dont les appariements sont lus et gardés (gestionnaire du plan). */
+  organisme_appariement?: { id: number; nom: string } | null;
+}
+
+/** #770 — un type du référentiel de la structure rencontré dans le classeur d'actions. */
+export interface AppariementTypeActionImport {
+  valeur: string;
+  /** Lignes du classeur où il apparaît. */
+  lignes: number[];
+  /** Type Gestref choisi à cet import, ou gardé pour l'organisme (null : à choisir). */
+  id_type_action: number | null;
+  type_action: string;
+  /** « saisi » (cet import), « enregistre » (import précédent), « » (à choisir). */
+  origine: '' | 'saisi' | 'enregistre';
 }
 
 /** Description d'une colonne du format (schéma d'import). */

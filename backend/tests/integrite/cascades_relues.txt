@@ -39,6 +39,9 @@ plans.AjustementAnnuelOrganisme.id_ajustement_annuel -> plans.AjustementAnnuel :
 plans.AjustementAnnuelRH.id_ajustement_annuel -> plans.AjustementAnnuel : CASCADE
 plans.AjustementAnnuelRH.id_organisme -> users.BibOrganismes : SET_NULL
 plans.AjustementAnnuelRH.id_poste -> plans.Poste : SET_NULL  # poste portant un ajustement : suppression refusée (409)
+plans.AppariementTypeAction.id_type_action -> core.Nomenclature : CASCADE  # #770 — table de commodité (proposition à l'import), les types d'action ne se suppriment pas
+plans.AppariementTypeAction.id_utilisateur_maj -> users.Role : SET_NULL
+plans.AppariementTypeAction.organisme -> users.BibOrganismes : CASCADE  # #770 — appariements propres à l'organisme, sans objet sans lui
 plans.CorEnjeuFichier.id_enjeu -> plans.Enjeu : CASCADE
 plans.CorEnjeuGeologie.id_enjeu -> plans.Enjeu : CASCADE
 plans.CorEnjeuHabitat.id_enjeu -> plans.Enjeu : CASCADE

@@ -262,7 +262,7 @@ def test_execute_creates_operations_and_years():
     parsed = _parsed("I1", ind.id_indicateur, type_action=type_action.label)
 
     counts = execute_actions_import(plan, parsed, user)
-    assert counts == {"actions": 1, "annees": 3, "budgets": 0, "rh": 0}
+    assert counts == {"actions": 1, "annees": 3, "budgets": 0, "rh": 0, "appariements": 0}
 
     op = Operation.objects.get(libelle="Débroussaillage")
     assert op.id_indicateur_id == ind.id_indicateur
@@ -416,7 +416,7 @@ def test_execute_creates_budgets_and_rh():
     parsed = _parsed_with_budget_rh("I1", ind.id_indicateur, "Q1", poste.id_poste)
 
     counts = execute_actions_import(plan, parsed, user)
-    assert counts == {"actions": 1, "annees": 3, "budgets": 1, "rh": 1}
+    assert counts == {"actions": 1, "annees": 3, "budgets": 1, "rh": 1, "appariements": 0}
 
     op = Operation.objects.get(libelle="Débroussaillage")
     assert op.ventilation_mode == "by_type_poste"

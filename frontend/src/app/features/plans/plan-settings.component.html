@@ -374,6 +374,68 @@
                     </div>
                   }
 
+                  <!-- #770 — Correspondance du référentiel de la structure avec Gestref -->
+                  @if (appariements().length) {
+                    <section class="appariements" data-testid="actions-appariements">
+                      <h4 class="appariements-titre">{{ 'plans.import.appariements.title' | translate }}</h4>
+                      <p class="appariements-aide">
+                        {{ 'plans.import.appariements.help' | translate }}
+                        @if (report.organisme_appariement; as org) {
+                          {{ 'plans.import.appariements.organisme' | translate:{ nom: org.nom } }}
+                        }
+                      </p>
+                      <table class="appariements-table">
+                        <thead>
+                          <tr>
+                            <th>{{ 'plans.import.appariements.colValeur' | translate }}</th>
+                            <th>{{ 'plans.import.appariements.colLignes' | translate }}</th>
+                            <th>{{ 'plans.import.appariements.colGestref' | translate }}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (a of appariements(); track a.valeur) {
+                            <tr [attr.data-testid]="'appariement-' + a.valeur">
+                              <td class="appariement-valeur">
+                                {{ a.valeur }}
+                                @if (a.origine === 'enregistre') {
+                                  <app-tag variant="info" size="sm"
+                                           [label]="'plans.import.appariements.dejaConnu' | translate"></app-tag>
+                                }
+                              </td>
+                              <td>{{ a.lignes.join(', ') }}</td>
+                              <td>
+                                <mat-form-field class="app-mat-form-field appariement-select" appearance="outline"
+                                                subscriptSizing="dynamic">
+                                  <mat-select [value]="appariementsChoisis()[a.valeur] ?? null"
+                                              (selectionChange)="choisirAppariement(a.valeur, $event.value)"
+                                              [placeholder]="'plans.import.appariements.choisir' | translate"
+                                              [attr.aria-label]="('plans.import.appariements.colGestref' | translate) + ' — ' + a.valeur">
+                                    @for (g of typesGestrefGroupes(); track g.groupLabel) {
+                                      <mat-optgroup [label]="g.groupLabel">
+                                        @for (t of g.options; track t.id_nomenclature) {
+                                          <mat-option [value]="t.id_nomenclature">
+                                            {{ t.cd_nomenclature || t.mnemonique }} — {{ t.label }}
+                                          </mat-option>
+                                        }
+                                      </mat-optgroup>
+                                    }
+                                  </mat-select>
+                                </mat-form-field>
+                              </td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                      <div class="import-buttons">
+                        <button mat-stroked-button type="button" data-testid="appariements-appliquer"
+                                [disabled]="!appariementsComplets() || !appariementsModifies() || actionsValidating()"
+                                (click)="appliquerAppariements()">
+                          {{ 'plans.import.appariements.apply' | translate }}
+                        </button>
+                      </div>
+                    </section>
+                  }
+
                   @if (actionsErrors().length) {
                     <ul class="import-issues import-issues-error" data-testid="actions-issues-error">
                       @for (issue of actionsErrors(); track $index) {

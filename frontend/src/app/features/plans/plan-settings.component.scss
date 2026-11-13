@@ -418,3 +418,51 @@
     margin-right: $spacing-xxs;
   }
 }
+
+// #770 — Correspondance du référentiel de la structure avec Gestref.
+.appariements {
+  margin: $spacing-md 0;
+  padding: $spacing-md;
+  border: 1px solid $gray-light;
+  border-radius: $border-radius-sm;
+  background: $white;
+
+  &-titre {
+    margin: 0 0 $spacing-xs;
+    color: $primary-color;
+  }
+
+  &-aide {
+    margin: 0 0 $spacing-sm;
+    color: $gray-dark;
+  }
+
+  &-table {
+    width: 100%;
+    border-collapse: collapse;
+
+    th {
+      text-align: left;
+      color: $black;
+      padding: $spacing-xs;
+      border-bottom: 1px solid $gray-light;
+    }
+
+    td {
+      padding: $spacing-xs;
+      vertical-align: middle;
+      color: $black;
+    }
+  }
+}
+
+.appariement-valeur {
+  font-weight: $font-weight-bold;
+
+  app-tag { margin-left: $spacing-xs; }
+}
+
+.appariement-select {
+  width: 100%;
+  min-width: 260px;
+}

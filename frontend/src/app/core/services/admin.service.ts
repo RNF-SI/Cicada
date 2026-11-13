@@ -1065,9 +1065,15 @@ export class AdminService {
    * Valide (sans écrire) un fichier d'import d'actions.
    * POST /api/plans/plans/{id}/import-actions/validate/
    */
-  validateActionsImport(planId: number, file: File): Observable<ArborescenceImportReport> {
+  validateActionsImport(
+    planId: number, file: File, appariements?: Record<string, number>,
+  ): Observable<ArborescenceImportReport> {
     const formData = new FormData();
     formData.append('file', file);
+    // #770 — appariements choisis à l'étape « Correspondance avec Gestref ».
+    if (appariements && Object.keys(appariements).length) {
+      formData.append('appariements', JSON.stringify(appariements));
+    }
     return this.http
       .post<ArborescenceImportReport>(
         `${this.plansApiUrl}/plans/${planId}/import-actions/validate/`,
@@ -1081,9 +1087,14 @@ export class AdminService {
    * POST /api/plans/plans/{id}/import-actions/
    * Ne passe PAS par `handleError` : le rapport 400 est lu via `err.error`.
    */
-  importActions(planId: number, file: File): Observable<ArborescenceImportResult> {
+  importActions(
+    planId: number, file: File, appariements?: Record<string, number>,
+  ): Observable<ArborescenceImportResult> {
     const formData = new FormData();
     formData.append('file', file);
+    if (appariements && Object.keys(appariements).length) {
+      formData.append('appariements', JSON.stringify(appariements));
+    }
     return this.http.post<ArborescenceImportResult>(
       `${this.plansApiUrl}/plans/${planId}/import-actions/`,
       formData,
