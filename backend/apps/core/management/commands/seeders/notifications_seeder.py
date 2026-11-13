@@ -296,6 +296,83 @@ class NotificationsSeeder(BaseSeeder):
             },
         ]
 
+    @staticmethod
+    def _notifications_recentes(users: List[Role]) -> List[Dict]:
+        """Types de notification apparus depuis : transition CSRPN (#277),
+        première connexion (#706), types d'action à actualiser (#751)."""
+        def plan(nom):
+            return PlanGestion.objects.filter(nom__icontains=nom).order_by('id_pg').first()
+
+        par_email = {u.email: u for u in users}
+        admin_cen = par_email.get('admin.cen@test.fr')
+        admin_rnf = par_email.get('admin.rnf@test.fr')
+        referent_camargue = par_email.get('referent.camargue@test.fr')
+        externe = Role.objects.filter(email='redacteur.externe@test.fr').first()
+        aiguilles = plan('Aiguilles Rouges 2027-2037')
+        grand_voyeux = plan('Grand-Voyeux 2022-2032')
+        camargue = plan('Plan de gestion 2020-2030 - Camargue')
+
+        donnees = [
+            {
+                'recipient': admin_rnf,
+                'notification_type': 'plan_csrpn_transition',
+                'title': 'Avis du CSRPN rendu',
+                'message': (f"Le plan « {aiguilles.nom if aiguilles else 'Aiguilles Rouges'} » "
+                            "attend la validation du comité consultatif."),
+                'priority': 'high',
+                'related_plan': aiguilles,
+                'action_url': f'/plans/{aiguilles.slug}' if aiguilles else None,
+                'read': False,
+            },
+            {
+                'recipient': admin_cen,
+                'notification_type': 'plan_csrpn_transition',
+                'title': 'Plan envoyé pour avis du CSRPN',
+                'message': (f"Le plan « {grand_voyeux.nom if grand_voyeux else 'Grand-Voyeux'} » "
+                            "a été envoyé pour avis du CSRPN."),
+                'priority': 'high',
+                'related_plan': grand_voyeux,
+                'action_url': f'/plans/{grand_voyeux.slug}' if grand_voyeux else None,
+                'read': True,
+            },
+            {
+                'recipient': referent_camargue,
+                'notification_type': 'referentiel_actions',
+                'title': "Types d'action à actualiser",
+                'message': ("Le référentiel des types d'action a changé : 3 actions de vos plans "
+                            "ont été actualisées automatiquement. Aucune ne demande de choix."),
+                'priority': 'medium',
+                'related_plan': camargue,
+                'action_url': '/actions-a-actualiser',
+                'read': True,
+            },
+            {
+                'recipient': admin_rnf,
+                'notification_type': 'referentiel_actions_suivi',
+                'title': "Types d'action actualisés par un autre référent",
+                'message': ("Jean Martin a actualisé le type d'action de 2 actions "
+                            "du plan Camargue."),
+                'priority': 'low',
+                'related_plan': camargue,
+                'related_user': referent_camargue,
+                'action_url': '/actions-a-actualiser',
+                'read': True,
+            },
+        ]
+        if externe is not None:
+            donnees.append({
+                'recipient': par_email.get('admin@test.fr'),
+                'notification_type': 'user_first_login',
+                'title': "Première connexion d'un utilisateur",
+                'message': (f"{externe.get_full_name() or externe.email} "
+                            "(bureau d'études) s'est connecté pour la première fois."),
+                'priority': 'low',
+                'related_user': externe,
+                'action_url': '/administration/utilisateurs',
+                'read': False,
+            })
+        return [d for d in donnees if d['recipient'] is not None]
+
     def seed(self) -> List[Notification]:
         """
         Crée les notifications de test.
@@ -311,6 +388,7 @@ class NotificationsSeeder(BaseSeeder):
         organismes = self.context.require('organismes')
 
         notifications_data = self._get_notifications_data(users, sites, plans, organismes)
+        notifications_data += self._notifications_recentes(users)
 
         notifications = []
         for notif_data in notifications_data:

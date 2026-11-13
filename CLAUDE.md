@@ -654,6 +654,7 @@ backend/apps/core/management/commands/
     ├── users_seeder.py           # 17 utilisateurs (dont rédacteur externe #718)
     ├── plans_seeder.py           # 9 plans de gestion + chaînes de versions
     ├── suivi_versions_seeder.py  # 2 chaînes v1 → v2 au même rang : le suivi suit (#803)
+    ├── plans_complets_seeder.py  # plans réalistes : financeurs, types complémentaires, planification ajustée, appariements
 ├── ventilation_plans_seeder.py  # 6 plans « Ventilation — … » (1 par mode) + 6 jumeaux validés (#720)
     ├── pending_users_seeder.py   # 3 PendingUser
     ├── validation_requests_seeder.py  # 32 demandes de validation
@@ -1432,6 +1433,13 @@ Run `docker compose exec web python manage.py seed_testdata` to create:
   - *Suivi entre versions — à valider (v1)* (validé, suivi saisi) → *(v2)* (brouillon) : valider la v2 fait passer le suivi.
   - *Suivi entre versions — déjà basculé (v1)* (archivé, bandeau « Le suivi se poursuit… ») → *(v2)* (modifié, porte le suivi) ; l'année N-1 de CS1 avait été ressaisie dans la v2 (« Ressaisi dans la v2 avant sa validation ») : elle prime, celle de la v1 y reste.
   - Verrouillé par `tests/apps/core/test_seed_coherence_ventilation.py`.
+- **Plans réalistes au niveau des derniers chantiers** — seeder `plans_complets` (`--only=plans_complets`), sur Camargue, Aiguilles Rouges, Vercors-Écrins, Lacs et zones humides, Scandola, Remoray et Brouage, sans toucher à leur programmation :
+  - **Financeurs (#790)** : montant prévu par financeur sur chaque action (réparti sur `budget_prevu()`, 60 / 40 ou 50 / 30 / 20), réalisé annuel au prorata du niveau. Cas de recette : *AR-PR01* (montants = 80 % du budget → alerte `ecart_budget`), mécénat à catégorie libre (*Fondation Nature & Découvertes*, CAM-SE02 / REM-TU06 / VER-CC01), financeur non prévu au suivi N-1 (*Commune des Saintes-Maries-de-la-Mer*, CAM-IP02), **Brouage sans montants** (facultatifs).
+  - **Types complémentaires (#792)** : une action sur deux hors CS (surveillance → sensibilisation, entretien → animation, restauration → entretien + animation).
+  - **Planification ajustée (#794)** de l'année en cours : *Camargue* — CAM-SE01 revue sans changement, CAM-SE02 revue à −15 % (mois d'automne, financeurs de l'année), CAM-GE01 non prévue, CAM-IP01 **reportée en totalité** (suite décalée, dernière année abandonnée), CAM-IP02 / CAM-TRANS01 à revoir ; *Aiguilles Rouges* — AR-CS01 revue ajustée, AR-CC01 **report partiel** ; *Vercors-Écrins* — VER-CS01 reportée, VER-PR01 revue. Une année reportée ne garde que le niveau « Reporté », une année non prévue aucun réalisé.
+  - **Appariements (#770)** : référentiel propre de RNF et du CEN AURA vers Gestref, proposé à l'import des actions de leurs plans.
+  - Les autres seeders suivent : **dernière activité** variée des comptes (#771, `DERNIERE_ACTIVITE_HEURES` ; `test@example.com` jamais connecté), notifications `plan_csrpn_transition`, `user_first_login`, `referentiel_actions(_suivi)`, journal de l'instance (`entity_type='instance'` : connexion GeoNature, paramètres, partage hub, simulation de passage), journal idempotent.
+  - Verrouillé par `tests/apps/core/test_seed_plans_complets.py` (seed relancé deux fois).
 - **FCR avec OO non relié (#731)** : dans le brouillon *Plan de gestion 2023-2033 - Lacs et zones humides continentales*, le FCR *Intégration dans les politiques territoriales* a son propre facteur d'influence et sa pression, et deux OO directs : l'un relié à cette pression, l'autre (*Siéger à la commission locale de l'eau du SAGE*) relié à aucune → alerte persistante en « Stratégie opérationnelle » (`fcrOosSansPression()`, `enjeux-list`) tant qu'un OO reste sans pression.
 - **Suivi autonome « Suivi des prairies humides » (#715)** : suivi/inventaire sans plan (donc modifiable), type CS5, cible *Habitats et végétations* avec un habitat structuré (EUNIS E3.4), **2 protocoles** dont le premier porte période de suivi + documentation. Support de recette du suivi partagé entre le module Inventaires et la fiche action (rattachement depuis une action CS5). Les suivis autonomes du seeder `enjeux` ne sont plus recréés s'ils existent déjà.
 - **Django Groups**: Super Administrateurs, Administrateurs Organisme, Utilisateurs

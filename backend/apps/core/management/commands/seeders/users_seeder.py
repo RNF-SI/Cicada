@@ -23,6 +23,26 @@ REAL_TEST_EMAIL = 'test@example.com'
 REDACTEUR_EXTERNE_EMAIL = 'redacteur.externe@test.fr'
 
 
+#: #771 — dernière activité des comptes de test, en heures avant le seed.
+#: Absent = jamais connecté (« test@example.com », comptes en attente…).
+DERNIERE_ACTIVITE_HEURES = {
+    'admin@test.fr': 0.2,
+    'admin.rnf@test.fr': 3,
+    'admin.cen@test.fr': 26,
+    'referent.camargue@test.fr': 5,
+    'referent.vercors@test.fr': 24 * 9,
+    'user.rnf@test.fr': 24 * 2,
+    'user.cen@test.fr': 24 * 45,
+    'redacteur.principal@test.fr': 24 * 4,
+    'ancien.rnf@test.fr': 24 * 420,
+    'ancien.cen@test.fr': 24 * 200,
+    'stagiaire.dreal@test.fr': 24 * 95,
+    'deletion.recent@test.fr': 24 * 3,
+    'deletion.old@test.fr': 24 * 40,
+    'redacteur.externe@test.fr': 24,
+}
+
+
 class UsersSeeder(BaseSeeder):
     """
     Crée les utilisateurs de test avec différents rôles.
@@ -367,6 +387,13 @@ class UsersSeeder(BaseSeeder):
                     'pending_validation': is_pending,
                     'deletion_requested_at': deletion_requested_at,
                     'cgu_acceptees_le': cgu_acceptees_le,
+                    # #771 — dernière activité variée : la liste des
+                    # utilisateurs montre des comptes actifs, endormis et jamais
+                    # connectés (repli sur last_login, vide ici).
+                    'derniere_activite': (
+                        None if user_data['email'] not in DERNIERE_ACTIVITE_HEURES
+                        else timezone.now() - timedelta(
+                            hours=DERNIERE_ACTIVITE_HEURES[user_data['email']])),
                 }
             )
 

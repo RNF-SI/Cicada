@@ -414,6 +414,41 @@ class ActivityLogsSeeder(BaseSeeder):
             },
         ]
 
+    @staticmethod
+    def _journal_instance(users: List[Role]) -> List[Dict[str, Any]]:
+        """Journal de l'instance (``entity_type='instance'``, super admin
+        seulement) : connexion GeoNature (#769), partage avec le hub (#636),
+        passage de référentiel (#751)."""
+        admin = next((u for u in users if u.email == 'admin@test.fr'), users[0])
+        now = timezone.now()
+        nom = admin.get_full_name() or admin.email
+
+        def entree(entity_id, entity_name, action, description, heures, metadata=None):
+            return {
+                'entity_type': 'instance', 'entity_id': entity_id, 'entity_name': entity_name,
+                'actor': admin, 'actor_name': nom, 'action': action,
+                'description': description, 'metadata': metadata or {},
+                'visibility': 'system', 'created_at': now - timedelta(hours=heures),
+            }
+
+        return [
+            entree(1, 'Connexion GeoNature', 'update',
+                   'Réglages de connexion GeoNature modifiés (hôte, base, schéma)', 24 * 6,
+                   {'champs': ['hote', 'base', 'schema']}),
+            entree(1, 'Connexion GeoNature', 'update',
+                   'Test de la connexion GeoNature : échec (compte de lecture refusé)', 24 * 6 - 1,
+                   {'resultat': 'echec', 'cause': 'authentification'}),
+            entree(1, 'Paramètres', 'update',
+                   'Taille maximale d\'un document portée à 30 Mo', 24 * 3,
+                   {'taille_max_document_mo': 30}),
+            entree(1, 'Exploration fédérée', 'update',
+                   'Partage avec le hub activé : publication en arrière-plan', 24 * 2,
+                   {'federation_partage': True}),
+            entree(1, "Référentiel des types d'action", 'update',
+                   "Passage du référentiel des types d'action simulé (aucune donnée modifiée)", 30,
+                   {'simulation': True}),
+        ]
+
     def seed(self) -> List[ActivityLog]:
         """
         Crée les logs d'activité de test.
@@ -432,12 +467,17 @@ class ActivityLogsSeeder(BaseSeeder):
         activity_logs_data = self._get_activity_logs_data(
             users, sites, plans, organismes, validation_requests
         )
+        activity_logs_data += self._journal_instance(users)
 
         activity_logs = []
         for log_data in activity_logs_data:
             created_at = log_data.pop('created_at')
 
-            log = ActivityLog.objects.create(**log_data)
+            # Idempotent : relancer le seed ne double pas le journal.
+            log = ActivityLog.objects.filter(
+                entity_type=log_data['entity_type'], action=log_data['action'],
+                description=log_data['description'],
+            ).order_by('pk').first() or ActivityLog.objects.create(**log_data)
             # Mettre à jour created_at manuellement
             ActivityLog.objects.filter(pk=log.pk).update(created_at=created_at)
             log.refresh_from_db()
