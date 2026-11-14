@@ -27,7 +27,7 @@
     "@angular/platform-browser-dynamic": "^22.2.0",
     "@angular/router": "^22.2.0",
     "@ngx-translate/core": "^17.0.0",
-    "@ngx-translate/http-loader": "^17.0.0",
+    "@ngx-translate/http-loader": "^18.1.0",
     "leaflet": "^1.9.0",
     "leaflet-draw": "^1.0.4",
     "rxjs": "~7.8.0",
