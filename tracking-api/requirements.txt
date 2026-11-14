@@ -1,6 +1,6 @@
 Django==5.2.17
 djangorestframework==3.18.2
-psycopg[binary]>=3.2.2,<3.4
+psycopg[binary]>=3.3.8,<3.4
 python-decouple==3.8
 requests>=2.32,<3
 certifi>=2026.10.18
