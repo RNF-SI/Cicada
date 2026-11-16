@@ -7,7 +7,7 @@ via PostgreSQL COPY pour la performance (~700k lignes).
 Usage:
     python manage.py import_taxref                    # Import complet (v18)
     python manage.py import_taxref --lite             # Import allégé (~8k taxons, pour dev/tests)
-    python manage.py import_taxref --version 17       # Version spécifique
+    python manage.py import_taxref --taxref-version 17       # Version spécifique
     python manage.py import_taxref --force             # Force le rechargement
     python manage.py import_taxref --cache-dir /tmp    # Répertoire de cache
 """

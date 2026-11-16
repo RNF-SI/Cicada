@@ -252,7 +252,7 @@ Chaque version est un dossier de `backend/nomenclatures_data/referentiels_versio
 - une ligne supprimée qui a un équivalent (`sure` / `probable`) ;
 - une ligne à plusieurs équivalents (`a_arbitrer` + `options`), où le référent choisit.
 
-Pour TaxRef et HabRef, **importer d'abord** la nouvelle version (`import_taxref --version …`, `import_habref`) : le passage remappe ensuite les codes, et deux anciens taxons fusionnés dans un même enjeu n'y laissent qu'une ligne.
+Pour TaxRef et HabRef, **importer d'abord** la nouvelle version (`import_taxref --taxref-version …`, `import_habref`) : le passage remappe ensuite les codes, et deux anciens taxons fusionnés dans un même enjeu n'y laissent qu'une ligne.
 
 ```bash
 docker compose exec web python manage.py passage_referentiel taxref taxref_v19              # simulation
@@ -278,6 +278,25 @@ TaxRef est le référentiel taxonomique national de l'INPN. Il contient l'ensemb
 - **Schema** : `taxonomie`
 - **Source** : `geonature.fr/data/inpn/taxonomie/TAXREF_v18_2025.zip`
 
+### Nouvelle version de TaxRef : qui fait quoi
+
+Chaque instance a **sa propre copie** de TaxRef, dans sa base. Le serveur de suivi ne distribue pas le référentiel : il distribue le **paquet CICADA**, et c'est la version de CICADA installée qui fixe la version de TaxRef attendue.
+
+| Étape | Qui | Où | Ce qui se passe |
+|---|---|---|---|
+| 1. Choisir la version | L'équipe CICADA | Le code (`DEFAULT_VERSION` de `import_taxref`) + le dossier de correspondances `referentiels_versions/taxref/` | Une release de CICADA embarque « TaxRef vN » et la table des `cd_nom` qui changent depuis la version précédente |
+| 2. Installer la release | L'administrateur de l'instance | *Administration › Mise à jour* (bouton) | Le paquet vient du dépôt APT du serveur de suivi, comme toute mise à jour |
+| 3. Télécharger TaxRef | L'instance, automatiquement | Au démarrage (`import_taxref`) | L'instance voit que la vN n'est pas installée et la **télécharge elle-même depuis `geonature.fr`** (~100 Mo, plusieurs minutes), puis remplace la table `taxonomie.taxref` |
+| 4. Faire suivre les données des plans | Le super admin de l'instance | *Administration › Référentiels* › TaxRef | Simulation puis application du passage : les taxons des enjeux et des responsabilités de site sont remappés, les cas ambigus sont signalés aux référents (page « éléments à actualiser ») |
+
+Conséquences pratiques :
+
+- **Aucune commande à lancer sur le serveur** : l'étape 3 est automatique, l'étape 4 se fait dans l'interface.
+- **L'instance doit pouvoir joindre `geonature.fr` en HTTPS** au démarrage qui suit la mise à jour. Sans accès sortant, l'import échoue sans bloquer le démarrage : l'instance garde l'ancienne version. Voir [Troubleshooting](#taxref--import-échoue-au-téléchargement) pour déposer l'archive à la main.
+- **Chaque instance passe à son rythme**, quand son administrateur installe la release. Deux instances peuvent donc avoir des versions différentes de TaxRef pendant un temps. La fédération n'en souffre pas : le hub garde toutes les versions et leurs correspondances.
+- **Les taxons déjà saisis ne sont jamais perdus** par le rechargement : les plans conservent le `cd_nom` et une copie du nom, pas une clé étrangère vers `taxonomie.taxref`. Tant que l'étape 4 n'est pas faite, ils affichent simplement le nom de l'ancienne version.
+- Une instance **en retard de plus d'une version** passe sans aide : seule la table du dernier passage est livrée (voir [Un seul passage livré par référentiel](#un-seul-passage-livré-par-référentiel-791)).
+
 ### Tables
 
 | Table | Description | Taille |
@@ -299,7 +318,7 @@ docker compose exec web python manage.py import_taxref
 docker compose exec web python manage.py import_taxref --lite
 
 # Version spécifique
-docker compose exec web python manage.py import_taxref --version 17
+docker compose exec web python manage.py import_taxref --taxref-version 17
 
 # Forcer le rechargement
 docker compose exec web python manage.py import_taxref --force

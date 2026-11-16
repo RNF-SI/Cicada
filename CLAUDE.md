@@ -600,7 +600,7 @@ docker compose exec web python manage.py import_nomenclatures --force --prune # 
 docker compose exec web python manage.py import_habref                 # HabRef (auto au démarrage)
 docker compose exec web python manage.py import_taxref                 # TaxRef v18 complet (~700k taxons)
 docker compose exec web python manage.py import_taxref --lite          # TaxRef allégé (~8k taxons, pour dev/tests)
-docker compose exec web python manage.py import_taxref --version 17    # Version spécifique
+docker compose exec web python manage.py import_taxref --taxref-version 17    # Version spécifique
 docker compose exec web python manage.py import_taxref --force         # Forcer le rechargement
 docker compose exec web python manage.py refresh_taxref_views          # Rafraîchir vues matérialisées
 
