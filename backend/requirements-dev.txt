@@ -10,5 +10,5 @@ factory-boy==3.3.1
 
 # Code quality
 black==26.10.1
-isort==5.13.2
+isort==9.0.2
 flake8==6.1.0
