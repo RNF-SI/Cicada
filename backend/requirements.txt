@@ -27,7 +27,7 @@ redis==5.0.1
 kombu==5.6.2
 
 # Production
-gunicorn==22.0.0
+gunicorn==27.0.1
 django-redis==5.4.0
 
 # Environment management  
