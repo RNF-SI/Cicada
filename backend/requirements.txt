@@ -1,5 +1,5 @@
 # Core Django
-Django==5.2.17
+Django==6.1.3
 djangorestframework==3.18.2
 djangorestframework-simplejwt==5.5.1
 django-filter==25.2
