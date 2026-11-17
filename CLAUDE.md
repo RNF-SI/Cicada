@@ -1237,8 +1237,7 @@ The application is named **Cicada** (`ccd_` prefix for custom schemas).
    - `bib_nomenclatures_types`: Nomenclature type definitions
    - `t_nomenclatures`: Reference lists and categories
 
-4. **ref_geo schema** (GeoNature compatible): Geographic references
-   - Reserved for future use (administrative boundaries, communes, etc.)
+4. **ref_geo schema** (GeoNature compatible, adapté) : régions et départements — voir le point 12
 
 5. **general schema** (ODASE compatible): Management plans
    - `t_plan_gestion`: Management plans

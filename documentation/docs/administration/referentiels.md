@@ -644,7 +644,7 @@ Cicada utilise 12 schemas PostgreSQL :
 | `utilisateurs` | GeoNature | Utilisateurs et organismes |
 | `referentiels` | ODASE | Espaces protégés |
 | `ref_nomenclatures` | GeoNature | Nomenclatures métier |
-| `ref_geo` | GeoNature | Référentiels géographiques (futur) |
+| `ref_geo` | GeoNature (adapté) | Régions, départements et rattachement des sites — voir [Découpage administratif](#découpage-administratif-ref_geo) |
 | `general` | ODASE | Plans de gestion |
 | `fichiers` | ODASE | Fichiers attachés |
 | `ccd_commons` | Cicada | Modules et logs |
@@ -681,10 +681,97 @@ Référentiel des **régions et départements**, utilisé par le filtre « zone 
 de l'exploration des données. Les sites de CICADA n'ont aucun champ administratif : leur
 rattachement est **calculé géométriquement** à partir de leur emprise PostGIS.
 
-Le schéma reprend la structure de GeoNature (`bib_areas_types` + `l_areas`), avec deux
-écarts assumés : les géométries sont en EPSG:4326 comme le reste de CICADA (GeoNature les
-stocke dans le SRID local), et `l_areas.id_area_parent` matérialise le lien
-département → région, nécessaire à l'arbre du filtre.
+### Pourquoi ce référentiel
+
+- **Filtrer l'exploration par territoire** : retrouver les plans, enjeux ou actions d'une
+  région ou d'un département. Un site ne porte qu'une géométrie ; sans référentiel des
+  contours, ce filtre n'est pas possible.
+- **Rattacher une fois, pas à chaque recherche** : intersecter tous les sites avec les
+  contours à chaque requête coûterait trop cher. Le rattachement est calculé quand la
+  géométrie d'un site change et stocké dans `cor_site_area`. L'index de recherche en
+  recopie les zones sur chaque document (`area_ids`, `apps/search/indexing.py`).
+- **Parler la même langue que le hub** : les identifiants `id_area` sont tirés localement
+  par chaque instance. Vers le hub, les zones sont publiées en **codes préfixés par leur
+  type** (`DEP:38`, `REG:84`, `_codes_zones()` dans `apps/search/push.py`) — le préfixe
+  est nécessaire, « 93 » désignant à la fois un département et une région. Le hub
+  re-résout ces codes dans sa propre copie de `ref_geo` (`hub/apps/geo/`), importée
+  depuis **le même fichier** GeoJSON, monté en lecture seule (`docker-compose.hub.yml`) :
+  deux fichiers différents produiraient des zones introuvables sans aucune erreur.
+- **Rester compatible avec l'écosystème GeoNature** : comme `utilisateurs`,
+  `ref_nomenclatures` ou `taxonomie`, le schéma reprend les noms de tables et de colonnes
+  de GeoNature, pour qu'un développeur qui connaît GeoNature s'y retrouve.
+
+### Implémentation Django (`apps.geo`)
+
+Ce sont des **modèles Django ordinaires** (gérés par Django, `managed` par défaut) :
+CICADA **crée ses propres tables** par sa migration `apps/geo/migrations/0001_initial.py`
+et ne se branche pas sur un `ref_geo` GeoNature existant. Le schéma PostgreSQL est imposé
+par `db_table`, et `ref_geo` figure dans le `search_path` (`config/settings/base.py`) :
+
+```python
+class LArea(models.Model):
+    id_area = models.AutoField(primary_key=True)
+    id_type = models.ForeignKey(AreaType, on_delete=models.CASCADE, db_column='id_type')
+    area_code = models.CharField(max_length=25)           # code INSEE
+    area_name = models.CharField(max_length=250)
+    parent = models.ForeignKey('self', null=True, on_delete=models.SET_NULL,
+                               db_column='id_area_parent')  # ajout CICADA
+    geom = gis_models.MultiPolygonField(srid=4326)
+    centroid = gis_models.PointField(srid=4326, null=True)
+    enable = models.BooleanField(default=True)
+
+    class Meta:
+        db_table = '"ref_geo"."l_areas"'
+```
+
+| Fichier (`backend/apps/geo/`) | Rôle |
+|---|---|
+| `models.py` | `AreaType` → `bib_areas_types`, `LArea` → `l_areas`, `CorSiteArea` → `cor_site_area` |
+| `data/departements.geojson` | Contours des 109 départements en WGS 84 (source et procédure de mise à jour : `data/README.md`) |
+| `management/commands/import_ref_geo.py` | Importe les départements, **reconstruit les régions par `ST_Union`** des départements de même `reg_code` (les deux niveaux coïncident donc exactement), puis recalcule le rattachement des sites |
+| `services.py` | `compute_areas_for_site()` (calcul sans écriture), `refresh_site_areas()` (réécriture des liens d'un site, en transaction), `refresh_all_site_areas()` |
+| `signals.py` | `pre_save` / `post_save` sur `Site` : recalcul **seulement si la géométrie change** (comparaison EWKB) |
+| `management/commands/refresh_site_areas.py` | Recalcul à la main |
+| `views.py`, `urls.py` | `GET /api/geo/zones/` : arbre régions → départements pour le filtre |
+
+Côté exploration, le filtre se réduit à une jointure de l'ORM
+(`apps/search/filters.py`) :
+
+```python
+queryset.filter(sites__site__areas__id_area__in=zones)
+```
+
+Règles de calcul (`services.py`) :
+
+1. géométrie de référence : le polygone du site (`geom`), à défaut son point
+   (`geom_pt`) ;
+2. départements dont la géométrie **intersecte** celle du site (`geom__intersects`),
+   puis leurs régions via `parent` ;
+3. aucune intersection : département le plus proche à moins de 1° (`geom__dwithin` puis
+   tri par `Distance`), lien marqué `nearest` ; au-delà, aucun rattachement ;
+4. les liens `manual` ne sont jamais supprimés par un recalcul.
+
+### Écarts avec le `ref_geo` de GeoNature
+
+| Point | GeoNature | CICADA |
+|---|---|---|
+| Projection des géométries | SRID local (Lambert 93 en métropole) | **EPSG:4326**, comme `Site.geom` : l'intersection se fait sans reprojection |
+| Lien département → région | pas de colonne directe | **colonne ajoutée** `l_areas.id_area_parent` (FK sur `l_areas`), l'arbre du filtre ayant deux niveaux |
+| Rattachement des objets métier | tables propres à GeoNature | **table propre à CICADA** `cor_site_area` (site ↔ zone, `source`) |
+| Types de zones | communes, départements, mailles, zonages… | **`REG` et `DEP` seulement** |
+| Colonnes | jeu complet (métadonnées, données additionnelles…) | **sous-ensemble** : `bib_areas_types` (`type_code`, `type_name`, `type_desc`), `l_areas` (`area_code`, `area_name`, `geom`, `centroid`, `enable`, `id_area_parent`) + unicité (`id_type`, `area_code`) |
+| Données | importées depuis les sources IGN | GeoJSON embarqué dans le dépôt, régions recalculées |
+
+!!! tip "Réutiliser `apps.geo` dans un autre projet"
+    - **Projet Django sans GeoNature** : copier `apps/geo/`, remplacer `users.Site` par
+      son modèle porteur de géométrie dans `CorSiteArea` et `signals.py`, ajouter `ref_geo`
+      au `search_path` et créer le schéma (la migration le fait par
+      `CREATE SCHEMA IF NOT EXISTS`).
+    - **Base qui contient déjà le `ref_geo` de GeoNature** : la migration ne convient pas
+      — elle créerait des tables déjà présentes, avec une autre projection et une colonne
+      en plus. Il faut des modèles `managed = False` calqués sur les tables existantes,
+      un lien département → région reconstruit autrement, et des requêtes de rattachement
+      qui reprojettent (`ST_Transform`) la géométrie du site vers le SRID local.
 
 ### Tables
 
