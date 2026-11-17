@@ -675,157 +675,119 @@ L'autocomplete sur 700k taxons fonctionne en <50ms grâce à :
 
 ## Découpage administratif (`ref_geo`)
 
-### Présentation
+### En bref
 
-Référentiel des **régions et départements**, utilisé par le filtre « zone géographique »
-de l'exploration des données. Les sites de CICADA n'ont aucun champ administratif : leur
-rattachement est **calculé géométriquement** à partir de leur emprise PostGIS.
+`ref_geo` contient les **26 régions et 109 départements** français, et le **rattachement
+de chaque site** à ses départements et régions. Il sert à filtrer l'exploration des données
+par territoire.
 
-### Pourquoi ce référentiel
+Il reprend la structure du `ref_geo` de GeoNature, en version réduite. C'est l'app Django
+`backend/apps/geo/` qui le crée et le remplit : CICADA ne lit pas le `ref_geo` d'une base
+GeoNature.
 
-- **Filtrer l'exploration par territoire** : retrouver les plans, enjeux ou actions d'une
-  région ou d'un département. Un site ne porte qu'une géométrie ; sans référentiel des
-  contours, ce filtre n'est pas possible.
-- **Rattacher une fois, pas à chaque recherche** : intersecter tous les sites avec les
-  contours à chaque requête coûterait trop cher. Le rattachement est calculé quand la
-  géométrie d'un site change et stocké dans `cor_site_area`. L'index de recherche en
-  recopie les zones sur chaque document (`area_ids`, `apps/search/indexing.py`).
-- **Parler la même langue que le hub** : les identifiants `id_area` sont tirés localement
-  par chaque instance. Vers le hub, les zones sont publiées en **codes préfixés par leur
-  type** (`DEP:38`, `REG:84`, `_codes_zones()` dans `apps/search/push.py`) — le préfixe
-  est nécessaire, « 93 » désignant à la fois un département et une région. Le hub
-  re-résout ces codes dans sa propre copie de `ref_geo` (`hub/apps/geo/`), importée
-  depuis **le même fichier** GeoJSON, monté en lecture seule (`docker-compose.hub.yml`) :
-  deux fichiers différents produiraient des zones introuvables sans aucune erreur.
-- **Rester compatible avec l'écosystème GeoNature** : comme `utilisateurs`,
-  `ref_nomenclatures` ou `taxonomie`, le schéma reprend les noms de tables et de colonnes
-  de GeoNature, pour qu'un développeur qui connaît GeoNature s'y retrouve.
+### Pourquoi
 
-### Implémentation Django (`apps.geo`)
+1. **Filtrer par territoire.** Un site n'a qu'une géométrie, aucun champ « département ».
+   Pour proposer « les plans de l'Isère », il faut les contours des départements.
+2. **Calculer une fois, pas à chaque recherche.** Croiser tous les sites avec les contours
+   à chaque requête serait trop lent. Le rattachement est calculé quand la géométrie d'un
+   site change, puis stocké.
+3. **Se comprendre avec le hub.** Les identifiants `id_area` sont propres à chaque base.
+   Vers le hub, les zones partent donc en **codes** (`DEP:38`, `REG:84`) ; le hub les
+   retrouve dans sa propre copie de `ref_geo`, chargée depuis le même fichier.
 
-Ce sont des **modèles Django ordinaires** (gérés par Django, `managed` par défaut) :
-CICADA **crée ses propres tables** par sa migration `apps/geo/migrations/0001_initial.py`
-et ne se branche pas sur un `ref_geo` GeoNature existant. Le schéma PostgreSQL est imposé
-par `db_table`, et `ref_geo` figure dans le `search_path` (`config/settings/base.py`) :
+### Ce qui change par rapport à GeoNature
+
+Mêmes noms de tables et de colonnes, mais :
+
+1. **Géométries en EPSG:4326** (et non dans la projection locale), comme les sites : pas
+   de reprojection pour l'intersection.
+2. **Colonne ajoutée** `l_areas.id_area_parent` : lien département → région, pour l'arbre
+   du filtre.
+3. **Table ajoutée** `cor_site_area` : rattachement site ↔ zone, avec son origine
+   (`source`).
+4. **Contenu réduit** : types `REG` et `DEP` seulement ; colonnes limitées à `type_code`,
+   `type_name`, `type_desc` et `area_code`, `area_name`, `geom`, `centroid`, `enable`.
+5. **Données** : GeoJSON embarqué dans le dépôt, régions recalculées par `ST_Union` des
+   départements.
+
+### Les trois tables
+
+| Table | Modèle Django | Contenu |
+|---|---|---|
+| `ref_geo.bib_areas_types` | `AreaType` | Les types de zones : `REG`, `DEP` |
+| `ref_geo.l_areas` | `LArea` | Une ligne par région ou département : code INSEE, nom, contour, région parente |
+| `ref_geo.cor_site_area` | `CorSiteArea` | Une ligne par couple site ↔ zone, avec l'origine du lien |
+
+Ce sont des modèles Django ordinaires, créés par la migration
+`apps/geo/migrations/0001_initial.py`. Le schéma est imposé par `db_table`, et `ref_geo`
+figure dans le `search_path` de `config/settings/base.py` :
 
 ```python
 class LArea(models.Model):
-    id_area = models.AutoField(primary_key=True)
-    id_type = models.ForeignKey(AreaType, on_delete=models.CASCADE, db_column='id_type')
-    area_code = models.CharField(max_length=25)           # code INSEE
-    area_name = models.CharField(max_length=250)
-    parent = models.ForeignKey('self', null=True, on_delete=models.SET_NULL,
-                               db_column='id_area_parent')  # ajout CICADA
-    geom = gis_models.MultiPolygonField(srid=4326)
-    centroid = gis_models.PointField(srid=4326, null=True)
-    enable = models.BooleanField(default=True)
-
+    ...
     class Meta:
         db_table = '"ref_geo"."l_areas"'
 ```
 
-| Fichier (`backend/apps/geo/`) | Rôle |
-|---|---|
-| `models.py` | `AreaType` → `bib_areas_types`, `LArea` → `l_areas`, `CorSiteArea` → `cor_site_area` |
-| `data/departements.geojson` | Contours des 109 départements en WGS 84 (source et procédure de mise à jour : `data/README.md`) |
-| `management/commands/import_ref_geo.py` | Importe les départements, **reconstruit les régions par `ST_Union`** des départements de même `reg_code` (les deux niveaux coïncident donc exactement), puis recalcule le rattachement des sites |
-| `services.py` | `compute_areas_for_site()` (calcul sans écriture), `refresh_site_areas()` (réécriture des liens d'un site, en transaction), `refresh_all_site_areas()` |
-| `signals.py` | `pre_save` / `post_save` sur `Site` : recalcul **seulement si la géométrie change** (comparaison EWKB) |
-| `management/commands/refresh_site_areas.py` | Recalcul à la main |
-| `views.py`, `urls.py` | `GET /api/geo/zones/` : arbre régions → départements pour le filtre |
+### Comment ça marche
 
-Côté exploration, le filtre se réduit à une jointure de l'ORM
+**1. Chargement des contours** — `python manage.py import_ref_geo`, lancé à chaque
+démarrage (sans effet si les données sont déjà là). La commande lit
+`apps/geo/data/departements.geojson`, crée les départements, puis fabrique chaque région en
+fusionnant ses départements (`ST_Union`).
+
+**2. Rattachement d'un site** — `apps/geo/services.py`, déclenché automatiquement à la
+création d'un site et à chaque changement de sa géométrie (`apps/geo/signals.py`) :
+
+| Situation | Résultat | `source` |
+|---|---|---|
+| Le contour du site (ou, à défaut, son point) touche un ou plusieurs départements | ces départements **et leurs régions** | `intersect` |
+| Aucun département touché (réserve marine, géométrie au large) | le département le plus proche, à moins d'environ 110 km ; au-delà, rien | `nearest` |
+| Lien saisi à la main | conservé, jamais écrasé par un recalcul | `manual` |
+
+Un échec de calcul n'empêche jamais d'enregistrer le site ; il se rattrape avec
+`refresh_site_areas --missing`.
+
+**3. Utilisation** — le filtre de l'exploration est une simple jointure de l'ORM
 (`apps/search/filters.py`) :
 
 ```python
 queryset.filter(sites__site__areas__id_area__in=zones)
 ```
 
-Règles de calcul (`services.py`) :
+La liste des zones proposées dans le filtre vient de `GET /api/geo/zones/` (arbre régions →
+départements, sans géométries).
 
-1. géométrie de référence : le polygone du site (`geom`), à défaut son point
-   (`geom_pt`) ;
-2. départements dont la géométrie **intersecte** celle du site (`geom__intersects`),
-   puis leurs régions via `parent` ;
-3. aucune intersection : département le plus proche à moins de 1° (`geom__dwithin` puis
-   tri par `Distance`), lien marqué `nearest` ; au-delà, aucun rattachement ;
-4. les liens `manual` ne sont jamais supprimés par un recalcul.
+### Réutiliser `apps.geo` dans un autre projet
 
-### Écarts avec le `ref_geo` de GeoNature
-
-Mêmes noms de tables et de colonnes, mais :
-
-1. **Géométries en EPSG:4326** (et non dans la projection locale), comme les sites : pas de reprojection pour l'intersection.
-2. **Colonne ajoutée** `l_areas.id_area_parent` : lien département → région, pour l'arbre du filtre.
-3. **Table ajoutée** `cor_site_area` : rattachement site ↔ zone, avec son origine (`source`).
-4. **Contenu réduit** : types `REG` et `DEP` seulement ; colonnes limitées à `type_code`, `type_name`, `type_desc` et `area_code`, `area_name`, `geom`, `centroid`, `enable`.
-5. **Données** : GeoJSON embarqué dans le dépôt, régions recalculées par `ST_Union` des départements.
-
-!!! tip "Réutiliser `apps.geo` dans un autre projet"
-    - **Projet Django sans GeoNature** : copier `apps/geo/`, remplacer `users.Site` par
-      son modèle porteur de géométrie dans `CorSiteArea` et `signals.py`, ajouter `ref_geo`
-      au `search_path` et créer le schéma (la migration le fait par
-      `CREATE SCHEMA IF NOT EXISTS`).
-    - **Base qui contient déjà le `ref_geo` de GeoNature** : la migration ne convient pas
-      — elle créerait des tables déjà présentes, avec une autre projection et une colonne
-      en plus. Il faut des modèles `managed = False` calqués sur les tables existantes,
-      un lien département → région reconstruit autrement, et des requêtes de rattachement
-      qui reprojettent (`ST_Transform`) la géométrie du site vers le SRID local.
-
-### Tables
-
-| Table | Contenu |
-|---|---|
-| `ref_geo.bib_areas_types` | Types de zones : `REG`, `DEP` |
-| `ref_geo.l_areas` | 109 départements + 26 régions, avec géométrie et centroïde |
-| `ref_geo.cor_site_area` | Rattachement site ↔ zone, avec l'origine du lien |
-
-Un site rattaché à un département l'est aussi à la région correspondante, pour que le
-filtre puisse interroger indifféremment l'un ou l'autre niveau.
-
-### Origine d'un rattachement (`cor_site_area.source`)
-
-| Valeur | Signification |
-|---|---|
-| `intersect` | L'emprise du site intersecte le département. Cas normal. |
-| `nearest` | Aucune intersection terrestre (réserve marine, géométrie approximative au large) : rattachement au département le plus proche, dans la limite de 1° (~110 km). Au-delà, le site n'est rattaché à rien. |
-| `manual` | Saisie manuelle. **Jamais écrasé** par un recalcul. |
+- **Projet Django sans GeoNature** : copier `apps/geo/`, remplacer `users.Site` par son
+  propre modèle (dans `CorSiteArea` et `signals.py`), ajouter `ref_geo` au `search_path`.
+  La migration crée le schéma et les tables.
+- **Base qui contient déjà le `ref_geo` de GeoNature** : la migration ne convient pas, car
+  elle recréerait des tables qui existent déjà. Il faut des modèles `managed = False`
+  calqués sur les tables existantes, sans `id_area_parent`, et reprojeter la géométrie du
+  site vers la projection locale (`ST_Transform`) avant l'intersection.
 
 ### Commandes
 
 ```bash
-# Import du référentiel + recalcul du rattachement des sites (auto au démarrage)
+# Chargement des contours + rattachement des sites (automatique au démarrage)
 docker compose exec web python manage.py import_ref_geo
-
-# Réimport complet
-docker compose exec web python manage.py import_ref_geo --force
-
-# Import sans recalculer les sites
-docker compose exec web python manage.py import_ref_geo --no-link
+docker compose exec web python manage.py import_ref_geo --force     # tout recharger
+docker compose exec web python manage.py import_ref_geo --no-link   # sans recalculer les sites
 
 # Recalcul du rattachement seul
-docker compose exec web python manage.py refresh_site_areas
-docker compose exec web python manage.py refresh_site_areas --site 12
-docker compose exec web python manage.py refresh_site_areas --missing
-```
-
-Le rattachement est aussi recalculé automatiquement à la création d'un site et à chaque
-modification de sa géométrie (signal `apps/geo/signals.py`). Un échec de recalcul est
-journalisé sans jamais bloquer l'enregistrement du site : le rattachement peut être
-rejoué avec `refresh_site_areas --missing`.
-
-### API
-
-```bash
-GET /api/geo/zones/        # Arbre régions → départements (sans géométries)
+docker compose exec web python manage.py refresh_site_areas             # tous les sites
+docker compose exec web python manage.py refresh_site_areas --site 12   # un site
+docker compose exec web python manage.py refresh_site_areas --missing   # sites sans rattachement
 ```
 
 ### Mise à jour des contours
 
-Les données sont **versionnées dans le dépôt** plutôt que téléchargées au démarrage :
-CICADA est installé chez des clients dont les serveurs n'ont pas toujours d'accès
-Internet sortant. La procédure de mise à jour est décrite dans
-`backend/apps/geo/data/README.md`.
+Le GeoJSON est **versionné dans le dépôt** plutôt que téléchargé au démarrage : certains
+serveurs clients n'ont pas d'accès Internet sortant. Source (OpenDataSoft, découpage IGN)
+et procédure de mise à jour : `backend/apps/geo/data/README.md`.
 
 ---
 
