@@ -753,14 +753,13 @@ Règles de calcul (`services.py`) :
 
 ### Écarts avec le `ref_geo` de GeoNature
 
-| Point | GeoNature | CICADA |
-|---|---|---|
-| Projection des géométries | SRID local (Lambert 93 en métropole) | **EPSG:4326**, comme `Site.geom` : l'intersection se fait sans reprojection |
-| Lien département → région | pas de colonne directe | **colonne ajoutée** `l_areas.id_area_parent` (FK sur `l_areas`), l'arbre du filtre ayant deux niveaux |
-| Rattachement des objets métier | tables propres à GeoNature | **table propre à CICADA** `cor_site_area` (site ↔ zone, `source`) |
-| Types de zones | communes, départements, mailles, zonages… | **`REG` et `DEP` seulement** |
-| Colonnes | jeu complet (métadonnées, données additionnelles…) | **sous-ensemble** : `bib_areas_types` (`type_code`, `type_name`, `type_desc`), `l_areas` (`area_code`, `area_name`, `geom`, `centroid`, `enable`, `id_area_parent`) + unicité (`id_type`, `area_code`) |
-| Données | importées depuis les sources IGN | GeoJSON embarqué dans le dépôt, régions recalculées |
+Mêmes noms de tables et de colonnes, mais :
+
+1. **Géométries en EPSG:4326** (et non dans la projection locale), comme les sites : pas de reprojection pour l'intersection.
+2. **Colonne ajoutée** `l_areas.id_area_parent` : lien département → région, pour l'arbre du filtre.
+3. **Table ajoutée** `cor_site_area` : rattachement site ↔ zone, avec son origine (`source`).
+4. **Contenu réduit** : types `REG` et `DEP` seulement ; colonnes limitées à `type_code`, `type_name`, `type_desc` et `area_code`, `area_name`, `geom`, `centroid`, `enable`.
+5. **Données** : GeoJSON embarqué dans le dépôt, régions recalculées par `ST_Union` des départements.
 
 !!! tip "Réutiliser `apps.geo` dans un autre projet"
     - **Projet Django sans GeoNature** : copier `apps/geo/`, remplacer `users.Site` par
